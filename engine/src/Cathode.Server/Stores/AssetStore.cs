@@ -133,16 +133,11 @@ public sealed class AssetStore {
     }
 
     public async Task<AssetInfo> AddAsync(Stream content, string name, CancellationToken cancellationToken) {
-        var kind = Path.GetExtension(name).ToLowerInvariant() switch {
-            ".nam" => "nam",
-            ".aidax" or ".json" => "aidax",
-            ".wav" => "ir",
-            ".cabgrid" => "cabgrid",
-            _ => throw new RigException(
+        var kind = KindOf(name)
+            ?? throw new RigException(
                 415,
                 $"Unsupported asset '{name}': upload a .nam or .aidax model, a .wav impulse response or a .cabgrid IR pack."
-            )
-        };
+            );
 
         var temporary = Path.Combine(folder, $"upload-{Guid.NewGuid():n}.tmp");
         long size = 0;
@@ -228,6 +223,16 @@ public sealed class AssetStore {
             : slot.StartsWith("slot", StringComparison.Ordinal)
                 ? kind is "ir" or "cabgrid"
                 : kind == "ir";
+
+    /// <summary>The kind of asset a file named <paramref name="name" /> is, by its extension; null if none.</summary>
+    public static string? KindOf(string name) =>
+        Path.GetExtension(name).ToLowerInvariant() switch {
+            ".nam" => "nam",
+            ".aidax" or ".json" => "aidax",
+            ".wav" => "ir",
+            ".cabgrid" => "cabgrid",
+            _ => null
+        };
 
     /// <summary>
     ///     The extension a stored asset of <paramref name="kind" /> gets. The amp picks the model runtime by extension.
