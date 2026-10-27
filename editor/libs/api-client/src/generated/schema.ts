@@ -79,7 +79,7 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
-    /** Turns the tuner on (bypassed = false) or off. */
+    /** Turns the tuner on (bypassed = false) or off for a client (the id it also opens /ws?client= with): it runs while any client has it on. Without a client, off turns it off for everyone. */
     put: operations['SetTuner'];
     post?: never;
     delete?: never;
@@ -96,7 +96,7 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
-    /** Starts or stops scope frames (the engine's output waveform) on the WebSocket. */
+    /** Starts or stops scope frames (the engine's output waveform) on the WebSocket for a client (the id it also opens /ws?client= with): they flow while any client has the scope on. Without a client, off stops them for everyone. */
     put: operations['SetScope'];
     post?: never;
     delete?: never;
@@ -113,7 +113,7 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
-    /** Starts or stops RTA frames on the WebSocket (the output's spectrum, or the RTA block's while a preset has one) and sets the bands, decay and window. */
+    /** Starts or stops RTA frames on the WebSocket (the output's spectrum, or the RTA block's while a preset has one) for a client (the id it also opens /ws?client= with), and sets the bands, decay and window. They flow while any client has the RTA on; without a client, off stops them for everyone. */
     put: operations['SetRta'];
     post?: never;
     delete?: never;
@@ -2745,7 +2745,9 @@ export interface operations {
   };
   SetTuner: {
     parameters: {
-      query?: never;
+      query?: {
+        client?: string;
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -2767,7 +2769,9 @@ export interface operations {
   };
   SetScope: {
     parameters: {
-      query?: never;
+      query?: {
+        client?: string;
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -2789,7 +2793,9 @@ export interface operations {
   };
   SetRta: {
     parameters: {
-      query?: never;
+      query?: {
+        client?: string;
+      };
       header?: never;
       path?: never;
       cookie?: never;

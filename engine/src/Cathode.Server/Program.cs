@@ -49,6 +49,7 @@ builder.Services.AddSingleton<EventHub>();
 builder.Services.AddSingleton<EngineConnection>();
 builder.Services.AddSingleton<IEngineSync>(static s => s.GetRequiredService<EngineConnection>());
 builder.Services.AddHostedService(static s => s.GetRequiredService<EngineConnection>());
+builder.Services.AddSingleton<AnalysisSubscriptions>();
 builder.Services.AddSingleton<GlobalStore>();
 builder.Services.AddSingleton<LiveRig>();
 builder.Services.AddSingleton<IrTools>();

@@ -448,46 +448,62 @@ public static class CathodeApi {
 
         api.MapPut(
                 "/tuner",
-                (BypassRequest request, IEngineSync engine) => {
-                    engine.SetTuner(!request.Bypassed);
+                (BypassRequest request, AnalysisSubscriptions analysis, string? client) => {
+                    analysis.SetTuner(client, !request.Bypassed);
                     return TypedResults.NoContent();
                 }
             )
             .WithName("SetTuner")
-            .WithSummary("Turns the tuner on (bypassed = false) or off.");
+            .WithSummary(
+                "Turns the tuner on (bypassed = false) or off for a client (the id it also opens /ws?client= with): it runs while any client has it on. Without a client, off turns it off for everyone."
+            );
 
         api.MapPut(
                 "/scope",
-                (ScopeRequest request, EngineConnection engine) => {
-                    engine.ScopeEnabled = request.Enabled;
+                (ScopeRequest request, AnalysisSubscriptions analysis, string? client) => {
+                    analysis.SetScope(client, request.Enabled);
                     return TypedResults.NoContent();
                 }
             )
             .WithName("SetScope")
-            .WithSummary("Starts or stops scope frames (the engine's output waveform) on the WebSocket.");
+            .WithSummary(
+                "Starts or stops scope frames (the engine's output waveform) on the WebSocket for a client (the id it also opens /ws?client= with): they flow while any client has the scope on. Without a client, off stops them for everyone."
+            );
 
         api.MapPut(
                 "/rta",
-                (RtaRequest request, EngineConnection engine) => {
-                    engine.SetRta(request);
+                (RtaRequest request, AnalysisSubscriptions analysis, string? client) => {
+                    analysis.SetRta(client, request);
                     return TypedResults.NoContent();
                 }
             )
             .WithName("SetRta")
             .WithSummary(
-                "Starts or stops RTA frames on the WebSocket (the output's spectrum, or the RTA block's while a preset has one) and sets the bands, decay and window."
+                "Starts or stops RTA frames on the WebSocket (the output's spectrum, or the RTA block's while a preset has one) for a client (the id it also opens /ws?client= with), and sets the bands, decay and window. They flow while any client has the RTA on; without a client, off stops them for everyone."
             );
 
         app.Map(
                 "/ws",
-                async (HttpContext http, EventHub hub) => {
+                async (HttpContext http, EventHub hub, AnalysisSubscriptions analysis) => {
                     if (!http.WebSockets.IsWebSocketRequest) {
                         http.Response.StatusCode = StatusCodes.Status400BadRequest;
                         return;
                     }
 
+                    // ?client= names the editor, so the tuner, scope and RTA it leaves on are released with its socket.
+                    var client = http.Request.Query["client"].ToString();
                     using var socket = await http.WebSockets.AcceptWebSocketAsync();
-                    await hub.ServeAsync(socket, http.RequestAborted);
+                    if (client.Length > 0) {
+                        analysis.Join(client);
+                    }
+
+                    try {
+                        await hub.ServeAsync(socket, http.RequestAborted);
+                    } finally {
+                        if (client.Length > 0) {
+                            analysis.Leave(client);
+                        }
+                    }
                 }
             )
             .ExcludeFromDescription();

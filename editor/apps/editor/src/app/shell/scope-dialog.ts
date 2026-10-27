@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, effect, inject, model, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CthRta, CthScope } from '@cathode/audio-ui';
 import { XuiDialogImports } from '@xui/dialog';
 import { XuiSegmentedControlImports } from '@xui/segmented-control';
@@ -108,7 +109,12 @@ export class ScopeDialog {
   protected readonly rtaSource = () =>
     this.events.rta?.source === 'block' ? 'RTA block, wherever it sits on the grid' : 'Output, left channel';
 
+  /** What this client last told the Server: nothing yet means both off. */
+  private sent = { scope: false, rta: false, settings: '' };
+
   constructor() {
+    // The scope and RTA are rig-wide: only changes are sent (never an "off" at startup), as this client, so another
+    // editor's analyser stays on.
     effect(() => {
       const open = this.open();
       const view = this.view();
@@ -123,10 +129,40 @@ export class ScopeDialog {
         this.events.rta = null;
       }
 
-      void this.notify.run(async () => {
-        await this.connection.client.PUT('/api/v1/scope', { body: { enabled: scope } });
-        await this.connection.client.PUT('/api/v1/rta', { body: { enabled: rta, ...settings } });
-      });
+      const key = JSON.stringify(settings);
+      const sendScope = scope !== this.sent.scope;
+      const sendRta = rta !== this.sent.rta || (rta && key !== this.sent.settings);
+      this.sent = { scope, rta, settings: rta ? key : this.sent.settings };
+      this.send(sendScope ? scope : null, sendRta ? { enabled: rta, ...settings } : null);
+    });
+    // A reconnect means the Server released what this client had on (its socket closed): turn it on again.
+    this.events.connected$.pipe(takeUntilDestroyed()).subscribe(() => {
+      const { scope, rta } = this.sent;
+      if (scope || rta) {
+        const settings = { bandsPerOctave: this.bandsPerOctave(), decayMs: this.decayMs(), window: this.window() };
+        this.send(scope || null, rta ? { enabled: true, ...settings } : null);
+      }
+    });
+  }
+
+  /** Sends the scope's on or off and the RTA's request, each only when given. */
+  private send(
+    scope: boolean | null,
+    rta: { enabled: boolean; bandsPerOctave: number; decayMs: number; window: string } | null
+  ): void {
+    if (scope === null && rta === null) {
+      return;
+    }
+
+    const query = { client: this.events.clientId };
+    void this.notify.run(async () => {
+      if (scope !== null) {
+        await this.connection.client.PUT('/api/v1/scope', { params: { query }, body: { enabled: scope } });
+      }
+
+      if (rta !== null) {
+        await this.connection.client.PUT('/api/v1/rta', { params: { query }, body: rta });
+      }
     });
   }
 }

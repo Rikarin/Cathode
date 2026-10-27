@@ -14,6 +14,18 @@ import { ConnectionService } from './connection';
 
 const MaxBackoffMs = 5_000;
 
+/** The events URL with this editor's client id, which the Server uses to release what the editor left on. */
+export function clientEventsUrl(url: string, client: string): string {
+  const withClient = new URL(url);
+  withClient.searchParams.set('client', client);
+  return withClient.toString();
+}
+
+/** A random id for this editor (crypto.randomUUID needs a secure context, which a rig on the LAN is not). */
+function newClientId(): string {
+  return Array.from({ length: 4 }, () => Math.random().toString(36).slice(2, 8)).join('');
+}
+
 /** Block `block`'s meter `meter` in a telemetry frame: every block has `peak`; some have their own meters too. */
 export function blockMeter(frame: Telemetry | null | undefined, block: string, meter: string): number | undefined {
   return frame?.blocks?.[block]?.[meter];
@@ -46,6 +58,13 @@ export class EventStream {
   readonly events$ = new Subject<RigEvent>();
   readonly connected$ = new Subject<void>();
   readonly midi$ = new Subject<MidiActivity>();
+
+  /**
+   * Who this editor is to the Server: the tuner, scope and RTA requests carry it (`?client=`), and so does the socket.
+   * They are rig-wide and run while any client has them on; when this editor's socket closes, what it left on is
+   * released, so it turns them on again after a reconnect.
+   */
+  readonly clientId = newClientId();
 
   /** The most recent telemetry frame (null until the first arrives). Not a signal, on purpose. */
   latest: Telemetry | null = null;
@@ -103,7 +122,7 @@ export class EventStream {
     }
 
     this.status.set('connecting');
-    const socket = new WebSocket(eventsUrl(connection));
+    const socket = new WebSocket(clientEventsUrl(eventsUrl(connection), this.clientId));
     this.socket = socket;
     socket.onmessage = message => this.receive(message.data);
     socket.onclose = () => {
