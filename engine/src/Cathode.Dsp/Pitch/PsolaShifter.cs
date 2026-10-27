@@ -129,26 +129,8 @@ public sealed class PsolaShifter(int voiceCount) : IDisposable {
     }
 
     void PlaceGrain(Voice voice, double centre, double t, double ratio) {
-        // Analysis marks advance in whole periods, so consecutive grains are phase-coherent with each other.
-        var target = centre - AnalysisDelay;
-        if (voice.AnalysisMark > target || target - voice.AnalysisMark > 4 * maxPeriod) {
-            voice.AnalysisMark = target;
-        }
-
-        while (voice.AnalysisMark + t <= target) {
-            voice.AnalysisMark += t;
-        }
-
-        // Overlapping Hann windows sum to the ratio; spread-out grains (lowering) are boosted towards equal power.
-        var gain = (float)(ratio >= 1 ? 1 / ratio : 1 / Math.Sqrt(ratio));
-        var first = Math.Max((long)Math.Ceiling(centre - t), now);
-        var last = (long)Math.Floor(centre + t);
-        var scale = Math.PI / t;
-        for (var j = first; j <= last; j++) {
-            var offset = j - centre;
-            var window = (float)(0.5 + 0.5 * Math.Cos(offset * scale));
-            voice.Add(j, gain * window * Interpolate(voice.AnalysisMark + offset));
-        }
+        Align(voice, centre - AnalysisDelay, t);
+        Spread(voice, centre, t, ratio, 1);
     }
 
     /// <summary>
@@ -158,7 +140,16 @@ public sealed class PsolaShifter(int voiceCount) : IDisposable {
     void PlaceGrain(Voice voice, double centre, double t, double ratio, double formant) {
         // A longer grain is placed earlier, so its source sits further back by the extra half-length.
         var half = t / formant;
-        var target = centre - AnalysisDelay - Math.Max(0, half - t);
+        Align(voice, centre - AnalysisDelay - Math.Max(0, half - t), t);
+        Spread(voice, centre, half, ratio / formant, formant);
+    }
+
+    /// <summary>
+    ///     Steps the voice's analysis mark in whole periods <paramref name="t" /> to the last one at or before
+    ///     <paramref name="target" /> (restarting there when it has strayed).
+    /// </summary>
+    void Align(Voice voice, double target, double t) {
+        // Analysis marks advance in whole periods, so consecutive grains are phase-coherent with each other.
         if (voice.AnalysisMark > target || target - voice.AnalysisMark > 4 * maxPeriod) {
             voice.AnalysisMark = target;
         }
@@ -166,8 +157,15 @@ public sealed class PsolaShifter(int voiceCount) : IDisposable {
         while (voice.AnalysisMark + t <= target) {
             voice.AnalysisMark += t;
         }
+    }
 
-        var overlap = ratio / formant;
+    /// <summary>
+    ///     Adds a Hann grain of half-length <paramref name="half" /> centred on <paramref name="centre" />, read
+    ///     from the analysis mark at <paramref name="formant" /> times the output's pace (1: unresampled), with the
+    ///     gain for an <paramref name="overlap" /> of grains.
+    /// </summary>
+    void Spread(Voice voice, double centre, double half, double overlap, double formant) {
+        // Overlapping Hann windows sum to the overlap; spread-out grains (lowering) are boosted towards equal power.
         var gain = (float)(overlap >= 1 ? 1 / overlap : 1 / Math.Sqrt(overlap));
         var first = Math.Max((long)Math.Ceiling(centre - half), now);
         var last = (long)Math.Floor(centre + half);
@@ -175,7 +173,8 @@ public sealed class PsolaShifter(int voiceCount) : IDisposable {
         for (var j = first; j <= last; j++) {
             var offset = j - centre;
             var window = (float)(0.5 + 0.5 * Math.Cos(offset * scale));
-            voice.Add(j, gain * window * Interpolate(voice.AnalysisMark + offset * formant));
+            var source = formant == 1 ? offset : offset * formant;
+            voice.Add(j, gain * window * Interpolate(voice.AnalysisMark + source));
         }
     }
 
