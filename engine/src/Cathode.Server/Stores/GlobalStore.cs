@@ -31,9 +31,7 @@ public sealed class GlobalStore {
         lock (gate) {
             var next = Copy(settings);
             change(next);
-            var temporary = path + ".tmp";
-            File.WriteAllText(temporary, JsonSerializer.Serialize(next, ContractsJsonContext.Default.GlobalSettings));
-            File.Move(temporary, path, true);
+            AtomicRename.Write(path, JsonSerializer.Serialize(next, ContractsJsonContext.Default.GlobalSettings));
             settings = next;
             result = Copy(next);
         }

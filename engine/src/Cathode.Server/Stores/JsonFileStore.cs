@@ -7,8 +7,9 @@ using System.Text.RegularExpressions;
 namespace Cathode.Server.Stores;
 
 /// <summary>
-///     One JSON file per item in a folder, written atomically (temp file then rename), so a crash never leaves a
-///     half-written file. Ids become file names and are restricted to safe characters. An <c>upgrade</c> rewrites a
+///     One JSON file per item in a folder, written atomically (a temporary file of each save's own, flushed to the disk,
+///     then renamed: <see cref="AtomicRename.Write" />), so a crash or a power cut never leaves a half-written file. Ids
+///     become file names and are restricted to safe characters. An <c>upgrade</c> rewrites a
 ///     file's JSON before it is read (a stored format's migrations, <see cref="PresetMigrations" />).
 /// </summary>
 /// <remarks>
@@ -51,14 +52,7 @@ public sealed class JsonFileStore<T>
     public bool Exists(string id) => StoreIds.IsValid(id) && File.Exists(PathOf(id));
 
     public void Save(T item) {
-        var path = PathOf(idOf(item));
-        var temporary = path + ".tmp";
-        var json = JsonSerializer.Serialize(item, typeInfo);
-        Retrying(() => {
-                File.WriteAllText(temporary, json);
-                AtomicRename.Replace(temporary, path);
-            }
-        );
+        AtomicRename.Write(PathOf(idOf(item)), JsonSerializer.Serialize(item, typeInfo));
     }
 
     public bool Delete(string id) {
@@ -78,7 +72,7 @@ public sealed class JsonFileStore<T>
 
     T? TryRead(string path) {
         try {
-            return Retrying(() => {
+            return AtomicRename.Retrying(() => {
                     using var stream = new FileStream(
                         path,
                         FileMode.Open,
@@ -94,28 +88,6 @@ public sealed class JsonFileStore<T>
             return null;
         }
     }
-
-    /// <summary>Runs a file operation, retrying a sharing violation or a denied access for up to about a second.</summary>
-    static TResult Retrying<TResult>(Func<TResult> operation) {
-        for (var attempt = 1;; attempt++) {
-            try {
-                return operation();
-            } catch (Exception e) when (e is IOException
-                                            and not FileNotFoundException
-                                            and not DirectoryNotFoundException
-                                            or UnauthorizedAccessException
-                                        && attempt < 20) {
-                Thread.Sleep(5 * attempt);
-            }
-        }
-    }
-
-    static void Retrying(Action operation) =>
-        Retrying(() => {
-                operation();
-                return true;
-            }
-        );
 }
 
 public static partial class StoreIds {

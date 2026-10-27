@@ -10,6 +10,19 @@ public sealed class GlobalStoreTests : IDisposable {
     public void Dispose() => Directory.Delete(folder, true);
 
     [Fact]
+    public void An_update_replaces_the_file_while_a_reader_holds_it() {
+        var store = new GlobalStore(Options.Create(new ServerOptions { DataDirectory = folder }));
+        store.Update(static g => g.Tempo = 100);
+        var path = Path.Combine(folder, "global.json");
+        using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)) {
+            store.Update(static g => g.Tempo = 120); // a plain File.Move is refused on Windows while it is open
+        }
+
+        Assert.Equal(120, new GlobalStore(Options.Create(new ServerOptions { DataDirectory = folder })).Get().Tempo);
+        Assert.Equal(["global.json"], Directory.EnumerateFiles(folder).Select(Path.GetFileName));
+    }
+
+    [Fact]
     public void Dual_mono_from_an_earlier_release_reads_as_copy_left_to_right() {
         File.WriteAllText(
             Path.Combine(folder, "global.json"),
