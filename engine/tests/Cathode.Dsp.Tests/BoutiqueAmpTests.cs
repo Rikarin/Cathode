@@ -158,9 +158,12 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
     public void Panels_name_the_real_controls_and_hide_the_rest() {
         Assert.Equal("Volume", Label("gain", "Chieftain"));
         Assert.Equal("Master", Label("master", "Chieftain"));
-        Assert.Equal("Cut", Label("cut", "Chieftain"));
-        Assert.Empty(Label("presence", "Chieftain"));
+        Assert.Equal("Brilliance", Label("presence", "Chieftain"));
+        Assert.Empty(Label("cut", "Chieftain"));
         Assert.Empty(Label("switch1", "Chieftain"));
+
+        Assert.Equal("Brilliance", Label("presence", "Hot Cat 30"));
+        Assert.Empty(Label("cut", "Hot Cat 30"));
 
         Assert.Equal("Edge", Label("control1", "Hot Cat 30"));
         Assert.Equal("Level", Label("control2", "Hot Cat 30"));
@@ -319,8 +322,7 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
                 Assert.True(levels[i] > levels[i - 1] - 0.1, $"{type}: knob {knob} not monotonic at step {i}");
             }
 
-            // The Hot Cat's master, as drawn, is a 100k rheostat behind 220k across the treble pot's wiper: about 1 dB.
-            var span = type == "Hot Cat 30" && knob == CircuitAmpBlock.Master ? 0.5 : 10;
+            var span = 10;
             Assert.True(
                 levels[^1] - levels[0] > span,
                 $"{type}: knob {knob} spans only {levels[^1] - levels[0]:0.0} dB"
@@ -383,9 +385,10 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
         var middle = Sweep("Chieftain", CircuitAmpBlock.Middle, 600);
         var middleLow = Sweep("Chieftain", CircuitAmpBlock.Middle, 80);
         Rising([..middle.Zip(middleLow, static (m, l) => m - l)], 3);
+        // The Brilliance (on the Presence knob) is the cut wired the other way: turning it up brings the top back.
         foreach (var type in new[] { "Chieftain", "Hot Cat 30" }) {
-            var cut = Sweep(type, CircuitAmpBlock.Cut, 5_000);
-            Assert.True(cut[0] - cut[2] > 6, $"{type}: cut takes {cut[0] - cut[2]:0.0} dB");
+            var brilliance = Sweep(type, CircuitAmpBlock.Presence, 5_000);
+            Rising(brilliance, 6);
         }
     }
 
@@ -407,6 +410,49 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
         var (tube, silicon) = (Supply(false), Supply(true));
         output.WriteLine($"B+ under drive: GZ34 {tube:0.0} V, silicon {silicon:0.0} V");
         Assert.True(silicon > tube + 5);
+    }
+
+    /// <summary>
+    ///     The Tone / Brilliance on the Presence knob is the old Cut turned round: Brilliance b renders as Cut 1 - b
+    ///     did (the pot's taper mirrored), which is what the schema-2 preset step relies on (Brilliance = 10 - Cut);
+    ///     the Cut knob does nothing on these models; and turning the control up brightens.
+    /// </summary>
+    [Theory]
+    [InlineData("Tiny Terror")]
+    [InlineData("Chieftain")]
+    [InlineData("Hot Cat 30")]
+    public void Brilliance_is_the_old_cut_turned_round(string type) {
+        var design = AmpDesign.All[TypeOf(type)].Power;
+        var pot = design.CutPot;
+        var mirrored = pot with {
+            Taper = pot.Taper switch {
+                PotTaper.Audio => PotTaper.ReverseAudio,
+                PotTaper.ReverseAudio => PotTaper.Audio,
+                _ => pot.Taper
+            }
+        };
+        var old = design with { Brilliance = false, CutPot = mirrored };
+        var input = Signals.Sine(3_000, Rate, 4_800, 0.4f);
+        foreach (var brilliance in new[] { 0.0, 0.3, 0.5, 1.0 }) {
+            var now = Render(design, new(brilliance, 0, 0.7, 0.5, 0.5, 0.5));
+            var before = Render(old, new(0.5, 0, 1 - brilliance, 0.5, 0.5, 0.5));
+            var error = now.Zip(before, static (a, b) => Math.Abs(a - b)).Max();
+            Assert.True(error < 1e-6 * now.Max(Math.Abs), $"{type} at {brilliance}: {error:g3}");
+        }
+
+        var dark = Level(type, 5_000, 1e-4f, (CircuitAmpBlock.Presence, 0f));
+        var bright = Level(type, 5_000, 1e-4f, (CircuitAmpBlock.Presence, 10f));
+        Assert.True(bright > dark + 6, $"{type}: Tone/Brilliance 0 {dark:0.0} dB, 10 {bright:0.0} dB at 5 kHz");
+        var cut = Level(type, 5_000, 1e-4f, (CircuitAmpBlock.Presence, 10f), (CircuitAmpBlock.Cut, 10f));
+        Assert.Equal(bright, cut, 6);
+
+        double[] Render(PowerAmpDesign d, PowerControls controls) {
+            var power = new PowerAmp(d, Rate);
+            power.SetSourceResistance(30e3);
+            power.Configure(controls);
+            power.Reset();
+            return [..input.Select(x => power.Tick(x))];
+        }
     }
 
     static int TypeOf(string name) => AmpDesign.All.ToList().FindIndex(a => a.Name == name);

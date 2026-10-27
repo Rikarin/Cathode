@@ -69,6 +69,37 @@ public sealed class VersioningTests {
         Assert.False(preset.Blocks[1].Channels["A"].ContainsKey("master"));
     }
 
+    /// <summary>
+    ///     The Chieftain's, Hot Cat's and Tiny Terror's Cut was their Brilliance or Tone turned the other way; schema 2
+    ///     has that control on the Presence knob, so an old channel gets Presence 10 - Cut (Cut 0, the default, when it
+    ///     was not stored) and its Cut dropped. Other models keep both.
+    /// </summary>
+    [Fact]
+    public void Schema_2_turns_the_old_cut_round_into_the_brilliance() {
+        var upgraded = PresetMigrations.Upgrade(
+            JsonNode.Parse(
+                """
+                {"schemaVersion":1,"blocks":[
+                  {"id":"amp1","type":"circuitamp","channels":{
+                    "A":{"type":27,"cut":3},"B":{"type":28},"C":{"type":63,"cut":10,"presence":2},
+                    "D":{"type":2,"cut":4,"presence":6}}}
+                ]}
+                """
+            )
+        )!;
+        var amp = upgraded.Deserialize(ContractsJsonContext.Default.Preset)!.Blocks[0].Channels;
+
+        Assert.Equal(7, amp["A"]["presence"]); // Chieftain: Cut 3 is Brilliance 7
+        Assert.Equal(10, amp["B"]["presence"]); // Hot Cat 30 at the old default, Cut 0: Brilliance 10
+        Assert.Equal(0, amp["C"]["presence"]); // Tiny Terror: Cut 10 is Tone 0 (the unused Presence is replaced)
+        Assert.All(["A", "B", "C"], c => Assert.False(amp[c].ContainsKey("cut")));
+        Assert.Equal((4f, 6f), (amp["D"]["cut"], amp["D"]["presence"])); // the AC30's Cut is a cut
+        Assert.Equal(
+            ["Chieftain", "Hot Cat 30", "Tiny Terror"],
+            [..new[] { 27, 28, 63 }.Select(static t => Cathode.Dsp.Amp.AmpDesign.All[t].Name)]
+        );
+    }
+
     [Fact]
     public void A_schema_2_amp_keeps_the_new_defaults() {
         var json = """{"schemaVersion":2,"blocks":[{"id":"amp1","type":"circuitamp","channels":{"A":{"gain":6}}}]}""";

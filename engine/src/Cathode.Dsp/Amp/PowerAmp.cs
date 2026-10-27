@@ -435,8 +435,13 @@ public sealed class PowerAmp {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void SetLoopSupply(double scale) => root.Device.Loop?.SetSupply(scale);
 
-    /// <summary>Applies the power-amp knobs; recomputes only what changed.</summary>
-    public void Configure(in PowerControls controls) {
+    /// <summary>
+    ///     Applies the power-amp knobs; recomputes only what changed. On a design whose cut is a brilliance
+    ///     (<see cref="PowerAmpDesign.Brilliance" />) the Presence knob turns the cut pot and the feedback's presence
+    ///     stays at noon.
+    /// </summary>
+    public void Configure(in PowerControls knobs) {
+        var controls = Design.Brilliance ? knobs with { Cut = knobs.Presence, Presence = 0.5 } : knobs;
         if (controls == this.controls) {
             return;
         }
@@ -1574,6 +1579,7 @@ struct PushPullStage : INonlinearDevice {
     double strappedKp;
     readonly double cutCap;
     readonly Pot cutPot;
+    readonly bool brilliance; // the cut pot's resistance rises with the knob (PowerAmpDesign.Brilliance)
     readonly Pot? shuntMaster;
     readonly double differentialResistance;
     PentodeTables tube;
@@ -1631,6 +1637,7 @@ struct PushPullStage : INonlinearDevice {
         gridStopper = design.GridStopper;
         cutCap = design.CutCap;
         cutPot = design.CutPot;
+        brilliance = design.Brilliance;
         shuntMaster = design.ShuntMaster;
         var z = phaseInverter.OutputImpedance;
         // The cut acts on the open-circuit difference that the grid network then divides against the leaks: across the
@@ -1723,7 +1730,8 @@ struct PushPullStage : INonlinearDevice {
     }
 
     /// <summary>
-    ///     The cut control (0..1): its pot from the full track (least cut) down to nothing (most); and a master across
+    ///     The cut control (0..1): its pot from the full track (least cut) down to nothing (most), or for a brilliance
+    ///     (<see cref="PowerAmpDesign.Brilliance" />) from nothing (most cut) up to the full track; and a master across
     ///     the outputs (0..1, <see cref="PowerAmpDesign.ShuntMaster" />): its track from nothing to full. Both load the
     ///     inverter's differential output resistance R_d: with the cut's r + 1/sC beside the master's R, the difference
     ///     is scaled by Z / (Z + R_d), Z = R (1 + s r C) / (1 + s (R + r) C).
@@ -1737,7 +1745,7 @@ struct PushPullStage : INonlinearDevice {
         }
 
         var rd = differentialResistance;
-        var series = cutPot.Ohms * (1 - cutPot.Fraction(amount));
+        var series = cutPot.Ohms * (brilliance ? cutPot.Fraction(amount) : 1 - cutPot.Fraction(amount));
         if (shuntMaster is not { } pot || singleEnded) {
             cut.Design(1, series * cutCap, 1, (series + rd) * cutCap, rate);
             return;

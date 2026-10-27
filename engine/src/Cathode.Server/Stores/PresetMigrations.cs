@@ -47,10 +47,23 @@ public static class PresetMigrations {
     static readonly (string Id, float Value)[] Schema1AmpDefaults = [("master", 10), ("speaker", 0)];
 
     /// <summary>
+    ///     The Amp types whose Cut became the Tone or Brilliance on the Presence knob after 1.0.0-rc.3, turning the
+    ///     other way: Chieftain, Hot Cat 30 and Tiny Terror (their indices then and now).
+    /// </summary>
+    static readonly float[] Schema1BrillianceTypes = [27, 28, 63];
+
+    /// <summary>The Amp's Cut knob's default in schema 1: 0, the brilliance's full track.</summary>
+    const float Schema1CutDefault = 0;
+
+    /// <summary>The top of the Amp's knobs (Cut, Presence): 10.</summary>
+    const float KnobTop = 10;
+
+    /// <summary>
     ///     Schema 2 (after 1.0.0-rc.3) changes the Amp: the Power Tube choice 5881, the 6L6GC under another name, is
-    ///     gone; so are Triode 1 Plate Freq and Master Cap, which did nothing on any model; and a new Amp starts at
-    ///     Master 5 with its speaker load following the Cab. Every Amp channel is brought over so it sounds the same
-    ///     (<see cref="UpgradeAmpBlock" />).
+    ///     gone; so are Triode 1 Plate Freq and Master Cap, which did nothing on any model; a new Amp starts at
+    ///     Master 5 with its speaker load following the Cab; and the Chieftain's, Hot Cat's and Tiny Terror's Cut,
+    ///     their Brilliance or Tone turned the other way, is that control on the Presence knob. Every Amp channel is
+    ///     brought over so it sounds the same (<see cref="UpgradeAmpBlock" />).
     /// </summary>
     static JsonObject ToSchema2(JsonObject preset) {
         foreach (var amp in Amps(preset["blocks"])) {
@@ -106,8 +119,9 @@ public static class PresetMigrations {
 
     /// <summary>
     ///     A schema-1 Amp channel's values brought to schema 2: a Power Tube of 5881 becomes the 6L6GC, the removed
-    ///     parameters' values are dropped, and the defaults that changed are written in at their old values. Run it
-    ///     once per schema-1 channel: a schema-2 channel without a Master means Master 5.
+    ///     parameters' values are dropped, the defaults that changed are written in at their old values, and on a
+    ///     Chieftain, Hot Cat 30 or Tiny Terror the Cut (0 when absent) becomes the Presence knob's Tone or Brilliance
+    ///     at 10 - Cut. Run it once per schema-1 channel: a schema-2 channel without a Master means Master 5.
     /// </summary>
     public static void UpgradeAmpChannel(JsonObject channel) {
         if (channel["powertube"] is JsonValue value
@@ -124,6 +138,16 @@ public static class PresetMigrations {
             if (!channel.ContainsKey(id)) {
                 channel[id] = old;
             }
+        }
+
+        if (channel["type"] is JsonValue type
+            && type.TryGetValue<float>(out var model)
+            && Schema1BrillianceTypes.Contains(model)) {
+            var cut = channel["cut"] is JsonValue stored && stored.TryGetValue<float>(out var c)
+                ? c
+                : Schema1CutDefault;
+            channel["presence"] = KnobTop - Math.Clamp(cut, 0, KnobTop);
+            channel.Remove("cut");
         }
     }
 

@@ -33,8 +33,15 @@ namespace Cathode.Dsp.Amp.Models;
 ///         names). The bass pot is drawn so that its resistance grows with rotation, which would cut the bass as the
 ///         knob turns up; it is wired here to take resistance out instead (bass up), as the panel promises. The reverb
 ///         (its driver, tank and recovery) and the effects loop are left out (the loop's jacks are joined, the reverb
-///         level at zero); so are the reverb and loop branches' 4 mA from the screen node. The panel's Brilliance is
-///         the block's Cut, which runs the other way: Cut 0 is Brilliance 10.
+///         level at zero); so are the reverb and loop branches' 4 mA from the screen node.
+///     </para>
+///     <para>
+///         The Brilliance (the panel's name, as the retailers' listings of the Chieftain Reverb give it: Volume, Bass,
+///         Middle, Treble, Brilliance, Master, Reverb) is a Vox cut wired the other way, clockwise brighter: the 500k
+///         log pot's resistance in series with the 4.7 nF grows by its audio law as the knob turns up
+///         (<see cref="PowerAmpDesign.Brilliance" />, on the block's Presence knob), 0 the cap straight across the
+///         grids. Up to 1.0.0-rc.3 it was the block's Cut, running the other way (Cut 0 was Brilliance 10); a schema-1
+///         preset is carried over (Brilliance = 10 - Cut, <c>PresetMigrations</c>).
 ///     </para>
 /// </remarks>
 public static class Chieftain {
@@ -65,7 +72,7 @@ public static class Chieftain {
             220e3,
             10e3,
             4.7e-9,
-            new(500e3, PotTaper.ReverseAudio),
+            new(500e3, PotTaper.Audio),
             new(1, 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6),
             false,
             new(4e3),
@@ -77,10 +84,19 @@ public static class Chieftain {
             SeparateCathodes: true,
             InverterInput: new(22e-9, 1e6),
             ShuntMaster: new Pot(500e3, PotTaper.Audio),
-            CathodeResistor: 135 // 270 Ω per tube: half of each side's, as the power amp counts it
+            CathodeResistor: 135, // 270 Ω per tube: half of each side's, as the power amp counts it
+            Brilliance: true
         ),
         -8
-    ) { Panel = AmpPanel.Standard with { Gain = "Volume", Presence = null, Depth = null, Bright = null } };
+    ) {
+        Panel = AmpPanel.Standard with {
+            Gain = "Volume",
+            Presence = "Brilliance",
+            Cut = null,
+            Depth = null,
+            Bright = null
+        }
+    };
 
     /// <summary>
     ///     V1: both halves of a 12AX7 as one triode of twice the current (100k plate, 1.5k unbypassed, 1M leak).

@@ -287,6 +287,8 @@ public class BritishVintageAmpTests(ITestOutputHelper output) {
         Assert.Equal("Clean Ch", Label("switch1", "Cornford MK50H II"));
         Assert.Equal("Volume", Label("master", "Tiny Terror"));
         Assert.Empty(Label("treble", "Tiny Terror"));
+        Assert.Equal("Tone", Label("presence", "Tiny Terror"));
+        Assert.Empty(Label("cut", "Tiny Terror"));
         foreach (var type in Models.Where(static m => m != "Tiny Terror")) {
             Assert.Empty(Label("cut", type));
             Assert.NotEmpty(Label("treble", type));

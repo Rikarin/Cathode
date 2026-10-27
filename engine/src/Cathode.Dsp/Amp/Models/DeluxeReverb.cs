@@ -17,20 +17,6 @@ namespace Cathode.Dsp.Amp.Models;
 ///     factory figure; the supply's source resistance and the preamp node's dropping resistor are estimates.
 /// </remarks>
 public static class DeluxeReverb {
-    /// <summary>
-    ///     The AB763 Deluxe's stack: the mid pot replaced by a fixed 6.8k (here a 13.6k pot left at noon).
-    /// </summary>
-    static readonly ToneStackDesign Stack = new(
-        "Fender AB763 fixed mid",
-        250e-12,
-        100e3,
-        100e-9,
-        47e-9,
-        new(250e3, PotTaper.Audio),
-        new(250e3, PotTaper.Audio),
-        new(13.6e3, PotTaper.Linear)
-    );
-
     public static AmpDesign Design { get; } = new(
         "Deluxe Reverb",
         [
@@ -40,7 +26,7 @@ public static class DeluxeReverb {
                 StackDriver.CommonCathode,
                 280,
                 1.5e3,
-                Stack,
+                Ab763.FixedMidStack,
                 new(1e6, PotTaper.Audio),
                 PotRole.Gain,
                 100e3,

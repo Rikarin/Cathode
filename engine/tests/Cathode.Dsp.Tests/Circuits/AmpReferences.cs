@@ -395,10 +395,11 @@ static class AmpReferences {
             (a, b) = (piA, piB);
         }
 
-        // The cut control: a pot and a cap between the outputs.
+        // The cut control: a pot and a cap between the outputs (a brilliance's resistance rises with the knob).
         if (d.CutCap > 0 && !singleEnded) {
             var middle = c.Node();
-            c.Resistor(a, middle, Math.Max(d.CutPot.Ohms * (1 - d.CutPot.Fraction(cut)), Floor));
+            var track = d.Brilliance ? d.CutPot.Fraction(cut) : 1 - d.CutPot.Fraction(cut);
+            c.Resistor(a, middle, Math.Max(d.CutPot.Ohms * track, Floor));
             c.Capacitor(middle, b, d.CutCap);
         }
 
