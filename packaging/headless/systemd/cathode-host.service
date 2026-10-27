@@ -22,5 +22,39 @@ Nice=-10
 Restart=always
 RestartSec=2
 
+# Sandboxing (README.md, "Sandboxing"): the host sees the sound devices, its socket folder and the /tmp it shares
+# with cathode-server (the looper export), reads the rest of the system, and writes nothing else.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
+# One /tmp for both services: the server names a file there that the host writes (the looper export).
+PrivateTmp=yes
+# The audio interface and its MIDI ports are ALSA devices (/dev/snd); nothing else beyond /dev/null and friends.
+PrivateDevices=no
+DevicePolicy=closed
+DeviceAllow=char-alsa rw
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+# The server's socket, and a JACK server's (jackd and PipeWire's JACK talk over Unix sockets and shared memory).
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+# The audio thread runs SCHED_FIFO (LimitRTPRIO above), so real-time scheduling stays allowed here.
+RestrictRealtime=no
+RestrictSUIDSGID=yes
+LockPersonality=yes
+# MemoryDenyWriteExecute is left off: the host is NativeAOT (no JIT) and is likely to run under it, but that is not
+# yet verified on a rig, and a refusal would stop the engine at start.
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallErrorNumber=EPERM
+UMask=0027
+
 [Install]
 WantedBy=multi-user.target
