@@ -358,20 +358,61 @@ public sealed partial class LiveRig {
             }
         );
 
+    /// <summary>
+    ///     Replaces the working copy's content with <paramref name="next" />, keeping its identity, as one undoable
+    ///     edit. Editors use it to switch between A/B compare snapshots. The content is everything a preset stores
+    ///     but its identity and library metadata (id, schema, factory flag, colour, favourite): grid, scenes, tempo,
+    ///     modifiers, controller settings, performance page, footswitch overrides and saved scene, each validated as
+    ///     its own endpoint validates it.
+    /// </summary>
+    public Task<LiveState> PutAsync(Preset next, long? expected) =>
+        Locked(async () => {
+                Check(expected);
+                if (next.SchemaVersion > Preset.CurrentSchemaVersion) {
+                    throw RigException.Conflict(
+                        $"Preset '{next.Name}' was saved by a newer version of Cathode (schema {next.SchemaVersion})."
+                    );
+                }
+
+                if (next.Scenes.Count != Preset.SceneCount) {
+                    throw new RigException(400, $"A preset has exactly {Preset.SceneCount} scenes.");
+                }
+
+                var modifierErrors = ModifierErrors(next, next.Modifiers);
+                if (modifierErrors.Count > 0) {
+                    throw new RigException(400, "Some modifiers are invalid.", modifierErrors);
+                }
+
+                var controllers = SanitizeControllers(next.Controllers);
+                CheckPerform(next, next.Perform);
+                CheckFootswitchOverrides(next.FootswitchOverrides);
+                await StructuralAsync(p => {
+                        p.Name = next.Name;
+                        p.Author = next.Author;
+                        p.Description = next.Description;
+                        p.Tags = next.Tags;
+                        p.Tempo = next.Tempo;
+                        p.Rows = next.Rows;
+                        p.Columns = next.Columns;
+                        p.Blocks = next.Blocks;
+                        p.Cables = next.Cables;
+                        p.Scenes = next.Scenes;
+                        p.Modifiers = [..next.Modifiers];
+                        p.Controllers = controllers;
+                        p.Perform = [..next.Perform];
+                        p.FootswitchOverrides = [..next.FootswitchOverrides];
+                        p.SavedScene = Math.Clamp(next.SavedScene, 0, Preset.SceneCount - 1);
+                    }
+                );
+                return Changed("presetReplaced");
+            }
+        );
+
     /// <summary>The preset's performance page; every control must name a block of the preset and its parameter.</summary>
     public Task<LiveState> SetPerformAsync(IReadOnlyList<PerformControl> controls, long? expected) =>
         Locked(() => {
                 Check(expected);
-                var errors = controls
-                    .Where(c => preset.Blocks.Find(b => b.Id == c.Block) is not { } block
-                        || catalog.Descriptor(block.Type)?.IndexOf(c.Param) is null or < 0
-                    )
-                    .Select(static c => $"No parameter '{c.Param}' on block '{c.Block}'.")
-                    .ToList();
-                if (errors.Count > 0) {
-                    throw new RigException(400, "Some performance controls are invalid.", errors);
-                }
-
+                CheckPerform(preset, controls);
                 PushUndo(null);
                 preset.Perform = [..controls];
                 return Task.FromResult(Changed("performChanged"));
@@ -382,22 +423,39 @@ public sealed partial class LiveRig {
     public Task<LiveState> SetFootswitchOverridesAsync(IReadOnlyList<FootswitchOverride> overrides, long? expected) =>
         Locked(() => {
                 Check(expected);
-                foreach (var o in overrides) {
-                    GlobalValidation.CheckAction(o.Tap.Action);
-                    if (o.Hold is { } hold) {
-                        GlobalValidation.CheckAction(hold.Action);
-                    }
-                }
-
-                if (overrides.GroupBy(static o => (o.Layout, o.Index)).Any(static g => g.Count() > 1)) {
-                    throw new RigException(400, "A switch can have only one override per preset.");
-                }
-
+                CheckFootswitchOverrides(overrides);
                 PushUndo(null);
                 preset.FootswitchOverrides = [..overrides];
                 return Task.FromResult(Changed("footswitchOverridesChanged"));
             }
         );
+
+    /// <summary>Every performance control must name a block of <paramref name="target" /> and its parameter.</summary>
+    void CheckPerform(Preset target, IReadOnlyList<PerformControl> controls) {
+        var errors = controls
+            .Where(c => target.Blocks.Find(b => b.Id == c.Block) is not { } block
+                || catalog.Descriptor(block.Type)?.IndexOf(c.Param) is null or < 0
+            )
+            .Select(static c => $"No parameter '{c.Param}' on block '{c.Block}'.")
+            .ToList();
+        if (errors.Count > 0) {
+            throw new RigException(400, "Some performance controls are invalid.", errors);
+        }
+    }
+
+    /// <summary>Known actions only, and at most one override per switch.</summary>
+    static void CheckFootswitchOverrides(IReadOnlyList<FootswitchOverride> overrides) {
+        foreach (var o in overrides) {
+            GlobalValidation.CheckAction(o.Tap.Action);
+            if (o.Hold is { } hold) {
+                GlobalValidation.CheckAction(hold.Action);
+            }
+        }
+
+        if (overrides.GroupBy(static o => (o.Layout, o.Index)).Any(static g => g.Count() > 1)) {
+            throw new RigException(400, "A switch can have only one override per preset.");
+        }
+    }
 
     /// <summary>
     ///     Renames a stored preset or changes its colour tag or favourite flag, and the working copy's too when it is
