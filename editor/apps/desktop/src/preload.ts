@@ -4,22 +4,24 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('cathode', {
   platform: process.platform,
   onFullScreen: (listener: (fullScreen: boolean) => void) => {
-    ipcRenderer.on('cathode:fullScreen', (_event, fullScreen: boolean) => listener(fullScreen === true));
+    ipcRenderer.on('cathode:fullScreen', (_event, fullScreen: boolean) => listener(fullScreen));
   },
   onOpenSettings: (listener: () => void) => {
     ipcRenderer.on('cathode:openSettings', () => listener());
   },
   onQuit: (mayQuit: () => boolean | Promise<boolean>) => {
-    ipcRenderer.on('cathode:mayQuit', async (_event, id: number) => {
+    const answer = async (id: number) => {
       let ok = true;
       try {
-        ok = (await mayQuit()) !== false;
+        ok = await mayQuit();
       } catch {
         // an editor that cannot answer does not keep the app open
       }
 
       ipcRenderer.send('cathode:mayQuit:reply', id, ok);
-    });
+    };
+    // answer() catches the editor's failure itself, so the promise never rejects.
+    ipcRenderer.on('cathode:mayQuit', (_event, id: number) => void answer(id));
     ipcRenderer.send('cathode:mayQuit:ready');
   },
   connection: () => ipcRenderer.invoke('cathode:connection'),

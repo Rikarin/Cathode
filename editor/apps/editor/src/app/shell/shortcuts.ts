@@ -106,7 +106,7 @@ export function shortcutKeys(shortcut: Shortcut, mac = isMac()): string[] {
     Backspace: '⌫',
     Space: 'Space'
   };
-  const key = shortcut.code ? (shortcut.code.replace(/^Digit/, '') as string) : (shortcut.key ?? '');
+  const key = shortcut.code ? shortcut.code.replace(/^Digit/, '') : (shortcut.key ?? '');
   keys.push(names[key] ?? (key.length === 1 ? key.toUpperCase() : key));
   return keys;
 }
@@ -122,7 +122,7 @@ export function isTyping(target: EventTarget | null): boolean {
     return true;
   }
 
-  const input = element.closest('input') as HTMLInputElement | null;
+  const input = element.closest<HTMLInputElement>('input');
   return input !== null && !['checkbox', 'radio', 'button', 'range', 'submit'].includes(input.type);
 }
 

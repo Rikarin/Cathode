@@ -38,7 +38,7 @@ describe('knob and meter preferences', () => {
     });
     const fixture = TestBed.createComponent(Host);
     fixture.detectChanges();
-    return { fixture, dial: fixture.nativeElement.querySelector('[role=slider]') as HTMLElement };
+    return { fixture, dial: (fixture.nativeElement as HTMLElement).querySelector('[role=slider]') as HTMLElement };
   }
 
   it('turn the wheel the user’s way, or not at all', () => {

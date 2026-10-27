@@ -18,9 +18,9 @@ describe('the analyser dialogs', () => {
           provide: ConnectionService,
           useValue: {
             client: {
-              PUT: async (path: string, init: { params?: { query?: unknown }; body: unknown }) => {
+              PUT: (path: string, init: { params?: { query?: unknown }; body: unknown }) => {
                 sent.push({ path, query: init.params?.query, body: init.body });
-                return {};
+                return Promise.resolve({});
               }
             }
           }

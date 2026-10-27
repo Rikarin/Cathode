@@ -25,11 +25,12 @@ describe('CthKnob', () => {
   function render() {
     const fixture = TestBed.createComponent(Host);
     fixture.detectChanges();
-    const dial = fixture.nativeElement.querySelector('[role=slider]') as HTMLElement;
-    const readout = () => (fixture.nativeElement.querySelector('span') as HTMLElement).textContent?.trim();
-    const pointer = () => (fixture.nativeElement.querySelector('line') as SVGLineElement).style.transform;
-    const marker = () => fixture.nativeElement.querySelector('[data-base-marker]') as SVGCircleElement | null;
-    return { fixture, dial, host: fixture.componentInstance, readout, pointer, marker };
+    const element = fixture.nativeElement as HTMLElement;
+    const dial = element.querySelector('[role=slider]') as HTMLElement;
+    const readout = () => element.querySelector('span')?.textContent.trim();
+    const pointer = () => (element.querySelector('line') as SVGLineElement).style.transform;
+    const marker = () => element.querySelector<SVGCircleElement>('[data-base-marker]');
+    return { fixture, element, dial, host: fixture.componentInstance, readout, pointer, marker };
   }
 
   it('is a labelled ARIA slider showing the value with its unit', () => {
@@ -37,8 +38,10 @@ describe('CthKnob', () => {
 
     expect(dial.getAttribute('aria-valuemin')).toBe('-12');
     expect(dial.getAttribute('aria-valuetext')).toBe('0.0 dB');
-    const label = fixture.nativeElement.querySelector(`#${dial.getAttribute('aria-labelledby')}`);
-    expect(label.textContent.trim()).toBe('Gain');
+    const label = (fixture.nativeElement as HTMLElement).querySelector(
+      `#${dial.getAttribute('aria-labelledby') ?? ''}`
+    );
+    expect(label?.textContent.trim()).toBe('Gain');
   });
 
   it('steps with the keyboard: 1 % per arrow, 10 % per page, ends with Home and End', () => {
@@ -54,12 +57,12 @@ describe('CthKnob', () => {
     expect(dial.getAttribute('aria-valuetext')).toBe('+12.0 dB');
   });
 
-  it('takes a typed value with its unit and clamps it', async () => {
+  it('takes a typed value with its unit and clamps it', () => {
     const { dial, host, fixture } = render();
 
     dial.dispatchEvent(new MouseEvent('dblclick'));
     fixture.detectChanges();
-    const editor = fixture.nativeElement.querySelector('input') as HTMLInputElement;
+    const editor = (fixture.nativeElement as HTMLElement).querySelector('input') as HTMLInputElement;
     editor.value = '30';
     editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
 

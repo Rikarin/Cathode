@@ -12,7 +12,7 @@ export function labelledParams(params: readonly ParameterInfo[], type: number, i
   const index = Math.round(type);
   return params.flatMap(p => {
     const label = p.typeLabels?.[index];
-    if (label === undefined || label === null || label === p.name) {
+    if (label === undefined || label === p.name) {
       return [p];
     }
 

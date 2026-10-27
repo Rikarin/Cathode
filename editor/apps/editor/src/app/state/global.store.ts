@@ -68,11 +68,12 @@ export class GlobalStore {
       return false;
     }
 
-    const next = structuredClone(current);
-    change(next);
-    const saved = await this.notify.run(async () =>
-      unwrap(await this.connection.client.PUT('/api/v1/global', { body: next }))
-    );
+    // The change runs inside notify.run too: one that throws is reported, not left to reject a voided update().
+    const saved = await this.notify.run(async () => {
+      const next = structuredClone(current);
+      change(next);
+      return unwrap(await this.connection.client.PUT('/api/v1/global', { body: next }));
+    });
     if (saved) {
       this.settings.set(saved);
     }

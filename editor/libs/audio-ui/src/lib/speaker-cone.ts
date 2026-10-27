@@ -34,6 +34,11 @@ export const ConePlot = { left: 44, right: 344, top: 70, bottom: 214 } as const;
 /** Mic colours by slot, readable on the dark surface and under the slot's dark number. */
 export const MicColors = ['#f5b041', '#5dade2', '#ec7063', '#58d68d'] as const;
 
+/** The colour of a slot (0-based); the four repeat past slot 4. */
+export function micColor(slot: number): string {
+  return MicColors[slot % MicColors.length] ?? MicColors[0];
+}
+
 /** Where a mic at `position` (%) and `distance` (in) sits in the view box. */
 export function conePoint(position: number, distance: number, maxDistance: number): { x: number; y: number } {
   const p = Math.min(100, Math.max(0, position)) / 100;
@@ -280,7 +285,7 @@ export class CthSpeakerCone {
       .map(mic => ({
         ...mic,
         ...conePoint(mic.position, mic.distance, this.maxDistance()),
-        color: MicColors[mic.slot % MicColors.length],
+        color: micColor(mic.slot),
         text: coneDescription(mic)
       }))
   );
@@ -303,6 +308,7 @@ export class CthSpeakerCone {
       return;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- jsdom (the unit tests) has no pointer capture
     (event.currentTarget as Element).setPointerCapture?.(event.pointerId);
     this.dragging = slot;
     this.selectedChange.emit(slot);
@@ -322,6 +328,7 @@ export class CthSpeakerCone {
 
   protected release(event: PointerEvent): void {
     if (this.dragging !== null) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- jsdom (the unit tests) has no pointer capture
       (event.target as Element).releasePointerCapture?.(event.pointerId);
       this.dragging = null;
     }

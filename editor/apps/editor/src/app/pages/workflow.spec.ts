@@ -100,8 +100,8 @@ describe('performance pages', () => {
 
   it('show a global control as missing in a preset without its block', () => {
     const resolved = resolveControls([{ block: 'amp1', param: 'gain' }], { blocks: [] } as never, () => undefined);
-    expect(resolved[0].block).toBeNull();
-    expect(resolved[0].label).toBe('amp1 gain');
+    expect(resolved[0]?.block).toBeNull();
+    expect(resolved[0]?.label).toBe('amp1 gain');
   });
 });
 

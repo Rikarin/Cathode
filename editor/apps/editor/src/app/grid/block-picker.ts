@@ -53,14 +53,11 @@ export function groupBlocks(
     const known = KnownOrder.indexOf(category);
     return known < 0 ? KnownOrder.length : known;
   };
-  const categories = [...byCategory.keys()].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+  const categories = [...byCategory].sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b));
   let index = 0;
-  return categories.map(category => ({
+  return categories.map(([category, list]) => ({
     category,
-    items: byCategory
-      .get(category)!
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map(type => ({ type, index: index++, full: isFull(type) }))
+    items: list.sort((a, b) => a.name.localeCompare(b.name)).map(type => ({ type, index: index++, full: isFull(type) }))
   }));
 }
 
@@ -99,6 +96,7 @@ export function bestMatch(items: readonly PickerItem[], query: string): PickerIt
         <xui-input-group class="w-full">
           <ng-icon xuiInputLeftElement name="matSearchRound" />
           <input
+            #queryField
             xuiInput
             cdkFocusInitial
             class="w-full"
@@ -111,9 +109,9 @@ export function bestMatch(items: readonly PickerItem[], query: string): PickerIt
             autocomplete="off"
             spellcheck="false"
             placeholder="Search blocks…"
-            [attr.aria-activedescendant]="activeItem() ? optionId(activeItem()!) : null"
+            [attr.aria-activedescendant]="activeOptionId()"
             [value]="query()"
-            (input)="search($any($event.target).value)"
+            (input)="search(queryField.value)"
             (keydown)="key($event)"
           />
         </xui-input-group>
@@ -181,6 +179,10 @@ export class BlockPicker {
   protected readonly groups = computed(() => groupBlocks(this.types(), this.query(), this.isFull()));
   protected readonly items = computed(() => this.groups().flatMap(g => g.items));
   protected readonly activeItem = computed(() => this.items()[this.active()] ?? null);
+  protected readonly activeOptionId = computed(() => {
+    const item = this.activeItem();
+    return item ? this.optionId(item) : null;
+  });
 
   constructor() {
     // A fresh search every time it opens.
@@ -226,9 +228,10 @@ export class BlockPicker {
     }
 
     event.preventDefault();
-    if (next !== null && count > 0) {
+    const item = next === null ? undefined : this.items()[next];
+    if (next !== null && item) {
       this.active.set(next);
-      document.getElementById(this.optionId(this.items()[next]))?.scrollIntoView({ block: 'nearest' });
+      document.getElementById(this.optionId(item))?.scrollIntoView({ block: 'nearest' });
     }
   }
 

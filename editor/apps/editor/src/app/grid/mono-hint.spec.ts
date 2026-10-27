@@ -52,8 +52,13 @@ describe('mono hint', () => {
     const hints = monoHints(blocks, cables, param, b => b.id === 'delay1');
 
     expect([...hints.keys()]).toEqual(['amp1']);
-    expect(hints.get('amp1')!.map(b => b.id)).toEqual(['chorus1']); // the delay is bypassed
-    expect(monoHintText(hints.get('amp1')!, b => b.id)).toContain('chorus1');
+    const amp = hints.get('amp1');
+    if (!amp) {
+      throw new Error('No hint on amp1');
+    }
+
+    expect(amp.map(b => b.id)).toEqual(['chorus1']); // the delay is bypassed
+    expect(monoHintText(amp, b => b.id)).toContain('chorus1');
   });
 
   it('says nothing when the stereo effects come after the mono block', () => {

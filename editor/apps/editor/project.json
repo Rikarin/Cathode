@@ -69,6 +69,13 @@
         }
       }
     },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": ["ngc -p apps/editor/tsconfig.app.json --noEmit", "ngc -p apps/editor/tsconfig.spec.json --noEmit"],
+        "parallel": false
+      }
+    },
     "test": {
       "executor": "@angular/build:unit-test",
       "options": {

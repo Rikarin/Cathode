@@ -45,12 +45,13 @@ import { pickerEntries } from './picker-list';
             (valueChange)="$event && scope.set($event)"
           />
           <input
+            #queryField
             xuiInput
             type="search"
             placeholder="Search presets"
             aria-label="Search presets"
             [value]="query()"
-            (input)="query.set($any($event.target).value)"
+            (input)="query.set(queryField.value)"
           />
           <ul class="flex h-72 flex-col overflow-y-auto text-sm" aria-label="Presets">
             @for (p of shown(); track p.id) {

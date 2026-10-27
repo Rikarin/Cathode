@@ -1,7 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
+  type ElementRef,
   computed,
   inject,
   input,
@@ -77,7 +77,7 @@ export class CthMeter {
   private last = 0;
   private readonly preferences = inject(CTH_METER_PREFERENCES, { optional: true });
 
-  readonly sources = input.required<ReadonlyArray<() => number>>();
+  readonly sources = input.required<readonly (() => number)[]>();
   readonly label = input('Level');
   readonly orientation = input<'horizontal' | 'vertical'>('vertical');
 
@@ -110,6 +110,10 @@ export class CthMeter {
     sources.forEach((source, i) => {
       const db = toDecibels(source(), FloorDb);
       const state = this.states[i];
+      if (!state) {
+        return; // one state per source, made above
+      }
+
       state.level = Math.max(db, state.level - FallDbPerSecond * elapsed);
       if (db >= state.peak || time - state.peakAt > HoldMs) {
         state.peak = db;

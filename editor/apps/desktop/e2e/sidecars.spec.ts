@@ -75,6 +75,8 @@ test('launching it again brings the running app forward instead of starting a se
     ({ app }) => new Promise<boolean>(done => app.once('second-instance', () => done(true)))
   );
 
+  // In Node, the electron package exports the path of its binary, which its typings (the Electron API) do not describe.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- require() is how that path is read
   const second = spawn(require('electron') as string, [resolve(__dirname, '../../../dist/apps/desktop/main.js')], {
     env: { ...process.env, CATHODE_USER_DATA: userData },
     stdio: 'ignore'
@@ -86,7 +88,7 @@ test('launching it again brings the running app forward instead of starting a se
   expect(hosts(await mainPid(app))).toHaveLength(1);
 });
 
-test('the editor shows when the engine host is down, and its log says why', async ({ app, window }) => {
+test('the editor shows when the engine host is down, and its log says why', async ({ window }) => {
   const status = window.getByTestId('engine-status');
   await expect(status).toContainText('Connected to the engine');
   await window.keyboard.press('ControlOrMeta+Comma');
@@ -101,8 +103,12 @@ test('the editor shows when the engine host is down, and its log says why', asyn
   await window.evaluate(() => {
     const seen: string[] = [];
     (globalThis as unknown as { seen: string[] }).seen = seen;
-    const light = document.querySelector('[data-testid="engine-status"]')!;
-    new MutationObserver(() => seen.push(light.textContent!.trim())).observe(light, {
+    const light = document.querySelector('[data-testid="engine-status"]');
+    if (!light) {
+      throw new Error('No engine status light');
+    }
+
+    new MutationObserver(() => seen.push(light.textContent.trim())).observe(light, {
       subtree: true,
       characterData: true,
       childList: true
@@ -111,7 +117,12 @@ test('the editor shows when the engine host is down, and its log says why', asyn
   const statuses = (await window.evaluate(() =>
     (globalThis as unknown as { cathode: { sidecars(): Promise<unknown> } }).cathode.sidecars()
   )) as { name: string; pid: number }[];
-  process.kill(statuses.find(s => s.name === 'host')!.pid, 'SIGKILL');
+  const host = statuses.find(s => s.name === 'host');
+  if (!host) {
+    throw new Error('No engine host process');
+  }
+
+  process.kill(host.pid, 'SIGKILL');
 
   const seen = () => window.evaluate(() => (globalThis as unknown as { seen: string[] }).seen);
   await expect.poll(async () => (await seen()).some(text => text.startsWith('The engine stopped'))).toBe(true);

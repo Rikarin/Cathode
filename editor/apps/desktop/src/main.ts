@@ -209,13 +209,15 @@ function createWindow(): void {
   });
   window.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https://')) {
-      void shell.openExternal(url);
+      shell.openExternal(url).catch((error: unknown) => console.error('Cathode: could not open', url, error));
     }
 
     return { action: 'deny' };
   });
   window.on('closed', () => (window = null));
-  void window.loadURL(devServer ?? `${Scheme}://editor/index.html`);
+  window
+    .loadURL(devServer ?? `${Scheme}://editor/index.html`)
+    .catch((error: unknown) => console.error('Cathode: the editor did not load', error));
 }
 
 function handleIpc(): void {
@@ -231,7 +233,7 @@ function handleIpc(): void {
   });
   ipcMain.handle('cathode:connection', () => connection());
   ipcMain.handle('cathode:target', () => settings.target);
-  ipcMain.handle('cathode:setTarget', async (_event, target: ServerTarget) => {
+  ipcMain.handle('cathode:setTarget', async (_event, target: unknown) => {
     settings = { ...settings, target: validTarget(target) };
     saveSettings(settings);
     if (settings.target.mode === 'remote') {
@@ -245,7 +247,7 @@ function handleIpc(): void {
   ipcMain.handle('cathode:sidecars:logs', () => sidecars?.logs() ?? { host: [], server: [] });
   ipcMain.handle('cathode:audio:devices', () => listDevices());
   ipcMain.handle('cathode:audio:settings', () => settings.audio);
-  ipcMain.handle('cathode:audio:apply', async (_event, audio: AudioSettings) => {
+  ipcMain.handle('cathode:audio:apply', async (_event, audio: unknown) => {
     settings = { ...settings, audio: validAudio(audio) };
     saveSettings(settings);
     await sidecars?.applyAudio(settings.audio);
@@ -254,7 +256,7 @@ function handleIpc(): void {
     sidecars ? sidecars.latencyTest() : { ok: false, output: 'Not running a local engine.', roundTripMs: null }
   );
   ipcMain.handle('cathode:network:status', () => networkStatus(settings.network, sidecars?.networkError ?? null));
-  ipcMain.handle('cathode:network:apply', async (_event, network: NetworkRequest) => {
+  ipcMain.handle('cathode:network:apply', async (_event, network: unknown) => {
     const next = await validNetwork(network);
     settings = { ...settings, network: next };
     saveSettings(settings);
@@ -266,44 +268,60 @@ function handleIpc(): void {
 
     return networkStatus(settings.network, sidecars?.networkError ?? null);
   });
-  ipcMain.handle('cathode:audio:irCapture', (_event, options: IrCaptureOptions) =>
+  ipcMain.handle('cathode:audio:irCapture', (_event, options: unknown) =>
     sidecars
       ? sidecars.irCapture(validCapture(options))
       : { ok: false, output: 'Not running a local engine.', wav: null }
   );
 }
 
-/** The renderer is trusted less than main: everything it sends is checked. */
-function validAudio(audio: AudioSettings): AudioSettings {
-  const device = typeof audio?.device === 'string' && audio.device.length < 512 ? audio.device : null;
-  const sampleRate = [44_100, 48_000, 88_200, 96_000].includes(audio?.sampleRate) ? audio.sampleRate : 48_000;
-  const bufferFrames = [32, 64, 128, 256, 512].includes(audio?.bufferFrames) ? audio.bufferFrames : 64;
-  const channels = (list: unknown) =>
-    Array.isArray(list) ? list.filter(c => Number.isInteger(c) && c >= 1 && c <= 64).slice(0, 2) : [];
+/** What the renderer sent for a `T`: an object whose fields are all still to be checked. */
+type Unchecked<T> = { readonly [K in keyof T]?: unknown };
+
+/** The renderer is trusted less than main: everything it sends is checked, starting with its being an object. */
+function fields(value: unknown): Record<string, unknown> {
+  return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {};
+}
+
+function isWholeIn(value: unknown, min: number, max: number): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max;
+}
+
+function validAudio(value: unknown): AudioSettings {
+  const audio: Unchecked<AudioSettings> = fields(value);
+  const oneOf = (option: unknown, options: readonly number[], fallback: number) =>
+    options.find(o => o === option) ?? fallback;
+  const device = typeof audio.device === 'string' && audio.device.length < 512 ? audio.device : null;
+  const sampleRate = oneOf(audio.sampleRate, [44_100, 48_000, 88_200, 96_000], 48_000);
+  const bufferFrames = oneOf(audio.bufferFrames, [32, 64, 128, 256, 512], 64);
+  const channels = (list: unknown): number[] =>
+    Array.isArray(list) ? (list as unknown[]).filter(c => isWholeIn(c, 1, 64)).slice(0, 2) : [];
   // Outputs 1-4: the first channel of each pair, 0 for unmapped.
-  const outputs = Array.isArray(audio?.outputs)
-    ? audio.outputs.map(c => (Number.isInteger(c) && c >= 0 && c <= 63 ? c : 0)).slice(0, 4)
+  const outputs = Array.isArray(audio.outputs)
+    ? (audio.outputs as unknown[]).map(c => (isWholeIn(c, 0, 63) ? c : 0)).slice(0, 4)
     : [1];
-  const inputs = Array.isArray(audio?.inputs) ? audio.inputs.slice(0, 6).map(channels) : [];
+  const inputs = Array.isArray(audio.inputs) ? (audio.inputs as unknown[]).slice(0, 6).map(channels) : [];
+  const [first = [], ...rest] = inputs;
   return {
     device,
     sampleRate,
     bufferFrames,
-    loopIn: channels(audio?.loopIn),
-    loopOut: channels(audio?.loopOut),
+    loopIn: channels(audio.loopIn),
+    loopOut: channels(audio.loopOut),
     outputs,
-    diOut: channels(audio?.diOut),
-    inputs: inputs.length > 0 && inputs[0].length > 0 ? inputs : [[1], ...inputs.slice(1)]
+    diOut: channels(audio.diOut),
+    inputs: first.length > 0 ? inputs : [[1], ...rest]
   };
 }
 
-function validCapture(options: IrCaptureOptions): IrCaptureOptions {
-  const clamp = (value: unknown, min: number, max: number, fallback: number) =>
-    typeof value === 'number' && Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
+function validCapture(value: unknown): IrCaptureOptions {
+  const options: Unchecked<IrCaptureOptions> = fields(value);
+  const clamp = (number: unknown, min: number, max: number, fallback: number) =>
+    typeof number === 'number' && Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
   return {
-    seconds: clamp(options?.seconds, 1, 30, 5),
-    levelDb: clamp(options?.levelDb, -60, 0, -18),
-    lengthMs: clamp(options?.lengthMs, 20, 2_000, 500)
+    seconds: clamp(options.seconds, 1, 30, 5),
+    levelDb: clamp(options.levelDb, -60, 0, -18),
+    lengthMs: clamp(options.lengthMs, 20, 2_000, 500)
   };
 }
 
@@ -314,9 +332,10 @@ type NetworkRequest = Pick<NetworkSettings, 'enabled' | 'port'> & { renewToken?:
  * A port of 1024 and up, and a token made the first time the setting goes on, or anew when asked (`renewToken`), which
  * signs every other device out. A port that is taken now is refused here, so the setting cannot be saved broken.
  */
-async function validNetwork(network: NetworkRequest): Promise<NetworkSettings> {
-  const enabled = network?.enabled === true;
-  const port = Number.isInteger(network?.port) && network.port >= 1024 && network.port <= 65_535 ? network.port : null;
+async function validNetwork(value: unknown): Promise<NetworkSettings> {
+  const network: Unchecked<NetworkRequest> = fields(value);
+  const enabled = network.enabled === true;
+  const port = isWholeIn(network.port, 1024, 65_535) ? network.port : null;
   if (port === null) {
     throw new Error('The port must be a whole number from 1024 to 65535.');
   }
@@ -327,18 +346,19 @@ async function validNetwork(network: NetworkRequest): Promise<NetworkSettings> {
     throw new Error(`Port ${port} is in use by another program. Choose another port.`);
   }
 
-  const token = network?.renewToken === true || !current.token ? newToken() : current.token;
+  const token = network.renewToken === true || !current.token ? newToken() : current.token;
   return { enabled, port, token };
 }
 
-function validTarget(target: ServerTarget): ServerTarget {
-  if (target?.mode === 'remote') {
-    const url = new URL(target.baseUrl);
+function validTarget(value: unknown): ServerTarget {
+  const target: Unchecked<{ mode: string; baseUrl: string; token: string }> = fields(value);
+  if (target.mode === 'remote') {
+    const url = new URL(typeof target.baseUrl === 'string' ? target.baseUrl : '');
     if (url.protocol !== 'http:' && url.protocol !== 'https:') {
       throw new Error('The Server URL must be http or https.');
     }
 
-    return { mode: 'remote', baseUrl: url.origin, token: String(target.token ?? '') };
+    return { mode: 'remote', baseUrl: url.origin, token: typeof target.token === 'string' ? target.token : '' };
   }
 
   return { mode: 'local' };
@@ -398,31 +418,34 @@ app.on('second-instance', () => {
   }
 });
 
-app.whenReady().then(() => {
-  if (!primary) {
-    return;
-  }
-
-  // Unpackaged, macOS would show Electron's own icon in the Dock.
-  if (existsSync(Icon)) {
-    app.dock?.setIcon(Icon);
-  }
-
-  // No camera, microphone, notifications or anything else: the editor needs none of it. Writing the clipboard (Copy
-  // the access token) is the one exception; reading it stays denied.
-  session.defaultSession.setPermissionRequestHandler((_contents, permission, callback) =>
-    callback(permission === 'clipboard-sanitized-write')
-  );
-  serveEditor();
-  handleIpc();
-  buildMenu();
-  createWindow();
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+app
+  .whenReady()
+  .then(() => {
+    if (!primary) {
+      return;
     }
-  });
-});
+
+    // Unpackaged, macOS would show Electron's own icon in the Dock.
+    if (existsSync(Icon)) {
+      app.dock?.setIcon(Icon);
+    }
+
+    // No camera, microphone, notifications or anything else: the editor needs none of it. Writing the clipboard (Copy
+    // the access token) is the one exception; reading it stays denied.
+    session.defaultSession.setPermissionRequestHandler((_contents, permission, callback) =>
+      callback(permission === 'clipboard-sanitized-write')
+    );
+    serveEditor();
+    handleIpc();
+    buildMenu();
+    createWindow();
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      }
+    });
+  })
+  .catch((error: unknown) => console.error('Cathode: startup failed', error));
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

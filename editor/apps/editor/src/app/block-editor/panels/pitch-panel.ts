@@ -51,6 +51,7 @@ const Voices = [1, 2, 3, 4] as const;
                   @for (cell of row.cells; track cell.id) {
                     <td>
                       <input
+                        #semitonesField
                         xuiInput
                         type="number"
                         min="-24"
@@ -60,7 +61,7 @@ const Voices = [1, 2, 3, 4] as const;
                         [attr.data-testid]="'param-' + cell.id"
                         [attr.aria-label]="'Voice ' + row.voice + ', ' + cell.note"
                         [value]="cell.value"
-                        (change)="set(cell.id, $any($event.target).valueAsNumber)"
+                        (change)="set(cell.id, semitonesField.valueAsNumber)"
                       />
                       <div class="text-foreground-muted text-center">{{ cell.sounds }}</div>
                     </td>

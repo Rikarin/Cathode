@@ -81,7 +81,7 @@ describe('Manage Presets', () => {
 
   it('starts clean, and a bank stored by the page joins it without a change to save', () => {
     const m = session();
-    m.addBank({ id: 'three', name: 'Three', slots: [] } as Bank);
+    m.addBank({ id: 'three', name: 'Three', slots: [] });
     expect(m.banks.map(b => b.name)).toEqual(['One', 'Two', 'Three']);
     expect(m.dirty).toBe(false);
   });

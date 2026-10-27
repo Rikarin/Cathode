@@ -41,6 +41,7 @@ import { Notify } from '../core/notify';
         <label class="flex flex-col gap-1">
           <span class="text-foreground-muted text-xs">Port</span>
           <input
+            #portField
             xuiInput
             type="number"
             min="1024"
@@ -48,7 +49,7 @@ import { Notify } from '../core/notify';
             class="w-28"
             aria-label="Network port"
             [value]="port()"
-            (input)="port.set(+$any($event.target).value)"
+            (input)="port.set(+portField.value)"
           />
         </label>
         @if (s.enabled && port() !== s.port) {
@@ -124,10 +125,15 @@ export class NetworkAccess {
   }
 
   protected async apply(enabled: boolean, port: number, renewToken = false): Promise<void> {
+    const network = this.network;
+    if (!network) {
+      return;
+    }
+
     this.applying.set(true);
     try {
       // The window reloads once the Server is back; until then the switch shows the new state.
-      const next = await this.notify.run(() => this.network!.apply({ enabled, port, renewToken }));
+      const next = await this.notify.run(() => network.apply({ enabled, port, renewToken }));
       if (next) {
         this.status.set(next);
         this.port.set(next.port);
@@ -149,7 +155,12 @@ export class NetworkAccess {
   }
 
   private async load(): Promise<void> {
-    const status = await this.notify.run(() => this.network!.status());
+    const network = this.network;
+    if (!network) {
+      return;
+    }
+
+    const status = await this.notify.run(() => network.status());
     if (status) {
       this.status.set(status);
       this.port.set(status.port);

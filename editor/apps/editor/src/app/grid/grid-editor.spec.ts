@@ -11,10 +11,13 @@ import { GridEditor } from './grid-editor';
 
 describe('GridEditor shortcuts', () => {
   beforeAll(() => {
-    globalThis.ResizeObserver ??= class {
-      observe(): void {}
-      disconnect(): void {}
-    } as unknown as typeof ResizeObserver;
+    // jsdom has no ResizeObserver; the grid only needs one to exist.
+    if (!('ResizeObserver' in globalThis)) {
+      globalThis.ResizeObserver = class {
+        observe = () => undefined;
+        disconnect = () => undefined;
+      } as unknown as typeof ResizeObserver;
+    }
   });
 
   function render() {
@@ -32,7 +35,7 @@ describe('GridEditor shortcuts', () => {
               cables: []
             }),
             selectedId: signal(null),
-            removeBlock: async (id: string) => removed.push(id)
+            removeBlock: (id: string) => Promise.resolve(removed.push(id))
           }
         },
         { provide: EventStream, useValue: {} },
@@ -47,8 +50,8 @@ describe('GridEditor shortcuts', () => {
     });
     const fixture = TestBed.createComponent(GridEditor);
     fixture.detectChanges();
-    document.body.append(fixture.nativeElement);
-    const surface = fixture.nativeElement.querySelector('[role=grid]') as HTMLElement;
+    document.body.append(fixture.nativeElement as HTMLElement);
+    const surface = (fixture.nativeElement as HTMLElement).querySelector('[role=grid]') as HTMLElement;
     const shortcuts = TestBed.inject(ShortcutService);
     const press = (target: HTMLElement, key: string) => {
       const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
@@ -81,10 +84,13 @@ describe('GridEditor shortcuts', () => {
 
 describe('GridEditor accessibility', () => {
   beforeAll(() => {
-    globalThis.ResizeObserver ??= class {
-      observe(): void {}
-      disconnect(): void {}
-    } as unknown as typeof ResizeObserver;
+    // jsdom has no ResizeObserver; the grid only needs one to exist.
+    if (!('ResizeObserver' in globalThis)) {
+      globalThis.ResizeObserver = class {
+        observe = () => undefined;
+        disconnect = () => undefined;
+      } as unknown as typeof ResizeObserver;
+    }
   });
 
   afterEach(() => document.body.replaceChildren());
@@ -119,9 +125,9 @@ describe('GridEditor accessibility', () => {
             isBypassed: () => false,
             channelOf: () => 'A',
             valueOf: () => undefined,
-            addCable: async (from: string, to: string) => added.push(`${from}>${to}`),
-            removeCable: async (from: string, to: string) => removed.push(`${from}>${to}`),
-            removeBlock: async (id: string) => removed.push(id)
+            addCable: (from: string, to: string) => Promise.resolve(added.push(`${from}>${to}`)),
+            removeCable: (from: string, to: string) => Promise.resolve(removed.push(`${from}>${to}`)),
+            removeBlock: (id: string) => Promise.resolve(removed.push(id))
           }
         },
         { provide: EventStream, useValue: { blockMeter: () => 0 } },
@@ -132,9 +138,9 @@ describe('GridEditor accessibility', () => {
       ]
     });
     const fixture = TestBed.createComponent(GridEditor);
-    document.body.append(fixture.nativeElement);
+    document.body.append(fixture.nativeElement as HTMLElement);
     fixture.detectChanges();
-    const grid = fixture.nativeElement.querySelector('[role=grid]') as HTMLElement;
+    const grid = (fixture.nativeElement as HTMLElement).querySelector('[role=grid]') as HTMLElement;
     const shortcuts = TestBed.inject(ShortcutService);
     const press = (key: string, options: KeyboardEventInit = {}) => {
       const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...options });
@@ -142,7 +148,8 @@ describe('GridEditor accessibility', () => {
       shortcuts.dispatch(event);
       fixture.detectChanges();
     };
-    const status = () => fixture.nativeElement.querySelector('[data-testid=grid-status]').textContent.trim();
+    const status = () =>
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid=grid-status]')?.textContent.trim();
     grid.focus();
     return { fixture, grid, press, status, added, removed };
   }
@@ -154,8 +161,8 @@ describe('GridEditor accessibility', () => {
     const cells = [...grid.querySelectorAll('[role=gridcell]')];
     expect(cells).toHaveLength(8);
     expect(cells.every(cell => cell.parentElement?.getAttribute('role') === 'row')).toBe(true);
-    expect(rows[1].getAttribute('aria-rowindex')).toBe('2');
-    expect(cells[5].getAttribute('aria-colindex')).toBe('2');
+    expect(rows[1]?.getAttribute('aria-rowindex')).toBe('2');
+    expect(cells[5]?.getAttribute('aria-colindex')).toBe('2');
   });
 
   it('cables two blocks from the keyboard: K, the arrows, Enter', () => {

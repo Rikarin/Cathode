@@ -88,9 +88,13 @@ test('cables connect blocks in neighbouring columns and are removed with Delete'
   // A cable cannot skip a column: dragging from the drive to two columns over does nothing.
   await editor.addBlock(1, 6, 'Chorus');
   const far = await editor.cell(1, 6).boundingBox();
+  if (!far) {
+    throw new Error('The far cell is not on screen');
+  }
+
   await window.mouse.move(outlet.x + outlet.width / 2, outlet.y + outlet.height / 2);
   await window.mouse.down();
-  await window.mouse.move(far!.x + far!.width / 2, far!.y + far!.height / 2, { steps: 8 });
+  await window.mouse.move(far.x + far.width / 2, far.y + far.height / 2, { steps: 8 });
   await window.mouse.up();
   await expect(window.getByTestId('cable-drive1>chorus1')).toHaveCount(0);
 

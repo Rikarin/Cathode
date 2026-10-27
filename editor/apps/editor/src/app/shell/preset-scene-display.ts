@@ -1,7 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
+  type ElementRef,
   computed,
   effect,
   inject,
@@ -82,13 +82,14 @@ import { UiStore } from '../state/ui.store';
       </div>
       @if (renaming()) {
         <input
+          #sceneNameField
           class="bg-surface-inset border-focus min-w-0 flex-1 rounded border px-2 text-sm outline-none"
           aria-label="Scene name"
           data-testid="scene-name-input"
           [value]="sceneName()"
-          (keydown.enter)="rename($any($event.target).value)"
+          (keydown.enter)="rename(sceneNameField.value)"
           (keydown.escape)="renaming.set(false)"
-          (blur)="rename($any($event.target).value)"
+          (blur)="rename(sceneNameField.value)"
           #name
         />
       } @else {

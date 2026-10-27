@@ -124,13 +124,14 @@ const BufferSizes = [32, 64, 128, 256, 512];
             <label class="flex flex-col gap-1 text-sm">
               <span class="text-foreground-muted text-xs">Interface maximum input level</span>
               <input
+                #maxLevelField
                 xuiInput
                 type="number"
                 step="0.5"
                 class="w-28"
                 aria-label="Interface maximum input level"
                 [value]="maxLevel()"
-                (input)="maxLevel.set(+$any($event.target).value)"
+                (input)="maxLevel.set(+maxLevelField.value)"
               />
             </label>
             <xui-segmented-control
@@ -146,13 +147,14 @@ const BufferSizes = [32, 64, 128, 256, 512];
             <label class="flex flex-col gap-1 text-sm">
               <span class="text-foreground-muted text-xs">Or play a reference sine of (V RMS)</span>
               <input
+                #referenceField
                 xuiInput
                 type="number"
                 step="0.05"
                 class="w-28"
                 aria-label="Reference sine level"
                 [value]="reference()"
-                (input)="reference.set(+$any($event.target).value)"
+                (input)="reference.set(+referenceField.value)"
               />
             </label>
             <button xuiButton type="button" variant="outline" [loading]="measuring()" (click)="measure()">
@@ -214,45 +216,49 @@ const BufferSizes = [32, 64, 128, 256, 512];
               <label class="flex flex-col gap-1 text-sm">
                 <span class="text-foreground-muted text-xs">Outputs 1-4 (first channel each)</span>
                 <input
+                  #firstDeviceChannelOfOutputsToField
                   xuiInput
                   class="w-36"
                   placeholder="1,3,0,0"
                   aria-label="First device channel of Outputs 1 to 4"
                   [value]="channels(settings()?.outputs)"
-                  (change)="patch({ outputs: parseOutputs($any($event.target).value) })"
+                  (change)="patch({ outputs: parseOutputs(firstDeviceChannelOfOutputsToField.value) })"
                 />
               </label>
               <label class="flex flex-col gap-1 text-sm">
                 <span class="text-foreground-muted text-xs">DI out</span>
                 <input
+                  #diOutChannelsField
                   xuiInput
                   class="w-28"
                   placeholder="e.g. 5,6"
                   aria-label="DI out channels"
                   [value]="channels(settings()?.diOut)"
-                  (change)="patch({ diOut: parseChannels($any($event.target).value) })"
+                  (change)="patch({ diOut: parseChannels(diOutChannelsField.value) })"
                 />
               </label>
               <label class="flex flex-col gap-1 text-sm">
                 <span class="text-foreground-muted text-xs">FX loop send</span>
                 <input
+                  #fxLoopSendChannelsField
                   xuiInput
                   class="w-28"
                   placeholder="e.g. 3,4"
                   aria-label="FX loop send channels"
                   [value]="channels(settings()?.loopOut)"
-                  (change)="patch({ loopOut: parseChannels($any($event.target).value) })"
+                  (change)="patch({ loopOut: parseChannels(fxLoopSendChannelsField.value) })"
                 />
               </label>
               <label class="flex flex-col gap-1 text-sm">
                 <span class="text-foreground-muted text-xs">FX loop return</span>
                 <input
+                  #fxLoopReturnChannelsField
                   xuiInput
                   class="w-28"
                   placeholder="e.g. 3,4"
                   aria-label="FX loop return channels"
                   [value]="channels(settings()?.loopIn)"
-                  (change)="patch({ loopIn: parseChannels($any($event.target).value) })"
+                  (change)="patch({ loopIn: parseChannels(fxLoopReturnChannelsField.value) })"
                 />
               </label>
             </div>
@@ -261,13 +267,14 @@ const BufferSizes = [32, 64, 128, 256, 512];
                 <label class="flex flex-col gap-1 text-sm">
                   <span class="text-foreground-muted text-xs">{{ source }}</span>
                   <input
+                    #channelsField
                     xuiInput
                     class="w-20"
                     [placeholder]="$index === 0 ? '1' : 'off'"
                     [attr.aria-label]="source + ' device channels'"
                     [title]="channelNames()"
                     [value]="channels(settings()?.inputs?.[$index])"
-                    (change)="patchInput($index, $any($event.target).value)"
+                    (change)="patchInput($index, channelsField.value)"
                   />
                 </label>
               }
@@ -452,7 +459,13 @@ export class SetupPage {
     }
 
     const clamped = Math.min(FullScaleRange.max, Math.max(FullScaleRange.min, volts));
-    if (await this.globals.update(g => (g.inputs[0].fullScaleVolts = clamped))) {
+    const calibrated = await this.globals.update(g => {
+      const input = g.inputs[0];
+      if (input) {
+        input.fullScaleVolts = clamped;
+      }
+    });
+    if (calibrated) {
       this.notify.success(`Input 1 full scale set to ${clamped.toFixed(3)} V.`);
     }
   }
@@ -487,13 +500,14 @@ export class SetupPage {
 
   protected async apply(): Promise<void> {
     const settings = this.settings();
-    if (!settings || !this.desktop) {
+    const desktop = this.desktop;
+    if (!settings || !desktop) {
       return;
     }
 
     this.applying.set(true);
     await this.notify.run(async () => {
-      await this.desktop!.audio.apply(settings);
+      await desktop.audio.apply(settings);
       this.applied.set(settings);
       this.notify.success('Engine restarted with the new audio settings.');
     });
@@ -514,8 +528,13 @@ export class SetupPage {
   }
 
   protected async latencyTest(): Promise<void> {
+    const desktop = this.desktop;
+    if (!desktop) {
+      return;
+    }
+
     this.testing.set(true);
-    const result = await this.notify.run(() => this.desktop!.audio.latencyTest());
+    const result = await this.notify.run(() => desktop.audio.latencyTest());
     this.latency.set(result ?? null);
     this.testing.set(false);
   }
@@ -530,11 +549,16 @@ export class SetupPage {
   }
 
   private async loadDesktop(): Promise<void> {
+    const desktop = this.desktop;
+    if (!desktop) {
+      return;
+    }
+
     await this.notify.run(async () => {
       const [devices, settings, target] = await Promise.all([
-        this.desktop!.audio.devices(),
-        this.desktop!.audio.settings(),
-        this.desktop!.target()
+        desktop.audio.devices(),
+        desktop.audio.settings(),
+        desktop.target()
       ]);
       this.devices.set(devices.devices);
       this.settings.set(settings);

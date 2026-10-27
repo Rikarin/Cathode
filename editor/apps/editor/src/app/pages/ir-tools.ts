@@ -16,13 +16,15 @@ interface Choice<T> {
   label: string;
 }
 
-const Processing: readonly Choice<NonNullable<IrImportOptions['processing']>>[] = [
+type ProcessingChoice = Choice<NonNullable<IrImportOptions['processing']>>;
+const Processing: readonly [ProcessingChoice, ...ProcessingChoice[]] = [
   { value: 'asIs', label: 'As is' },
   { value: 'autoTrim', label: 'Auto-trim (remove leading silence)' },
   { value: 'minimumPhase', label: 'Minimum phase' }
 ];
 
-const Channels: readonly Choice<NonNullable<IrImportOptions['channels']>>[] = [
+type ChannelsChoice = Choice<NonNullable<IrImportOptions['channels']>>;
+const Channels: readonly [ChannelsChoice, ...ChannelsChoice[]] = [
   { value: 'both', label: 'Both' },
   { value: 'left', label: 'Left' },
   { value: 'right', label: 'Right' },
@@ -89,6 +91,7 @@ export class IrImportSettings {
           <label class="flex flex-col gap-1">
             <span class="text-foreground-muted text-xs">Max length (ms, 0 = all)</span>
             <input
+              #maxLengthMsField
               xuiInput
               type="number"
               min="0"
@@ -96,7 +99,7 @@ export class IrImportSettings {
               class="w-28"
               aria-label="Maximum IR length"
               [value]="settings.maxLengthMs()"
-              (change)="settings.maxLengthMs.set(Math.max(0, +$any($event.target).value || 0))"
+              (change)="settings.maxLengthMs.set(Math.max(0, +maxLengthMsField.value || 0))"
             />
           </label>
           <label class="flex items-center gap-2 pb-2 text-sm">
@@ -170,6 +173,7 @@ interface MixRow {
                 </xui-td>
                 <xui-td class="w-28">
                   <input
+                    #levelDbField
                     xuiInput
                     size="sm"
                     type="number"
@@ -177,11 +181,12 @@ interface MixRow {
                     class="w-24"
                     [attr.aria-label]="'IR ' + (i + 1) + ' level'"
                     [value]="row.levelDb"
-                    (change)="edit(i, { levelDb: +$any($event.target).value || 0 })"
+                    (change)="edit(i, { levelDb: +levelDbField.value || 0 })"
                   />
                 </xui-td>
                 <xui-td class="w-28">
                   <input
+                    #delayMsField
                     xuiInput
                     size="sm"
                     type="number"
@@ -190,7 +195,7 @@ interface MixRow {
                     class="w-24"
                     [attr.aria-label]="'IR ' + (i + 1) + ' delay'"
                     [value]="row.delayMs"
-                    (change)="edit(i, { delayMs: Math.max(0, +$any($event.target).value || 0) })"
+                    (change)="edit(i, { delayMs: Math.max(0, +delayMsField.value || 0) })"
                   />
                 </xui-td>
                 <xui-td class="w-16">
@@ -201,7 +206,14 @@ interface MixRow {
                   />
                 </xui-td>
                 <xui-td class="w-24 justify-end">
-                  <button xuiButton variant="ghost" size="sm" [disabled]="rows().length <= 1" (click)="remove(i)">
+                  <button
+                    type="button"
+                    xuiButton
+                    variant="ghost"
+                    size="sm"
+                    [disabled]="rows().length <= 1"
+                    (click)="remove(i)"
+                  >
                     Remove
                   </button>
                 </xui-td>
@@ -209,22 +221,24 @@ interface MixRow {
             }
           </xui-table>
           <div class="flex flex-wrap items-end gap-4">
-            <button xuiButton variant="outline" size="sm" [disabled]="rows().length >= 8" (click)="add()">
+            <button type="button" xuiButton variant="outline" size="sm" [disabled]="rows().length >= 8" (click)="add()">
               Add IR
             </button>
             <label class="flex flex-col gap-1">
               <span class="text-foreground-muted text-xs">Name</span>
               <input
+                #mixNameField
                 xuiInput
                 class="w-56"
                 aria-label="Mix name"
                 [value]="mixName()"
-                (input)="mixName.set($any($event.target).value)"
+                (input)="mixName.set(mixNameField.value)"
               />
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-foreground-muted text-xs">Length (ms)</span>
               <input
+                #lengthMsField
                 xuiInput
                 type="number"
                 min="5"
@@ -232,7 +246,7 @@ interface MixRow {
                 class="w-24"
                 aria-label="Mix length"
                 [value]="lengthMs()"
-                (change)="lengthMs.set(+$any($event.target).value || 170)"
+                (change)="lengthMs.set(+lengthMsField.value || 170)"
               />
             </label>
             <label class="flex items-center gap-2 pb-2 text-sm">
@@ -247,7 +261,14 @@ interface MixRow {
         </xui-dialog-body>
         <xui-dialog-footer>
           <button xuiButton variant="ghost" type="button" (click)="open.set(false)">Close</button>
-          <button xuiButton data-testid="mix-irs" [disabled]="!canMix()" [loading]="mixing()" (click)="mix()">
+          <button
+            type="button"
+            xuiButton
+            data-testid="mix-irs"
+            [disabled]="!canMix()"
+            [loading]="mixing()"
+            (click)="mix()"
+          >
             Mix
           </button>
         </xui-dialog-footer>
@@ -292,12 +313,17 @@ export class IrMixerDialog {
         await this.connection.client.POST('/api/v1/assets/mix', {
           body: {
             name: this.mixName().trim(),
-            sources: this.rows().map(r => ({
-              asset: r.asset!.ref,
-              levelDb: r.levelDb,
-              delayMs: r.delayMs,
-              invert: r.invert
-            })),
+            // canMix (the button's guard) holds every row to a file.
+            sources: this.rows().flatMap(({ asset, ...r }) =>
+              asset === null
+                ? []
+                : {
+                    asset: asset.ref,
+                    levelDb: r.levelDb,
+                    delayMs: r.delayMs,
+                    invert: r.invert
+                  }
+            ),
             align: this.align(),
             lengthMs: this.lengthMs(),
             sampleRate: 48_000,
@@ -338,6 +364,7 @@ export class IrMixerDialog {
           <label class="flex flex-col gap-1">
             <span class="text-foreground-muted text-xs">Sweep (s)</span>
             <input
+              #sweepSecondsField
               xuiInput
               type="number"
               min="1"
@@ -345,12 +372,13 @@ export class IrMixerDialog {
               class="w-20"
               aria-label="Sweep length"
               [value]="sweepSeconds()"
-              (change)="sweepSeconds.set(+$any($event.target).value || 5)"
+              (change)="sweepSeconds.set(+sweepSecondsField.value || 5)"
             />
           </label>
           <label class="flex flex-col gap-1">
             <span class="text-foreground-muted text-xs">Level (dBFS)</span>
             <input
+              #sweepLevelField
               xuiInput
               type="number"
               min="-60"
@@ -358,12 +386,13 @@ export class IrMixerDialog {
               class="w-20"
               aria-label="Sweep level"
               [value]="sweepLevel()"
-              (change)="sweepLevel.set(+$any($event.target).value || -18)"
+              (change)="sweepLevel.set(+sweepLevelField.value || -18)"
             />
           </label>
           <label class="flex flex-col gap-1">
             <span class="text-foreground-muted text-xs">IR length (ms)</span>
             <input
+              #captureLengthField
               xuiInput
               type="number"
               min="20"
@@ -371,7 +400,7 @@ export class IrMixerDialog {
               class="w-24"
               aria-label="Captured IR length"
               [value]="captureLength()"
-              (change)="captureLength.set(+$any($event.target).value || 500)"
+              (change)="captureLength.set(+captureLengthField.value || 500)"
             />
           </label>
         </div>
@@ -383,7 +412,7 @@ export class IrMixerDialog {
       </xui-dialog-body>
       <xui-dialog-footer>
         <button xuiButton variant="ghost" type="button" (click)="open.set(false)">Close</button>
-        <button xuiButton [loading]="capturing()" (click)="capture()">Capture</button>
+        <button type="button" xuiButton [loading]="capturing()" (click)="capture()">Capture</button>
       </xui-dialog-footer>
     </xui-dialog>
   `

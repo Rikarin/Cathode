@@ -61,7 +61,7 @@ const PresetMime = 'application/x-cathode-preset';
       <aside class="flex w-56 shrink-0 flex-col gap-3">
         <div class="flex items-center justify-between">
           <span class="text-foreground-muted text-[11px] font-semibold tracking-wide uppercase">Banks</span>
-          <button xuiButton size="sm" variant="ghost" aria-label="New bank" (click)="addBank()">
+          <button type="button" xuiButton size="sm" variant="ghost" aria-label="New bank" (click)="addBank()">
             <ng-icon xui name="matAddRound" size="sm" />
           </button>
         </div>
@@ -74,7 +74,10 @@ const PresetMime = 'application/x-cathode-preset';
               [xuiContextMenuTriggerFor]="bankActions"
               [xuiContextMenuDisabled]="bank.factory ?? false"
               [xuiContextMenuTriggerData]="{ id: bank.id }"
+              tabindex="0"
               (click)="selectBank(bank.id)"
+              (keydown.enter)="selectBank(bank.id)"
+              (keydown.space)="$event.preventDefault(); selectBank(bank.id)"
               (dblclick)="!bank.factory && openRenameBank(bank.id)"
               (contextmenu)="selectBank(bank.id)"
               (dragover)="$event.preventDefault()"
@@ -107,6 +110,7 @@ const PresetMime = 'application/x-cathode-preset';
         <div class="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Selected presets">
           <span class="text-foreground-muted text-sm">{{ selectedIds().length }} selected</span>
           <button
+            type="button"
             xuiButton
             size="sm"
             variant="outline"
@@ -116,6 +120,7 @@ const PresetMime = 'application/x-cathode-preset';
             Rename…
           </button>
           <button
+            type="button"
             xuiButton
             size="sm"
             variant="outline"
@@ -125,6 +130,7 @@ const PresetMime = 'application/x-cathode-preset';
             Duplicate
           </button>
           <button
+            type="button"
             xuiButton
             size="sm"
             variant="outline"
@@ -133,10 +139,18 @@ const PresetMime = 'application/x-cathode-preset';
           >
             Colour
           </button>
-          <button xuiButton size="sm" variant="outline" [disabled]="selectedIds().length === 0" (click)="favorite()">
+          <button
+            type="button"
+            xuiButton
+            size="sm"
+            variant="outline"
+            [disabled]="selectedIds().length === 0"
+            (click)="favorite()"
+          >
             <ng-icon xui name="matStarRound" size="sm" /> Favourite
           </button>
           <button
+            type="button"
             xuiButton
             size="sm"
             variant="outline"
@@ -149,6 +163,7 @@ const PresetMime = 'application/x-cathode-preset';
           </button>
           <span class="flex-1"></span>
           <button
+            type="button"
             xuiButton
             size="sm"
             variant="outline"
@@ -181,7 +196,9 @@ const PresetMime = 'application/x-cathode-preset';
                 [attr.aria-selected]="selected().has(slot.index)"
                 [attr.data-testid]="'slot-' + slot.index"
                 [attr.draggable]="slot.id !== null"
+                tabindex="0"
                 (click)="select(slot.index, $event)"
+                (keydown)="slotKey(slot.index, $event)"
                 (dragstart)="dragSlot($event, slot.index)"
                 (dragover)="$event.preventDefault()"
                 (drop)="dropOnSlot($event, slot.index)"
@@ -213,9 +230,9 @@ const PresetMime = 'application/x-cathode-preset';
 
     <ng-template #colors>
       <xui-menu>
-        <button xuiMenuItem (click)="color('')">No colour</button>
+        <button type="button" xuiMenuItem (click)="color('')">No colour</button>
         @for (c of tagColors; track c) {
-          <button xuiMenuItem (click)="color(c)">
+          <button type="button" xuiMenuItem (click)="color(c)">
             <span class="me-2 inline-block size-3 rounded-full" [style.background]="c"></span>{{ tagColorName(c) }}
           </button>
         }
@@ -224,8 +241,8 @@ const PresetMime = 'application/x-cathode-preset';
 
     <ng-template #bankActions let-id="id">
       <xui-menu>
-        <button xuiMenuItem (click)="openRenameBank(id)">Rename…</button>
-        <button xuiMenuItem color="error" (click)="askDeleteBank(id)">Delete…</button>
+        <button type="button" xuiMenuItem (click)="openRenameBank(id)">Rename…</button>
+        <button type="button" xuiMenuItem color="error" (click)="askDeleteBank(id)">Delete…</button>
       </xui-menu>
     </ng-template>
 
@@ -242,9 +259,10 @@ const PresetMime = 'application/x-cathode-preset';
       <xui-dialog-body>
         <xui-form-field label="Name">
           <input
+            #newNameField
             xuiInput
             [value]="newName()"
-            (input)="newName.set($any($event.target).value)"
+            (input)="newName.set(newNameField.value)"
             (keydown.enter)="rename()"
           />
         </xui-form-field>
@@ -257,11 +275,7 @@ const PresetMime = 'application/x-cathode-preset';
 
     <xui-alert-dialog
       title="Reset Amp blocks?"
-      [description]="
-        'Every Circuit Amp setting in ' +
-        storedSelection().length +
-        ' preset(s) goes back to its default, except the amp\\'s own front-panel knobs and switches. This changes the stored presets now.'
-      "
+      [description]="resetAmpsDescription()"
       confirmText="Reset"
       [(open)]="confirmReset"
       (confirmed)="resetAmps()"
@@ -308,8 +322,12 @@ export class ManagePage {
     this.version();
     const bank = this.bank();
     const session = this.session();
-    return (bank?.slots ?? []).map((id, index) => {
-      const ref = { bank: bank!.id, slot: index };
+    if (!bank) {
+      return [];
+    }
+
+    return bank.slots.map((id, index) => {
+      const ref = { bank: bank.id, slot: index };
       return {
         index,
         id: id ?? null,
@@ -337,6 +355,11 @@ export class ManagePage {
   protected readonly storedSelection = computed(() =>
     this.selectedIds().filter(id => this.session().presets.has(id) && !this.session().isFactory(id))
   );
+  /** The Reset Amp blocks confirmation, which names how many presets it changes. */
+  protected readonly resetAmpsDescription = computed(
+    () =>
+      `Every Circuit Amp setting in ${this.storedSelection().length} preset(s) goes back to its default, except the amp's own front-panel knobs and switches. This changes the stored presets now.`
+  );
   /** Whether the selection holds a factory preset, which cannot be renamed or deleted. */
   protected readonly selectedFactory = computed(() => this.selectedIds().some(id => this.session().isFactory(id)));
   constructor() {
@@ -349,7 +372,15 @@ export class ManagePage {
     this.anchor = null;
   }
 
-  protected select(index: number, event: MouseEvent): void {
+  /** Enter or Space on a focused slot picks it as a click would (⇧ and ⌘ included). */
+  protected slotKey(index: number, event: KeyboardEvent): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.select(index, event);
+    }
+  }
+
+  protected select(index: number, event: MouseEvent | KeyboardEvent): void {
     const next = nextSelection(this.selected(), this.anchor, index, {
       shift: event.shiftKey,
       toggle: event.metaKey || event.ctrlKey
@@ -378,7 +409,10 @@ export class ManagePage {
   }
 
   protected dragSlot(event: DragEvent, slot: number): void {
-    event.dataTransfer?.setData(SlotMime, JSON.stringify({ bank: this.bank()!.id, slot }));
+    const bank = this.bank();
+    if (bank) {
+      event.dataTransfer?.setData(SlotMime, JSON.stringify({ bank: bank.id, slot }));
+    }
   }
 
   protected dragPreset(event: DragEvent, id: string): void {
@@ -404,8 +438,13 @@ export class ManagePage {
   }
 
   protected openRename(): void {
+    const [id] = this.selectedIds();
+    if (id === undefined) {
+      return;
+    }
+
     this.renamingBank.set(null);
-    this.newName.set(this.session().nameOf(this.selectedIds()[0]));
+    this.newName.set(this.session().nameOf(id));
     this.renaming.set(true);
   }
 
@@ -477,7 +516,11 @@ export class ManagePage {
       return;
     }
 
-    this.session().rename(this.selectedIds()[0], name);
+    const [id] = this.selectedIds();
+    if (id !== undefined) {
+      this.session().rename(id, name);
+    }
+
     this.renaming.set(false);
     this.changed();
   }
@@ -541,7 +584,8 @@ export class ManagePage {
         if (!plan.copies.some(c => c.id === id)) {
           await this.patchPreset(id, meta);
         } else if (meta.color !== undefined || meta.favorite !== undefined) {
-          await this.patchPreset(id, { color: meta.color, favorite: meta.favorite });
+          const { name: _copiesKeepTheirName, ...colorAndFavorite } = meta;
+          await this.patchPreset(id, colorAndFavorite);
         }
       }
 

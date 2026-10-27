@@ -59,6 +59,7 @@ export function pickerEntries<T extends PickerEntry>(entries: readonly T[], quer
       <xui-input-group class="flex-1">
         <ng-icon xuiInputLeftElement name="matSearchRound" />
         <input
+          #queryField
           xuiInput
           cdkFocusInitial
           class="w-full"
@@ -69,14 +70,15 @@ export function pickerEntries<T extends PickerEntry>(entries: readonly T[], quer
           aria-expanded="true"
           [attr.aria-controls]="listId"
           [attr.aria-label]="'Search ' + noun()"
-          [attr.aria-activedescendant]="active() ? optionId(active()!) : null"
+          [attr.aria-activedescendant]="activeOptionId()"
           [placeholder]="placeholder()"
           [value]="query()"
-          (input)="search($any($event.target).value)"
+          (input)="search(queryField.value)"
           (keydown)="key($event)"
         />
       </xui-input-group>
       <button
+        type="button"
         xuiButton
         variant="ghost"
         size="sm"
@@ -88,6 +90,7 @@ export function pickerEntries<T extends PickerEntry>(entries: readonly T[], quer
         <ng-icon name="matStarRound" />
       </button>
       <button
+        type="button"
         xuiButton
         variant="ghost"
         size="sm"
@@ -117,6 +120,7 @@ export function pickerEntries<T extends PickerEntry>(entries: readonly T[], quer
       [attr.aria-label]="noun()"
     >
       @for (entry of shown(); track entry.id; let i = $index) {
+        <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -- the combobox pattern: focus stays in the search field, whose arrow keys and Enter drive the options through aria-activedescendant -->
         <li
           role="option"
           class="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm"
@@ -161,9 +165,9 @@ export function pickerEntries<T extends PickerEntry>(entries: readonly T[], quer
     </ul>
     <ng-template #colors let-entry="entry">
       <xui-menu>
-        <button xuiMenuItem (click)="color.emit({ entry, color: '' })">No colour</button>
+        <button type="button" xuiMenuItem (click)="color.emit({ entry, color: '' })">No colour</button>
         @for (c of tagColors; track c) {
-          <button xuiMenuItem (click)="color.emit({ entry, color: c })">
+          <button type="button" xuiMenuItem (click)="color.emit({ entry, color: c })">
             <span class="me-2 inline-block size-3 rounded-full" [style.background]="c"></span>{{ tagColorName(c) }}
           </button>
         }
@@ -185,7 +189,7 @@ export class PickerList {
   /** An extra first row (a bank slot typed as a number), chosen with ↵ when no entry is highlighted. */
   readonly extra = input<string | null>(null);
   readonly chosen = output<PickerEntry>();
-  readonly extraChosen = output<void>();
+  readonly extraChosen = output();
   readonly favorite = output<{ entry: PickerEntry; favorite: boolean }>();
   readonly color = output<{ entry: PickerEntry; color: string }>();
   readonly queryChange = output<string>();
@@ -196,6 +200,10 @@ export class PickerList {
   protected readonly index = signal(0);
   protected readonly shown = computed(() => pickerEntries(this.entries(), this.query(), this.favoritesOnly()));
   protected readonly active = computed(() => this.shown()[this.index()] ?? null);
+  protected readonly activeOptionId = computed(() => {
+    const entry = this.active();
+    return entry ? this.optionId(entry) : null;
+  });
 
   constructor() {
     effect(() => {

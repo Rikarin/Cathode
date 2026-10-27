@@ -4,6 +4,7 @@ import {
   type AssetInfo,
   type AssetUsage,
   type Bank,
+  type Connection,
   type PresetSummary,
   type Setlist,
   unwrap
@@ -226,7 +227,7 @@ export class LibraryStore {
   /** Downloads a URL with the Server's credentials (a plain link cannot carry the bearer token). */
   async download(path: string, fallbackName: string): Promise<void> {
     await this.notify.run(async () => {
-      const connection = this.connection.connection()!;
+      const connection = this.serverConnection();
       const response = await fetch(connection.baseUrl + path, {
         headers: connection.token ? { Authorization: `Bearer ${connection.token}` } : {}
       });
@@ -245,7 +246,7 @@ export class LibraryStore {
 
   /** An asset's bytes (an impulse response for the Cab panel's plot). */
   async content(reference: string): Promise<ArrayBuffer> {
-    const connection = this.connection.connection()!;
+    const connection = this.serverConnection();
     const response = await fetch(`${connection.baseUrl}/api/v1/assets/${encodeURIComponent(reference)}/content`, {
       headers: connection.token ? { Authorization: `Bearer ${connection.token}` } : {}
     });
@@ -254,5 +255,15 @@ export class LibraryStore {
     }
 
     return response.arrayBuffer();
+  }
+
+  /** Where the Server is and its token; a download before the editor has connected is refused, not sent nowhere. */
+  private serverConnection(): Connection {
+    const connection = this.connection.connection();
+    if (!connection) {
+      throw new Error('Not connected to a Server yet.');
+    }
+
+    return connection;
   }
 }

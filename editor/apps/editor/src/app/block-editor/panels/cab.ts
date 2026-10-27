@@ -65,8 +65,7 @@ export const sourceOf = (slot: number, value: (id: string) => number): SourceVal
 
 /** "Dynamic 57 (SM57)" → "SM57": the model in brackets, or the whole name. */
 export function shortMicName(option: string | undefined): string {
-  const model = option?.match(/\(([^)]+)\)\s*$/);
-  return model ? model[1] : (option ?? '');
+  return option?.match(/\(([^)]+)\)\s*$/)?.[1] ?? option ?? '';
 }
 
 /** Whether a slot's own mute switch is on. */
@@ -76,7 +75,7 @@ export const isMuted = (slot: number, value: (id: string) => number): boolean =>
 /** Whether a slot is heard: not muted, and soloed if any slot is. */
 export function isAudible(slot: number, value: (id: string) => number): boolean {
   const soloed = Array.from({ length: CabSlots }, (_, s) => value(slotParamId(s, 'solo')) >= 0.5);
-  return !isMuted(slot, value) && (!soloed.some(Boolean) || soloed[slot]);
+  return !isMuted(slot, value) && (!soloed.some(Boolean) || soloed[slot] === true);
 }
 
 /**
@@ -231,7 +230,7 @@ export function waveformPath(
       break;
     }
 
-    const y = height / 2 - (head[i] / peak) * (height / 2 - 2);
+    const y = height / 2 - ((head[i] ?? 0) / peak) * (height / 2 - 2);
     parts.push(`${i === 0 ? 'M' : 'L'}${x(ms).toFixed(1)},${y.toFixed(1)}`);
   }
 

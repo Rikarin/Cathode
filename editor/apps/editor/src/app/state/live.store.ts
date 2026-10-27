@@ -90,7 +90,7 @@ export class LiveStore {
 
   /** Whether Scene Ignore is on for a channel of a block. */
   ignoresScenes(block: PresetBlock, channel: ChannelName): boolean {
-    return block.sceneIgnore?.includes(channel) ?? false;
+    return block.sceneIgnore.includes(channel);
   }
 
   /** A parameter's value on a channel: a pending drag, the stored value, or undefined for the type's default. */
@@ -306,7 +306,7 @@ export class LiveStore {
 
     const base = JSON.stringify(list(held.preset) ?? null);
     for (let attempt = 0; ; attempt++) {
-      const revision = this.state()!.revision;
+      const revision = (this.state() ?? held).revision;
       try {
         this.apply(unwrap(await call(this.connection.client, { 'If-Match': `"${revision}"` })));
         return true;
@@ -319,7 +319,7 @@ export class LiveStore {
 
       await this.refresh();
       const fresh = this.state();
-      if (!fresh || fresh.preset.id !== held.preset.id || JSON.stringify(list(fresh.preset) ?? null) !== base) {
+      if (fresh?.preset.id !== held.preset.id || JSON.stringify(list(fresh.preset) ?? null) !== base) {
         this.notify.error(
           new Error(
             'Another editor or the rig changed this meanwhile; the editor now shows that. Make your change again.'

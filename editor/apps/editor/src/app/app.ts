@@ -201,6 +201,7 @@ import { UiStore } from './state/ui.store';
           <div xuiNavbarGroup align="end" class="shrink-0 gap-2 max-lg:ms-auto max-lg:h-10">
             <div class="flex items-center">
               <button
+                type="button"
                 xuiButton
                 variant="ghost"
                 size="sm"
@@ -212,6 +213,7 @@ import { UiStore } from './state/ui.store';
                 <ng-icon xui name="matUndoRound" size="sm" />
               </button>
               <button
+                type="button"
                 xuiButton
                 variant="ghost"
                 size="sm"
@@ -225,6 +227,7 @@ import { UiStore } from './state/ui.store';
             </div>
             <cth-transport />
             <button
+              type="button"
               xuiButton
               variant="ghost"
               size="sm"
@@ -235,6 +238,7 @@ import { UiStore } from './state/ui.store';
               <ng-icon xui name="matTuneRound" size="sm" />
             </button>
             <button
+              type="button"
               xuiButton
               variant="ghost"
               size="sm"
@@ -245,6 +249,7 @@ import { UiStore } from './state/ui.store';
               <ng-icon xui name="matShowChartRound" size="sm" />
             </button>
             <button
+              type="button"
               xuiButton
               variant="ghost"
               size="sm"
@@ -256,6 +261,7 @@ import { UiStore } from './state/ui.store';
               <ng-icon xui name="matGraphicEqRound" size="sm" />
             </button>
             <button
+              type="button"
               xuiButton
               variant="ghost"
               size="sm"
@@ -272,6 +278,7 @@ import { UiStore } from './state/ui.store';
             <cth-engine-meters />
             @if (settingsButton) {
               <button
+                type="button"
                 xuiButton
                 variant="ghost"
                 size="sm"
@@ -312,6 +319,7 @@ import { UiStore } from './state/ui.store';
           <cth-preset-scene-display class="max-w-xl min-w-0 flex-1" (stepPreset)="presetPicker()?.step($event)" />
           <div class="ms-auto flex shrink-0 items-center gap-1" aria-label="Preset actions">
             <button
+              type="button"
               xuiButton
               variant="ghost"
               size="sm"
@@ -325,13 +333,16 @@ import { UiStore } from './state/ui.store';
             <ng-template #recentMenu>
               <xui-menu>
                 @for (recent of switcher.recent(); track recent.id) {
-                  <button xuiMenuItem (click)="switcher.load(recent.id, recent.name)">{{ recent.name }}</button>
+                  <button type="button" xuiMenuItem (click)="switcher.load(recent.id, recent.name)">
+                    {{ recent.name }}
+                  </button>
                 } @empty {
-                  <button xuiMenuItem disabled>No recent presets</button>
+                  <button type="button" xuiMenuItem disabled>No recent presets</button>
                 }
               </xui-menu>
             </ng-template>
             <button
+              type="button"
               xuiButton
               variant="ghost"
               size="sm"
@@ -342,6 +353,7 @@ import { UiStore } from './state/ui.store';
               <ng-icon xui name="matAddRound" size="sm" />
             </button>
             <button
+              type="button"
               xuiButton
               variant="ghost"
               size="sm"
@@ -392,10 +404,11 @@ import { UiStore } from './state/ui.store';
             }
             <xui-form-field label="Name">
               <input
+                #saveAsNameField
                 xuiInput
                 data-testid="save-as-name"
                 [value]="saveAsName()"
-                (input)="saveAsName.set($any($event.target).value)"
+                (input)="saveAsName.set(saveAsNameField.value)"
                 (keydown.enter)="saveAs()"
               />
             </xui-form-field>
@@ -451,7 +464,7 @@ export class App {
   );
 
   constructor() {
-    window.cathode?.onFullScreen?.(fullScreen => this.fullScreen.set(fullScreen));
+    window.cathode?.onFullScreen(fullScreen => this.fullScreen.set(fullScreen));
     window.cathode?.onOpenSettings?.(() => this.ui.settings.set('preferences'));
     // Quitting the desktop app takes its Server, and the unsaved edits with it: ask first, as loading a preset does.
     window.cathode?.onQuit?.(() => this.switcher.mayDiscard('quit'));
@@ -467,7 +480,10 @@ export class App {
 
   /** Back to this computer's own engine (the window reloads on it). */
   protected async useThisComputer(): Promise<void> {
-    await this.notify.run(() => window.cathode!.setTarget({ mode: 'local' }));
+    const desktop = window.cathode;
+    if (desktop) {
+      await this.notify.run(() => desktop.setTarget({ mode: 'local' }));
+    }
   }
 
   protected newPreset(): void {
@@ -538,7 +554,7 @@ export class App {
       presetPrevious: () => void this.presetPicker()?.step(-1),
       presetNext: () => void this.presetPicker()?.step(1),
       reload: () => void this.presetPicker()?.reload(),
-      save: () => this.save(),
+      save: () => void this.save(), // save() reports its own failures
       saveAs: () => this.openSaveAs(),
       level: () => this.levelingOpen.set(true),
       channelReset: () => {

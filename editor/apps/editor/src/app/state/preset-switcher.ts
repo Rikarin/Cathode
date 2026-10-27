@@ -101,7 +101,10 @@ function readRecent(): RecentPreset[] {
   try {
     const stored = JSON.parse(localStorage.getItem(RecentKey) ?? '[]') as unknown;
     return Array.isArray(stored)
-      ? stored.filter((p): p is RecentPreset => typeof p?.id === 'string' && typeof p?.name === 'string')
+      ? (stored as unknown[]).filter((p): p is RecentPreset => {
+          const fields = p as Partial<Record<keyof RecentPreset, unknown>> | null;
+          return typeof fields?.id === 'string' && typeof fields.name === 'string';
+        })
       : [];
   } catch {
     return [];

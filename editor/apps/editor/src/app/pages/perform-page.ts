@@ -56,6 +56,7 @@ import { type ResolvedControl, resolveControls, withoutControl } from './perform
             class="bg-surface-raised border-border relative flex min-h-48 flex-col items-center justify-center gap-2 rounded-xl border p-4"
           >
             <button
+              type="button"
               xuiButton
               variant="ghost"
               size="sm"

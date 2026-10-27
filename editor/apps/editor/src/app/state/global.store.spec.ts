@@ -35,12 +35,12 @@ describe('GlobalStore.update', () => {
     await settle();
     expect(puts).toHaveLength(1); // the second waits for the first answer
 
-    puts[0].answer();
+    puts[0]?.answer();
     await settle();
     expect(puts).toHaveLength(2);
-    expect(puts[1].body).toMatchObject({ metronome: true, tempo: 90 });
+    expect(puts[1]?.body).toMatchObject({ metronome: true, tempo: 90 });
 
-    puts[1].answer();
+    puts[1]?.answer();
     expect(await first).toBe(true);
     expect(await second).toBe(true);
     expect(globals.settings()).toMatchObject({ metronome: true, tempo: 90 });

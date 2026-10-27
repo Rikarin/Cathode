@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import type { PresetBlock } from '@cathode/api-client';
 import { unwrap } from '@cathode/api-client';
-import { MicColors } from '@cathode/audio-ui';
+import { micColor } from '@cathode/audio-ui';
 import { XuiButtonImports } from '@xui/button';
 import { ConnectionService } from '../../core/connection';
 import { LiveStore } from '../../state/live.store';
@@ -96,7 +96,7 @@ export class CabAlign {
     this.slots().map((slot, i) => ({
       slot,
       top: i * LaneHeight,
-      color: MicColors[slot.slot % MicColors.length],
+      color: micColor(slot.slot),
       arrival: arrivalMs(slot),
       path: waveformPath(slot.head, this.sampleRate(), slot.autoDelayMs + slot.delayMs, SpanMs, Width, LaneHeight)
     }))
@@ -120,6 +120,7 @@ export class CabAlign {
   }
 
   protected grab(event: PointerEvent, slot: SlotAlignment): void {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- jsdom (the unit tests) has no pointer capture
     (event.target as Element).setPointerCapture?.(event.pointerId);
     this.selectedChange.emit(slot.slot);
     this.dragging.set({ slot: slot.slot, startX: this.svgX(event), startDelay: slot.delayMs });
@@ -142,7 +143,7 @@ export class CabAlign {
 
   protected alignAll(): void {
     const delays = alignedDelays(this.slots());
-    this.slots().forEach((slot, i) => this.setDelay(slot.slot, delays[i]));
+    this.slots().forEach((slot, i) => this.setDelay(slot.slot, delays[i] ?? slot.delayMs)); // one delay per slot
   }
 
   private setDelay(slot: number, ms: number): void {

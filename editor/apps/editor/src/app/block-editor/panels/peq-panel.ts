@@ -67,7 +67,7 @@ export class PeqPanel {
     return Bands.map((band): PeqBand => ({
       band,
       type: band === 1 ? value('lowtype', 0) : band === 5 ? value('hightype', 0) : 1,
-      frequency: value(`freq${band}`, defaults[band - 1]),
+      frequency: value(`freq${band}`, defaults[band - 1] ?? 1_000),
       gain: value(`gain${band}`, 0),
       q: value(`q${band}`, 0.7071),
       slope: band === 1 ? value('lowslope', 1) : value('highslope', 1)
@@ -135,7 +135,11 @@ export class PeqPanel {
   protected wheel(band: number, event: XuiKonvaEventObject<WheelEvent>): void {
     event.event.evt.preventDefault();
     const block = this.block();
-    const current = this.bands()[band - 1].q;
+    const current = this.bands().find(b => b.band === band)?.q;
+    if (current === undefined) {
+      return;
+    }
+
     const next = Math.max(0.1, Math.min(10, current * (event.event.evt.deltaY < 0 ? 1.1 : 1 / 1.1)));
     this.live.setParam(block.id, this.live.channelOf(block.id), `q${band}`, next);
   }

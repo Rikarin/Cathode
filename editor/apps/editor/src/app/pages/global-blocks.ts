@@ -54,12 +54,13 @@ import { LiveStore } from '../state/live.store';
           <xui-tr>
             <xui-td class="min-w-0 flex-1">
               <input
+                #nameField
                 xuiInput
                 class="w-full max-w-96"
                 [attr.aria-label]="'Name of ' + row.name"
                 [value]="row.name"
-                (keydown.enter)="$any($event.target).blur()"
-                (blur)="rename(row.id, $any($event.target))"
+                (keydown.enter)="nameField.blur()"
+                (blur)="rename(row.id, nameField)"
               />
             </xui-td>
             <xui-td class="text-foreground-muted w-48">{{ row.type }}</xui-td>
@@ -70,6 +71,7 @@ import { LiveStore } from '../state/live.store';
             </xui-td>
             <xui-td class="w-16 justify-end">
               <button
+                type="button"
                 xuiButton
                 variant="ghost"
                 size="sm"

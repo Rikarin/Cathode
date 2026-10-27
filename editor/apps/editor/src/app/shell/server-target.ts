@@ -29,23 +29,25 @@ import { Notify } from '../core/notify';
         <label class="flex flex-col gap-1">
           <span class="text-foreground-muted text-xs">URL</span>
           <input
+            #remoteUrlField
             xuiInput
             class="w-72"
             placeholder="http://192.168.1.20:5180"
             aria-label="Server URL"
             [value]="remoteUrl()"
-            (input)="remoteUrl.set($any($event.target).value)"
+            (input)="remoteUrl.set(remoteUrlField.value)"
           />
         </label>
         <label class="flex flex-col gap-1">
           <span class="text-foreground-muted text-xs">Access token</span>
           <input
+            #remoteTokenField
             xuiInput
             type="password"
             class="w-72"
             aria-label="Access token"
             [value]="remoteToken()"
-            (input)="remoteToken.set($any($event.target).value)"
+            (input)="remoteToken.set(remoteTokenField.value)"
           />
         </label>
       </div>
@@ -78,11 +80,19 @@ export class ServerTargetForm {
       this.mode() === 'remote'
         ? { mode: 'remote', baseUrl: this.remoteUrl().trim().replace(/\/+$/, ''), token: this.remoteToken() }
         : { mode: 'local' };
-    await this.notify.run(() => this.desktop!.setTarget(target));
+    const desktop = this.desktop;
+    if (desktop) {
+      await this.notify.run(() => desktop.setTarget(target));
+    }
   }
 
   private async load(): Promise<void> {
-    const target = await this.notify.run(() => this.desktop!.target());
+    const desktop = this.desktop;
+    if (!desktop) {
+      return;
+    }
+
+    const target = await this.notify.run(() => desktop.target());
     if (target) {
       this.mode.set(target.mode);
       if (target.mode === 'remote') {

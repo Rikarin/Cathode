@@ -67,7 +67,12 @@ export function peqGainFor(
   frequency: number,
   targetDb: number
 ): number | null {
-  const own = { ...bands.find(b => b.band === band)!, frequency };
+  const found = bands.find(b => b.band === band);
+  if (!found) {
+    return null;
+  }
+
+  const own = { ...found, frequency };
   const others = peqTotalDb(
     bands.filter(b => b.band !== band),
     frequency

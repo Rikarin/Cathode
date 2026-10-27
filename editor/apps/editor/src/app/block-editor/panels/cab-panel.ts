@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core';
 import { type AssetInfo, type ParameterInfo, type PresetBlock, unwrap } from '@cathode/api-client';
-import { type ConeMove, CthMeter, CthSpeakerCone, MicColors, onAnimationFrame } from '@cathode/audio-ui';
+import { type ConeMove, CthMeter, CthSpeakerCone, micColor, onAnimationFrame } from '@cathode/audio-ui';
 import { XuiButtonImports } from '@xui/button';
 import { XuiCalloutImports } from '@xui/callout';
 import { XuiEChartImports } from '@xui/echarts';
@@ -252,7 +252,7 @@ export class CabPanel {
   private measuring = 0;
 
   protected readonly asset = computed(() => slotAsset(this.selected()));
-  protected readonly color = computed(() => MicColors[this.selected() % MicColors.length]);
+  protected readonly color = computed(() => micColor(this.selected()));
 
   private readonly params = computed(
     () => new Map((this.catalog.info(this.block().type)?.params ?? []).map(p => [p.id, p] as const))
@@ -326,7 +326,7 @@ export class CabPanel {
   private readonly irReferences = computed(
     () => {
       const assets = this.block().assets;
-      return this.irSlots().map(slot => assets[slotAsset(slot)]!);
+      return this.irSlots().flatMap(slot => assets[slotAsset(slot)] ?? []); // irSlots have a file loaded
     },
     { equal: sameReferences }
   );
@@ -351,16 +351,17 @@ export class CabPanel {
       const curve = this.measured()[this.block().assets[slotAsset(slot)] ?? ''];
       const own = cuts(`m${slot + 1}`);
       // A slot that is not heard is drawn dashed at its level as if it played alone.
-      const level = Number.isFinite(levels[slot]) ? levels[slot] : 0;
+      const relative = levels[slot] ?? -Infinity;
+      const level = Number.isFinite(relative) ? relative : 0;
       return curve
         ? [
             {
               type: 'line' as const,
               name: `Mic ${slot + 1}`,
               showSymbol: false,
-              color: MicColors[slot % MicColors.length],
+              color: micColor(slot),
               lineStyle: { type: isAudible(slot, value) ? ('solid' as const) : ('dashed' as const) },
-              data: Frequencies.map((f, n) => [f, curve[n] + level + own[n] + master[n]])
+              data: Frequencies.map((f, n) => [f, (curve[n] ?? 0) + level + (own[n] ?? 0) + (master[n] ?? 0)])
             }
           ]
         : [];
@@ -496,7 +497,12 @@ export class CabPanel {
     if (!curve) {
       curve = this.library.content(reference).then(bytes => {
         const wav = decodeWav(bytes);
-        const samples = wav.channels[0].subarray(0, Math.min(wav.channels[0].length, 8_192));
+        const [first] = wav.channels;
+        if (!first) {
+          throw new Error('The WAV file has no channels.');
+        }
+
+        const samples = first.subarray(0, Math.min(first.length, 8_192));
         // The engine normalises IRs to unit energy; do the same so curves compare.
         const energy = Math.sqrt(samples.reduce((sum, s) => sum + s * s, 0)) || 1;
         return impulseResponseDb(

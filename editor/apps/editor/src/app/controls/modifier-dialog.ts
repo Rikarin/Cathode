@@ -159,7 +159,7 @@ export class ModifierDialog {
   protected readonly sources = [...ModifierSources];
   protected readonly curves = ModifierCurves.map(c => ({
     value: c,
-    label: c === 'scurve' ? 'S-curve' : c[0].toUpperCase() + c.slice(1)
+    label: c === 'scurve' ? 'S-curve' : c.charAt(0).toUpperCase() + c.slice(1)
   }));
   /** All channels of the block, or one (the modifier then leaves the parameter alone on the others). */
   protected readonly scopes = [

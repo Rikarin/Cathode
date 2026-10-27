@@ -93,7 +93,7 @@ export class PresetPicker {
       name: p.name || '(untitled)',
       detail: [p.factory ? 'Factory' : (p.author ?? ''), ...p.tags].filter(Boolean).join(' · '),
       color: p.color ?? null,
-      favorite: p.favorite ?? false
+      favorite: p.favorite
     }))
   );
   protected readonly slotText = computed(() => {
@@ -135,10 +135,13 @@ export class PresetPicker {
     }
 
     const id = bank.slots[slot];
-    const name = this.library.presets().find(p => p.id === id)?.name ?? id;
     if (!id) {
       this.notify.error(`Slot ${slot + 1} of ${bank.name} is empty.`);
-    } else if (await this.switcher.load(id, name)) {
+      return;
+    }
+
+    const name = this.library.presets().find(p => p.id === id)?.name ?? id;
+    if (await this.switcher.load(id, name)) {
       this.ui.presetPicker.set(false);
     }
   }
@@ -155,7 +158,9 @@ export class PresetPicker {
     // From a preset not in the library, next is the first and previous the last.
     const next =
       current < 0 ? all[direction === 1 ? 0 : all.length - 1] : all[(current + direction + all.length) % all.length];
-    await this.switcher.load(next.id, next.name);
+    if (next) {
+      await this.switcher.load(next.id, next.name);
+    }
   }
 
   /** F5: the saved version again (a fresh load, which clears undo); an unsaved preset has none. */

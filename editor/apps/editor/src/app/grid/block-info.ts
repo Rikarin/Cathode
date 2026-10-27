@@ -10,12 +10,13 @@ export function abbreviate(name: string, id = ''): string {
     .replace(/\(.*?\)/g, '')
     .split(/[\s/-]+/)
     .filter(Boolean);
+  const [only, ...more] = words;
   const tag =
-    words.length === 1
-      ? words[0].length <= 4 && words[0] === words[0].toUpperCase()
-        ? words[0]
-        : consonants(words[0])
-      : words.map(w => (w.length > 1 && w === w.toUpperCase() ? w : w[0])).join('');
+    only !== undefined && more.length === 0
+      ? only.length <= 4 && only === only.toUpperCase()
+        ? only
+        : consonants(only)
+      : words.map(w => (w.length > 1 && w === w.toUpperCase() ? w : w.charAt(0))).join('');
   const n = /\d+$/.exec(id)?.[0];
   return tag.toUpperCase().slice(0, 4) + (n && n !== '1' ? n : '');
 }
@@ -23,7 +24,7 @@ export function abbreviate(name: string, id = ''): string {
 /** The first letter, then the next consonants, three letters in all: Drive → DRV, Reverb → RVR, Chorus → CHR. */
 function consonants(word: string): string {
   const rest = word.slice(1).replace(/[aeiou]/gi, '');
-  return (word[0] + rest).slice(0, 3).padEnd(Math.min(3, word.length), word.slice(1));
+  return (word.charAt(0) + rest).slice(0, 3).padEnd(Math.min(3, word.length), word.slice(1));
 }
 
 /** One amp block of a preset: its model and which channel each scene uses. */

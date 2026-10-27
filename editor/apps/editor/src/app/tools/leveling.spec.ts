@@ -11,7 +11,11 @@ describe('LoudnessIntegrator', () => {
       meter.add(-14);
     }
 
-    const playing = meter.integrated()!;
+    const playing = meter.integrated();
+    if (playing === null) {
+      throw new Error('No integrated loudness');
+    }
+
     expect(playing).toBeCloseTo(-16.03, 1);
 
     // Silence never counts, and a long quiet tail more than 10 LU down is gated out.

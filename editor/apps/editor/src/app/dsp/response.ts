@@ -94,11 +94,11 @@ export function decodeWav(buffer: ArrayBuffer): DecodedWav {
       const bytes = bits / 8;
       const frames = Math.floor(Math.min(size, view.byteLength - body) / (bytes * channelCount));
       const channels = Array.from({ length: channelCount }, () => new Float32Array(frames));
-      for (let frame = 0; frame < frames; frame++) {
-        for (let c = 0; c < channelCount; c++) {
-          channels[c][frame] = readSample(view, body + (frame * channelCount + c) * bytes, format, bits);
+      channels.forEach((channel, c) => {
+        for (let frame = 0; frame < frames; frame++) {
+          channel[frame] = readSample(view, body + (frame * channelCount + c) * bytes, format, bits);
         }
-      }
+      });
 
       return { sampleRate, channels };
     }
@@ -122,7 +122,7 @@ function readSample(view: DataView, at: number, format: number, bits: number): n
     case 16:
       return view.getInt16(at, true) / 32_768;
     case 24:
-      return ((view.getUint8(at) | (view.getUint8(at + 1) << 8) | (view.getInt8(at + 2) << 16)) as number) / 8_388_608;
+      return (view.getUint8(at) | (view.getUint8(at + 1) << 8) | (view.getInt8(at + 2) << 16)) / 8_388_608;
     case 32:
       return view.getInt32(at, true) / 2_147_483_648;
     default:
@@ -136,9 +136,11 @@ export function impulseResponseDb(samples: Float32Array, sampleRate: number, fre
     const w = (2 * Math.PI * f) / sampleRate;
     let re = 0;
     let im = 0;
-    for (let n = 0; n < samples.length; n++) {
-      re += samples[n] * Math.cos(w * n);
-      im -= samples[n] * Math.sin(w * n);
+    let n = 0;
+    for (const sample of samples) {
+      re += sample * Math.cos(w * n);
+      im -= sample * Math.sin(w * n);
+      n++;
     }
 
     return 20 * Math.log10(Math.max(Math.hypot(re, im), 1e-9));

@@ -73,7 +73,7 @@ export class PreferencesPanel {
   ];
   protected readonly rates = MeterRates.map(rate => ({
     label: rate === 0 ? 'Off' : `${rate} Hz`,
-    value: rate as number
+    value: rate
   }));
   protected readonly ampViews = [
     { label: 'Authentic', value: 'authentic' as const },

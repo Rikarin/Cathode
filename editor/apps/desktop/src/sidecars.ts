@@ -85,7 +85,7 @@ class Sidecar {
     }
 
     const child = this.child;
-    if (child && child.exitCode === null) {
+    if (child?.exitCode === null) {
       const exited = new Promise<void>(done => child.once('exit', () => done()));
       // Closing its lifeline asks it to stop, and it then stops cleanly: the host releases the device and removes its
       // socket. On Windows that is the only polite way: Node has no signals there, and kill() terminates outright.
@@ -127,7 +127,7 @@ class Sidecar {
     });
     this.child = child;
     this.set(this.failures === 0 ? 'starting' : 'restarting', null);
-    child.stdin?.on('error', () => undefined); // a child that already exited: nothing to tell it
+    child.stdin.on('error', () => undefined); // a child that already exited: nothing to tell it
     const keep = (data: Buffer) => {
       const lines = data.toString().split('\n').filter(Boolean);
       this.log.push(...lines);
@@ -137,8 +137,8 @@ class Sidecar {
         this.set('running', null);
       }
     };
-    child.stdout?.on('data', keep);
-    child.stderr?.on('data', keep);
+    child.stdout.on('data', keep);
+    child.stderr.on('data', keep);
     const ended = (code: number | string | null) => {
       if (this.child !== child) {
         return;
@@ -218,7 +218,7 @@ export class Sidecars {
       const connection = await this.serve();
       this.host.healthy();
       return connection;
-    })().catch(error => {
+    })().catch((error: unknown) => {
       this.ready = null;
       throw error;
     });
@@ -233,7 +233,7 @@ export class Sidecars {
     await this.start();
     this.network = network;
     await this.server.stop();
-    this.ready = this.serve().catch(error => {
+    this.ready = this.serve().catch((error: unknown) => {
       this.ready = null;
       throw error;
     });
@@ -383,8 +383,8 @@ export class Sidecars {
     const loop = [
       ...(this.audio.loopIn.length ? ['--loop-in', this.audio.loopIn.join(',')] : []),
       ...(this.audio.loopOut.length ? ['--loop-out', this.audio.loopOut.join(',')] : []),
-      ...(this.audio.outputs?.length ? ['--outputs', this.audio.outputs.join(',')] : []),
-      ...(this.audio.diOut?.length ? ['--di-out', this.audio.diOut.join(',')] : []),
+      ...(this.audio.outputs.length ? ['--outputs', this.audio.outputs.join(',')] : []),
+      ...(this.audio.diOut.length ? ['--di-out', this.audio.diOut.join(',')] : []),
       ...inputMap(this.audio.inputs)
     ];
     return {
@@ -439,9 +439,9 @@ export function listDevices(): Promise<{ backend: string; devices: unknown[] }> 
       }
 
       try {
-        done(JSON.parse(stdout));
+        done(JSON.parse(stdout) as { backend: string; devices: unknown[] });
       } catch (parse) {
-        fail(parse);
+        fail(parse instanceof Error ? parse : new Error(String(parse)));
       }
     })
   );
@@ -496,7 +496,7 @@ export async function waitForServer(
 /** `--input-map 1;3,4;;5,6` for cathode-host, or nothing when only Input 1 is on channel 1 (the host's default). */
 export function inputMap(inputs: number[][] | undefined): string[] {
   const sources = inputs ?? [];
-  const isDefault =
-    sources.slice(1).every(s => s.length === 0) && (sources.length === 0 || sources[0].join(',') === '1');
+  const [first, ...rest] = sources;
+  const isDefault = rest.every(s => s.length === 0) && (first === undefined || first.join(',') === '1');
   return isDefault ? [] : ['--input-map', sources.map(s => s.join(',')).join(';')];
 }

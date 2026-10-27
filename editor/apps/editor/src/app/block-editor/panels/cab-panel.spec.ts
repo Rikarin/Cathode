@@ -13,7 +13,11 @@ import { CabPanel } from './cab-panel';
 function impulse(): ArrayBuffer {
   const buffer = new ArrayBuffer(44 + 64 * 2);
   const view = new DataView(buffer);
-  const text = (at: number, s: string) => [...s].forEach((c, i) => view.setUint8(at + i, c.charCodeAt(0)));
+  const text = (at: number, s: string) => {
+    for (let i = 0; i < s.length; i++) {
+      view.setUint8(at + i, s.charCodeAt(i));
+    }
+  };
   text(0, 'RIFF');
   view.setUint32(4, 36 + 128, true);
   text(8, 'WAVE');
@@ -34,7 +38,7 @@ function impulse(): ArrayBuffer {
 describe('CabPanel response plot', () => {
   function render(reference: string) {
     const level = signal(0);
-    const content = vi.fn(async () => impulse());
+    const content = vi.fn(() => Promise.resolve(impulse()));
     TestBed.configureTestingModule({
       providers: [
         {
@@ -60,17 +64,16 @@ describe('CabPanel response plot', () => {
     });
     TestBed.overrideComponent(CabPanel, { set: { template: '', imports: [] } });
     const fixture = TestBed.createComponent(CabPanel);
-    const block = (): PresetBlock =>
-      ({
-        id: 'cab1',
-        type: 'cab',
-        row: 0,
-        column: 0,
-        assets: { slot1: reference },
-        channels: {},
-        bypassMode: 'thru',
-        sceneIgnore: []
-      }) as PresetBlock;
+    const block = (): PresetBlock => ({
+      id: 'cab1',
+      type: 'cab',
+      row: 0,
+      column: 0,
+      assets: { slot1: reference },
+      channels: {},
+      bypassMode: 'thru',
+      sceneIgnore: []
+    });
     fixture.componentRef.setInput('block', block());
     fixture.detectChanges();
     const panel = fixture.componentInstance as unknown as { loading: () => boolean; plotted: () => boolean };

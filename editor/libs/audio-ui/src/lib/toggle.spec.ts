@@ -15,7 +15,7 @@ describe('CthToggle', () => {
   function render() {
     const fixture = TestBed.createComponent(Host);
     fixture.detectChanges();
-    const button = fixture.nativeElement.querySelector('[role=switch]') as HTMLButtonElement;
+    const button = (fixture.nativeElement as HTMLElement).querySelector('[role=switch]') as HTMLButtonElement;
     return { fixture, button, host: fixture.componentInstance };
   }
 
@@ -23,14 +23,16 @@ describe('CthToggle', () => {
     const { button, fixture } = render();
 
     expect(button.getAttribute('aria-checked')).toBe('false');
-    expect(button.textContent?.trim()).toBe('OFF');
-    const label = fixture.nativeElement.querySelector(`#${button.getAttribute('aria-labelledby')}`);
-    expect(label.textContent.trim()).toBe('Bright');
+    expect(button.textContent.trim()).toBe('OFF');
+    const label = (fixture.nativeElement as HTMLElement).querySelector(
+      `#${button.getAttribute('aria-labelledby') ?? ''}`
+    );
+    expect(label?.textContent.trim()).toBe('Bright');
 
     button.click();
     fixture.detectChanges();
     expect(button.getAttribute('aria-checked')).toBe('true');
-    expect(button.textContent?.trim()).toBe('ON');
+    expect(button.textContent.trim()).toBe('ON');
   });
 
   it('turns on with ↑ and off with ↓, committing only changes', () => {
