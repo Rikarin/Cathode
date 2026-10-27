@@ -250,12 +250,7 @@ public sealed partial class LiveRig {
                     );
                 block.Channels[target] = values;
                 if (block.Global is { } link) {
-                    globals.Update(g => {
-                            if (g.Blocks.Find(b => b.Id == link) is { } shared) {
-                                shared.Channels[target] = new(values);
-                            }
-                        }
-                    );
+                    ShareWithGlobal(link, target, values);
                 }
 
                 var linked = MirrorLinked(block);

@@ -1,4 +1,5 @@
 using Cathode.Contracts;
+using Cathode.Dsp.Parameters;
 using Cathode.Engine.Rig;
 using Cathode.Ipc;
 using Cathode.Server.Api;
@@ -116,16 +117,7 @@ public sealed partial class LiveRig {
 
                 switch (request.Mode) {
                     case "swap":
-                        await StructuralAsync(p => {
-                                var a = p.Blocks.Single(b => b.Id == id);
-                                var b = p.Blocks.Single(x => x.Id == request.Target);
-                                (a.Row, a.Column, b.Row, b.Column) = (b.Row, b.Column, a.Row, a.Column);
-                                foreach (var cable in p.Cables) {
-                                    cable.From = Swapped(cable.From, a.Id, b.Id);
-                                    cable.To = Swapped(cable.To, a.Id, b.Id);
-                                }
-                            }
-                        );
+                        await StructuralAsync(p => SwapCells(p, id, request.Target));
                         return Changed("blocksSwapped", id);
                     case "replace":
                         if (BuiltInTypes.IsBuiltIn(block.Type) && block.Type != BuiltInTypes.Shunt
@@ -133,26 +125,41 @@ public sealed partial class LiveRig {
                             throw new RigException(400, "The grid's Input and Output cannot be replaced or moved so.");
                         }
 
-                        await StructuralAsync(p => {
-                                var a = p.Blocks.Single(b => b.Id == id);
-                                var b = p.Blocks.Single(x => x.Id == request.Target);
-                                p.Blocks.Remove(b);
-                                Forget(p, b.Id);
-                                if (!LeaveShunt(p, a, a.Row, a.Column)) {
-                                    p.Cables.RemoveAll(c => c.From == a.Id || c.To == a.Id);
-                                }
-
-                                (a.Row, a.Column) = (b.Row, b.Column);
-                                Repoint(p, b.Id, a.Id);
-                                p.Cables.RemoveAll(c => c.From == c.To || !Adjacent(p, c));
-                            }
-                        );
+                        await StructuralAsync(p => TakeCell(p, id, request.Target));
                         return Changed("blockReplaced", id);
                     default:
                         throw new RigException(400, $"Drop mode '{request.Mode}' is not swap or replace.");
                 }
             }
         );
+
+    /// <summary>
+    ///     Block <paramref name="id" /> and <paramref name="other" /> exchange cells; the cables stay put.
+    /// </summary>
+    static void SwapCells(Preset p, string id, string other) {
+        var a = p.Blocks.Single(b => b.Id == id);
+        var b = p.Blocks.Single(x => x.Id == other);
+        (a.Row, a.Column, b.Row, b.Column) = (b.Row, b.Column, a.Row, a.Column);
+        foreach (var cable in p.Cables) {
+            cable.From = Swapped(cable.From, a.Id, b.Id);
+            cable.To = Swapped(cable.To, a.Id, b.Id);
+        }
+    }
+
+    /// <summary>Block <paramref name="id" /> replaces <paramref name="target" />, taking its cell and cables.</summary>
+    void TakeCell(Preset p, string id, string target) {
+        var a = p.Blocks.Single(b => b.Id == id);
+        var b = p.Blocks.Single(x => x.Id == target);
+        p.Blocks.Remove(b);
+        Forget(p, b.Id);
+        if (!LeaveShunt(p, a, a.Row, a.Column)) {
+            p.Cables.RemoveAll(c => c.From == a.Id || c.To == a.Id);
+        }
+
+        (a.Row, a.Column) = (b.Row, b.Column);
+        Repoint(p, b.Id, a.Id);
+        p.Cables.RemoveAll(c => c.From == c.To || !Adjacent(p, c));
+    }
 
     /// <summary>
     ///     Moves a whole row or column to another index, shifting those between. Rows keep every cable. Cables only join
@@ -176,21 +183,25 @@ public sealed partial class LiveRig {
                     return State(); // nothing moves: no undo step
                 }
 
-                await StructuralAsync(p => {
-                        if (rows) {
-                            foreach (var block in p.Blocks) {
-                                block.Row = Shifted(block.Row, request.From, request.To);
-                            }
-                        } else {
-                            RewireColumnMove(p, request.From, request.To);
-                        }
-
-                        p.Cables.RemoveAll(c => !Adjacent(p, c));
-                    }
-                );
+                await StructuralAsync(p => MoveLine(p, rows, request.From, request.To));
                 return Changed("lineMoved");
             }
         );
+
+    /// <summary>
+    ///     Moves row (or column) <paramref name="from" /> to <paramref name="to" />, dropping broken cables.
+    /// </summary>
+    static void MoveLine(Preset p, bool rows, int from, int to) {
+        if (rows) {
+            foreach (var block in p.Blocks) {
+                block.Row = Shifted(block.Row, from, to);
+            }
+        } else {
+            RewireColumnMove(p, from, to);
+        }
+
+        p.Cables.RemoveAll(c => !Adjacent(p, c));
+    }
 
     /// <summary>Removes every cable into and out of a block.</summary>
     public Task<LiveState> DisconnectAsync(string id, long? expected) =>
@@ -213,24 +224,7 @@ public sealed partial class LiveRig {
 
                 var descriptor = catalog.Descriptor(block.Type)
                     ?? throw new RigException(400, $"'{id}' has no parameters.");
-                var channels = new Dictionary<string, Dictionary<string, float>>();
-                foreach (var (channel, values) in request.Channels) {
-                    CheckChannel(channel, descriptor.Channels);
-                    var unknown = values.Keys.Where(k => descriptor.IndexOf(k) < 0).ToList();
-                    if (unknown.Count > 0) {
-                        throw new RigException(
-                            400,
-                            $"{descriptor.Name} has no parameter(s) {string.Join(", ", unknown)}.",
-                            unknown
-                        );
-                    }
-
-                    channels[channel] = values.ToDictionary(
-                        static v => v.Key,
-                        v => descriptor.Params[descriptor.IndexOf(v.Key)].Sanitize(v.Value)
-                    );
-                }
-
+                var channels = SanitizeChannels(descriptor, request.Channels);
                 var slots = catalog.Info(block.Type)!.AssetSlots;
                 var assigned = (request.Assets ?? [])
                     .Where(a => slots.Contains(a.Key)
@@ -250,6 +244,24 @@ public sealed partial class LiveRig {
                 return Changed("blockSettingsPasted", id);
             }
         );
+
+    /// <summary>Each channel's values, sanitized; unknown channels and parameters are a 400.</summary>
+    static Dictionary<string, Dictionary<string, float>> SanitizeChannels(
+        BlockDescriptor descriptor,
+        Dictionary<string, Dictionary<string, float>> requested
+    ) {
+        var channels = new Dictionary<string, Dictionary<string, float>>();
+        foreach (var (channel, values) in requested) {
+            CheckChannel(channel, descriptor.Channels);
+            CheckParamNames(descriptor, values);
+            channels[channel] = values.ToDictionary(
+                static v => v.Key,
+                v => descriptor.Params[descriptor.IndexOf(v.Key)].Sanitize(v.Value)
+            );
+        }
+
+        return channels;
+    }
 
     /// <summary>Sets a block's bypass and/or channel in every scene.</summary>
     public Task<LiveState> SetAllScenesAsync(string id, AllScenesRequest request, long? expected) =>
@@ -274,21 +286,29 @@ public sealed partial class LiveRig {
                 }
 
                 var after = preset.Scenes[activeScene].StateOf(id);
-                if (NeedsRecompile(block, before.Channel, after.Channel)) {
-                    await SyncGraphAsync();
-                } else {
-                    if (before.Channel != after.Channel) {
-                        engine.SetParams(generation, ChannelValues(block, after.Channel));
-                    }
-
-                    if (before.Bypassed != after.Bypassed) {
-                        engine.SetBypass(generation, id, after.Bypassed);
-                    }
-                }
-
+                await SendSceneStateAsync(block, before, after);
                 return Changed("allScenesChanged", id, after.Channel);
             }
         );
+
+    /// <summary>
+    ///     Tells the engine a block's state in the active scene went from <paramref name="before" /> to
+    ///     <paramref name="after" />.
+    /// </summary>
+    async Task SendSceneStateAsync(PresetBlock block, SceneBlockState before, SceneBlockState after) {
+        if (NeedsRecompile(block, before.Channel, after.Channel)) {
+            await SyncGraphAsync();
+            return;
+        }
+
+        if (before.Channel != after.Channel) {
+            engine.SetParams(generation, ChannelValues(block, after.Channel));
+        }
+
+        if (before.Bypassed != after.Bypassed) {
+            engine.SetBypass(generation, block.Id, after.Bypassed);
+        }
+    }
 
     /// <summary>
     ///     Recalls a Block Library entry into every channel: a whole-block entry's own channels, modifiers and assets,
@@ -320,44 +340,61 @@ public sealed partial class LiveRig {
                         c => Clean(source.Channels is { } stored ? stored.GetValueOrDefault(c) ?? [] : source.Values)
                     );
                 var slots = catalog.Info(block.Type)!.AssetSlots;
-                await StructuralAsync(p => {
-                        var target = p.Blocks.Single(b => b.Id == id);
-                        target.Channels = channels;
-                        foreach (var (slot, reference) in source.Assets ?? []) {
-                            if (slots.Contains(slot)
-                                && assets.Get(reference) is { } asset
-                                && Stores.AssetStore.Fits(slot, asset.Kind)) {
-                                target.Assets[slot] = reference;
-                            }
-                        }
-
-                        if (source.Modifiers is { } modifiers) {
-                            p.Modifiers.RemoveAll(m => m.Block == id);
-                            p.Modifiers.AddRange(
-                                modifiers.Where(m => (descriptor.IndexOf(m.Param) >= 0
-                                            || m.Param == ModNames.EngageParam)
-                                        && ModNames.TryParseSource(m.Source, out _)
-                                        && ModNames.TryParseCurve(m.Curve, out _)
-                                    )
-                                    .Select(m => new PresetModifier {
-                                            Block = id,
-                                            Param = m.Param,
-                                            Source = m.Source,
-                                            Min = m.Min,
-                                            Max = m.Max,
-                                            Curve = m.Curve,
-                                            AttackMs = m.AttackMs,
-                                            ReleaseMs = m.ReleaseMs
-                                        }
-                                    )
-                            );
-                        }
-                    }
-                );
+                await StructuralAsync(p => RecallEntry(p, id, source, channels, slots, descriptor));
                 await ShareWithLinkedAsync(block);
                 return Changed("blockPresetApplied", id);
             }
         );
+
+    /// <summary>
+    ///     Gives block <paramref name="id" /> a Block Library entry's channels, the assets that fit its slots, and the
+    ///     entry's valid modifiers in place of its own (when the entry has modifiers).
+    /// </summary>
+    void RecallEntry(
+        Preset p,
+        string id,
+        BlockPreset source,
+        Dictionary<string, Dictionary<string, float>> channels,
+        IReadOnlyCollection<string> slots,
+        BlockDescriptor descriptor
+    ) {
+        var target = p.Blocks.Single(b => b.Id == id);
+        target.Channels = channels;
+        foreach (var (slot, reference) in source.Assets ?? []) {
+            if (slots.Contains(slot)
+                && assets.Get(reference) is { } asset
+                && Stores.AssetStore.Fits(slot, asset.Kind)) {
+                target.Assets[slot] = reference;
+            }
+        }
+
+        if (source.Modifiers is { } modifiers) {
+            p.Modifiers.RemoveAll(m => m.Block == id);
+            p.Modifiers.AddRange(ModifiersFor(id, modifiers, descriptor));
+        }
+    }
+
+    /// <summary>An entry's modifiers that the block can take, as block <paramref name="id" />'s.</summary>
+    static IEnumerable<PresetModifier> ModifiersFor(
+        string id,
+        IEnumerable<PresetModifier> modifiers,
+        BlockDescriptor descriptor
+    ) =>
+        modifiers.Where(m => (descriptor.IndexOf(m.Param) >= 0 || m.Param == ModNames.EngageParam)
+                && ModNames.TryParseSource(m.Source, out _)
+                && ModNames.TryParseCurve(m.Curve, out _)
+            )
+            .Select(m => new PresetModifier {
+                    Block = id,
+                    Param = m.Param,
+                    Source = m.Source,
+                    Min = m.Min,
+                    Max = m.Max,
+                    Curve = m.Curve,
+                    AttackMs = m.AttackMs,
+                    ReleaseMs = m.ReleaseMs
+                }
+            );
 
     /// <summary>
     ///     Replaces the working copy's content with <paramref name="next" />, keeping its identity, as one undoable
@@ -465,17 +502,7 @@ public sealed partial class LiveRig {
                 }
 
                 if (stored?.Factory == true) {
-                    // Read-only: only the user's own colour tag and favourite flag go beside it.
-                    if (change.Name is not null && change.Name.Trim() != stored.Name) {
-                        throw RigException.Conflict("Factory presets cannot be renamed; save a copy to rename it.");
-                    }
-
-                    Apply(stored, change with { Name = null });
-                    presets.Mark(id, stored.Color, stored.Favorite);
-                    if (preset.Id == id) {
-                        Apply(preset, change with { Name = null });
-                    }
-
+                    MarkFactoryPreset(id, stored, change);
                     return Task.FromResult(Changed("presetMetadataChanged", markDirty: false));
                 }
 
@@ -492,11 +519,28 @@ public sealed partial class LiveRig {
             }
         );
 
+    /// <summary>
+    ///     A factory preset is read-only: only the user's own colour tag and favourite flag go beside it.
+    /// </summary>
+    void MarkFactoryPreset(string id, Preset stored, PresetMetadataRequest change) {
+        if (change.Name is not null && change.Name.Trim() != stored.Name) {
+            throw RigException.Conflict("Factory presets cannot be renamed; save a copy to rename it.");
+        }
+
+        Apply(stored, change with { Name = null });
+        presets.Mark(id, stored.Color, stored.Favorite);
+        if (preset.Id == id) {
+            Apply(preset, change with { Name = null });
+        }
+    }
+
     static void Apply(Preset target, PresetMetadataRequest change) {
         target.Name = change.Name?.Trim() ?? target.Name;
-        target.Color = change.Color is { } color ? color.Length == 0 ? null : color : target.Color;
+        target.Color = change.Color is { } color ? NullIfEmpty(color) : target.Color;
         target.Favorite = change.Favorite ?? target.Favorite;
     }
+
+    static string? NullIfEmpty(string text) => text.Length == 0 ? null : text;
 
     /// <summary>
     ///     A linked block's settings belong to its global block: keep that in step, and the preset's other blocks linked
@@ -614,22 +658,43 @@ public sealed partial class LiveRig {
     ///     </list>
     ///     Only a cable with nowhere to run through is dropped (by the caller's adjacency filter).
     /// </summary>
-    static void RewireColumnMove(Preset p, int from, int to) {
-        var moved = p.Blocks.Where(b => b.Column == from).ToList();
-        var through = new HashSet<string>(StringComparer.Ordinal); // may carry a path where it lands
-        var inPath = new List<PresetBlock>(); // non-shunt blocks that sat in a path
-        var fedEnds = new List<PresetBlock>();
-        var feedingEnds = new List<PresetBlock>();
-        foreach (var block in moved) {
-            var inputs = p.Cables.Where(c => c.To == block.Id).Select(static c => c.From).ToList();
-            var outputs = p.Cables.Where(c => c.From == block.Id).Select(static c => c.To).ToList();
-            if (inputs.Count > 0 && outputs.Count > 0) {
-                foreach (var input in inputs) {
-                    foreach (var output in outputs) {
-                        Connect(p, input, output);
-                    }
-                }
+    static void RewireColumnMove(Preset p, int from, int to) => new ColumnMove(p, from, to).Run();
 
+    /// <summary>
+    ///     The steps of <see cref="RewireColumnMove" />, sharing what the lift learnt about the moved blocks.
+    /// </summary>
+    sealed class ColumnMove(Preset p, int from, int to) {
+        readonly HashSet<string> through = new(StringComparer.Ordinal); // may carry a path where it lands
+        readonly List<PresetBlock> inPath = []; // non-shunt blocks that sat in a path
+        readonly List<PresetBlock> fedEnds = [];
+        readonly List<PresetBlock> feedingEnds = [];
+        Dictionary<string, PresetBlock> at = [];
+
+        public void Run() {
+            var moved = p.Blocks.Where(b => b.Column == from).ToList();
+            foreach (var block in moved) {
+                Lift(block);
+            }
+
+            foreach (var block in p.Blocks) {
+                block.Column = Shifted(block.Column, from, to);
+            }
+
+            at = p.Blocks.ToDictionary(static b => b.Id, StringComparer.Ordinal);
+            Insert();
+            JoinUnwired();
+            FeedEnds();
+        }
+
+        /// <summary>
+        ///     A moved block that sat in a path hands its inputs straight to its outputs, and loses its cables; what it
+        ///     was (in a path, a branch end) is noted for the insert.
+        /// </summary>
+        void Lift(PresetBlock block) {
+            var inputs = InputsOf(block.Id);
+            var outputs = OutputsOf(block.Id);
+            if (inputs.Count > 0 && outputs.Count > 0) {
+                Bridge(inputs, outputs);
                 if (block.Type != BuiltInTypes.Shunt) {
                     inPath.Add(block);
                 }
@@ -647,65 +712,89 @@ public sealed partial class LiveRig {
             p.Cables.RemoveAll(c => c.From == block.Id || c.To == block.Id);
         }
 
-        foreach (var block in p.Blocks) {
-            block.Column = Shifted(block.Column, from, to);
-        }
-
-        var at = p.Blocks.ToDictionary(static b => b.Id, StringComparer.Ordinal);
-        var jumping = p.Cables.Where(c => at[c.From].Column == to - 1 && at[c.To].Column == to + 1).ToList();
-        // First the cables that meet a moved block in their own rows, so an idle block is not taken from them.
-        var sameRow = jumping
-            .Select(c => (Cable: c, Via: new[] { at[c.From].Row, at[c.To].Row }
-                    .Select(r => BlockAt(p, r, to))
-                    .FirstOrDefault(b => b is not null && through.Contains(b.Id))
-                )
-            )
-            .Where(static j => j.Via is not null)
-            .ToList();
-        foreach (var (cable, via) in sameRow) {
-            Splice(cable, via!.Id);
-        }
-
-        foreach (var cable in jumping.Except(sameRow.Select(static j => j.Cable)).ToList()) {
-            var (source, target) = (at[cable.From], at[cable.To]);
-            var idle = inPath.Where(b => !Wired(b.Id))
-                .OrderBy(b => Math.Abs(b.Row - source.Row))
-                .FirstOrDefault();
-            if ((idle?.Id ?? FreeCell(source.Row, target.Row) ?? Carrier(source.Row)) is { } via) {
-                Splice(cable, via);
+        void Bridge(List<string> inputs, List<string> outputs) {
+            foreach (var input in inputs) {
+                foreach (var output in outputs) {
+                    Connect(p, input, output);
+                }
             }
         }
 
-        foreach (var block in inPath.Where(b => !Wired(b.Id))) {
-            var peer = p.Blocks.Where(b => b.Column == to && b.Id != block.Id && Wired(b.Id))
+        /// <summary>Every cable that now jumps over the landed column runs through it.</summary>
+        void Insert() {
+            var jumping = p.Cables.Where(c => at[c.From].Column == to - 1 && at[c.To].Column == to + 1).ToList();
+            // First the cables that meet a moved block in their own rows, so an idle block is not taken from them.
+            var sameRow = jumping
+                .Select(c => (Cable: c, Via: new[] { at[c.From].Row, at[c.To].Row }
+                        .Select(r => BlockAt(p, r, to))
+                        .FirstOrDefault(b => b is not null && through.Contains(b.Id))
+                    )
+                )
+                .Where(static j => j.Via is not null)
+                .ToList();
+            foreach (var (cable, via) in sameRow) {
+                Splice(cable, via!.Id);
+            }
+
+            foreach (var cable in jumping.Except(sameRow.Select(static j => j.Cable)).ToList()) {
+                var (source, target) = (at[cable.From], at[cable.To]);
+                var idle = NearestIdle(source.Row);
+                if ((idle?.Id ?? FreeCell(source.Row, target.Row) ?? Carrier(source.Row)) is { } via) {
+                    Splice(cable, via);
+                }
+            }
+        }
+
+        /// <summary>
+        ///     A moved block that was in a path but got none goes in parallel with the nearest one that did.
+        /// </summary>
+        void JoinUnwired() {
+            foreach (var block in inPath.Where(b => !Wired(b.Id))) {
+                var peer = NearestWiredPeer(block);
+                if (peer is null) {
+                    continue;
+                }
+
+                foreach (var input in InputsOf(peer.Id)) {
+                    Connect(p, input, block.Id);
+                }
+
+                foreach (var output in OutputsOf(peer.Id)) {
+                    Connect(p, block.Id, output);
+                }
+            }
+        }
+
+        List<string> InputsOf(string id) => [..p.Cables.Where(c => c.To == id).Select(static c => c.From)];
+
+        List<string> OutputsOf(string id) => [..p.Cables.Where(c => c.From == id).Select(static c => c.To)];
+
+        /// <summary>The moved block nearest to <paramref name="row" /> that sat in a path and has none yet.</summary>
+        PresetBlock? NearestIdle(int row) =>
+            inPath.Where(b => !Wired(b.Id)).OrderBy(b => Math.Abs(b.Row - row)).FirstOrDefault();
+
+        /// <summary>The wired block of the landed column nearest to <paramref name="block" />.</summary>
+        PresetBlock? NearestWiredPeer(PresetBlock block) =>
+            p.Blocks.Where(b => b.Column == to && b.Id != block.Id && Wired(b.Id))
                 .OrderBy(b => Math.Abs(b.Row - block.Row))
                 .FirstOrDefault();
-            if (peer is null) {
-                continue;
+
+        /// <summary>
+        ///     A moved branch end that has lost its one side is fed from, or feeds, its new row neighbour.
+        /// </summary>
+        void FeedEnds() {
+            foreach (var end in fedEnds.Where(e => p.Cables.TrueForAll(c => c.To != e.Id))) {
+                if (BlockAt(p, end.Row, to - 1) is { } neighbour) {
+                    Connect(p, neighbour.Id, end.Id);
+                }
             }
 
-            foreach (var input in p.Cables.Where(c => c.To == peer.Id).Select(static c => c.From).ToList()) {
-                Connect(p, input, block.Id);
-            }
-
-            foreach (var output in p.Cables.Where(c => c.From == peer.Id).Select(static c => c.To).ToList()) {
-                Connect(p, block.Id, output);
-            }
-        }
-
-        foreach (var end in fedEnds.Where(e => p.Cables.TrueForAll(c => c.To != e.Id))) {
-            if (BlockAt(p, end.Row, to - 1) is { } neighbour) {
-                Connect(p, neighbour.Id, end.Id);
-            }
-        }
-
-        foreach (var end in feedingEnds.Where(e => p.Cables.TrueForAll(c => c.From != e.Id))) {
-            if (BlockAt(p, end.Row, to + 1) is { } neighbour) {
-                Connect(p, end.Id, neighbour.Id);
+            foreach (var end in feedingEnds.Where(e => p.Cables.TrueForAll(c => c.From != e.Id))) {
+                if (BlockAt(p, end.Row, to + 1) is { } neighbour) {
+                    Connect(p, end.Id, neighbour.Id);
+                }
             }
         }
-
-        return;
 
         bool Wired(string id) => p.Cables.Exists(c => c.From == id) && p.Cables.Exists(c => c.To == id);
 
@@ -721,7 +810,7 @@ public sealed partial class LiveRig {
                 .ThenBy(r => Math.Abs(r - first))
                 .ThenBy(static r => r);
 
-        // A new shunt in an empty cell of the landed column.
+        /// <summary>A new shunt in an empty cell of the landed column.</summary>
         string? FreeCell(int sourceRow, int targetRow) {
             var row = Rows(sourceRow, targetRow).FirstOrDefault(r => BlockAt(p, r, to) is null, -1);
             if (row < 0) {
@@ -740,7 +829,7 @@ public sealed partial class LiveRig {
             return id;
         }
 
-        // Any block of the landed column that can carry a path, nearest first.
+        /// <summary>Any block of the landed column that can carry a path, nearest first.</summary>
         string? Carrier(int sourceRow) =>
             Rows(sourceRow, sourceRow)
                 .Select(r => BlockAt(p, r, to))
