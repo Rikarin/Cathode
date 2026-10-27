@@ -114,7 +114,11 @@ public sealed class JsonFileStoreTests : IDisposable {
         // A thread of its own lets go after 100 ms: a thread-pool continuation can wait seconds on a busy runner,
         // longer than the store retries.
         var release = new Thread(() => {
+                // The duration is the scenario, not a wait for something to happen: another program holds the file
+                // for a moment shorter than the store's retry window, and the save must outlast it.
+#pragma warning disable SK8005
                 Thread.Sleep(100);
+#pragma warning restore SK8005
                 held.Dispose();
             }
         );

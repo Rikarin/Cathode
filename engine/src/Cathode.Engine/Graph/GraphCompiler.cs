@@ -311,7 +311,6 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         return new(latency, latest, graphLatency, slowestOutput);
     }
 
-#pragma warning disable SK1084 // plain loops: no LINQ garbage on every preset load
     /// <summary>The live input that arrives last (the first of equals), or −1.</summary>
     static int LatestInput(List<int> inputs, bool[] live, int[] latency) {
         var latest = -1;
@@ -323,7 +322,6 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
 
         return latest;
     }
-#pragma warning restore SK1084
 
     /// <summary>
     ///     Blocks that follow a Cab block (an amp's Auto speaker load): the first Cab reached through their outputs.
@@ -628,7 +626,6 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             }
         }
 
-#pragma warning disable SK1084 // plain loops: no LINQ garbage on every preset load
         /// <summary>
         ///     Side inputs (ISideInputBlock). Taps: per row, the last live node to the left of the block. Each counts
         ///     as one more reader, so its buffer survives (and is not processed over in place) until the block has
@@ -707,7 +704,6 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             }
         }
 
-#pragma warning restore SK1084
         void EmitTaps(int slot, List<(int Row, int Source)> tapSources) {
             Emitter.EmitSideInput(slot, -1, -1, -1); // the grid input
             foreach (var (row, source) in tapSources) {
