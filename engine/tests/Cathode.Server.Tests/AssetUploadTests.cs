@@ -1,4 +1,8 @@
 using Cathode.Contracts;
+using Cathode.Server.Stores;
+using Microsoft.AspNetCore.Http.Metadata;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Net.Http.Json;
@@ -112,22 +116,22 @@ public sealed class AssetUploadTests : IAsyncLifetime {
     }
 
     [Fact]
-    public async Task Over_kestrel_uploads_up_to_64_mb_are_taken_and_larger_ones_are_refused_with_a_reason() {
-        // A real Kestrel, whose default request limit (30,000,000 bytes) the in-memory test server does not have.
-        await using var kestrel = new ServerFixture();
-        kestrel.UseKestrel(0);
-        kestrel.StartServer();
-        using var http = kestrel.CreateClient();
-        http.Timeout = TimeSpan.FromMinutes(2);
+    public async Task Uploads_up_to_64_mb_are_taken_and_larger_ones_are_refused_with_a_reason() {
+        // Kestrel's own request limit is 30,000,000 bytes; the endpoint raises it to the store's 64 MB. A real Kestrel is
+        // not used here: refusing a body while the client still writes it is a broken pipe on some platforms and a 413 on
+        // others, so the test checks the limit the endpoint carries and the store's answer past it.
+        var upload = server.Services.GetRequiredService<EndpointDataSource>()
+            .Endpoints.Single(static e => e.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName == "UploadAsset");
+        Assert.Equal(AssetStore.MaxBytes, upload.Metadata.GetMetadata<IRequestSizeLimitMetadata>()?.MaxRequestBodySize);
 
-        using var large = await http.PostAsync(
+        using var large = await client.PostAsync(
             "/api/v1/assets?name=big.nam",
             new ByteArrayContent(new byte[40 * 1024 * 1024]),
             Token
         );
-        using var tooLarge = await http.PostAsync(
+        using var tooLarge = await client.PostAsync(
             "/api/v1/assets?name=huge.nam",
-            new ByteArrayContent(new byte[64 * 1024 * 1024 + 1]),
+            new ByteArrayContent(new byte[AssetStore.MaxBytes + 1]),
             Token
         );
 
