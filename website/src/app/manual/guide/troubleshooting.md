@@ -123,9 +123,9 @@ What you feel is the round trip: interface converters, two buffers, and any late
 3. Check that the message in the Monitor matches a mapping in the table, or a switch's **Sends** column in the active footswitch layout, and that the switch is on the active **view**.
 4. A CC or note counts as pressed only at a value or velocity of 64 or more. Set your controller's switches to send 127 when pressed.
 
-### A footswitch action field will not accept my text
+### A footswitch action names a block that is not there
 
-The field only accepts known action names, written as in [Writing actions](/manual/midi-and-footswitches#writing-actions). Scene, channel, manual and view numbers start at 1, as Externals do: `scene 1` is Scene 1. A number outside the range is clamped to it.
+Footswitch layouts are global, but blocks belong to presets: a `bypass` or `channel` action picked with another preset loaded may name a block this preset does not have. The target list then shows its id followed by **(not found)**, and the switch does nothing in this preset. Pick a block of this preset, or give the switch an action of its own in **In this preset**. See [Choosing actions](/manual/midi-and-footswitches#choosing-actions).
 
 ### Program changes load the wrong preset
 

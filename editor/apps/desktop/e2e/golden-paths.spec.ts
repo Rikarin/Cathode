@@ -136,7 +136,8 @@ test('the global page holds tempo, EQ, MIDI and footswitches', async ({ window }
   await expect(window.getByRole('heading', { name: 'Outputs' })).toBeVisible();
   await window.getByRole('button', { name: 'New layout' }).click();
   await window.getByRole('button', { name: 'Add switch' }).click();
-  await expect(window.getByLabel('Switch 1 tap action')).toHaveValue('scene 1');
+  await expect(window.getByLabel('Switch 1 tap action')).toContainText('scene');
+  await expect(window.getByLabel('Switch 1 tap value')).toContainText('Scene 1');
 });
 
 test('the audio setup shows the engine the desktop app started', async ({ window }) => {

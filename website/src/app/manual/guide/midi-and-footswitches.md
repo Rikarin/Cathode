@@ -36,20 +36,21 @@ If the chosen output is unplugged, Cathode sends nothing until it is back; the l
 
 A **mapping** connects one MIDI message to one **action**. The table in the MIDI section lists them: the message and its channel, the action, its target and its value. The bin removes one.
 
-<!-- screenshot wanted: Global page, MIDI section: the mappings table, the learn row (Action, Target, Value, MIDI learn) and the Monitor showing a few messages -->
+<!-- screenshot wanted: Global page, MIDI section: the mappings table, the learn row (action, target and value lists, MIDI learn) and the Monitor showing a few messages -->
 
 To add a mapping, use **MIDI learn**:
 
-1. Under the table, choose an **Action**.
-2. Fill in **Target** if the action needs one (a block id, a bank id, a looper command…), and **Value** if it takes one. The table below says which.
-3. Click **MIDI learn**. The button changes to **Move a control…**.
-4. Press the switch or move the pedal. Cathode creates the mapping from the first message it receives and confirms with a message such as "Learned CC 20 = 127 (ch 1)".
+1. Under the table, choose the action from the first list.
+2. If the action needs a target or takes a value, more lists appear beside it: pick the block, bank, looper command or layout, and the scene, channel, slot, Manual, External or view. The table below says which. Blocks are listed by name with their id, from the loaded preset.
+3. For `scene` and `presetSlot`, the value list starts at **(from the message)** or **(the program number)**: the CC's value picks the scene, or the program change picks the slot. Pick a scene or slot instead to make the mapping always select that one.
+4. Click **MIDI learn**. The button changes to **Move a control…**.
+5. Press the switch or move the pedal. Cathode creates the mapping from the first message it receives and confirms with a message such as "Learned CC 20 = 127 (ch 1)".
 
 While MIDI learn waits, a notice stays in the corner of every page saying what the next control will map, and **Learning:** beside the button says it too. Click **Cancel** in the notice, or **Cancel learn** beside the button, to stop without mapping anything. The wait is kept by Cathode, not by the page: after a reload, or in another editor connected to the same Cathode, the notice is still there until something is learnt or it is cancelled. Clicking **MIDI learn** again replaces what was waiting.
 
-A new mapping replaces any old mapping of the same message on the same channel.
+A new mapping replaces any old mapping of the same message on the same channel. The table names each mapping's target: the block, bank or layout by name.
 
-> **Tip:** Block ids are shown in the left column of each block's page, under its tile (for example `delay1`, `amp1`), and in the tile's tooltip on the grid.
+> **Tip:** Block ids are shown in the left column of each block's page, under its tile (for example `delay1`, `amp1`), and in the tile's tooltip on the grid. The lists show them after the block's name, which tells two blocks of the same kind apart.
 
 ### Actions
 
@@ -57,10 +58,10 @@ A new mapping replaces any old mapping of the same message on the same channel.
 | -------------------------------- | ------------------------------------------------------------------------------ | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | `scene`                          |                                                                                | Scene, **1 to 8**            | Selects the scene. Without a value, a CC's value picks the scene (0 to 7, so 0 is Scene 1), and a value above 63 steps to the next scene.      |
 | `sceneNext`, `scenePrevious`     |                                                                                |                              | Steps through the eight scenes, wrapping around.                                                                                               |
-| `presetSlot`                     | A bank id                                                                      |                              | Mapped to a PC: any program change loads that slot of the bank. PC 0 is slot 1, PC 1 is slot 2, and so on.                                     |
+| `presetSlot`                     | A bank                                                                         |                              | Mapped to a PC: any program change loads that slot of the bank. PC 0 is slot 1, PC 1 is slot 2, and so on.                                     |
 | `presetNext`, `presetPrevious`   |                                                                                |                              | Loads the next or previous preset in bank order, as the editor's arrows do: see [Loading presets](/manual/presets-and-scenes#loading-presets). |
-| `bypass`                         | A block id                                                                     |                              | Toggles the block on a press. From a CC, values of 64 and up engage it and lower values bypass it.                                             |
-| `channel`                        | A block id                                                                     | Channel, **1 to 4** (1 is A) | Switches the block to that channel.                                                                                                            |
+| `bypass`                         | A block                                                                        |                              | Toggles the block on a press. From a CC, values of 64 and up engage it and lower values bypass it.                                             |
+| `channel`                        | A block                                                                        | Channel, **1 to 4** (1 is A) | Switches the block to that channel.                                                                                                            |
 | `external`                       |                                                                                | External, **1 to 8**         | The CC's value drives External 1 to 8, a modifier source. See [Expression pedals](#expression-pedals).                                         |
 | `manual`                         |                                                                                | Manual, **1 to 4** (1 is A)  | The CC's value sets Manual A to D.                                                                                                             |
 | `tap`                            |                                                                                |                              | Taps the tempo.                                                                                                                                |
@@ -70,20 +71,18 @@ A new mapping replaces any old mapping of the same message on the same channel.
 | `looper`                         | `record`, `play`, `stop`, `overdub`, `undo`, `reverse`, `halfSpeed` or `clear` |                              | Runs the looper.                                                                                                                               |
 | `sceneLevelUp`, `sceneLevelDown` |                                                                                |                              | Raises or lowers the active scene's level by 1 dB and saves the preset.                                                                        |
 | `save`                           |                                                                                |                              | Saves the working copy.                                                                                                                        |
-| `layout`                         | A footswitch layout id                                                         |                              | Makes that footswitch layout active. The editor does not show layout ids; on a footswitch, use its **Then layout** column instead.             |
+| `layout`                         | A footswitch layout                                                            |                              | Makes that footswitch layout active.                                                                                                           |
 | `view`                           |                                                                                | View, **1** for the first    | Shows that view of the active layout.                                                                                                          |
 | `viewNext`, `viewPrevious`       |                                                                                |                              | Steps through the active layout's views.                                                                                                       |
 
-> **Note:** Scene, channel, manual, view and External numbers all start at **1**: "scene 1" is Scene 1, "channel amp1 2" is channel B. Only a CC's own value, when a `scene` mapping has no value of its own, counts from 0, as MIDI does. Earlier versions of the editor counted scenes, channels, manuals and views from 0: your switches and mappings still do what they did, and now read one higher.
+> **Note:** Scene, channel, manual, view and External numbers all start at **1**: Scene 1, Channel B, Slot 1. Only a CC's own value, when a `scene` mapping has no value of its own, counts from 0, as MIDI does. Earlier versions of the editor counted scenes, channels, manuals and views from 0: your switches and mappings still do what they did, and now read one higher.
 
-### Finding a bank id
-
-`presetSlot` needs the bank's id, which the editor does not show. The factory bank's id is `factory`. For your own banks, look in the `banks` folder of Cathode's [data folder](/manual/the-editor#where-things-are-kept): each bank is a file named after its id, followed by `.json`. Open the file to see the bank's name if you have several.
+A target that is not in the lists any more (a block of another preset, a deleted bank or layout) is shown as its id followed by **(not found)** and kept until you pick another. Footswitch layouts are global, so a `bypass` switch made with another preset loaded may name a block this preset does not have.
 
 ### Changing presets by program change
 
 1. In **Preset ▸ Manage presets…**, make a bank and put your presets in its slots in the order you want.
-2. On the Global page, choose the action `presetSlot`, type the bank's id in **Target**, and click **MIDI learn**.
+2. On the Global page, choose the action `presetSlot`, pick the bank by name, leave the slot at **(the program number)**, and click **MIDI learn**.
 3. Send any program change from your controller.
 
 From then on, every program change loads the preset in the matching slot (PC 0 loads slot 1). Many controllers number their programs from 1, so "program 1" on the controller is often PC 0.
@@ -96,7 +95,7 @@ An expression pedal plugged into a MIDI controller sends a CC whose value follow
 
 **Map the pedal once:**
 
-1. On the Global page, choose the action `external` and type the External number in **Value**, for example `1`.
+1. On the Global page, choose the action `external` and pick the External, for example **External 1**.
 2. Click **MIDI learn** and rock the pedal.
 
 **Then use it in any preset:** right-click a knob, choose **Add modifier…**, and pick **External 1** as the source. See [Controllers and modifiers](/manual/modifiers).
@@ -121,43 +120,44 @@ Mappings work for a few switches. For a whole foot controller, use **footswitch 
 2. Click **Add switch** for each switch on your controller.
 3. For each switch, fill in its row:
 
-| Column             | What it is                                                                                                                                                                                                                                                                      |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Switch**         | A label for the switch.                                                                                                                                                                                                                                                         |
-| **Sends**          | The message the switch sends: **cc**, **note** or **pc**, its number, and its MIDI channel (0 means any channel). Use the Monitor to find out what your switch sends.                                                                                                           |
-| **Tap**            | The action for a press, written as text (see below).                                                                                                                                                                                                                            |
-| **Hold**           | Optional: the action for holding the switch for half a second.                                                                                                                                                                                                                  |
-| **LED**            | Whether Cathode lights the switch's LED.                                                                                                                                                                                                                                        |
-| **Then layout**    | Optional: a layout to switch to after the tap action.                                                                                                                                                                                                                           |
-| **In this preset** | Optional: a different tap action for this switch while the loaded preset is active. It is saved with the preset. Once it has one, two more fields give it a hold action of its own (empty for none, whatever the layout holds) and a label of its own (empty for the layout's). |
+| Column             | What it is                                                                                                                                                                                                                                                                           |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Switch**         | A label for the switch.                                                                                                                                                                                                                                                              |
+| **Sends**          | The message the switch sends: **cc**, **note** or **pc**, its number, and its MIDI channel (0 means any channel). Use the Monitor to find out what your switch sends.                                                                                                                |
+| **Tap**            | The action for a press, picked from lists (see below).                                                                                                                                                                                                                               |
+| **Hold**           | Optional: the action for holding the switch for half a second.                                                                                                                                                                                                                       |
+| **LED**            | Whether Cathode lights the switch's LED.                                                                                                                                                                                                                                             |
+| **Then layout**    | Optional: a layout to switch to after the tap action.                                                                                                                                                                                                                                |
+| **In this preset** | Optional: a different tap action for this switch while the loaded preset is active. It is saved with the preset. Once it has one, two more fields give it a hold action of its own (**(none)** for none, whatever the layout holds) and a label of its own (empty for the layout's). |
 
 The bin at the end of a row removes the switch. A new switch starts as CC 20 upwards on channel 1, selecting the scene of its number.
 
 <!-- screenshot wanted: Global page, Footswitches section: a layout with two views and four switches filled in (Sends, Tap, Hold, LED, Then layout) -->
 
-### Writing actions
+### Choosing actions
 
-Actions are written as **action**, then the **target** if it needs one, then the **value** if it takes one, separated by spaces. They use the action names and numbers from the [table above](#actions):
+Each action is picked from lists, as for MIDI learn: first the action, from the names in the [table above](#actions), then, when it needs them, its target and its value. **Hold** and **In this preset** also offer **(none)**. For example:
 
-| You write        | It does                      |
-| ---------------- | ---------------------------- |
-| `scene 1`        | Scene 1                      |
-| `sceneNext`      | The next scene               |
-| `bypass delay1`  | Toggles the block `delay1`   |
-| `channel amp1 2` | Switches `amp1` to channel B |
-| `looper record`  | Looper: record               |
-| `tap`            | Tap tempo                    |
-| `tuner`          | Tuner on and off             |
-| `presetNext`     | The next preset              |
-| `viewNext`       | The next view of this layout |
+| You pick                     | It does                                     |
+| ---------------------------- | ------------------------------------------- |
+| `scene`, Scene 1             | Scene 1                                     |
+| `sceneNext`                  | The next scene                              |
+| `bypass`, Delay (delay1)     | Toggles the block `delay1`                  |
+| `channel`, Amp (amp1), B     | Switches `amp1` to channel B                |
+| `presetSlot`, a bank, a slot | Loads that slot (the list shows its preset) |
+| `looper`, record             | Looper: record                              |
+| `layout`, a layout           | Makes that layout active                    |
+| `view`, a view               | Shows that view of this switch's layout     |
+| `tuner`                      | Tuner on and off                            |
+| `presetNext`                 | The next preset                             |
 
-A field that does not start with a known action is not accepted, and the switch keeps its previous action.
+A newly picked action starts on its first target and value (Scene 1, the first block, Slot 1), so it does something straight away.
 
 ### Tap and hold
 
 A switch **without** a hold action acts as soon as you press it. A switch **with** a hold action waits: release it within half a second for the tap action, or keep it down for half a second for the hold action (then nothing happens on release).
 
-Example: tap for `scene 1`, hold for `tuner`.
+Example: tap for `scene`, Scene 1; hold for `tuner`.
 
 ### LEDs
 

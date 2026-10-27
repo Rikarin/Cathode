@@ -3,7 +3,7 @@ import { TagColors, pickerEntries, tagColorName } from '../shell/picker-list';
 import { parseSlot } from '../shell/preset-picker';
 import { libraryFolders, wholeBlock } from '../state/block-presets.store';
 import { nextChannel } from '../state/ui.store';
-import { actionText, addView, overrideOf, parseAction, removeView, viewNames, withOverride } from './footswitches';
+import { actionText, addView, overrideOf, removeView, viewNames, withOverride } from './footswitches';
 import { movedControl, resolveControls, withControl, withLabel, withoutControl } from './perform';
 
 describe('footswitch views and overrides', () => {
@@ -91,27 +91,13 @@ describe('footswitch views and overrides', () => {
     expect(withOverride(overrides, 'main', 1, { label: 'Tap' }).map(o => o.label)).toEqual(['Tap', null]);
   });
 
-  it('show and take scene, channel, Manual and view numbers from 1, as Externals are, storing them from 0', () => {
-    const actions = ['scene', 'channel', 'manual', 'view', 'external', 'bypass', 'tuner'];
+  it('show scene, channel, Manual and view numbers from 1, as Externals are, stored from 0', () => {
     expect(actionText({ action: 'scene', value: 0 })).toBe('scene 1');
     expect(actionText({ action: 'channel', target: 'amp1', value: 1 })).toBe('channel amp1 2');
     expect(actionText({ action: 'manual', value: 3 })).toBe('manual 4');
     expect(actionText({ action: 'view', value: 0 })).toBe('view 1');
     expect(actionText({ action: 'external', value: 1 })).toBe('external 1');
     expect(actionText({ action: 'bypass', target: 'delay1', value: null })).toBe('bypass delay1');
-    expect(parseAction('scene 3', actions)).toEqual({ action: 'scene', target: null, value: 2 });
-    expect(parseAction('channel amp1 1', actions)).toEqual({ action: 'channel', target: 'amp1', value: 0 });
-    expect(parseAction('external 2', actions)).toEqual({ action: 'external', target: null, value: 2 });
-    expect(parseAction('scene 0', actions)?.value).toBe(0);
-    expect(parseAction('tuner', actions)).toEqual({ action: 'tuner', target: null, value: null });
-    expect(parseAction('louder', actions)).toBeNull();
-    // What is stored round-trips through the text unchanged.
-    for (const action of [
-      { action: 'scene', target: null, value: 5 },
-      { action: 'view', target: null, value: 1 }
-    ]) {
-      expect(parseAction(actionText(action), actions)).toEqual(action);
-    }
   });
 });
 
