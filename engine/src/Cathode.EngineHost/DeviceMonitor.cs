@@ -15,11 +15,21 @@ public interface IDeviceMonitor {
 
     /// <summary>The device's input and output latency in frames, as the driver reports them (each with one buffer).</summary>
     (int Input, int Output) Latency { get; }
+
+    /// <summary>Cumulative exceptions thrown by the engine on the audio thread (each silences one callback).</summary>
+    long CallbackExceptions => 0;
+
+    /// <summary>The first callback exception since the previous call, or null.</summary>
+    Exception? TakeCallbackException() => null;
 }
 
 /// <summary>Reads a <see cref="NativeAudioSession" />'s overload counter and native timing histogram.</summary>
 public sealed class NativeDeviceMonitor(NativeAudioSession session) : IDeviceMonitor {
     public long Overloads => session.Overloads;
+
+    public long CallbackExceptions => session.CallbackExceptions;
+
+    public Exception? TakeCallbackException() => session.TakeCallbackException();
 
     public (int Input, int Output) Latency {
         get {

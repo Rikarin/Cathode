@@ -181,6 +181,9 @@ public sealed class HostTelemetry {
 
     public long DriverOverloads { get; set; }
 
+    /// <summary>Cumulative exceptions the engine threw on the audio thread; each one silenced a callback.</summary>
+    public long CallbackExceptions { get; set; }
+
     public double NativeP999 { get; set; }
 
     public double NativeMax { get; set; }

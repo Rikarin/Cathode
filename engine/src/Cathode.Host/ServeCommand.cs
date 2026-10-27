@@ -70,7 +70,7 @@ static class ServeCommand {
             device: new NativeDeviceMonitor(session),
             telemetryPath: telemetry,
             inputSources: session.Inputs.Mask
-        );
+        ) { Log = static message => Console.Error.WriteLine($"{DateTime.Now:HH:mm:ss.fff} {message}") };
         forwarder.Target = deviceService.Engine;
         if (options.Flag("mute")) {
             session.OutputGain = 0f; // unattended runs (soak tests): timing is identical, nothing is heard

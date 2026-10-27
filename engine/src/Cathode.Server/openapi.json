@@ -4266,7 +4266,8 @@
           "hostGen1",
           "hostGen2",
           "hostGcPauseMs",
-          "hostAllocatedBytes"
+          "hostAllocatedBytes",
+          "callbackExceptions"
         ],
         "type": "object",
         "properties": {
@@ -4356,9 +4357,14 @@
             "items": {
               "type": "string"
             }
+          },
+          "callbackExceptions": {
+            "type": "integer",
+            "format": "int64",
+            "default": 0
           }
         },
-        "description": "Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole\ndriver callback); overloads and the host\u0027s GC counts are cumulative since the host started. \u0060Inputs\u0060 names\nthe hardware input sources the device maps (Input 1\u20134, USB 5/6, USB 7/8); the others are silent."
+        "description": "Engine health. CPU and native figures cover the last 5 s window (native timing is measured around the whole\ndriver callback); overloads and the host\u0027s GC counts are cumulative since the host started. \u0060Inputs\u0060 names\nthe hardware input sources the device maps (Input 1\u20134, USB 5/6, USB 7/8); the others are silent.\n\u0060CallbackExceptions\u0060 counts exceptions the engine threw on the audio thread (each silenced one callback;\nthe host logs the first with its stack trace)."
       },
       "Footswitch": {
         "required": [

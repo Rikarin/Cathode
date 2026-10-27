@@ -150,6 +150,7 @@ public sealed unsafe class NativeAudioSession : IDisposable {
     GCHandle self;
     nint stream;
     long exceptions;
+    Exception? callbackException; // the first exception not yet taken by TakeCallbackException
 
     public double SampleRate { get; private set; }
 
@@ -180,6 +181,18 @@ public sealed unsafe class NativeAudioSession : IDisposable {
             ? GC.AllocateArray<float>(Dsp.Routing.HardwareInputs.Count * 2 * MaxFrames, true)
             : [];
     }
+
+    /// <summary>
+    ///     Exceptions the processor threw on the audio thread so far. Each one leaves that callback's output silent (the
+    ///     backends clear it before the call), so a persistent one sounds like a dead interface.
+    /// </summary>
+    public long CallbackExceptions => Interlocked.Read(ref exceptions);
+
+    /// <summary>
+    ///     Control side: the first callback exception since the previous call, or null. Later ones are only counted, so
+    ///     the audio thread never allocates for them.
+    /// </summary>
+    public Exception? TakeCallbackException() => Interlocked.Exchange(ref callbackException, null);
 
     /// <summary>The input map the session was opened with.</summary>
     public InputMap Inputs => inputs;
@@ -290,10 +303,11 @@ public sealed unsafe class NativeAudioSession : IDisposable {
             self.Process(inputs, inputChannels, outputs, outputChannels, frames);
         }
 #pragma warning disable CA1031 // An exception must never unwind into the driver's thread.
-        catch (Exception)
+        catch (Exception e)
 #pragma warning restore CA1031
         {
             Interlocked.Increment(ref self.exceptions);
+            Interlocked.CompareExchange(ref self.callbackException, e, null);
         }
     }
 
