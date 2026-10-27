@@ -1,0 +1,47 @@
+name: baselines
+
+# Regenerates the bit-identity baselines that only hold on the platform they were made on (macOS ARM64, see
+# tests/Cathode.Dsp.Tests/BaselinePlatform.cs) after an intended change to the amps, drives or solver. Run it by hand,
+# download the artifact, and commit its files: tests/assets/defaults/*.sha256 as they are, and the inverter entries
+# into InverterBitIdentityTests.Expected.
+
+on:
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: engine
+
+jobs:
+  regenerate:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-dotnet
+      - name: Cache native dependencies
+        uses: actions/cache@v6
+        with:
+          path: engine/artifacts/deps
+          key: native-deps-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt') }}
+      - name: Build native shim
+        shell: bash
+        run: ./native/build.sh
+      - run: dotnet build Cathode.slnx -c Release
+      - name: Regenerate the baselines
+        env:
+          CATHODE_UPDATE_DEFAULTS: "1"
+          CATHODE_UPDATE_SOLVER: "1"
+          CATHODE_UPDATE_INVERTERS: ${{ github.workspace }}/engine/artifacts/inverters.txt
+        run: >
+          dotnet test --project tests/Cathode.Dsp.Tests -c Release --no-build
+          --filter-class "*AmpDefaultsTests" --filter-class "*CircuitAmpBitIdentityTests"
+          --filter-class "*InverterBitIdentityTests"
+      - name: Sort the inverter entries
+        run: sort -o artifacts/inverters.txt artifacts/inverters.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: baselines
+          path: |
+            engine/tests/assets/defaults/master.sha256
+            engine/tests/assets/defaults/circuit-solver.sha256
+            engine/artifacts/inverters.txt

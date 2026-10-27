@@ -98,6 +98,8 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         { "Scout GA-17RVT", (0x53511F6E464C9C80, 0x1E5CA20F2BA4C479) }
     };
 
+    static readonly Lock UpdateLock = new();
+
     public static TheoryData<string> Names => [..Expected.Keys];
 
     [Theory]
@@ -106,7 +108,17 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         BaselinePlatform.Require();
         var design = AmpDesign.All.Single(a => a.Name == name);
         var (table, render) = (Table(design.Power.PhaseInverter), Render(design.Power));
-        output.WriteLine($"{{ \"{name}\", (0x{table:X16}, 0x{render:X16}) }},");
+        var line = $"{{ \"{name}\", (0x{table:X16}, 0x{render:X16}) }},";
+        output.WriteLine(line);
+        // CATHODE_UPDATE_INVERTERS=<file> collects every model's entry there instead of checking it, for the table above.
+        if (Environment.GetEnvironmentVariable("CATHODE_UPDATE_INVERTERS") is { Length: > 0 } updates) {
+            lock (UpdateLock) {
+                File.AppendAllLines(updates, [line]);
+            }
+
+            return;
+        }
+
         Assert.Equal(Expected[name].Table, table);
         Assert.Equal(Expected[name].Render, render);
     }
