@@ -7064,7 +7064,11 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 0,
         default: -20,
         unit: 'dB',
-        page: 'Basic'
+        page: 'Basic',
+        visibleWhen: {
+          param: 'controls',
+          values: [0]
+        }
       },
       {
         id: 'ratio',
@@ -7076,7 +7080,11 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         unit: ':1',
         taper: 'log',
         page: 'Basic',
-        typeLabels: ['Ratio', 'Ratio', 'Ratio', 'Ratio', '', 'Ratio', 'Ratio', 'Ratio', 'Ratio']
+        typeLabels: ['Ratio', 'Ratio', 'Ratio', 'Ratio', '', 'Ratio', 'Ratio', 'Ratio', 'Ratio'],
+        visibleWhen: {
+          param: 'controls',
+          values: [0]
+        }
       },
       {
         id: 'attack',
@@ -7347,7 +7355,11 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 100,
         default: 50,
         unit: '%',
-        page: 'Basic'
+        page: 'Basic',
+        visibleWhen: {
+          param: 'controls',
+          values: [1]
+        }
       },
       {
         id: 'expThreshold',
@@ -21474,7 +21486,11 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         min: 0,
         max: 100,
         default: 50,
-        unit: '%'
+        unit: '%',
+        visibleWhen: {
+          param: 'mode',
+          values: [0]
+        }
       },
       {
         id: 'spread',

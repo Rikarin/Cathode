@@ -22,6 +22,12 @@ public enum ParamSmoothing {
 }
 
 /// <summary>
+///     A condition on another parameter of the same block: it holds while parameter <see cref="Param" /> is one of
+///     <see cref="Values" /> (<see cref="ParamDescriptor.VisibleWhen" />).
+/// </summary>
+public sealed record ParamCondition(string Param, IReadOnlyList<float> Values);
+
+/// <summary>
 ///     Describes one parameter of a block type. <see cref="Id" /> is a stable identifier used by presets and the API.
 /// </summary>
 /// <remarks>
@@ -44,6 +50,12 @@ public enum ParamSmoothing {
 ///         default is <see cref="Default" /> on every type. Every default the block uses honours it
 ///         (<see cref="DefaultFor" />): a new block, a type change, a value the preset does not store.
 ///     </para>
+///     <para>
+///         <see cref="VisibleWhen" />: the parameter means something only while another one (a choice or a switch of
+///         the same block, not its type: that is <see cref="TypeLabels" />) holds one of some values, as the
+///         Compressor's Threshold and Ratio with Controls on Threshold/Ratio; the editor hides it otherwise. Null for
+///         a parameter always shown. The block's descriptor checks the parameter it names.
+///     </para>
 /// </remarks>
 public sealed record ParamDescriptor(
     string Id,
@@ -60,8 +72,16 @@ public sealed record ParamDescriptor(
     IReadOnlyList<string>? TypeLabels = null,
     bool Recompile = false,
     string? Page = null,
-    IReadOnlyList<float>? TypeDefaults = null
+    IReadOnlyList<float>? TypeDefaults = null,
+    ParamCondition? VisibleWhen = null
 ) {
+    /// <summary>
+    ///     This parameter, shown only while parameter <paramref name="param" /> holds one of
+    ///     <paramref name="values" /> (<see cref="VisibleWhen" />).
+    /// </summary>
+    public ParamDescriptor ShownWhen(string param, params float[] values) =>
+        this with { VisibleWhen = new(param, values) };
+
     public static ParamDescriptor Float(
         string id,
         string name,

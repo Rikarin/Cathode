@@ -29,6 +29,11 @@ export interface EngineParam {
    * value of the block's `type` parameter, by index, in place of `default`.
    */
   readonly typeDefaults?: readonly number[];
+  /**
+   * For a knob that means something only with another knob (a choice or a switch of the block) at some settings: that
+   * knob's id and the values it is shown at; the app hides it otherwise.
+   */
+  readonly visibleWhen?: { readonly param: string; readonly values: readonly number[] };
 }
 
 /** One block type, as the engine registers it. */

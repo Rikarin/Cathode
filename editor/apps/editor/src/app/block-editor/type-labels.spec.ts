@@ -1,5 +1,5 @@
 import type { ParameterInfo } from '@cathode/api-client';
-import { blockDefault, defaultOn, labelledParams } from './type-labels';
+import { blockDefault, defaultOn, isShown, labelledParams } from './type-labels';
 
 function param(id: string, name: string, typeLabels?: string[]): ParameterInfo {
   return {
@@ -11,9 +11,35 @@ function param(id: string, name: string, typeLabels?: string[]): ParameterInfo {
     default: 5,
     unit: '',
     taper: 'linear',
+    visibleWhen: null,
     ...(typeLabels ? { typeLabels } : {})
   };
 }
+
+describe('isShown', () => {
+  // The Compressor: Threshold and Ratio with Controls on Threshold/Ratio, the one Compression knob otherwise.
+  const controls: ParameterInfo = { ...param('controls', 'Controls'), kind: 'enum', max: 1, default: 0 };
+  const threshold: ParameterInfo = {
+    ...param('threshold', 'Threshold'),
+    visibleWhen: { param: 'controls', values: [0] }
+  };
+  const compression: ParameterInfo = {
+    ...param('compression', 'Compression'),
+    visibleWhen: { param: 'controls', values: [1] }
+  };
+  const params = [controls, threshold, compression, param('attack', 'Attack')];
+  const shown = (values: Record<string, number>) =>
+    params.filter(p => isShown(params, p, id => values[id])).map(p => p.id);
+
+  it('shows the knobs the other control’s setting uses and hides the rest', () => {
+    expect(shown({ controls: 0 })).toEqual(['controls', 'threshold', 'attack']);
+    expect(shown({ controls: 1 })).toEqual(['controls', 'compression', 'attack']);
+  });
+
+  it('reads an unset control as its default', () => {
+    expect(shown({})).toEqual(['controls', 'threshold', 'attack']);
+  });
+});
 
 describe('labelledParams', () => {
   const params = [

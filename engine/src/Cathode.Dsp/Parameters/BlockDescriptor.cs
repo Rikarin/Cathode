@@ -77,6 +77,32 @@ public sealed class BlockDescriptor {
 
         TypeIndex = IndexOf("type");
         CheckTypeDefaults(typeId, Params, TypeIndex);
+        CheckVisibility(typeId, Params);
+    }
+
+    /// <summary>
+    ///     Every <see cref="ParamDescriptor.VisibleWhen" /> names another parameter of the block, a choice or a switch
+    ///     but not the type, and values it can take.
+    /// </summary>
+    static void CheckVisibility(string typeId, IReadOnlyList<ParamDescriptor> parameters) {
+        foreach (var p in parameters) {
+            if (p.VisibleWhen is not { } when) {
+                continue;
+            }
+
+            var other = parameters.FirstOrDefault(o => o.Id == when.Param);
+            var valid = other is { Kind: ParamKind.Enum or ParamKind.Bool, Id: not "type" }
+                && other.Id != p.Id
+                && when.Values.Count > 0
+                && when.Values.All(v => other.Sanitize(v) == v);
+            if (!valid) {
+                throw new ArgumentException(
+                    $"Parameter '{p.Id}' of block '{typeId}' cannot be shown by '{when.Param}' = "
+                    + $"{string.Join(", ", when.Values)}.",
+                    nameof(parameters)
+                );
+            }
+        }
     }
 
     /// <summary>The index of the block's <c>type</c> parameter, or -1 for a block without one.</summary>

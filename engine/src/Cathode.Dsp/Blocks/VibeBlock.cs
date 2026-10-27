@@ -54,7 +54,7 @@ public sealed class VibeBlock() : DspBlock(Info) {
             ParamDescriptor.Choice("mode", "Mode", ["Chorus", "Vibrato"]),
             ParamDescriptor.Float("rate", "Rate", 0.1f, 12f, 3f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("intensity", "Intensity", 0f, 100f, 75f, "%"),
-            BlockParams.Mix(50f),
+            BlockParams.Mix(50f).ShownWhen("mode", 0), // Vibrato is the chain alone: no mix
             ParamDescriptor.Float("spread", "Spread", 0f, 180f, 0f, "°"),
             BlockParams.Level,
             BlockParams.Balance

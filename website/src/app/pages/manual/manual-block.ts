@@ -163,6 +163,10 @@ type ByType =
                         }
                       }
 
+                      @if (knob.shownWhen) {
+                        <p class="knob-types"><span class="knob-label">Shown when</span> {{ knob.shownWhen }}</p>
+                      }
+
                       @if (picked() < 0) {
                         @if (byType().get(knob.id); as byType) {
                           @switch (byType.kind) {

@@ -68,6 +68,49 @@ public class ParamBankTests {
         Assert.Equal(4, good.ValueOf(1, new Dictionary<string, float> { ["type"] = 1, ["boost"] = 4 }));
     }
 
+    /// <summary>
+    ///     A parameter shown by another's setting names a choice or switch of its block (not the type, not itself) and
+    ///     values that parameter can take.
+    /// </summary>
+    [Fact]
+    public void Visibility_conditions_name_a_choice_or_switch_of_the_block() {
+        var type = ParamDescriptor.Choice("type", "Type", ["A", "B"]);
+        var mode = ParamDescriptor.Choice("mode", "Mode", ["One", "Two", "Three"]);
+        var on = ParamDescriptor.Switch("on", "On");
+        var knob = ParamDescriptor.Float("knob", "Knob", 0, 10, 5);
+        var x = knob with { Id = "x" };
+
+        BlockDescriptor Block(ParamDescriptor shown) => new("t", "T", "C", [type, mode, on, knob, shown]);
+
+        Assert.Throws<ArgumentException>(() => Block(x.ShownWhen("missing", 0)));
+        Assert.Throws<ArgumentException>(() => Block(x.ShownWhen("knob", 0))); // not a choice
+        Assert.Throws<ArgumentException>(() => Block(x.ShownWhen("type", 0))); // TypeLabels' job
+        Assert.Throws<ArgumentException>(() => Block((mode with { Id = "x" }).ShownWhen("x", 0))); // itself
+        Assert.Throws<ArgumentException>(() => Block(x.ShownWhen("mode", 3))); // no such option
+        Assert.Throws<ArgumentException>(() => Block(x.ShownWhen("mode"))); // never shown
+        var block = Block(x.ShownWhen("mode", 0, 2));
+        Assert.Equal("mode", block.Params[4].VisibleWhen!.Param);
+        Assert.Equal([0f, 2f], block.Params[4].VisibleWhen!.Values);
+        Assert.Equal("on", Block(x.ShownWhen("on", 1)).Params[4].VisibleWhen!.Param);
+    }
+
+    /// <summary>
+    ///     The Compressor shows Threshold and Ratio, or the one Compression knob, by its Controls setting; the Vibe its
+    ///     Mix in Chorus mode only.
+    /// </summary>
+    [Fact]
+    public void The_compressor_shows_the_knobs_its_controls_setting_uses() {
+        var info = Blocks.CompressorBlock.Info;
+        ParamCondition? When(string id) => info.Params[info.IndexOf(id)].VisibleWhen;
+
+        Assert.Equal(("controls", 0f), (When("threshold")!.Param, Assert.Single(When("threshold")!.Values)));
+        Assert.Equal(("controls", 0f), (When("ratio")!.Param, Assert.Single(When("ratio")!.Values)));
+        Assert.Equal(("controls", 1f), (When("compression")!.Param, Assert.Single(When("compression")!.Values)));
+        Assert.Null(When("attack"));
+        var vibe = Blocks.VibeBlock.Info;
+        Assert.Equal("mode", vibe.Params[vibe.IndexOf("mix")].VisibleWhen!.Param);
+    }
+
     [Fact]
     public void Modulated_choices_and_switches_land_on_the_nearest_option() {
         var bank = new ParamBank([..Descriptors, ParamDescriptor.Switch("on", "On")]);

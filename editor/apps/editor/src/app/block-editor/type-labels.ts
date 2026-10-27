@@ -27,6 +27,26 @@ export function blockDefault(
 }
 
 /**
+ * Whether `param` shows with the block's current settings: always, unless it carries `visibleWhen` (it means something
+ * only while another parameter, a choice or a switch, holds one of some values, as the Compressor's Threshold with
+ * Controls on Threshold/Ratio); then while that parameter's value (read by `valueOf`, or its default) is one of them.
+ */
+export function isShown(
+  params: readonly ParameterInfo[],
+  param: ParameterInfo,
+  valueOf: (id: string) => number | undefined
+): boolean {
+  const when = param.visibleWhen;
+  if (!when) {
+    return true;
+  }
+
+  const other = params.find(p => p.id === when.param);
+  const value = valueOf(when.param) ?? (other ? blockDefault(params, other, valueOf) : undefined);
+  return value !== undefined && when.values.includes(Math.round(value));
+}
+
+/**
  * A block's parameters as the selected type shows them: where a parameter carries `typeLabels` (the Circuit Amp's
  * per-model panels), it takes that type's name for it, and is left out where the name is empty (the model has no such
  * control). Parameters without `typeLabels` pass through unchanged. Each carries its default on that type

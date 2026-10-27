@@ -50,7 +50,8 @@ namespace Cathode.Dsp.Blocks;
 ///     </list>
 ///     <b>Controls</b> Compression replaces Threshold and Ratio by one knob, as the guide's pedal and optical types
 ///     have: <b>Compression</b> 0–100 % lowers the threshold from −6 to −50 dB and raises the ratio from 1:1 to 20:1
-///     together (<see cref="SingleKnob" />).
+///     together (<see cref="SingleKnob" />). The editor shows whichever the Controls setting uses
+///     (<see cref="ParamDescriptor.VisibleWhen" />).
 ///     <b>Detector</b> overrides the type's level detector (peak, RMS, or the mean of the two in dB). <b>Ratio</b> at
 ///     <see cref="InfiniteRatio" /> is ∞:1, a limiter. <b>Auto Attack/Release</b> scales both times by the crest factor
 ///     (<see cref="CrestFactor" />). The detector can be fed through a sidechain low and high cut, an <b>Emphasis</b>
@@ -172,9 +173,10 @@ public sealed class CompressorBlock() : DspBlock(Info), ISideInputBlock {
                 "Type",
                 ["Pedal", "Studio", "Opto", "Sustainer", "Dynamics", "Feedback", "JFET", "Tube", "Compander"]
             ),
-            ParamDescriptor.Float("threshold", "Threshold", -60f, 0f, -20f, "dB"),
+            ParamDescriptor.Float("threshold", "Threshold", -60f, 0f, -20f, "dB").ShownWhen("controls", 0),
             ParamDescriptor.Float("ratio", "Ratio", 1f, InfiniteRatio, 4f, ":1", ParamTaper.Log)
-                .HiddenOn(TypeCount, DynamicsProcessor),
+                .HiddenOn(TypeCount, DynamicsProcessor)
+                .ShownWhen("controls", 0),
             ParamDescriptor.Float("attack", "Attack", 0.1f, 100f, 5f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("release", "Release", 10f, 2_000f, 150f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("knee", "Knee", 0f, 24f, 6f, "dB"),
@@ -206,7 +208,7 @@ public sealed class CompressorBlock() : DspBlock(Info), ISideInputBlock {
                 Recompile = true
             },
             ParamDescriptor.Choice("controls", "Controls", ["Threshold/Ratio", "Compression"]),
-            ParamDescriptor.Float("compression", "Compression", 0f, 100f, 50f, "%"),
+            ParamDescriptor.Float("compression", "Compression", 0f, 100f, 50f, "%").ShownWhen("controls", 1),
             Only(ParamDescriptor.Float("expThreshold", "Expander Threshold", -90f, 0f, -60f, "dB"), Compander),
             Only(ParamDescriptor.Float("expRatio", "Expander Ratio", 1f, 10f, 2f, ":1", ParamTaper.Log), Compander)
         ],

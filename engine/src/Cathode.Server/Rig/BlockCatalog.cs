@@ -73,6 +73,7 @@ public sealed class BlockCatalog {
             p.Options,
             p.TypeLabels,
             p.Page,
-            p.TypeDefaults
+            p.TypeDefaults,
+            p.VisibleWhen is { } when ? new(when.Param, when.Values) : null
         );
 }
