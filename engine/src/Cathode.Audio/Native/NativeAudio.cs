@@ -4,8 +4,8 @@ using static Cathode.Audio.Native.NativeMethods;
 namespace Cathode.Audio.Native;
 
 /// <summary>
-///     An audio device. <c>InputNames</c> holds the driver's name for each input channel (empty where it names none), for
-///     labelling the input map.
+///     An audio device. <c>InputNames</c> holds the driver's name for each input channel (empty where it names none),
+///     for labelling the input map.
 /// </summary>
 public sealed record AudioDeviceInfo(
     string Uid,

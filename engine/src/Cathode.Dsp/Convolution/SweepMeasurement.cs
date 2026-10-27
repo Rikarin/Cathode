@@ -1,9 +1,9 @@
 namespace Cathode.Dsp.Convolution;
 
 /// <summary>
-///     Impulse response measurement with an exponential sine sweep (Farina, AES 2000): play <see cref="Sweep" />, record
-///     the result, and <see cref="Deconvolve" /> it with the sweep's inverse filter. Harmonic distortion lands before the
-///     linear response, so <see cref="Trim" /> cutting just ahead of the main peak drops it.
+///     Impulse response measurement with an exponential sine sweep (Farina, AES 2000): play <see cref="Sweep" />,
+///     record the result, and <see cref="Deconvolve" /> it with the sweep's inverse filter. Harmonic distortion lands
+///     before the linear response, so <see cref="Trim" /> cutting just ahead of the main peak drops it.
 /// </summary>
 /// <param name="sampleRate">The rate the sweep is played and recorded at.</param>
 /// <param name="seconds">Sweep length; longer sweeps raise the signal-to-noise ratio (3 dB per doubling).</param>
@@ -31,8 +31,8 @@ public sealed class SweepMeasurement(
 
     /// <summary>
     ///     The impulse response in <paramref name="recorded" /> (which must start when the sweep starts and run on past
-    ///     it by at least the room's or cab's decay time): sample 0 of the result is zero lag, scaled so that a straight
-    ///     wire gives a unit impulse.
+    ///     it by at least the room's or cab's decay time): sample 0 of the result is zero lag, scaled so that a
+    ///     straight wire gives a unit impulse.
     /// </summary>
     public float[] Deconvolve(ReadOnlySpan<float> recorded) {
         var inverse = Inverse();
@@ -48,8 +48,8 @@ public sealed class SweepMeasurement(
     }
 
     /// <summary>
-    ///     Cuts <paramref name="ir" /> to <paramref name="lengthMs" />, starting <paramref name="preRollMs" /> before its
-    ///     peak, with a short fade at the end.
+    ///     Cuts <paramref name="ir" /> to <paramref name="lengthMs" />, starting <paramref name="preRollMs" /> before
+    ///     its peak, with a short fade at the end.
     /// </summary>
     public float[] Trim(ReadOnlySpan<float> ir, double lengthMs, double preRollMs = 1) {
         var peak = 0;

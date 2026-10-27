@@ -88,10 +88,10 @@ public sealed class FlangerBlock() : DspBlock(Info), IEngageAware {
             ParamDescriptor.Float("depth", "Depth", 0f, 100f, 70f, "%"),
             ParamDescriptor.Float("delay", "Manual", MinDelayMs, MaxDelayMs, 1f, "ms"),
             ParamDescriptor.Float("feedback", "Feedback", -95f, 95f, 50f, "%"),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 50f, "%"),
+            BlockParams.Mix(50f),
             ParamDescriptor.Float("spread", "LFO Phase", 0f, 180f, 90f, "°"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Choice("tempo", "Tempo", TempoDivisions.Names),
             ParamDescriptor.Choice("lfoType", "LFO Type", Lfo.ShapeNames, (int)LfoShape.Triangle),
             WetCuts.LowCutParam("lowCut", "Low Cut"),
@@ -145,7 +145,9 @@ public sealed class FlangerBlock() : DspBlock(Info), IEngageAware {
         return exponential && low > 0 ? low * MathF.Pow((low + span) / low, position) : low + span * position;
     }
 
-    /// <summary>LFO Bypass Reset: engaging the block restarts the sweep from the top, so every engage sounds alike.</summary>
+    /// <summary>
+    ///     LFO Bypass Reset: engaging the block restarts the sweep from the top, so every engage sounds alike.
+    /// </summary>
     public void Engage() {
         if (Params.GetTarget(LfoReset) >= 0.5f) {
             lfo.Reset();

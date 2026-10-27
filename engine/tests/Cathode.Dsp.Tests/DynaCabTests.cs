@@ -6,7 +6,9 @@ using System.IO.Compression;
 
 namespace Cathode.Dsp.Tests;
 
-/// <summary>The Cab block's DynaCab source: physical sanity of the model, level normalisation, the IR swap and user grids.</summary>
+/// <summary>
+///     The Cab block's DynaCab source: physical sanity of the model, level normalisation, the IR swap and user grids.
+/// </summary>
 public sealed class DynaCabTests : IDisposable {
     const double Rate = 48_000;
     const double Inch = 0.0254;
@@ -36,7 +38,8 @@ public sealed class DynaCabTests : IDisposable {
         for (var i = 1; i < boosts.Length; i++) {
             Assert.True(
                 boosts[i] > boosts[i - 1],
-                $"{CabCatalogue.Mics[mic].Name}: boost {boosts[i]:0.0} dB at {distances[i]} in, {boosts[i - 1]:0.0} dB at {distances[i - 1]} in"
+                $"{CabCatalogue.Mics[mic].Name}: boost {boosts[i]:0.0} dB at {distances[i]} in, {boosts[i - 1]:0.0} dB "
+                + $"at {distances[i - 1]} in"
             );
         }
 
@@ -382,8 +385,8 @@ public sealed class DynaCabTests : IDisposable {
         }
 
         // As AllocationProbe does, the least of up to three runs: the runtime now and then does one-off work on the
-        // measuring thread (a tier-1 rejit, on-stack replacement, a cold type load), more often on a busy machine, where
-        // the background compiler runs late; an allocation in the swap or the fade shows up in every run.
+        // measuring thread (a tier-1 rejit, on-stack replacement, a cold type load), more often on a busy machine,
+        // where the background compiler runs late; an allocation in the swap or the fade shows up in every run.
         var (output, allocated) = Run();
         for (var retry = 0; retry < 2 && allocated > 0; retry++) {
             allocated = Math.Min(allocated, Run().Allocated);
@@ -466,7 +469,8 @@ public sealed class DynaCabTests : IDisposable {
 
         File.WriteAllText(
             Path.Combine(folder, "manifest.json"),
-            $$"""{ "format": "cathode-cabgrid", "version": 1, "name": "test", "irs": [{{string.Join(",", entries)}}] }"""
+            """{ "format": "cathode-cabgrid", "version": 1, "name": "test", "irs": ["""
+            + $$"""{{string.Join(",", entries)}}] }"""
         );
 
         using var block = new CabBlock();
@@ -510,7 +514,8 @@ public sealed class DynaCabTests : IDisposable {
         WavFile.Write(Path.Combine(folder, "a.wav"), new((int)Rate, [Signals.Impulse(64)]));
         File.WriteAllText(
             Path.Combine(folder, "manifest.json"),
-            """{ "irs": [ { "position": 0, "distance": 0, "file": "a.wav" }, { "position": 50, "distance": 1, "file": "a.wav" } ] }"""
+            """{ "irs": [ { "position": 0, "distance": 0, "file": "a.wav" },"""
+            + """ { "position": 50, "distance": 1, "file": "a.wav" } ] }"""
         );
 
         Assert.Throws<InvalidDataException>(() => CabGrid.Load(folder));
@@ -598,7 +603,9 @@ public sealed class DynaCabTests : IDisposable {
         return pink;
     }
 
-    /// <summary>RMS through ITU-R BS.1770-4's K filter (its published 48 kHz coefficients), skipping the first 0.25 s.</summary>
+    /// <summary>
+    ///     RMS through ITU-R BS.1770-4's K filter (its published 48 kHz coefficients), skipping the first 0.25 s.
+    /// </summary>
     static double KWeightedDb(float[] signal) {
         var shelf = new BiquadCoefficients(
             1.53512485958697,

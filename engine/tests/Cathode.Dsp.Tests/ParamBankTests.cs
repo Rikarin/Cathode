@@ -22,7 +22,7 @@ public class ParamBankTests {
 
     [Fact]
     public void Modulated_choices_and_switches_land_on_the_nearest_option() {
-        var bank = new ParamBank([.. Descriptors, ParamDescriptor.Switch("on", "On")]);
+        var bank = new ParamBank([..Descriptors, ParamDescriptor.Switch("on", "On")]);
         bank.Prepare(48_000);
 
         bank.Modulate(1, 1.6f, 64);

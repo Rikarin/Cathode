@@ -14,7 +14,9 @@ namespace Cathode.Dsp.Blocks;
 ///             <b>Classic</b>: the side is the mid delayed by <b>Time</b>, giving complementary comb filters on the two
 ///             sides.
 ///         </item>
-///         <item><b>Haas</b>: the right channel is delayed by <b>Time</b> (precedence effect). Not mono compatible.</item>
+///         <item>
+///             <b>Haas</b>: the right channel is delayed by <b>Time</b> (precedence effect). Not mono compatible.
+///         </item>
 ///         <item>
 ///             <b>Stereoizer</b>: as Modern, through a high-order chain of <see cref="StereoizerStages" /> allpasses at
 ///             third-octave spacing, so the phase turns many times across the spectrum and narrow bands alternate left
@@ -80,8 +82,8 @@ public sealed class EnhancerBlock() : DspBlock(Info) {
             ParamDescriptor.Float("time", "Time", 1f, (float)MaxTimeMs, 8f, "ms", ParamTaper.Log),
             ParamDescriptor.Float("lowCut", "Low Cut", 20f, 2_000f, 150f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("highCut", "High Cut", 1_000f, 20_000f, 12_000f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Choice("invert", "Invert", ChorusBlock.PhaseOptions),
             ParamDescriptor.Float("panLeft", "Pan Left", -100f, 100f, -100f, "%"),
             ParamDescriptor.Float("panRight", "Pan Right", -100f, 100f, 100f, "%"),
@@ -98,7 +100,9 @@ public sealed class EnhancerBlock() : DspBlock(Info) {
     /// </summary>
     public static double AllpassQFor(float depth) => depth == 0.5f ? AllpassQ : AllpassQ * Math.Pow(4, 2 * depth - 1);
 
-    /// <summary>Designs the allpass chain for <paramref name="type" /> and <paramref name="depth" /> when they change.</summary>
+    /// <summary>
+    ///     Designs the allpass chain for <paramref name="type" /> and <paramref name="depth" /> when they change.
+    /// </summary>
     int DesignAllpasses(int type, float depth) {
         var frequencies = type == Stereoizer ? StereoizerFrequencies : AllpassFrequencies;
         if (type == designedType && depth == designedDepth) {

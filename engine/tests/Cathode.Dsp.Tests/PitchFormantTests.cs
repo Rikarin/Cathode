@@ -249,7 +249,9 @@ public class PitchFormantTests(ITestOutputHelper output) {
     /// <summary>The resonators' pole radius, for a 100 Hz bandwidth.</summary>
     static double Pole => Math.Exp(-Math.PI * 100 / Rate);
 
-    /// <summary>A pulse train at <see cref="Fundamental" /> through resonators at <see cref="Formants" /> (100 Hz wide).</summary>
+    /// <summary>
+    ///     A pulse train at <see cref="Fundamental" /> through resonators at <see cref="Formants" /> (100 Hz wide).
+    /// </summary>
     static float[] Vowel(int length) {
         var signal = new double[length];
         var period = (int)(Rate / Fundamental);
@@ -321,7 +323,9 @@ public class PitchFormantTests(ITestOutputHelper output) {
         return best;
     }
 
-    /// <summary>The pitch moved an octave: up, the old odd harmonics are gone; down, the new odd ones are there.</summary>
+    /// <summary>
+    ///     The pitch moved an octave: up, the old odd harmonics are gone; down, the new odd ones are there.
+    /// </summary>
     static void AssertPitchMovedAnOctave(float[] signal, int semitones) {
         if (semitones is not (12 or -12)) {
             return;

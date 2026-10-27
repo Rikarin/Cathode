@@ -7,28 +7,27 @@ namespace Cathode.Dsp.Amp.Models;
 ///     3.3k unbypassed) DC-coupled to its 12AU7 half as a cathode follower; the Bass Cut / Ultra Lo network (a bridged
 ///     pair of 2 nF
 ///     caps for the cut, a 150k / 2 nF / 68k twin-T notch near 500 Hz for Ultra Lo) into the 1M volume with its 500 pF
-///     Ultra Hi cap; V3A (12AU7 half, 47k, 1.5k unbypassed); a passive Baxandall (1M bass and treble pots); the midrange
-///     loop: V3B (12AX7 half) into V4A (12AX7 half, 470k) DC-coupled to the V4B follower (12AU7 half), whose output
-///     returns to V3B's
-///     cathode through 56k, with the Mid-Range pot between the two ends of the loop and a series resonant circuit at its
-///     wiper; the 6C4 cathode follower and the power amp's input clamp. The power amp: a 12DW7 input stage taking the
-///     feedback at its cathode, a cathodyne, 12BH7 voltage amplifiers and 12BH7 cathode followers DC-coupled through 47k
-///     to six 6550 (three a side) in fixed bias, on a silicon bridge.
+///     Ultra Hi cap; V3A (12AU7 half, 47k, 1.5k unbypassed); a passive Baxandall (1M bass and treble pots); the
+///     midrange loop: V3B (12AX7 half) into V4A (12AX7 half, 470k) DC-coupled to the V4B follower (12AU7 half), whose
+///     output returns to V3B's cathode through 56k, with the Mid-Range pot between the two ends of the loop and a
+///     series resonant circuit at its wiper; the 6C4 cathode follower and the power amp's input clamp. The power amp: a
+///     12DW7 input stage taking the feedback at its cathode, a cathodyne, 12BH7 voltage amplifiers and 12BH7 cathode
+///     followers DC-coupled through 47k to six 6550 (three a side) in fixed bias, on a silicon bridge.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         Sources: Joe Piazza's redraws of the 1972 preamp and the 1970 6550 power amp (drtube.com/schematics/ampeg,
 ///         also at schematicheaven.net/ampegamps), read by eye at 6×: every resistor and capacitor value in the signal
 ///         path comes from them. The midrange frequencies (220 Hz, 800 Hz, 3 kHz) and the Ultra Hi / Ultra Lo figures
-///         are from Ampeg's SVT owner's manuals. Plates near 680-700 V, screens at 350 V and 24 mA a tube at idle are from
-///         Music Electronics Forum threads quoting Ampeg's 1970 service information. 12DW7: pins 6-8 are the 12AX7
+///         are from Ampeg's SVT owner's manuals. Plates near 680-700 V, screens at 350 V and 24 mA a tube at idle are
+///         from Music Electronics Forum threads quoting Ampeg's 1970 service information. 12DW7: pins 6-8 are the 12AX7
 ///         section, pins 1-3 the 12AU7 one (JJ's and Electro-Harmonix's ECC832 data).
 ///     </para>
 ///     <para>
-///         Read with care: the redraw's V3B cathode line (to the midrange network) crosses the 560 / 7.5k junction (where
-///         the 1M grid leak and the 56k feedback return) without a joint; read as a joint it would short the 560. The
-///         midrange select switch puts 0.15 µF or 0.033 µF on taps of an inductor (Ampeg 320821-1) whose taps and
-///         inductance are not published: the model has one inductor of 3.5 H (0.15 µF resonating at 220 Hz) with a
+///         Read with care: the redraw's V3B cathode line (to the midrange network) crosses the 560 / 7.5k junction
+///         (where the 1M grid leak and the 56k feedback return) without a joint; read as a joint it would short the
+///         560. The midrange select switch puts 0.15 µF or 0.033 µF on taps of an inductor (Ampeg 320821-1) whose taps
+///         and inductance are not published: the model has one inductor of 3.5 H (0.15 µF resonating at 220 Hz) with a
 ///         selected capacitance for each of the manual's three frequencies, and 300 Ω of winding resistance (guessed).
 ///     </para>
 ///     <para>
@@ -36,12 +35,11 @@ namespace Cathode.Dsp.Amp.Models;
 ///         cathodyne 300 V with its balance pot at the balanced 4k, voltage amplifiers on a 600 V "H" node, followers'
 ///         plates at 350 V, their 47k loads returning to −120 V with their grids at −55 V), the 12BH7 (the 12AU7's
 ///         curves: the library has no 12BH7), the 6C4 (one 12AU7 half), the output transformer (2k plate to plate, from
-///         300 W at 680 V), the feedback tap (the 4 Ω one), the supply's source resistance and the reservoir (100 µF and
-///         70 µF stacked: 41 µF). The separate screen winding is a stand-in: a dropping resistor from B+ into a very large
-///         cap, which holds 350 V through a note as the real winding would. Channel two (12AX7 stages, its own stack,
-///         mixed
-///         after the midrange loop) loads the mix node as 100k into 150k and is not modelled; nor is the input jacks'
-///         switching beyond Bright.
+///         300 W at 680 V), the feedback tap (the 4 Ω one), the supply's source resistance and the reservoir (100 µF
+///         and 70 µF stacked: 41 µF). The separate screen winding is a stand-in: a dropping resistor from B+ into a
+///         very large cap, which holds 350 V through a note as the real winding would. Channel two (12AX7 stages, its
+///         own stack, mixed after the midrange loop) loads the mix node as 100k into 150k and is not modelled; nor is
+///         the input jacks' switching beyond Bright.
 ///     </para>
 /// </remarks>
 public static class Svt {
@@ -118,8 +116,8 @@ public static class Svt {
     };
 
     /// <summary>
-    ///     V1A: the Normal input's 47k (the Bright input's 100k ‖ 470 pF with <see cref="SwitchRole.Bright" />) and 5.6M
-    ///     leak, the 12AX7 half (220k, 3.3k unbypassed); out at its plate.
+    ///     V1A: the Normal input's 47k (the Bright input's 100k ‖ 470 pF with <see cref="SwitchRole.Bright" />) and
+    ///     5.6M leak, the 12AX7 half (220k, 3.3k unbypassed); out at its plate.
     /// </summary>
     static NetworkStageDesign InputStage() {
         var net = new StageNetlist();
@@ -136,8 +134,8 @@ public static class Svt {
     }
 
     /// <summary>
-    ///     V1B: the 12AU7 half as a follower (47k), its grid DC-coupled to V1A's plate (a Thévenin cut: the grid draws no
-    ///     current while the cathode follows it); out at its cathode.
+    ///     V1B: the 12AU7 half as a follower (47k), its grid DC-coupled to V1A's plate (a Thévenin cut: the grid draws
+    ///     no current while the cathode follows it); out at its cathode.
     /// </summary>
     static NetworkStageDesign FollowerStage() {
         var net = new StageNetlist();
@@ -151,10 +149,10 @@ public static class Svt {
 
     /// <summary>
     ///     The follower's 0.1 µF and 100k; Bass Cut (<see cref="SwitchRole.Switch3" />: the 2 nF - 2 nF bridge with
-    ///     820k + 68k from its middle, a high-pass) and Ultra Lo (<see cref="SwitchRole.Switch2" />: the 150k - 150k arm
-    ///     with 2 nF to ground beside the bridge, its 820k shorted, a twin-T notch near 500 Hz); otherwise a wire. The 1M
-    ///     linear volume with the 500 pF Ultra Hi cap (<see cref="SwitchRole.Switch1" />), and V3A (12AU7 half, 47k, 1.5k
-    ///     unbypassed); out at its plate.
+    ///     820k + 68k from its middle, a high-pass) and Ultra Lo (<see cref="SwitchRole.Switch2" />: the 150k - 150k
+    ///     arm with 2 nF to ground beside the bridge, its 820k shorted, a twin-T notch near 500 Hz); otherwise a wire.
+    ///     The 1M linear volume with the 500 pF Ultra Hi cap (<see cref="SwitchRole.Switch1" />), and V3A (12AU7 half,
+    ///     47k, 1.5k unbypassed); out at its plate.
     /// </summary>
     static NetworkStageDesign VolumeStage() {
         var net = new StageNetlist();
@@ -186,9 +184,9 @@ public static class Svt {
     }
 
     /// <summary>
-    ///     The passive Baxandall: 0.1 µF in, 220k to the bass pot's top and 47 pF to the treble pot's, the 1M bass pot with
-    ///     1 nF and 10 nF from its wiper, 22k to ground, 470 pF to the 1M treble pot's bottom, 120k between the wipers; out
-    ///     at the treble wiper. The tapers are not marked (taken as linear, as a Baxandall's usually are).
+    ///     The passive Baxandall: 0.1 µF in, 220k to the bass pot's top and 47 pF to the treble pot's, the 1M bass pot
+    ///     with 1 nF and 10 nF from its wiper, 22k to ground, 470 pF to the 1M treble pot's bottom, 120k between the
+    ///     wipers; out at the treble wiper. The tapers are not marked (taken as linear, as a Baxandall's usually are).
     /// </summary>
     static NetworkStageDesign ToneStack() {
         var net = new StageNetlist();
@@ -211,10 +209,10 @@ public static class Svt {
     /// <summary>
     ///     The midrange loop: 0.01 µF into V3B (12AX7 half: 220k, 560 then 7.5k to ground, its 1M leak returning above
     ///     the 7.5k), 0.01 µF into V4A (12AX7 half: 470k, 3.3k, 1M leak) DC-coupled to V4B (12AU7 half) as a follower
-    ///     (47k then 6.8k to ground), 56k from the follower back to the 560 / 7.5k junction; the Mid-Range pot (50k linear)
-    ///     from V3B's cathode (0.68 µF + 470) to the follower's 6.8k tap (0.68 µF + 620, 220k to ground), its wiper to
-    ///     ground through the series resonant circuit the Mid Freq selector (<see cref="PotRole.Control1" />) tunes. Out at
-    ///     the 6.8k tap.
+    ///     (47k then 6.8k to ground), 56k from the follower back to the 560 / 7.5k junction; the Mid-Range pot (50k
+    ///     linear) from V3B's cathode (0.68 µF + 470) to the follower's 6.8k tap (0.68 µF + 620, 220k to ground), its
+    ///     wiper to ground through the series resonant circuit the Mid Freq selector (<see cref="PotRole.Control1" />)
+    ///     tunes. Out at the 6.8k tap.
     /// </summary>
     static NetworkStageDesign MidrangeLoop() {
         var net = new StageNetlist();
@@ -255,8 +253,8 @@ public static class Svt {
     }
 
     /// <summary>
-    ///     The mix and output: 0.1 µF and 100k into the mix node (channel two's 100k into about 150k beside it), 0.02 µF
-    ///     into the 6C4 follower (1k then 47k, its 1M leak above the 1k); out at its cathode.
+    ///     The mix and output: 0.1 µF and 100k into the mix node (channel two's 100k into about 150k beside it), 0.02
+    ///     µF into the 6C4 follower (1k then 47k, its 1M leak above the 1k); out at its cathode.
     /// </summary>
     static NetworkStageDesign OutputStage() {
         var net = new StageNetlist();
@@ -277,8 +275,8 @@ public static class Svt {
     }
 
     /// <summary>
-    ///     The follower's 0.1 µF out with 100k, and the power amp's input: 1k into antiparallel silicon diodes to ground
-    ///     and its 470k leak. Out at the power amp's first grid.
+    ///     The follower's 0.1 µF out with 100k, and the power amp's input: 1k into antiparallel silicon diodes to
+    ///     ground and its 470k leak. Out at the power amp's first grid.
     /// </summary>
     static NetworkStageDesign ClampStage() {
         var net = new StageNetlist();

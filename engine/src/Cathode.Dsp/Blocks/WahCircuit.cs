@@ -11,8 +11,8 @@ namespace Cathode.Dsp.Blocks;
 ///     Q1 is a common-emitter stage with collector-to-base bias (R4 to a node bypassed by C2, R8 to ground); Q2 an
 ///     emitter follower fed from Q1's collector through the pot (a divider: C4 into the pot, its wiper into Q2's base
 ///     through C5). Q2's emitter feeds back through C3 into the resonator, L1 across R7, and from there through R6 into
-///     Q1's base. The pot scales the loop gain T₀, which pulls the resonator's frequency down by √(1 + T₀) and raises its
-///     Q by the same factor; the output is Q1's collector, taken after C4 at the top of the pot.
+///     Q1's base. The pot scales the loop gain T₀, which pulls the resonator's frequency down by √(1 + T₀) and raises
+///     its Q by the same factor; the output is Q1's collector, taken after C4 at the top of the pot.
 /// </remarks>
 public sealed record WahVoicing(string Name, string ModelledAfter) {
     /// <summary>Supply at the circuit, after the battery filter.</summary>
@@ -72,8 +72,8 @@ public sealed record WahVoicing(string Name, string ModelledAfter) {
     public BjtModel Transistor { get; init; } = BjtModel.Q2N5088;
 
     /// <summary>
-    ///     Wiper-to-ground fraction of the pot with the heel down (most signal into Q2: the lowest frequency) and the toe
-    ///     down. The rack and gear never reach the pot's ends.
+    ///     Wiper-to-ground fraction of the pot with the heel down (most signal into Q2: the lowest frequency) and the
+    ///     toe down. The rack and gear never reach the pot's ends.
     /// </summary>
     public double HeelWiper { get; init; } = 0.992;
 
@@ -111,8 +111,8 @@ public sealed class WahBias {
 }
 
 /// <summary>
-///     One channel of a component-level inductor wah (see <see cref="WahVoicing" />): a wave digital filter whose root is
-///     an R-type adaptor holding both transistors (Ebers-Moll, four device ports) and every resistor, with the
+///     One channel of a component-level inductor wah (see <see cref="WahVoicing" />): a wave digital filter whose root
+///     is an R-type adaptor holding both transistors (Ebers-Moll, four device ports) and every resistor, with the
 ///     capacitors, the inductor and the input source as its seven ports. The pot is a pair of internal resistors, so
 ///     moving it refactors the adaptor's matrix (<see cref="SetPosition" />, allocation-free) instead of rebuilding
 ///     anything. The circuit starts, and resets, at its DC operating point, which a second, resistive-only copy of the
@@ -123,11 +123,12 @@ public sealed class WahBias {
 ///     <para>
 ///         Each sample is solved by a Newton iteration specialised to the circuit's normal operation, with both
 ///         base-collector junctions reverse biased (their exponentials are then below 1e-8 and drop out): the four
-///         device-port equations v = p + F r(v) of the root then depend on the two base-emitter voltages only, so Newton
-///         runs on two unknowns with a closed-form 2 × 2 step, and the base-collector voltages follow explicitly. When a
-///         transistor saturates (a hot input at the heel), or the reduced iteration does not converge, the sample is
-///         solved again by the generic four-port solver of <see cref="RTypeRoot{TPorts,TDevice}" />, which models the
-///         whole Ebers-Moll transistor. Both find the same solution; the specialised one is several times cheaper.
+///         device-port equations v = p + F r(v) of the root then depend on the two base-emitter voltages only, so
+///         Newton runs on two unknowns with a closed-form 2 × 2 step, and the base-collector voltages follow
+///         explicitly. When a transistor saturates (a hot input at the heel), or the reduced iteration does not
+///         converge, the sample is solved again by the generic four-port solver of
+///         <see cref="RTypeRoot{TPorts,TDevice}" />, which models the whole Ebers-Moll transistor. Both find the same
+///         solution; the specialised one is several times cheaper.
 ///     </para>
 ///     <para>
 ///         Node numbers (1-based, ground is 0) follow Holters and Zölzer's GCB-95 schematic where it has them:
@@ -267,8 +268,8 @@ public sealed class WahCircuit {
     }
 
     /// <summary>
-    ///     Loads <paramref name="voicing" />'s component values, finds its DC operating point (up to a hundred Newton solves
-    ///     of the resistive copy) and resets the circuit there. Control thread: the audio thread loads a
+    ///     Loads <paramref name="voicing" />'s component values, finds its DC operating point (up to a hundred Newton
+    ///     solves of the resistive copy) and resets the circuit there. Control thread: the audio thread loads a
     ///     <see cref="Bias" /> found beforehand with <see cref="Configure(WahBias)" />.
     /// </summary>
     public void Configure(WahVoicing voicing) {
@@ -296,9 +297,10 @@ public sealed class WahCircuit {
     }
 
     /// <summary>
-    ///     Loads <paramref name="bias" />'s voicing at the operating point found for it and resets the circuit there, as
-    ///     <see cref="Configure(WahVoicing)" /> would but without the DC solve: one refactoring of the adaptor, as a pedal
-    ///     move costs. Allocation-free, for a type change on the audio thread.
+    ///     Loads <paramref name="bias" />'s voicing at the operating point found for it and resets the circuit there,
+    ///     as
+    ///     <see cref="Configure(WahVoicing)" /> would but without the DC solve: one refactoring of the adaptor, as a
+    ///     pedal move costs. Allocation-free, for a type change on the audio thread.
     /// </summary>
     public void Configure(WahBias bias) {
         Load(bias.Voicing);
@@ -309,10 +311,16 @@ public sealed class WahCircuit {
         Reset();
     }
 
-    /// <summary>Control thread: the DC operating point of the voicing last configured, for <see cref="Configure(WahBias)" />.</summary>
+    /// <summary>
+    ///     Control thread: the DC operating point of the voicing last configured, for
+    ///     <see cref="Configure(WahBias)" />.
+    /// </summary>
     public WahBias Bias() => new(Voicing, [..operatingPoint], inductorCurrent, [..initialVoltages]);
 
-    /// <summary>Loads the audio circuit's component values for <paramref name="voicing" />, the pot at its middle.</summary>
+    /// <summary>
+    ///     Loads the audio circuit's component values for <paramref name="voicing" />, the pot at its
+    ///     middle.
+    /// </summary>
     void Load(WahVoicing voicing) {
         if (voicing.Transistor.Polarity != BjtPolarity.Npn) {
             throw new ArgumentException("The wah circuit is built with NPN transistors.", nameof(voicing));
@@ -357,13 +365,16 @@ public sealed class WahCircuit {
         SetPot(0.5, false);
     }
 
-    /// <summary>Moves the pot to pedal position <paramref name="toe" /> (0 heel, 1 toe) and refactors the adaptor.</summary>
+    /// <summary>
+    ///     Moves the pot to pedal position <paramref name="toe" /> (0 heel, 1 toe) and refactors the
+    ///     adaptor.
+    /// </summary>
     public void SetPosition(double toe) => SetPot(WiperFraction(Voicing, toe), true);
 
     /// <summary>
     ///     Scales the inductance and R7 (which sets the resonator's Q) against the voicing's values, refactoring the
-    ///     adaptor when either changes. Neither moves the DC operating point (the inductor is a short at DC). Allocation
-    ///     free; Configure returns both to 1.
+    ///     adaptor when either changes. Neither moves the DC operating point (the inductor is a short at DC).
+    ///     Allocation free; Configure returns both to 1.
     /// </summary>
     public void Trim(double inductanceScale, double qScale) {
         if (inductanceScale == this.inductanceScale && qScale == this.qScale) {
@@ -376,7 +387,9 @@ public sealed class WahCircuit {
         Propagate();
     }
 
-    /// <summary>One sample: the input in volts at the source, returns the output (the top of the pot) in volts.</summary>
+    /// <summary>
+    ///     One sample: the input in volts at the source, returns the output (the top of the pot) in volts.
+    /// </summary>
     public double Tick(double volts) {
         root.Ports.A.Volts = volts;
         var u = inputs.AsSpan();
@@ -399,7 +412,9 @@ public sealed class WahCircuit {
         return RTypeScattering.Dot(probe, u) + RTypeScattering.Dot(probe[n..], r);
     }
 
-    /// <summary>Returns to the DC operating point with no signal: every capacitor and the inductor precharged.</summary>
+    /// <summary>
+    ///     Returns to the DC operating point with no signal: every capacitor and the inductor precharged.
+    /// </summary>
     public void Reset() {
         root.Reset();
         var p = operatingPoint.AsSpan();
@@ -509,9 +524,10 @@ public sealed class WahCircuit {
     }
 
     /// <summary>
-    ///     Newton on the two base-emitter voltages with both base-collector junctions off (see the remarks on the type),
-    ///     from the last two solutions extrapolated and junction-limited like the generic solver. Leaves the four port
-    ///     voltages and residual currents; false when it did not converge or a base-collector junction turned on.
+    ///     Newton on the two base-emitter voltages with both base-collector junctions off (see the remarks on the
+    ///     type), from the last two solutions extrapolated and junction-limited like the generic solver. Leaves the
+    ///     four port voltages and residual currents; false when it did not converge or a base-collector junction turned
+    ///     on.
     /// </summary>
     bool SolveForwardActive(ReadOnlySpan<double> u) {
         var e = reducedInputs.AsSpan();

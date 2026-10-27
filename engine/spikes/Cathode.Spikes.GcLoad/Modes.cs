@@ -12,7 +12,7 @@ using System.Text.Json;
 namespace Cathode.Spikes.GcLoad;
 
 static class AudioMode {
-    public static async Task<int> Run(Options o) {
+    public static async Task<int> Run(Options o, CancellationToken cancellationToken) {
         if (o.Flag("sustained-low-latency")) {
             GCSettings.LatencyMode = GCLatencyMode.SustainedLowLatency;
         }
@@ -30,7 +30,7 @@ static class AudioMode {
         var spec = new ProcessSpec(session.SampleRate, session.BufferFrames);
         var engine = new CathodeEngine(spec);
         var graph = new GraphCompiler(BlockRegistry.CreateDefault().AddNativeBlocks()).Compile(
-            NamGraph(Path.GetFullPath(o.Text("nam")!)),
+            GraphTemplates.Nam(Path.GetFullPath(o.Text("nam")!)),
             spec,
             1
         );
@@ -44,7 +44,7 @@ static class AudioMode {
                 o.Int("port", 5199),
                 (paramIndex, value) => graph.SetParameter(ampSlot, paramIndex, value)
             );
-            await server.StartAsync();
+            await server.StartAsync(cancellationToken);
         }
 
         using var storm = o.Text("alloc-storm") is { } rate
@@ -52,9 +52,9 @@ static class AudioMode {
             : null;
 
         session.Start();
-        await Task.Delay(TimeSpan.FromSeconds(o.Int("warmup", 5)));
+        await Task.Delay(TimeSpan.FromSeconds(o.Int("warmup", 5)), cancellationToken);
         session.ResetTiming();
-        await Task.Delay(50);
+        await Task.Delay(50, cancellationToken);
         var gc0 = GC.CollectionCount(0);
         var gc1 = GC.CollectionCount(1);
         var gc2 = GC.CollectionCount(2);
@@ -62,7 +62,7 @@ static class AudioMode {
         var overloads = session.Stats().Overloads;
         var allocated = GC.GetTotalAllocatedBytes();
         var measured = o.Int("seconds", 20);
-        await Task.Delay(TimeSpan.FromSeconds(measured));
+        await Task.Delay(TimeSpan.FromSeconds(measured), cancellationToken);
 
         var timing = session.Timing();
         var stats = session.Stats();
@@ -92,12 +92,16 @@ static class AudioMode {
 
         session.Stop();
         if (server is not null) {
-            await server.StopAsync();
+            await server.StopAsync(CancellationToken.None); // the run is over: stop gracefully, whatever happens
         }
 
         Console.WriteLine(result.ToConsole());
         if (o.Text("results") is { } path) {
-            await File.AppendAllTextAsync(path, JsonSerializer.Serialize(result) + Environment.NewLine);
+            await File.AppendAllTextAsync(
+                path,
+                JsonSerializer.Serialize(result) + Environment.NewLine,
+                cancellationToken
+            );
         }
 
         return 0;
@@ -108,22 +112,6 @@ static class AudioMode {
         Environment.GetEnvironmentVariable("DOTNET_gcConcurrent") is { } env
             ? env != "0"
             : AppContext.GetData("System.GC.Concurrent") is not bool configured || configured;
-
-    static GraphDefinition NamGraph(string model) =>
-        new() {
-            Nodes = [
-                new() { Id = "in1", Type = NodeTypes.Input, Row = 0, Column = 0 },
-                new() {
-                    Id = "amp1",
-                    Type = "nam",
-                    Row = 0,
-                    Column = 1,
-                    Assets = { ["model"] = model }
-                },
-                new() { Id = "out1", Type = NodeTypes.Output, Row = 0, Column = 2 }
-            ],
-            Cables = [new() { From = "in1", To = "amp1" }, new() { From = "amp1", To = "out1" }]
-        };
 
     sealed class Forwarder : IAudioProcessor {
         IAudioProcessor? target;
@@ -168,12 +156,17 @@ sealed record RunResult(
     long RequestsInProcess
 ) {
     public string ToConsole() =>
-        $"{Label,-32} buf {Buffer,3}  gc {Gc}/{(Concurrent ? "conc" : "nonconc")}/{LatencyMode}  callbacks {Callbacks}  "
-        + $"p50 {P50:0}%  p99.9 {P999:0}%  p99.99 {P9999:0}%  max {Max:0.0}%  >=50% {Over50}  over budget {OverBudget}  "
-        + $"driver overloads {DriverOverloads}  GCs {Gen0}/{Gen1}/{Gen2}  pause {GcPauseMs:0.0} ms  alloc {AllocMBps:0.0} MB/s  in-proc requests {RequestsInProcess}";
+        $"{Label,-32} buf {Buffer,3}  gc {Gc}/{(Concurrent ? "conc" : "nonconc")}/{LatencyMode}  "
+        + $"callbacks {Callbacks}  "
+        + $"p50 {P50:0}%  p99.9 {P999:0}%  p99.99 {P9999:0}%  max {Max:0.0}%  >=50% {Over50}  over "
+        + $"budget {OverBudget}  "
+        + $"driver overloads {DriverOverloads}  GCs {Gen0}/{Gen1}/{Gen2}  pause {GcPauseMs:0.0} ms  alloc "
+        + $"{AllocMBps:0.0} MB/s  in-proc requests {RequestsInProcess}";
 }
 
-/// <summary>A realistic slice of the planned REST API (docs/02-architecture.md §6), allocation profile included.</summary>
+/// <summary>
+///     A realistic slice of the planned REST API (docs/02-architecture.md §6), allocation profile included.
+/// </summary>
 static class Api {
     static long requestCount;
 
@@ -224,7 +217,9 @@ static class Api {
 }
 
 static class Preset {
-    /// <summary>About 20 blocks x 4 channels x 30 parameters plus 8 scenes, roughly the size of a full Axe-Fx-style preset.</summary>
+    /// <summary>
+    ///     About 20 blocks x 4 channels x 30 parameters plus 8 scenes, roughly the size of a full Axe-Fx-style preset.
+    /// </summary>
     public static object Create() {
         var random = new Random(1);
         var blocks = Enumerable.Range(0, 20)
@@ -305,20 +300,20 @@ sealed class AllocationStorm : IDisposable {
 }
 
 static class ServerMode {
-    public static async Task<int> Run(Options o) {
+    public static async Task<int> Run(Options o, CancellationToken cancellationToken) {
         var app = Api.Build(o.Int("port", 5199), null);
-        await app.StartAsync();
+        await app.StartAsync(cancellationToken);
         Console.WriteLine(
             $"server listening on {o.Int("port", 5199)} (gc {(GCSettings.IsServerGC ? "server" : "workstation")})"
         );
-        await Task.Delay(TimeSpan.FromSeconds(o.Int("seconds", 60)));
-        await app.StopAsync();
+        await Task.Delay(TimeSpan.FromSeconds(o.Int("seconds", 60)), cancellationToken);
+        await app.StopAsync(cancellationToken);
         return 0;
     }
 }
 
 static class LoadMode {
-    public static async Task<int> Run(Options o) {
+    public static async Task<int> Run(Options o, CancellationToken cancellationToken) {
         var url = o.Text("url") ?? "http://127.0.0.1:5199";
         var concurrency = o.Int("concurrency", 8);
         var rate = o.Int("rate", 0);
@@ -329,21 +324,24 @@ static class LoadMode {
         var upload = new byte[2 * 1024 * 1024];
         new Random(5).NextBytes(upload);
         long ok = 0, failed = 0;
-        using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(seconds));
+        // Ctrl+C ends the load early; the counts so far are still reported.
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        stop.CancelAfter(TimeSpan.FromSeconds(seconds));
 
         // Wait for the server to come up.
         for (var i = 0; i < 100; i++) {
             try {
-                using var probe = await client.GetAsync("/api/v1/live");
+                using var probe = await client.GetAsync("/api/v1/live", cancellationToken);
                 break;
             } catch (HttpRequestException) {
-                await Task.Delay(100);
+                await Task.Delay(100, cancellationToken);
             }
         }
 
         var started = Stopwatch.GetTimestamp();
         var workers = Enumerable.Range(0, concurrency)
-            .Select(w => Task.Run(async () => {
+            .Select(w => Task.Run(
+                    async () => {
                         var random = new Random(w);
                         var interval = rate > 0 ? TimeSpan.FromSeconds((double)concurrency / rate) : TimeSpan.Zero;
                         var next = Stopwatch.GetTimestamp();
@@ -387,7 +385,9 @@ static class LoadMode {
                                 }
                             }
                         }
-                    }
+                    },
+                    // Each worker ends on stop.Token itself; a cancelled start would skip the counts' report.
+                    CancellationToken.None
                 )
             )
             .ToArray();
@@ -395,7 +395,8 @@ static class LoadMode {
         await Task.WhenAll(workers);
         var elapsed = Stopwatch.GetElapsedTime(started).TotalSeconds;
         Console.WriteLine(
-            $"load: {ok} ok, {failed} failed, {ok / elapsed:0} req/s over {elapsed:0.0} s (concurrency {concurrency}, rate {(rate > 0 ? rate.ToString(CultureInfo.InvariantCulture) : "unthrottled")})"
+            $"load: {ok} ok, {failed} failed, {ok / elapsed:0} req/s over {elapsed:0.0} s (concurrency {concurrency}, "
+            + $"rate {(rate > 0 ? rate.ToString(CultureInfo.InvariantCulture) : "unthrottled")})"
         );
         return 0;
     }

@@ -14,7 +14,10 @@ namespace Cathode.Dsp.Tests;
 ///     ultralinear, triode strapping, Simul-Class, separate cathodes, a cathodyne-driven pair).
 /// </summary>
 public partial class AmpStageTests {
-    /// <summary>The SLO-100's third stage: a cold clipper (39k unbypassed) with a 1 nF plate bypass, 220k stopper, 330k leak.</summary>
+    /// <summary>
+    ///     The SLO-100's third stage: a cold clipper (39k unbypassed) with a 1 nF plate bypass, 220k stopper, 330k
+    ///     leak.
+    /// </summary>
     static readonly TriodeStageDesign ColdClipper = new(
         "cold",
         TriodeModel.Ecc83,
@@ -170,7 +173,8 @@ public partial class AmpStageTests {
             + $"{stage.OutputResistance / 1e3:0.00}k / {network.OutputResistance / 1e3:0.00}k"
         );
         Assert.Equal(stage.RestOutput, network.RestOutput, 1e-6 * stage.RestOutput);
-        // The network stage reads each capacitor at its 1 kHz reactance; the triode stage takes a bypass cap as a short.
+        // The network stage reads each capacitor at its 1 kHz reactance; the triode stage takes a bypass cap as a
+        // short.
         Assert.Equal(stage.OutputResistance, network.OutputResistance, 0.3 * stage.OutputResistance);
 
         double error = 0, energy = 0;
@@ -281,7 +285,8 @@ public partial class AmpStageTests {
             reference.OperatingPoint(40);
             var (ea, eb) = inverter.Evaluate(vd, out _, out _);
             output.WriteLine(
-                $"  vd {vd,5:0.0}: plate {inverter.RestPlateA + ea:0.00} V, junction {inverter.RestPlateB + eb:0.00} V, "
+                $"  vd {vd,5:0.0}: plate {inverter.RestPlateA + ea:0.00} V, junction "
+                + $"{inverter.RestPlateB + eb:0.00} V, "
                 + $"reference {reference.Voltage(a):0.00}/{reference.Voltage(b):0.00} V"
             );
 
@@ -301,9 +306,10 @@ public partial class AmpStageTests {
     }
 
     /// <summary>
-    ///     The 5F6-A's presence (the 5k pot is the tail's shunt, the 0.1 µF on its wiper): the feedback filter's first-order
-    ///     β(s) equals Z / (R_f + Z) for Z = (1 - p) R + p R ∥ C at every setting; flat at 0 (the generic wiring, a pot and cap
-    ///     across a fixed 5k, cut 1 kHz's feedback by about 5 dB there), the two wirings equal at 10.
+    ///     The 5F6-A's presence (the 5k pot is the tail's shunt, the 0.1 µF on its wiper): the feedback filter's
+    ///     first-order β(s) equals Z / (R_f + Z) for Z = (1 - p) R + p R ∥ C at every setting; flat at 0 (the generic
+    ///     wiring, a pot and cap across a fixed 5k, cut 1 kHz's feedback by about 5 dB there), the two wirings equal at
+    ///     10.
     /// </summary>
     [Fact]
     public void Presence_pot_as_the_tail_shunt_matches_its_circuit() {
@@ -398,7 +404,8 @@ public partial class AmpStageTests {
             triode
         );
         output.WriteLine(
-            $"{name}: B+ {power.Supply:0.0} V, grid bias {power.GridBias:0.00} V, cathode {power.CathodeVoltage:0.00} V, "
+            $"{name}: B+ {power.Supply:0.0} V, grid bias {power.GridBias:0.00} V, cathode "
+            + $"{power.CathodeVoltage:0.00} V, "
             + $"idle {power.PlateCurrents.A * 1e3:0.0} mA per tube"
         );
         var errorDb = CompareInTime(name, power.Tick, power.Newton, circuit, speaker, amplitude, 8);
@@ -407,8 +414,9 @@ public partial class AmpStageTests {
             return;
         }
 
-        // Driven well into the inverter's grid current the power tubes block hard too, and the output's error says more about
-        // that than about the inverter; its grid shows the input network: coupling cap, bootstrapped leak, grid conduction.
+        // Driven well into the inverter's grid current the power tubes block hard too, and the output's error says more
+        // about that than about the inverter; its grid shows the input network: coupling cap, bootstrapped leak, grid
+        // conduction.
         var rest = power.PhaseInverter.RestGrid;
         var fresh = new PowerAmp(design, Rate);
         fresh.SetSourceResistance(sourceResistance);
@@ -450,7 +458,9 @@ public partial class AmpStageTests {
         return new("blend", net);
     }
 
-    /// <summary>A Mark-style EQ band: a series LC to ground through a slider (control 1), across a 10k-fed node.</summary>
+    /// <summary>
+    ///     A Mark-style EQ band: a series LC to ground through a slider (control 1), across a 10k-fed node.
+    /// </summary>
     static NetworkStageDesign ResonantNetwork() {
         var net = new StageNetlist();
         var (node, coil, cap) = (net.Node(), net.Node(), net.Node());
@@ -463,7 +473,9 @@ public partial class AmpStageTests {
         return new("resonant", net);
     }
 
-    /// <summary>A cathode follower not driving a stack, DC-coupled to the previous plate: 100k to ground, AC out to 1M.</summary>
+    /// <summary>
+    ///     A cathode follower not driving a stack, DC-coupled to the previous plate: 100k to ground, AC out to 1M.
+    /// </summary>
     static NetworkStageDesign Follower() {
         var net = new StageNetlist();
         var (supply, cathode, output) = (net.Node(), net.Node(), net.Node());
@@ -476,7 +488,9 @@ public partial class AmpStageTests {
         return new("follower", net);
     }
 
-    /// <summary>The AC15's EF86 stage: 220k plate, 1M screen resistor with 0.1 µF bypass, 2.2k with 25 µF, 1M grid leak.</summary>
+    /// <summary>
+    ///     The AC15's EF86 stage: 220k plate, 1M screen resistor with 0.1 µF bypass, 2.2k with 25 µF, 1M grid leak.
+    /// </summary>
     static NetworkStageDesign Ef86() {
         var net = new StageNetlist();
         var (supply, plate, screen, cathode) = (net.Node(), net.Node(), net.Node(), net.Node());

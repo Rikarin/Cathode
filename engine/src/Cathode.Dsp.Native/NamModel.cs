@@ -87,7 +87,9 @@ public sealed unsafe class NamModel : ICaptureModel {
         }
     }
 
-    /// <summary>Control thread, slimmable models only: 0 = smallest (Lite), 1 = full size. Re-warms the model.</summary>
+    /// <summary>
+    ///     Control thread, slimmable models only: 0 = smallest (Lite), 1 = full size. Re-warms the model.
+    /// </summary>
     public void SetSize(double size) {
         if (NamNative.SetSize(Handle, size) != 0) {
             throw new InvalidOperationException($"NAM resize failed: {NamNative.LastErrorMessage()}");
@@ -95,7 +97,8 @@ public sealed unsafe class NamModel : ICaptureModel {
     }
 
     /// <inheritdoc />
-#pragma warning disable SK2142 // False positive: `fixed` pins the spans and reads them; it does not overwrite the parameters.
+    // False positive: `fixed` pins the spans and reads them; it does not overwrite the parameters.
+#pragma warning disable SK2142
     public void Process(ReadOnlySpan<float> input, Span<float> output) {
 #pragma warning restore SK2142
         if (handle == 0) {

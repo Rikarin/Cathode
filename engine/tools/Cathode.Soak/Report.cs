@@ -19,25 +19,30 @@ sealed record Report(bool Passed, string Text) {
         text.AppendLine();
         text.AppendLine(
             c,
-            $"soak: {elapsed.TotalMinutes:0.0} min on {last.Backend}, {last.SampleRate / 1000:0.#} kHz / {last.BufferFrames} frames"
+            $"soak: {elapsed.TotalMinutes:0.0} min on {last.Backend}, {last.SampleRate / 1000:0.#} kHz / "
+            + $"{last.BufferFrames} frames"
         );
         text.AppendLine(c, $"  driver overloads:     {overloads}");
         text.AppendLine(
             c,
-            $"  native callback:      worst window p99.9 {api.WorstNativeP999:0}%, worst max {api.WorstNativeMax:0.0}% of budget"
+            $"  native callback:      worst window p99.9 {api.WorstNativeP999:0}%, worst max "
+            + $"{api.WorstNativeMax:0.0}% of budget"
         );
         text.AppendLine(c, $"  engine (managed):     worst max {api.WorstCpuMax:0.0}% of budget");
         text.AppendLine(
             c,
-            $"  host GCs:             gen0 {last.HostGen0 - first.HostGen0}, gen1 {last.HostGen1 - first.HostGen1}, gen2 {last.HostGen2 - first.HostGen2}, pause {last.HostGcPauseMs - first.HostGcPauseMs:0.0} ms"
+            $"  host GCs:             gen0 {last.HostGen0 - first.HostGen0}, gen1 {last.HostGen1 - first.HostGen1}, "
+            + $"gen2 {last.HostGen2 - first.HostGen2}, pause {last.HostGcPauseMs - first.HostGcPauseMs:0.0} ms"
         );
         text.AppendLine(
             c,
-            $"  host allocations:     {(last.HostAllocatedBytes - first.HostAllocatedBytes) / 1e6 / elapsed.TotalMinutes:0.00} MB/min"
+            $"  host allocations:     "
+            + $"{(last.HostAllocatedBytes - first.HostAllocatedBytes) / 1e6 / elapsed.TotalMinutes:0.00} MB/min"
         );
         text.AppendLine(
             c,
-            $"  API:                  {api.Requests} requests, {api.Errors} errors; {api.TelemetryMessages} WebSocket messages"
+            $"  API:                  {api.Requests} requests, {api.Errors} errors; "
+            + $"{api.TelemetryMessages} WebSocket messages"
         );
         foreach (var message in api.ErrorMessages) {
             text.AppendLine(c, $"    error: {message}");
@@ -46,7 +51,8 @@ sealed record Report(bool Passed, string Text) {
         if (maxHostGcs >= 0) {
             text.AppendLine(
                 c,
-                $"  host GC gate:         {hostGcs} collection(s), at most {maxHostGcs} allowed: {(gcGate ? "ok" : "FAILED")}"
+                $"  host GC gate:         {hostGcs} collection(s), at most {maxHostGcs} allowed: "
+                + $"{(gcGate ? "ok" : "FAILED")}"
             );
         }
 

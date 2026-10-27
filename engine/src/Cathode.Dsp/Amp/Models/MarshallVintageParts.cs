@@ -43,8 +43,8 @@ public static class MarshallVintageParts {
     /// <summary>
     ///     <see cref="MarshallParts.TwoChannelInput" /> (separate cathodes, 100k plates, 34k at each high input, the
     ///     jumper on switch 1 and the normal input on switch 2) with a load on the normal channel's volume wiper: the
-    ///     tremolo's shunt network, <paramref name="loadCap" /> in series with <paramref name="loadResistor" /> to ground
-    ///     (none where either is 0). The output is the mixing node.
+    ///     tremolo's shunt network, <paramref name="loadCap" /> in series with <paramref name="loadResistor" /> to
+    ///     ground (none where either is 0). The output is the mixing node.
     /// </summary>
     public static NetworkStageDesign TwoChannelInput(
         double supply,
@@ -91,11 +91,11 @@ public static class MarshallVintageParts {
     /// <summary>
     ///     The 1962 Bluesbreaker reissue's first tube (drawing "1962 STD"): V1a (Channel II, 150k plate) and V1b
     ///     (Channel I, 100k) on a shared 820 Ω with 330 µF; each channel's two inputs are 68k each (34k at the high
-    ///     input, 1M at the jack). Channel I: 22 nF into Volume I (A1M, 100 pF across its upper half), its wiper through
-    ///     470k with 220 pF to the mixing node. Channel II: 22 nF into Volume II (A1M, 100 pF), its wiper through 470k to
-    ///     the mixing node and, beside it, through 100k to the tremolo's node and 470k on to the mixing node; the tremolo
-    ///     node's load with the tremolo off is 0.22 µF into the 220k Intensity and 100k to ground. Switch 1 jumpers the
-    ///     channels, switch 2 plays Channel II alone. The output is the mixing node (V2a's grid).
+    ///     input, 1M at the jack). Channel I: 22 nF into Volume I (A1M, 100 pF across its upper half), its wiper
+    ///     through 470k with 220 pF to the mixing node. Channel II: 22 nF into Volume II (A1M, 100 pF), its wiper
+    ///     through 470k to the mixing node and, beside it, through 100k to the tremolo's node and 470k on to the mixing
+    ///     node; the tremolo node's load with the tremolo off is 0.22 µF into the 220k Intensity and 100k to ground.
+    ///     Switch 1 jumpers the channels, switch 2 plays Channel II alone. The output is the mixing node (V2a's grid).
     /// </summary>
     public static NetworkStageDesign BluesbreakerInput(double supply) {
         var net = new StageNetlist();
@@ -129,7 +129,9 @@ public static class MarshallVintageParts {
         return new("V1", net);
     }
 
-    /// <summary>One Bluesbreaker channel's triode, 22 nF and volume (100 pF across its upper half); returns the wiper.</summary>
+    /// <summary>
+    ///     One Bluesbreaker channel's triode, 22 nF and volume (100 pF across its upper half); returns the wiper.
+    /// </summary>
     static int Triode(StageNetlist net, int rail, int cathode, int jack, double plateResistor, PotRole volume) {
         var (grid, plate) = (net.Node(), net.Node());
         net.Resistor(jack, StageNetlist.Ground, 1e6);
@@ -139,7 +141,9 @@ public static class MarshallVintageParts {
         return Volume(net, plate, 22e-9, volume, 100e-12);
     }
 
-    /// <summary>A coupling cap into a 1M-A volume with an optional bright cap across its upper half; returns the wiper.</summary>
+    /// <summary>
+    ///     A coupling cap into a 1M-A volume with an optional bright cap across its upper half; returns the wiper.
+    /// </summary>
     static int Volume(StageNetlist net, int plate, double couplingCap, PotRole role, double brightCap) {
         var top = net.Node();
         net.Capacitor(plate, top, couplingCap);

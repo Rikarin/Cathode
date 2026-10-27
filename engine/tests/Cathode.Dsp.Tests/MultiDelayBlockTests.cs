@@ -16,7 +16,8 @@ public class MultiDelayBlockTests {
 
     [Fact]
     public void Quad_taps_land_at_their_time_level_and_pan() {
-        // Time 100 ms = 4800 samples; taps at 25/50/75/100 % with levels 1, 0.5, -0.25 (inverted) and 0.1, panned L, R, C, L.
+        // Time 100 ms = 4800 samples; taps at 25/50/75/100 % with levels 1, 0.5, -0.25 (inverted) and 0.1, panned L, R,
+        // C, L.
         using var delay = Create(
             (MultiDelayBlock.Time, 100f),
             (MultiDelayBlock.Tap1Feedback + 3, 0f),

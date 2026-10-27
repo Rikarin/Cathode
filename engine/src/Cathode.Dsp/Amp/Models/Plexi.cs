@@ -9,11 +9,11 @@ namespace Cathode.Dsp.Amp.Models;
 ///     at 460 V on a silicon rectifier, feedback from the 16 Ω tap with presence.
 /// </summary>
 /// <remarks>
-///     A generic type, not one drawing. The inverter is the Marshall long-tail pair of every drawing (1959 70-6-11, 2203,
-///     JTM45: 470 Ω shared cathode resistor under the 10k tail, 82k / 100k plates). The bright cap is a deliberate generic
-///     choice: the later Marshalls' 470 pF across the volume, switched by Bright (off by default), where a 1960s 1987's
-///     bright channel has a fixed 5 nF (the <see cref="Marshall1987X" /> and <see cref="SuperLead100" /> types have the
-///     drawings' circuits). Like those amps it has no depth control.
+///     A generic type, not one drawing. The inverter is the Marshall long-tail pair of every drawing (1959 70-6-11,
+///     2203, JTM45: 470 Ω shared cathode resistor under the 10k tail, 82k / 100k plates). The bright cap is a
+///     deliberate generic choice: the later Marshalls' 470 pF across the volume, switched by Bright (off by default),
+///     where a 1960s 1987's bright channel has a fixed 5 nF (the <see cref="Marshall1987X" /> and
+///     <see cref="SuperLead100" /> types have the drawings' circuits). Like those amps it has no depth control.
 /// </remarks>
 public static class Plexi {
     public static AmpDesign Design { get; } = new(

@@ -195,8 +195,9 @@ public class CathodeEngineTests {
 
     [Fact]
     public void Every_graph_retired_between_two_sweeps_is_handed_back() {
-        // Before the fix the hand-back had four slots and dropped the fifth graph to the GC, which never ran its blocks'
-        // Dispose. Spillover off: each replaced graph fades out over 20 ms and retires, so every swap retires one.
+        // Before the fix the hand-back had four slots and dropped the fifth graph to the GC, which never ran its
+        // blocks' Dispose. Spillover off: each replaced graph fades out over 20 ms and retires, so every swap retires
+        // one.
         var engine = new CathodeEngine(Spec);
         engine.Rig.SetTarget(RigControls.Descriptor.IndexOf("spillover"), 0f);
         var graphs = new List<CompiledGraph>();
@@ -233,8 +234,8 @@ public class CathodeEngineTests {
         var input = Signals.Concat(Signals.Sine(220, Spec.SampleRate, 4_800, 0.5f), new float[19_200]);
         var (left, _) = OfflineRenderer.Render(engine, input, input, 64);
 
-        // The note played before the swap echoes 300 ms (14,400 samples) later, 4,800-14,400 samples after the swap. The
-        // dry note stops at 4,800, so anything heard from 6,000 on is the old graph's tail: the spillover.
+        // The note played before the swap echoes 300 ms (14,400 samples) later, 4,800-14,400 samples after the swap.
+        // The dry note stops at 4,800, so anything heard from 6,000 on is the old graph's tail: the spillover.
         Assert.True(Analysis.Peak(left.AsSpan(6_000, 6_000)) > 0.05, "delay tail after the swap");
         var maxStep = left.Zip(left.Skip(1), static (a, b) => Math.Abs(b - a)).Take(2_000).Max();
         Assert.True(maxStep < 0.1f, $"click at the swap: step {maxStep}");
@@ -246,8 +247,8 @@ public class CathodeEngineTests {
         engine.Publish(Compiler.Compile(DelayGraph(), Spec, 1));
         OfflineRenderer.Render(engine, Signals.Sine(220, Spec.SampleRate, 9_600, 0.5f), new float[9_600], 64);
 
-        // The note's echo comes 14,400-24,000 samples after it started, so it is ringing in the spilling delay graph when
-        // the second change arrives at 17,600.
+        // The note's echo comes 14,400-24,000 samples after it started, so it is ringing in the spilling delay graph
+        // when the second change arrives at 17,600.
         engine.Publish(Compiler.Compile(VolumeGraph(0), Spec, 2));
         var (before, _) = OfflineRenderer.Render(engine, new float[8_000], new float[8_000], 64);
         engine.Publish(Compiler.Compile(VolumeGraph(0), Spec, 3));
@@ -263,7 +264,10 @@ public class CathodeEngineTests {
         float[] joined = [..tailEnd, ..after.AsSpan(0, 1_000)];
         var maxStep = joined.Zip(joined.Skip(1), static (a, b) => Math.Abs(b - a)).Max();
         var naturalStep = tailEnd.Zip(tailEnd.Skip(1), static (a, b) => Math.Abs(b - a)).Max();
-        Assert.True(maxStep <= naturalStep * 1.1f + 1e-4f, $"click at the second change: step {maxStep} vs {naturalStep}");
+        Assert.True(
+            maxStep <= naturalStep * 1.1f + 1e-4f,
+            $"click at the second change: step {maxStep} vs {naturalStep}"
+        );
         OfflineRenderer.Render(engine, new float[48_000 * 5], new float[48_000 * 5], 512);
         Assert.False(engine.IsSpilling);
         var retired = 0;

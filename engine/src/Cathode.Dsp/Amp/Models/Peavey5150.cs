@@ -23,7 +23,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         The pages name three preamp rails: V3 (the inverter), V2 (V2B, V5, V3A) and V1 (V1A, V1B, V2A). Not on the
 ///         pages read: the supply page, so the rails' dropping resistors and caps (the generic chain's here, V3 to V2
 ///         to V1), the preamp rails' voltages (the inverter's taken as 430 V; V2 and V1 are the chain's own drops below
-///         it at its assumed draws, 381 V and 363 V), B+ (490 V, docs/06 gives 485-500 V), the idle current (13 mA, docs/06 gives 11-14 mA), the output transformer (1.9k assumed),
+///         it at its assumed draws, 381 V and 363 V), B+ (490 V, docs/06 gives 485-500 V), the idle current (13 mA,
+///         docs/06 gives 11-14 mA), the output transformer (1.9k assumed),
 ///         the resonance network (the depth control's generic shelf stands in for it), the feedback tap (8 Ω assumed).
 ///     </para>
 ///     <para>

@@ -21,17 +21,17 @@ namespace Cathode.Dsp.Amp;
 ///     </para>
 ///     <para>
 ///         <b>Swing.</b> The oscillation grows until the triode's gain, compressed by its own curves, just makes up the
-///         ladder's loss: a describing-function balance. The grid swings as a sine (the ladder's three sections filter the
-///         plate's harmonics) around the cathode's bias, its positive peaks clamped at 0 V grid-to-cathode by grid current
-///         once the swing exceeds the bias (the coupling cap charges, as a grid-leak bias does); the plate runs on its AC
-///         load line (<paramref name="PlateResistor" /> in parallel with what the ladder and the loads draw at the rate),
-///         solved point by point on the tube's Koren curves, and the fundamental of that clipped plate wave, times the
-///         ladder's loss, must equal the grid's swing. The plate's first three harmonics are kept: they shape the
-///         tremolo's waveform downstream. The cathode is taken as fully bypassed at the rate.
+///         ladder's loss: a describing-function balance. The grid swings as a sine (the ladder's three sections filter
+///         the plate's harmonics) around the cathode's bias, its positive peaks clamped at 0 V grid-to-cathode by grid
+///         current once the swing exceeds the bias (the coupling cap charges, as a grid-leak bias does); the plate runs
+///         on its AC load line (<paramref name="PlateResistor" /> in parallel with what the ladder and the loads draw
+///         at the rate), solved point by point on the tube's Koren curves, and the fundamental of that clipped plate
+///         wave, times the ladder's loss, must equal the grid's swing. The plate's first three harmonics are kept: they
+///         shape the tremolo's waveform downstream. The cathode is taken as fully bypassed at the rate.
 ///     </para>
 ///     <para>
-///         Both are solved on a table of Speed rotations when a design is first used (a few tens of milliseconds, on the
-///         control thread, shared by every instance); at run time the knobs only interpolate it.
+///         Both are solved on a table of Speed rotations when a design is first used (a few tens of milliseconds, on
+///         the control thread, shared by every instance); at run time the knobs only interpolate it.
 ///     </para>
 /// </remarks>
 /// <param name="Tube">The oscillator's triode.</param>
@@ -47,7 +47,9 @@ namespace Cathode.Dsp.Amp;
 /// <param name="Speed">The Speed pot, wired as a rheostat in leg <paramref name="SpeedLeg" />.</param>
 /// <param name="SpeedLeg">Which leg (1 to 3) the Speed rheostat is in.</param>
 /// <param name="PlateShunt">A cap from the plate to AC ground.</param>
-/// <param name="PlateLoad">A resistive load on the plate (the tremolo's output network at the rate); infinite for none.</param>
+/// <param name="PlateLoad">
+///     A resistive load on the plate (the tremolo's output network at the rate); infinite for none.
+/// </param>
 public sealed record PhaseShiftOscillatorDesign(
     TriodeModel Tube,
     double Supply,
@@ -110,11 +112,15 @@ public sealed record PhaseShiftOscillatorDesign(
     /// <summary>The slowest and fastest rates the Speed knob reaches, in hertz.</summary>
     public (double Slowest, double Fastest) RateRange() => (Table.Rates[Table.First], Table.Rates[Table.Last]);
 
-    /// <summary>The Speed rotations between which it oscillates (a ladder with too much loss stalls at an end).</summary>
+    /// <summary>
+    ///     The Speed rotations between which it oscillates (a ladder with too much loss stalls at an end).
+    /// </summary>
     public (double From, double To) RunningRange() =>
         (Table.First / (double)(Points - 1), Table.Last / (double)(Points - 1));
 
-    /// <summary>The grid's peak swing at Speed rotation <paramref name="speed" />, volts (0 if it cannot oscillate).</summary>
+    /// <summary>
+    ///     The grid's peak swing at Speed rotation <paramref name="speed" />, volts (0 if it cannot oscillate).
+    /// </summary>
     public double GridSwing(double speed) => OscillatorTable.At(Table.Amplitudes, speed * (Points - 1));
 
     /// <summary>The plate's swing at the fundamental at Speed rotation <paramref name="speed" />, peak volts.</summary>
@@ -143,8 +149,8 @@ public sealed record PhaseShiftOscillatorDesign(
 
     /// <summary>
     ///     The ladder for a unit grid voltage at <paramref name="frequency" />: the plate node's voltage, the source
-    ///     behind the plate's resistance that drives it, the second node's voltage (where a lamp driver taps it), and what
-    ///     the ladder and the plate's loads draw per volt at the plate.
+    ///     behind the plate's resistance that drives it, the second node's voltage (where a lamp driver taps it), and
+    ///     what the ladder and the plate's loads draw per volt at the plate.
     /// </summary>
     internal (Complex Plate, Complex Source, Complex Second, Complex Admittance) Ladder(
         double frequency,
@@ -171,7 +177,8 @@ public sealed record PhaseShiftOscillatorDesign(
 
 /// <summary>
 ///     A <see cref="PhaseShiftOscillatorDesign" /> solved on <see cref="PhaseShiftOscillatorDesign.Points" /> Speed
-///     rotations: the rate, the grid's swing and bias, the plate's harmonics and the ladder's second node, per rotation.
+///     rotations: the rate, the grid's swing and bias, the plate's harmonics and the ladder's second node, per
+///     rotation.
 /// </summary>
 sealed class OscillatorTable {
     readonly double[] rates = new double[PhaseShiftOscillatorDesign.Points];
@@ -200,7 +207,10 @@ sealed class OscillatorTable {
     /// <summary>The cathode's bias voltage at the operating point.</summary>
     public readonly double Bias;
 
-    /// <summary>The first rotation where the oscillator runs (a ladder with too much loss at an end of the Speed knob stalls).</summary>
+    /// <summary>
+    ///     The first rotation where the oscillator runs (a ladder with too much loss at an end of the Speed knob
+    ///     stalls).
+    /// </summary>
     public int First { get; }
 
     /// <summary>The last rotation where it runs.</summary>
@@ -294,8 +304,8 @@ sealed class OscillatorTable {
     }
 
     /// <summary>
-    ///     The plate wave (into <paramref name="plate" />, one cycle) for a grid swinging by <paramref name="amplitude" />,
-    ///     and its fundamental.
+    ///     The plate wave (into <paramref name="plate" />, one cycle) for a grid swinging by
+    ///     <paramref name="amplitude" />, and its fundamental.
     /// </summary>
     static Complex Fundamental(
         Triode triode,
@@ -340,20 +350,19 @@ sealed class OscillatorTable {
 }
 
 /// <summary>
-///     A bias tremolo (Fender's brownface Deluxe and Vibrolux, the blackface Princetons, Gibson's Scout): the oscillator's
-///     plate (or a cathode follower on it) drives, through <paramref name="SeriesResistor" /> (with
+///     A bias tremolo (Fender's brownface Deluxe and Vibrolux, the blackface Princetons, Gibson's Scout): the
+///     oscillator's plate (or a cathode follower on it) drives, through <paramref name="SeriesResistor" /> (with
 ///     <paramref name="SeriesShunt" /> to ground after it) and <paramref name="CouplingCap" />, the top of the
 ///     <paramref name="Intensity" /> pot, whose bottom is the bias supply (an AC ground); the wiper, with
 ///     <paramref name="WiperCap" /> to ground, is the grid leaks' common return. Without an Intensity pot (the Scout)
 ///     the cap's far end is the return itself, with <paramref name="ReturnResistor" /> to AC ground.
 /// </summary>
 /// <remarks>
-///     The network is solved at the rate and its first harmonics (<see cref="Return" />), loaded by the grid leaks, each
-///     in
-///     series with its coupling cap and the inverter's plate (<see cref="InverterResistance" />), so the bias line swings
-///     with the amplitude and phase the parts give. From there the power amp carries it to the grids through the same
-///     coupling caps and leaks it runs the signal through (<see cref="PowerAmp" />): the swing at the grids lags and falls
-///     with the rate, as the leak and coupling cap's time constant makes it.
+///     The network is solved at the rate and its first harmonics (<see cref="Return" />), loaded by the grid leaks,
+///     each in series with its coupling cap and the inverter's plate (<see cref="InverterResistance" />), so the bias
+///     line swings with the amplitude and phase the parts give. From there the power amp carries it to the grids
+///     through the same coupling caps and leaks it runs the signal through (<see cref="PowerAmp" />): the swing at the
+///     grids lags and falls with the rate, as the leak and coupling cap's time constant makes it.
 /// </remarks>
 /// <param name="Oscillator">The oscillator.</param>
 /// <param name="SeriesResistor">From the plate (or follower) towards the pot.</param>
@@ -412,12 +421,12 @@ public sealed record BiasTremoloDesign(
 }
 
 /// <summary>
-///     A <see cref="BiasTremoloDesign" /> running in a <see cref="PowerAmp" />: per sample, the grid leaks' return as the
-///     sum of the oscillator's first harmonics through the network. The knobs set the target harmonics at control rate
-///     (an interpolation in the oscillator's table and a few complex products); each sample moves the harmonics towards
-///     them over <see cref="SmoothingTime" /> (the oscillation builds up and dies away over a few cycles, so engaging it
-///     never clicks) and turns a phasor. With the depth at 0 and the swing died away it stops, and the power amp runs as
-///     without it.
+///     A <see cref="BiasTremoloDesign" /> running in a <see cref="PowerAmp" />: per sample, the grid leaks' return as
+///     the sum of the oscillator's first harmonics through the network. The knobs set the target harmonics at control
+///     rate (an interpolation in the oscillator's table and a few complex products); each sample moves the harmonics
+///     towards them over <see cref="SmoothingTime" /> (the oscillation builds up and dies away over a few cycles, so
+///     engaging it never clicks) and turns a phasor. With the depth at 0 and the swing died away it stops, and the
+///     power amp runs as without it.
 /// </summary>
 sealed class BiasTremolo(BiasTremoloDesign design, PowerAmpDesign power, double sampleRate) {
     const double SmoothingTime = 0.03;
@@ -460,11 +469,12 @@ sealed class BiasTremolo(BiasTremoloDesign design, PowerAmpDesign power, double 
         var position = table.Position(rate);
         frequency = OscillatorTable.At(table.Rates, position);
         var amplitude = OscillatorTable.At(table.Amplitudes, position);
+
+        // With an Intensity pot the depth turns it; without, the fixed return is scaled by the depth.
+        var (intensity, scale) = Design.Intensity is null ? (1.0, depth) : (depth, 1.0);
         for (var k = 1; k <= target.Length; k++) {
             target[k - 1] = depth > 0 && amplitude > 0
-                ? table.PlateAt(k, position)
-                * Design.Return(k * frequency, Design.Intensity is null ? 1 : depth, power)
-                * (Design.Intensity is null ? depth : 1)
+                ? table.PlateAt(k, position) * Design.Return(k * frequency, intensity, power) * scale
                 : Complex.Zero;
         }
 
@@ -475,7 +485,9 @@ sealed class BiasTremolo(BiasTremoloDesign design, PowerAmpDesign power, double 
         Step();
     }
 
-    /// <summary>At rest: the phase at 0, the harmonics at their targets (a reset amp starts with its tremolo running).</summary>
+    /// <summary>
+    ///     At rest: the phase at 0, the harmonics at their targets (a reset amp starts with its tremolo running).
+    /// </summary>
     public void Reset() {
         sine = 0;
         cosine = 1;

@@ -6,9 +6,9 @@ using System.Globalization;
 namespace Cathode.Dsp.Tests;
 
 /// <summary>
-///     The Fender family (docs/06 §3.1): knob sweeps on each model through the block: every knob and switch on its panel
-///     audible, the volume raising the level, treble and
-///     bass doing what they say, the 5E3's channel interaction, levels bounded, no allocation on the audio thread.
+///     The Fender family (docs/06 §3.1): knob sweeps on each model through the block: every knob and switch on its
+///     panel audible, the volume raising the level, treble and bass doing what they say, the 5E3's channel interaction,
+///     levels bounded, no allocation on the audio thread.
 /// </summary>
 public class FenderAmpTests(ITestOutputHelper output) {
     const double Rate = 48_000;
@@ -68,7 +68,9 @@ public class FenderAmpTests(ITestOutputHelper output) {
             .Select(g => Analysis.ToDb(Analysis.Rms(Render(model, 0.03f, (CircuitAmpBlock.Gain, g)).AsSpan(4_800))))
             .ToArray();
         output.WriteLine(
-            $"{model}: rms {string.Join(", ", rms.Select(static r => r.ToString("0.0", CultureInfo.InvariantCulture)))} dBFS at volume 1, 3, 5, 8"
+            $"{model}: rms "
+            + $"{string.Join(", ", rms.Select(static r => r.ToString("0.0", CultureInfo.InvariantCulture)))} dBFS "
+            + "at volume 1, 3, 5, 8"
         );
         for (var i = 1; i < rms.Length; i++) {
             Assert.True(rms[i] > rms[i - 1] + 0.5, $"volume {i}: {rms[i]:0.0} dB after {rms[i - 1]:0.0} dB");
@@ -101,7 +103,8 @@ public class FenderAmpTests(ITestOutputHelper output) {
             Render("Tweed Deluxe 5E3", 0.02f, (CircuitAmpBlock.Gain, 3f), (CircuitAmpBlock.Control1, 10f))
         );
         output.WriteLine(
-            $"Instrument channel: {Analysis.ToDb(down):0.0} dBFS with the Mic volume at 0, {Analysis.ToDb(up):0.0} at 10"
+            $"Instrument channel: {Analysis.ToDb(down):0.0} dBFS with the Mic volume at 0, "
+            + $"{Analysis.ToDb(up):0.0} at 10"
         );
         Assert.True(down > 1.5 * up);
     }
@@ -127,7 +130,9 @@ public class FenderAmpTests(ITestOutputHelper output) {
         var power = new AmpChannel(Amp.Models.TweedDeluxe.Design, 96_000).Power;
         var (plate, _) = power.PlateCurrents;
         var (screen, _) = power.ScreenCurrents;
-        output.WriteLine($"{power.CathodeResistor:0} Ω, cathode {power.CathodeVoltage:0.0} V, {plate * 1e3:0.0} mA plate");
+        output.WriteLine(
+            $"{power.CathodeResistor:0} Ω, cathode {power.CathodeVoltage:0.0} V, {plate * 1e3:0.0} mA plate"
+        );
         Assert.Equal(250, power.CathodeResistor, 6);
         Assert.Equal(power.CathodeVoltage, 250 * 2 * (plate + screen), 0.05 * power.CathodeVoltage);
         Assert.InRange(plate, 0.030, 0.040);
@@ -183,7 +188,9 @@ public class FenderAmpTests(ITestOutputHelper output) {
         return BlockRender.Mono(block, CircuitAmpBlockTests.Chord(14_400, peak), 64);
     }
 
-    /// <summary>The level of a quiet sine at <paramref name="high" /> hertz over one at <paramref name="low" />, in dB.</summary>
+    /// <summary>
+    ///     The level of a quiet sine at <paramref name="high" /> hertz over one at <paramref name="low" />, in dB.
+    /// </summary>
     static double Tilt(string model, double high, double low, (int Index, float Value) knob) {
         return Analysis.ToDb(Level(high) / Level(low));
 

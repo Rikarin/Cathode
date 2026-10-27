@@ -37,7 +37,9 @@ public sealed class BlockPreset {
     /// </summary>
     public Dictionary<string, Dictionary<string, float>>? Channels { get; set; }
 
-    /// <summary>A whole-block entry's modifiers, with <c>Block</c> left empty: recalled onto the target block.</summary>
+    /// <summary>
+    ///     A whole-block entry's modifiers, with <c>Block</c> left empty: recalled onto the target block.
+    /// </summary>
     public List<PresetModifier>? Modifiers { get; set; }
 
     /// <summary>A whole-block entry's assets (IRs, captures) by slot.</summary>

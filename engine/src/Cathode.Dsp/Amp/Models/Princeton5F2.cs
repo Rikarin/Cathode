@@ -10,9 +10,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///     Source: the Fender drawing "Princeton Amp 5F2-A" with its layout
 ///     (schematicheaven.net/fenderamps/princeton_5f2a_schem.pdf,
 ///     code K-EG): every passive value, both pots linear, the tone network's wiring, the supply chain (2 × 16 µF, 10k,
-///     8 µF, 22k, 8 µF), 470 Ω ‖ 25 µF, 22k feedback into V1B's 1.5k. The drawing prints no voltages, so B+ and the nodes
-///     are taken as the 5F1's (the same supply chain); the output transformer (Fender 265) is taken as the Champ's
-///     8k : 4 Ω, and the speaker's curve is a typical 10".
+///     8 µF, 22k, 8 µF), 470 Ω ‖ 25 µF, 22k feedback into V1B's 1.5k. The drawing prints no voltages, so B+ and the
+///     nodes are taken as the 5F1's (the same supply chain); the output transformer (Fender 265) is taken as the
+///     Champ's 8k : 4 Ω, and the speaker's curve is a typical 10".
 /// </remarks>
 public static class Princeton5F2 {
     /// <summary>An open-back 1 × 10 (typical values).</summary>

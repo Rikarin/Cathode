@@ -18,10 +18,9 @@ public enum SpectrumWindow {
 }
 
 /// <summary>
-///     Long-term average power spectrum (Welch's method: windowed frames, Hann by default, power averaged). Used off the
-///     audio thread
-///     by the RTA and Tone Match. Frames below <see cref="SilenceDb" /> are skipped, so pauses in a performance do not
-///     pull the average towards the noise floor.
+///     Long-term average power spectrum (Welch's method: windowed frames, Hann by default, power averaged). Used off
+///     the audio thread by the RTA and Tone Match. Frames below <see cref="SilenceDb" /> are skipped, so pauses in a
+///     performance do not pull the average towards the noise floor.
 /// </summary>
 public sealed class PowerSpectrum {
     /// <summary>Frames quieter than this (RMS, dBFS) are left out of the average.</summary>
@@ -39,7 +38,9 @@ public sealed class PowerSpectrum {
     /// <summary>Frames averaged so far.</summary>
     public int Frames { get; private set; }
 
-    /// <remarks>Each frame's power is divided by the window's energy, so band levels hardly change with the window.</remarks>
+    /// <remarks>
+    ///     Each frame's power is divided by the window's energy, so band levels hardly change with the window.
+    /// </remarks>
     public PowerSpectrum(int size = 4_096, SpectrumWindow shape = SpectrumWindow.Hann) {
         Size = size;
         fft = new(size);
@@ -56,7 +57,9 @@ public sealed class PowerSpectrum {
         windowPower = power;
     }
 
-    /// <summary>Adds one frame of exactly <see cref="Size" /> samples. Returns false if it was too quiet to count.</summary>
+    /// <summary>
+    ///     Adds one frame of exactly <see cref="Size" /> samples. Returns false if it was too quiet to count.
+    /// </summary>
     public bool AddFrame(ReadOnlySpan<float> frame) {
         double energy = 0;
         for (var i = 0; i < Size; i++) {
@@ -139,7 +142,9 @@ public static class FractionalOctave {
         return centers;
     }
 
-    /// <summary>Band levels in dB (power summed across each band's bins; bands narrower than a bin take the nearest bin).</summary>
+    /// <summary>
+    ///     Band levels in dB (power summed across each band's bins; bands narrower than a bin take the nearest bin).
+    /// </summary>
     public static float[] Bands(
         ReadOnlySpan<double> power,
         double sampleRate,
@@ -194,9 +199,10 @@ public static class FractionalOctave {
 /// <summary>Minimum-phase FIR design from a magnitude response, by the real cepstrum (homomorphic) method.</summary>
 public static class MinimumPhase {
     /// <summary>
-    ///     A <paramref name="taps" />-long minimum-phase filter whose magnitude follows <paramref name="magnitudeDb" />:
-    ///     one value per bin 0 … N/2 of an N-point FFT, N a power of two at least twice <paramref name="taps" />.
-    ///     Minimum phase puts the energy at the start, so the filter adds no latency and short taps lose little.
+    ///     A <paramref name="taps" />-long minimum-phase filter whose magnitude follows
+    ///     <paramref name="magnitudeDb" />: one value per bin 0 … N/2 of an N-point FFT, N a power of two at least
+    ///     twice <paramref name="taps" />. Minimum phase puts the energy at the start, so the filter adds no latency
+    ///     and short taps lose little.
     /// </summary>
     public static float[] Design(ReadOnlySpan<double> magnitudeDb, int taps) {
         var size = 2 * (magnitudeDb.Length - 1);

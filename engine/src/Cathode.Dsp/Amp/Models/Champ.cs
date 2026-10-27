@@ -3,11 +3,11 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Fender Champ 5F1 (tweed, about 5 W, 1 × 8) and its sibling, the Princeton 5F2-A (<see cref="Princeton5F2" />): one
-///     12AX7 and a single-ended 6V6GT. V1A (100k, 1.5k unbypassed, 34k at the jack), 0.02 µF into the 1M volume, whose
-///     wiper is V1B's grid; V1B (100k, 1.5k unbypassed, the feedback's return), 0.02 µF into the 6V6's 220k grid leak; the
-///     6V6 cathode-biased on 470 Ω ‖ 25 µF with no screen resistor, at 340 V on a 5Y3, an 8k : 4 Ω transformer, 22k
-///     feedback from the speaker into V1B's cathode. Panel: Volume only.
+///     Fender Champ 5F1 (tweed, about 5 W, 1 × 8) and its sibling, the Princeton 5F2-A (<see cref="Princeton5F2" />):
+///     one 12AX7 and a single-ended 6V6GT. V1A (100k, 1.5k unbypassed, 34k at the jack), 0.02 µF into the 1M volume,
+///     whose wiper is V1B's grid; V1B (100k, 1.5k unbypassed, the feedback's return), 0.02 µF into the 6V6's 220k grid
+///     leak; the 6V6 cathode-biased on 470 Ω ‖ 25 µF with no screen resistor, at 340 V on a 5Y3, an 8k : 4 Ω
+///     transformer, 22k feedback from the speaker into V1B's cathode. Panel: Volume only.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -15,20 +15,22 @@ namespace Cathode.Dsp.Amp.Models;
 ///         (schematicheaven.net/fenderamps/champ_5f1_schem.pdf,
 ///         code K-EE; the same file on el34world): every value, the supply chain (16 µF, 10k to the screen node, 22k to
 ///         the
-///         preamp, 8 µF each) and the layout's voltages (340 / 295 / 250 V, V1A's plate 160 V, cathodes 1.5 V, the 6V6's
-///         cathode 18 V); Rob Robinette, "How amps work" (the 5F1 walk-through: 68k / 1M input, 470 Ω, 10k).
+///         preamp, 8 µF each) and the layout's voltages (340 / 295 / 250 V, V1A's plate 160 V, cathodes 1.5 V, the
+///         6V6's cathode 18 V); Rob Robinette, "How amps work" (the 5F1 walk-through: 68k / 1M input, 470 Ω, 10k).
 ///     </para>
 ///     <para>
-///         The feedback returns to V1B's cathode, so the loop includes V1B. The power amp takes its feedback at its input
-///         (here the 6V6's grid, inside its Newton solve), so V1B's gain from its cathode to its plate (about 25 with 1.4k
-///         at the cathode and 69k of plate load) is folded into the tap gain, as on the Princeton Reverb; the 4 Ω
-///         speaker's voltage is 1/√2 of an 8 Ω secondary's. Unverified: the output transformer (8k : 4 Ω, from the
+///         The feedback returns to V1B's cathode, so the loop includes V1B. The power amp takes its feedback at its
+///         input (here the 6V6's grid, inside its Newton solve), so V1B's gain from its cathode to its plate (about 25
+///         with 1.4k at the cathode and 69k of plate load) is folded into the tap gain, as on the Princeton Reverb; the
+///         4 Ω speaker's voltage is 1/√2 of an 8 Ω secondary's. Unverified: the output transformer (8k : 4 Ω, from the
 ///         replacement listings' 5k / 8k primaries, amplifiedparts.com), the volume's taper (audio; not marked on the
 ///         drawing), the supply's source resistance, and the 8" speaker's impedance curve.
 ///     </para>
 /// </remarks>
 public static class Champ {
-    /// <summary>V1B's gain from its cathode to its plate, which the feedback's tap gain carries (see the remarks).</summary>
+    /// <summary>
+    ///     V1B's gain from its cathode to its plate, which the feedback's tap gain carries (see the remarks).
+    /// </summary>
     const double CathodeGain = 25;
 
     /// <summary>An open-back 1 × 8: a high, sharp resonance, little voice-coil inductance (typical values).</summary>
@@ -37,8 +39,8 @@ public static class Champ {
     public static AmpDesign Design { get; } = Build("Champ 5F1", FirstStage(false, PotTaper.Audio), OpenBack1x8, -10);
 
     /// <summary>
-    ///     V1B: 100k, 1.5k unbypassed (the feedback's return), with its grid-plate capacitance; the output is the plate,
-    ///     into the power amp's 0.02 µF and the 6V6's 220k grid leak.
+    ///     V1B: 100k, 1.5k unbypassed (the feedback's return), with its grid-plate capacitance; the output is the
+    ///     plate, into the power amp's 0.02 µF and the 6V6's 220k grid leak.
     /// </summary>
     static NetworkStageDesign SecondStage() {
         var net = new StageNetlist();
@@ -53,7 +55,8 @@ public static class Champ {
     }
 
     /// <summary>
-    ///     The 5F1-family amp: <paramref name="first" /> (V1A and the volume network) into V1B and the single-ended 6V6.
+    ///     The 5F1-family amp: <paramref name="first" /> (V1A and the volume network) into V1B and the single-ended
+    ///     6V6.
     /// </summary>
     internal static AmpDesign Build(
         string name,

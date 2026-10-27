@@ -13,11 +13,12 @@ namespace Cathode.Dsp.Tests;
 /// <remarks>
 ///     What the limits record (measured, with a few dB of margin): in the linear range two stages agree to -29 dB where
 ///     the
-///     first is a <see cref="TriodeStage" />, whose Thévenin resistance treats a partly bypassed cathode (1.8k ‖ 1 µF) as
-///     grounded, and to -60 dB where it is a network stage, which uses the 1 kHz impedance. Driven hard, the cut's
+///     first is a <see cref="TriodeStage" />, whose Thévenin resistance treats a partly bypassed cathode (1.8k ‖ 1 µF)
+///     as grounded, and to -60 dB where it is a network stage, which uses the 1 kHz impedance. Driven hard, the cut's
 ///     linearised plate is the main error, worst behind a cold clipper with a plate bypass cap (SLO-100, 5150III) whose
 ///     next stage draws grid current: -17 and -9 dB there (-26 and -19 dB with the cap removed). The Rectifier's chain
-///     was -60 dB while it followed a redraw without the plate cap; the factory drawing has 1 nF there, and it is -8 dB.
+///     was -60 dB while it followed a redraw without the plate cap; the factory drawing has 1 nF there, and it is -8
+///     dB.
 /// </remarks>
 public partial class AmpStageTests {
     public static TheoryData<string, bool, double, double> ColdClipperChains =>
@@ -71,7 +72,8 @@ public partial class AmpStageTests {
         }
 
         var errorDb = CompareInTime(
-            $"{type}{(switched ? " (switched)" : string.Empty)} {string.Join(" > ", designs.Select(static d => d.Name))}",
+            $"{type}{(switched ? " (switched)" : string.Empty)} "
+            + $"{string.Join(" > ", designs.Select(static d => d.Name))}",
             x => {
                 foreach (var stage in stages) {
                     x = stage.Tick(x);
@@ -250,7 +252,8 @@ public class HighGainAmpTests(ITestOutputHelper output) {
         var bass = Levels(0, 1);
         var both = Levels(1, 1);
         output.WriteLine(
-            $"60 Hz / 700 Hz against off: Treble Shift {treble.Low - off.Low:+0.0;-0.0} / {treble.Mid - off.Mid:+0.0;-0.0}"
+            "60 Hz / 700 Hz against off: "
+            + $"Treble Shift {treble.Low - off.Low:+0.0;-0.0} / {treble.Mid - off.Mid:+0.0;-0.0}"
             + $" dB, Bass Shift {bass.Low - off.Low:+0.0;-0.0} / {bass.Mid - off.Mid:+0.0;-0.0}"
             + $" dB, both {both.Low - off.Low:+0.0;-0.0} / {both.Mid - off.Mid:+0.0;-0.0} dB"
         );

@@ -15,7 +15,9 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     const double Rate = 48_000;
     const double InnerRate = 96_000;
 
-    /// <summary>Each expert parameter, away from its default, on each model: what to set, and whether it must be audible.</summary>
+    /// <summary>
+    ///     Each expert parameter, away from its default, on each model: what to set, and whether it must be audible.
+    /// </summary>
     public static TheoryData<int, int, float, bool> ExpertSettings {
         get {
             (int Index, float Value)[] settings = [
@@ -65,17 +67,18 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                     // Known no-ops: the cathode time constant of a fixed-bias amp, a 6L6GC or EL34
                     // or EL84 in place of itself, the presence and depth frequencies of an amp without feedback; the
                     // master trim of an amp without a master, the preamp tube and stack frequency of a (stock) channel
-                    // without a 12AX7 or a tone stack (the AC15's EF86 channel), the speaker preset or rectifier the amp
-                    // has anyway; and where the panel says the amp lacks the control, the bright cap (no bright switch:
-                    // a bright cap a channel switch engages, or none at all) and the presence frequency (no presence).
+                    // without a 12AX7 or a tone stack (the AC15's EF86 channel), the speaker preset or rectifier the
+                    // amp has anyway; and where the panel says the amp lacks the control, the bright cap (no bright
+                    // switch: a bright cap a channel switch engages, or none at all) and the presence frequency (no
+                    // presence).
                     var tube = new[] { null, "6L6GC", "EL34", "EL84", "6V6GT", "KT66", "KT88", "6550" }[
                         index == CircuitAmpBlock.PowerTube ? (int)value : 0];
                     // And the bright cap of an amp without one (the Laney's drive channel).
                     var audible = !(index == CircuitAmpBlock.CathodeTime && !design.Power.CathodeBias)
                         && !(index == CircuitAmpBlock.BrightCap && design == LaneyGH100L.Design)
                         // And the supply's time constants on an amp still clean at gain 7 (the Princeton AA964's two
-                        // stages, the second inside the feedback loop; the Scout's two, with no feedback, into a class-A
-                        // pair on one cathode): its output tubes draw too little extra current to sag.
+                        // stages, the second inside the feedback loop; the Scout's two, with no feedback, into a
+                        // class-A pair on one cathode): its output tubes draw too little extra current to sag.
                         && !(index is CircuitAmpBlock.PreampSag or CircuitAmpBlock.SupplyTime
                             && (design == PrincetonAA964.Design || design == GibsonScout.Design))
                         && !(index == CircuitAmpBlock.PowerTube
@@ -185,15 +188,16 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         var difference = Analysis.NullResidualDb(stock, changed) - Analysis.ToDb(Analysis.Rms(stock));
         var peak = Analysis.ToDb(Analysis.Peak(changed));
         output.WriteLine(
-            $"{AmpDesign.All[type].Name} {CircuitAmpBlock.Info.Params[index].Id} = {value}: {difference:0.0} dB from stock, "
+            $"{AmpDesign.All[type].Name} {CircuitAmpBlock.Info.Params[index].Id} = {value}: "
+            + $"{difference:0.0} dB from stock, "
             + $"peak {peak:0.0} dBFS"
         );
         Assert.True(Analysis.AllFinite(changed));
         Assert.True(peak < 6, $"peak {peak:0.0} dBFS");
         if (audible) {
-            // A class-A amp (cathode bias, EL84) draws nearly the same current loud or quiet: its preamp sees little sag.
-            // Behind a slow preamp node (0.3 s or more) and the decoupling chain below it, little of the sag reaches the
-            // stages within the render.
+            // A class-A amp (cathode bias, EL84) draws nearly the same current loud or quiet: its preamp sees little
+            // sag. Behind a slow preamp node (0.3 s or more) and the decoupling chain below it, little of the sag
+            // reaches the stages within the render.
             var supply = AmpDesign.All[type].Power.PowerSupply;
             var limit = index != CircuitAmpBlock.PreampSag ? -60
                 : AmpDesign.All[type].Power.CathodeBias ? -80
@@ -286,13 +290,14 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     /// <summary>
     ///     A stiff silicon supply on AC (the JCM900 4100's 25 Ω into 100 µF: R C = 2.5 ms, under the 4.2 ms at which
     ///     a source-resistance calibration still reaches the design's B+) charges its reservoir smoothly in each
-    ///     conduction window, even at Sag 0 with B+ Time Const 25 % (dt / R C about 1.6 at the inner rate), instead of a
-    ///     sawtooth at the inner Nyquist rate; its mean is the design's B+; and Sag, which scales the source
+    ///     conduction window, even at Sag 0 with B+ Time Const 25 % (dt / R C about 1.6 at the inner rate), instead of
+    ///     a sawtooth at the inner Nyquist rate; its mean is the design's B+; and Sag, which scales the source
     ///     resistance, still moves it.
     /// </summary>
     [Fact]
     public void Ac_supply_on_a_stiff_silicon_supply_charges_smoothly_and_follows_sag() {
         var design = JCM900.Head100.Power;
+
         (double Mean, double Kink) Run(double sag, double timeConstant) {
             var power = new PowerAmp(design, InnerRate);
             power.Configure(new(0.5, 0, 0, sag, 0.5, 0.5));
@@ -320,7 +325,8 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         var stiff = Run(0, 1);
         var soft = Run(1, 1);
         output.WriteLine(
-            $"mean B+ {stock.Mean:0.0} V (design {design.Supply:0.0} V), Sag 0 {stiff.Mean:0.0} V, Sag 10 {soft.Mean:0.0} V; "
+            $"mean B+ {stock.Mean:0.0} V (design {design.Supply:0.0} V), "
+            + $"Sag 0 {stiff.Mean:0.0} V, Sag 10 {soft.Mean:0.0} V; "
             + $"largest second difference {stock.Kink:0.000} V stock, {hard.Kink:0.000} V at Sag 0 and 25 %"
         );
         Assert.InRange(stock.Mean, 0.985 * design.Supply, 1.015 * design.Supply);
@@ -419,16 +425,18 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     Whether an expert parameter reaches a solid-state amp: not where its panel hides it (the tube parameters); the
-    ///     supply's (Variac, B+ Time Const) only once the rails are loaded hard, which this test's chord does not do.
+    ///     Whether an expert parameter reaches a solid-state amp: not where its panel hides it (the tube parameters);
+    ///     the supply's (Variac, B+ Time Const) only once the rails are loaded hard, which this test's chord does not
+    ///     do.
     /// </summary>
     static bool SolidStateAudible(AmpDesign design, int index) =>
         design.Panel.Label(CircuitAmpBlock.Info.Params[index].Id, "-") is not null
         && index is not (CircuitAmpBlock.Variac or CircuitAmpBlock.SupplyTime);
 
     /// <summary>
-    ///     Preamp Bias, Preamp and Power Tube Hardness and CF Harmonics are continuous knobs: swept a little every block,
-    ///     the channel retunes and slews instead of resetting to its rest (which cut the signal to DC at every step).
+    ///     Preamp Bias, Preamp and Power Tube Hardness and CF Harmonics are continuous knobs: swept a little every
+    ///     block, the channel retunes and slews instead of resetting to its rest (which cut the signal to DC at every
+    ///     step).
     /// </summary>
     [Theory]
     [InlineData("bias")]
@@ -453,7 +461,8 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                     "follower" => PreampSettings.Stock with { FollowerBias = amount },
                     _ => PreampSettings.Stock
                 };
-                var settings = setting == "power hardness" ? PowerSettings.Stock with { Hardness = amount }
+                var settings = setting == "power hardness"
+                    ? PowerSettings.Stock with { Hardness = amount }
                     : PowerSettings.Stock;
                 channel.Apply(preamp, settings, ChannelSettings.Stock);
                 channel.Configure(controls, power);
@@ -473,11 +482,15 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
             previous = y;
         }
 
-        output.WriteLine($"{setting}: {steps} steps, steepest {largestStep:0.000} V against the signal's {peak:0.000} V");
+        output.WriteLine(
+            $"{setting}: {steps} steps, steepest {largestStep:0.000} V against the signal's {peak:0.000} V"
+        );
         Assert.True(largestStep < 1.5 * peak, $"{largestStep:0.000} V step against the signal's {peak:0.000} V");
     }
 
-    /// <summary>Whether a model has a bright cap for the Bright Cap setting to scale (the Mark IV's lead channel has none).</summary>
+    /// <summary>
+    ///     Whether a model has a bright cap for the Bright Cap setting to scale (the Mark IV's lead channel has none).
+    /// </summary>
     static bool HasBrightCap(AmpDesign design) =>
         design.Preamp.Any(static s => s switch {
                 TriodeStageDesign t => t.BrightCap > 0,

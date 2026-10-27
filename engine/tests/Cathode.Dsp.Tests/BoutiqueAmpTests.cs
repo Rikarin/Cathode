@@ -9,8 +9,8 @@ namespace Cathode.Dsp.Tests;
 /// <summary>
 ///     The boutique front ends (Matchless Chieftain, Bad Cat Hot Cat 30, the 1997 Dumble ODS trace, the Trainwreck
 ///     Express redraw) against the reference MNA simulator as whole chains, with no Thévenin cut: the Hot Cat's
-///     zero-bias first stage (its cathode grounded) and gain network, the ODS's plate-driven skyline stack into V1A, the
-///     Chieftain's paralleled stages and bridged-T middle, the Express's plate-driven stack and cold V3.
+///     zero-bias first stage (its cathode grounded) and gain network, the ODS's plate-driven skyline stack into V1A,
+///     the Chieftain's paralleled stages and bridged-T middle, the Express's plate-driven stack and cold V3.
 /// </summary>
 public partial class AmpStageTests {
     public static TheoryData<string, int, bool, double, double> BoutiqueChains =>
@@ -201,8 +201,8 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
             ("Chieftain", false, "V2", 9, 219)
         ];
         foreach (var (type, on, name, node, volts) in points) {
-            // The ODS's V1A: the drawing's 150k plate resistor and its measured 206 V and 1.788 V disagree (they fit 220k
-            // from 323 V); the model keeps the drawn 150k and sits at 232 V.
+            // The ODS's V1A: the drawing's 150k plate resistor and its measured 206 V and 1.788 V disagree (they fit
+            // 220k from 323 V); the model keeps the drawn 150k and sits at 232 V.
             var tolerance = name is "V1a" or "V1A" ? 0.15 : 0.1;
             var stages = Chain(AmpDesign.All.Single(a => a.Name == type), on)
                 .Select(static d => d.Create(96_000))
@@ -286,7 +286,9 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
         Assert.True(Analysis.ToDb(peak) < 6);
     }
 
-    /// <summary>Below clipping, the volume (and, where the amp has one, the master) raises the level monotonically.</summary>
+    /// <summary>
+    ///     Below clipping, the volume (and, where the amp has one, the master) raises the level monotonically.
+    /// </summary>
     [Theory]
     [MemberData(nameof(Channels))]
     public void Gain_and_master_raise_the_level_monotonically(string type, bool channel) {
@@ -310,7 +312,8 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
                 )
                 .ToArray();
             output.WriteLine(
-                $"{type} ch{(channel ? 2 : 1)} knob {knob}: {string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB"
+                $"{type} ch{(channel ? 2 : 1)} knob {knob}: "
+                + $"{string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB"
             );
             for (var i = 1; i < levels.Length; i++) {
                 Assert.True(levels[i] > levels[i - 1] - 0.1, $"{type}: knob {knob} not monotonic at step {i}");
@@ -341,7 +344,8 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
         var treble = new[] { 0f, 5f, 10f }.Select(v => Tilt(CircuitAmpBlock.Treble, v, 4_000, 400)).ToArray();
         var bass = new[] { 0f, 5f, 10f }.Select(v => Tilt(CircuitAmpBlock.Bass, v, 80, 1_000)).ToArray();
         output.WriteLine(
-            $"{type} ch{(channel ? 2 : 1)}: 4 kHz over 400 Hz {string.Join(" ", treble.Select(static l => $"{l:0.0}"))}; "
+            $"{type} ch{(channel ? 2 : 1)}: 4 kHz over 400 Hz "
+            + $"{string.Join(" ", treble.Select(static l => $"{l:0.0}"))}; "
             + $"80 Hz over 1 kHz {string.Join(" ", bass.Select(static l => $"{l:0.0}"))}"
         );
         Assert.True(treble[1] > treble[0] - 0.1 && treble[2] > treble[1] - 0.1 && treble[2] - treble[0] > 3);
@@ -349,8 +353,9 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     The model-specific knobs: the Hot Cat's Edge brings up the top and its Level raises the level; the ODS's Drive and
-    ///     OD Level raise the overdrive's level; the Chieftain's middle fills in its notch; the cut takes off the top.
+    ///     The model-specific knobs: the Hot Cat's Edge brings up the top and its Level raises the level; the ODS's
+    ///     Drive and OD Level raise the overdrive's level; the Chieftain's middle fills in its notch; the cut takes off
+    ///     the top.
     /// </summary>
     [Fact]
     public void Model_specific_controls_do_what_their_circuits_do() {
@@ -384,7 +389,9 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
         }
     }
 
-    /// <summary>The Hot Cat's Solid State switch lifts B+ under load, as the silicon bridge in place of the GZ34 does.</summary>
+    /// <summary>
+    ///     The Hot Cat's Solid State switch lifts B+ under load, as the silicon bridge in place of the GZ34 does.
+    /// </summary>
     [Fact]
     public void Hot_cat_solid_state_switch_raises_the_supply() {
         static double Supply(bool silicon) {
@@ -428,7 +435,9 @@ public class BoutiqueAmpTests(ITestOutputHelper output) {
         return Analysis.ToDb(Analysis.Rms(rendered.AsSpan(9_600)));
     }
 
-    /// <summary>The preamp's stage designs in signal order, with the channel switch's chain for <paramref name="on" />.</summary>
+    /// <summary>
+    ///     The preamp's stage designs in signal order, with the channel switch's chain for <paramref name="on" />.
+    /// </summary>
     internal static IEnumerable<AmpStageDesign> Chain(AmpDesign design, bool on) =>
         design.Preamp.SelectMany(s => s is ChannelSwitchStageDesign channel ? on ? channel.On : channel.Off : [s]);
 }

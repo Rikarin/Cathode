@@ -37,7 +37,7 @@ public partial class AmpStageTests {
         foreach (var d in designs.SelectMany(s => s is ChannelSwitchStageDesign c
                          ? controls.IsOn(c.Switch) ? c.On : c.Off
                          : [s]
-                     )) {
+                 )) {
             if (d is NetworkStageDesign network) {
                 node = AmpReferences.Append(circuit, network, controls, PreampSettings.Stock, node);
             } else {
@@ -139,7 +139,9 @@ public class BassAmpTests(ITestOutputHelper output) {
         }
     }
 
-    /// <summary>Every knob swept end to end while a loud chord plays: finite, bounded, and every solver converging.</summary>
+    /// <summary>
+    ///     Every knob swept end to end while a loud chord plays: finite, bounded, and every solver converging.
+    /// </summary>
     [Theory]
     [MemberData(nameof(Types))]
     public void Knob_sweeps_at_full_drive_stay_finite_and_converge(string type) {
@@ -219,9 +221,10 @@ public class BassAmpTests(ITestOutputHelper output) {
 
     /// <summary>
     ///     Ampeg's manual: Ultra Lo about +2 dB at 40 Hz and −10 dB at 500 Hz, Ultra Hi +9 dB at 8 kHz; Bass Cut a
-    ///     high-pass. Read with the volume at 3 (the Ultra Hi cap's lift depends on it). The model's twin-T (150k / 2 nF
-    ///     / 68k, the 820k shorted) notches deeper than the manual's 10 dB, about 18 dB, and its 40 Hz falls 2 dB where
-    ///     the manual has it rise: the switch's wiring is the redraw's least certain part (see <see cref="Amp.Models.Svt" />).
+    ///     high-pass. Read with the volume at 3 (the Ultra Hi cap's lift depends on it). The model's twin-T (150k / 2
+    ///     nF / 68k, the 820k shorted) notches deeper than the manual's 10 dB, about 18 dB, and its 40 Hz falls 2 dB
+    ///     where the manual has it rise: the switch's wiring is the redraw's least certain part (see
+    ///     <see cref="Amp.Models.Svt" />).
     /// </summary>
     [Fact]
     public void Svt_ultra_switches_shape_as_the_manual_says() {
@@ -233,7 +236,8 @@ public class BassAmpTests(ITestOutputHelper output) {
         var hi = At(8_000, (CircuitAmpBlock.Switch1, 1f)) - At(8_000);
         var cut = At(50, (CircuitAmpBlock.Switch3, 1f)) - At(50);
         output.WriteLine(
-            $"Ultra Lo: {notch:0.0} dB at 500 Hz, {lows:0.0} dB at 40 Hz; Ultra Hi {hi:0.0} dB at 8 kHz; Bass Cut {cut:0.0} dB at 50 Hz"
+            $"Ultra Lo: {notch:0.0} dB at 500 Hz, {lows:0.0} dB at 40 Hz; Ultra Hi {hi:0.0} dB at 8 kHz; Bass Cut "
+            + $"{cut:0.0} dB at 50 Hz"
         );
         Assert.InRange(notch, -20, -8);
         Assert.InRange(lows - notch, 8, 20);
@@ -241,7 +245,9 @@ public class BassAmpTests(ITestOutputHelper output) {
         Assert.True(cut < -6, $"Bass Cut {cut:0.0} dB");
     }
 
-    /// <summary>The Mid-Range pot boosts and cuts around the Mid Freq selector's frequency, and little elsewhere.</summary>
+    /// <summary>
+    ///     The Mid-Range pot boosts and cuts around the Mid Freq selector's frequency, and little elsewhere.
+    /// </summary>
     [Fact]
     public void Svt_midrange_boosts_and_cuts_at_the_selected_frequency() {
         foreach (var (position, frequency) in new[] { (0f, 220.0), (5f, 800.0), (10f, 3_000.0) }) {
@@ -280,11 +286,11 @@ public class BassAmpTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     Roland's annotations on the circuit diagram (1 kHz, every tone control and the volume full up): 21 mV into the
-    ///     High input, 72 mV after IC2b, 130 mV after IC2a, 710 mV after IC3a, 290 mV after IC3b, 800 mV into the power
-    ///     amp, 22 V at the speaker. The stage gains reproduce them, all but the tone stack's: the drawn Fender-type stack
-    ///     (its 10k middle pot against the 100k slope resistor) loses about 15 dB at 1 kHz with everything up, where the
-    ///     annotations imply 7 dB; so the stages after it are checked by their own gains.
+    ///     Roland's annotations on the circuit diagram (1 kHz, every tone control and the volume full up): 21 mV into
+    ///     the High input, 72 mV after IC2b, 130 mV after IC2a, 710 mV after IC3a, 290 mV after IC3b, 800 mV into the
+    ///     power amp, 22 V at the speaker. The stage gains reproduce them, all but the tone stack's: the drawn
+    ///     Fender-type stack (its 10k middle pot against the 100k slope resistor) loses about 15 dB at 1 kHz with
+    ///     everything up, where the annotations imply 7 dB; so the stages after it are checked by their own gains.
     /// </summary>
     [Fact]
     public void Jc120_stage_gains_match_the_factory_signal_voltages() {
@@ -306,7 +312,8 @@ public class BassAmpTests(ITestOutputHelper output) {
 
         var rms = squares.Select(static s => Math.Sqrt(s / Settled)).ToArray();
         output.WriteLine(
-            $"IC2b {rms[0] * 1e3:0} mV, IC2a {rms[1] * 1e3:0} mV, stack {rms[2] * 1e3:0.0} mV, IC3a {rms[3] * 1e3:0} mV, "
+            $"IC2b {rms[0] * 1e3:0} mV, IC2a {rms[1] * 1e3:0} mV, stack {rms[2] * 1e3:0.0} mV, IC3a "
+            + $"{rms[3] * 1e3:0} mV, "
             + $"IC3b {rms[5] * 1e3:0} mV, IC1a {rms[6] * 1e3:0} mV, speaker {rms[7]:0.00} V"
         );
         Assert.InRange(Db(rms[0] / 0.072), -1, 1);
@@ -320,10 +327,10 @@ public class BassAmpTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     The JC-120's distortion, read after the tone stage (IC3a's input), a 108 Hz sine into the High input: off, the
-    ///     Distortion knob does nothing; on, it raises IC2a's gain (from 1.9× to 48×), and the diodes after the two 3.9k
-    ///     clip: the output's peak barely follows the drive and its third harmonic rises, where the same IC2a output with
-    ///     the distortion off (more input instead) stays clean.
+    ///     The JC-120's distortion, read after the tone stage (IC3a's input), a 108 Hz sine into the High input: off,
+    ///     the Distortion knob does nothing; on, it raises IC2a's gain (from 1.9× to 48×), and the diodes after the two
+    ///     3.9k clip: the output's peak barely follows the drive and its third harmonic rises, where the same IC2a
+    ///     output with the distortion off (more input instead) stays clean.
     /// </summary>
     [Fact]
     public void Jc120_distortion_knob_adds_gain_and_its_diodes_clip_only_when_on() {
@@ -335,7 +342,9 @@ public class BassAmpTests(ITestOutputHelper output) {
         var on0 = ThroughStack(0.005, true, 0);
         var on10 = ThroughStack(0.005, true, 1);
         var knob = Db(on10.Fundamental / on0.Fundamental);
-        output.WriteLine($"5 mV in: on at 0 {Db(on0.Fundamental / off0.Fundamental):0.00} dB from off, at 10 +{knob:0.0} dB");
+        output.WriteLine(
+            $"5 mV in: on at 0 {Db(on0.Fundamental / off0.Fundamental):0.00} dB from off, at 10 +{knob:0.0} dB"
+        );
         Assert.InRange(Db(on0.Fundamental / off0.Fundamental), -0.5, 0.5);
         Assert.True(knob > 15, $"Distortion at 10 adds {knob:0.0} dB");
 
@@ -345,7 +354,8 @@ public class BassAmpTests(ITestOutputHelper output) {
         var clean = ThroughStack(0.05 * 48 / 1.92, false, 0);
         output.WriteLine(
             $"On at 10: H3 {Db(clipped.Third / clipped.Fundamental):0.0} dB, peak {clipped.Peak:0.000} V; at 7: H3 "
-            + $"{Db(moderate.Third / moderate.Fundamental):0.0} dB, peak {moderate.Peak:0.000} V; off, same IC2a output: "
+            + $"{Db(moderate.Third / moderate.Fundamental):0.0} dB, peak {moderate.Peak:0.000} V; "
+            + "off, same IC2a output: "
             + $"H3 {Db(clean.Third / clean.Fundamental):0.0} dB, peak {clean.Peak:0.000} V"
         );
         Assert.True(Db(clipped.Third / clipped.Fundamental) > -20, "the diodes clip");
@@ -399,8 +409,8 @@ public class BassAmpTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     The solid-state power amp: its output impedance is so low that the speaker settings change nothing; its rails
-    ///     sag under a loud note (more with Sag up), and the output clips just under them.
+    ///     The solid-state power amp: its output impedance is so low that the speaker settings change nothing; its
+    ///     rails sag under a loud note (more with Sag up), and the output clips just under them.
     /// </summary>
     [Fact]
     public void Solid_state_power_amp_holds_the_load_and_sags_on_its_rails() {

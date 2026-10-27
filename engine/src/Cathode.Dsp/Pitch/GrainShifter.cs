@@ -38,7 +38,8 @@ public sealed class GrainShifter : IDisposable {
 
     /// <summary>
     ///     Audio thread: how much of each half grain the taps crossfade over, 0..1. At 1 (the default) the windows are
-    ///     the full sin² pair; shorter fades hold each tap at unity for longer and hand over quickly, still summing to one.
+    ///     the full sin² pair; shorter fades hold each tap at unity for longer and hand over quickly, still summing to
+    ///     one.
     /// </summary>
     public void SetCrossfade(float fraction) => crossfade = Math.Clamp(fraction, 0.02f, 1f);
 
@@ -47,7 +48,9 @@ public sealed class GrainShifter : IDisposable {
         phase = 0;
     }
 
-    /// <summary>Processes one sample at playback rate <paramref name="speed" /> (negative plays grains in reverse).</summary>
+    /// <summary>
+    ///     Processes one sample at playback rate <paramref name="speed" /> (negative plays grains in reverse).
+    /// </summary>
     public float Process(float input, double speed) {
         line.Write(input);
         phase += (1 - speed) / grain;

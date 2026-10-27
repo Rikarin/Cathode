@@ -268,7 +268,8 @@ public static class FactoryBlockPresets {
         P("reverb", "Bright Plate", ("type", 3), ("decay", 2.5f), ("damping", 12_000)),
         P("reverb", "Vintage Spring", ("type", 4), ("decay", 2), ("damping", 5_000), ("mix", 25)),
         P("reverb", "Long Spring", ("type", 4), ("decay", 3.5f), ("size", 80), ("mix", 25)),
-        // The classic digital types (docs/08 §6.26): settings of the ring (7, 8), the combs (9) and the nested room (10).
+        // The classic digital types (docs/08 §6.26): settings of the ring (7, 8), the combs (9) and the nested room
+        // (10).
         P(
             "reverb",
             "Classic Concert Hall",

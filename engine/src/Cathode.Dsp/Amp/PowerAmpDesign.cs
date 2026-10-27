@@ -5,9 +5,9 @@ namespace Cathode.Dsp.Amp;
 
 /// <summary>
 ///     The output transformer, referred to the whole primary (plate to plate): its nominal load
-///     <paramref name="PlateToPlate" /> (the speaker's nominal 8 Ω times the impedance ratio), the primary (magnetising)
-///     inductance, the leakage inductance, the copper resistance of both windings, and across the primary its
-///     self-capacitance and core loss; and the core's saturation.
+///     <paramref name="PlateToPlate" /> (the speaker's nominal 8 Ω times the impedance ratio), the primary
+///     (magnetising) inductance, the leakage inductance, the copper resistance of both windings, and across the primary
+///     its self-capacitance and core loss; and the core's saturation.
 /// </summary>
 /// <param name="PlateToPlate">The nominal primary load, plate to plate (a single-ended amp: plate to B+).</param>
 /// <param name="PrimaryInductance">The magnetising inductance below saturation.</param>
@@ -70,7 +70,9 @@ public sealed record SpeakerDesign(
     /// </summary>
     public static SpeakerDesign OpenBack4x10 { get; } = new(6.2, 0.7e-3, 30, 115, 30, 2.5);
 
-    /// <summary>A closed-back 4 × 12: the box's air spring damps and broadens the peak; a larger HF rise (Vintage 30-like).</summary>
+    /// <summary>
+    ///     A closed-back 4 × 12: the box's air spring damps and broadens the peak; a larger HF rise (Vintage 30-like).
+    /// </summary>
     public static SpeakerDesign Closed4x12 { get; } = new(6.4, 1.4e-3, 22, 105, 26, 2);
 
     /// <summary>A closed 8 × 10 bass cabinet (SVT): low, broad resonance.</summary>
@@ -100,7 +102,8 @@ public sealed record SpeakerDesign(
 
     /// <summary>
     ///     The motional parallel RLC of a resonance at <paramref name="resonance" /> hertz peaking
-    ///     <paramref name="excess" /> ohms above the voice coil's resistance, with quality factor <paramref name="q" />.
+    ///     <paramref name="excess" /> ohms above the voice coil's resistance, with quality factor
+    ///     <paramref name="q" />.
     /// </summary>
     public static (double Resistance, double Inductance, double Capacitance) MotionalOf(
         double resonance,
@@ -115,11 +118,11 @@ public sealed record SpeakerDesign(
 }
 
 /// <summary>
-///     Global negative feedback from a speaker tap to the bottom of the phase inverter's tail: the feedback resistor into
-///     a shunt resistor, with the presence control (a pot in series with a cap) across the shunt, which lowers the
+///     Global negative feedback from a speaker tap to the bottom of the phase inverter's tail: the feedback resistor
+///     into a shunt resistor, with the presence control (a pot in series with a cap) across the shunt, which lowers the
 ///     feedback, and so lifts the response, at high frequencies; or, with <see cref="PresenceIsShunt" />, the presence
-///     pot's track is the shunt itself and the cap goes from its wiper to ground (the 5F6-A and the amps that copied it).
-///     Depth lowers it below <paramref name="DepthFrequency" />, lifting the speaker resonance.
+///     pot's track is the shunt itself and the cap goes from its wiper to ground (the 5F6-A and the amps that copied
+///     it). Depth lowers it below <paramref name="DepthFrequency" />, lifting the speaker resonance.
 /// </summary>
 /// <param name="FeedbackResistor">From the tap to the shunt resistor.</param>
 /// <param name="ShuntResistor">From the bottom of the phase inverter tail to ground.</param>
@@ -147,16 +150,16 @@ public sealed record FeedbackDesign(
 
     /// <summary>
     ///     The 5F6-A's wiring: the presence pot (<see cref="ShuntResistor" />, its track) runs from the tail's foot to
-    ///     ground and <see cref="PresenceCap" /> shunts the part of the track the knob turns in (at 0 the cap sits between
-    ///     ground and ground and the feedback is flat; at 10 it shorts the whole shunt at high frequencies), so
+    ///     ground and <see cref="PresenceCap" /> shunts the part of the track the knob turns in (at 0 the cap sits
+    ///     between ground and ground and the feedback is flat; at 10 it shorts the whole shunt at high frequencies), so
     ///     Z = (1 - p) R + p R / (1 + s p R C). False: a fixed shunt with the pot in series with the cap across it.
     /// </summary>
     public bool PresenceIsShunt { get; init; }
 
     /// <summary>
-    ///     The feedback fraction's zero and pole time constants at Presence rotation <paramref name="presence" /> (0..1),
-    ///     the cap divided by <paramref name="frequency" />: β(s) = <see cref="Beta" /> (1 + s τ₁) / (1 + s τ₂), from
-    ///     Z / (R_f + Z) with the shunt's impedance Z (first order in either wiring).
+    ///     The feedback fraction's zero and pole time constants at Presence rotation <paramref name="presence" />
+    ///     (0..1), the cap divided by <paramref name="frequency" />: β(s) = <see cref="Beta" /> (1 + s τ₁) / (1 + s
+    ///     τ₂), from Z / (R_f + Z) with the shunt's impedance Z (first order in either wiring).
     /// </summary>
     public (double Tau1, double Tau2) PresenceTimes(double presence, double frequency = 1) {
         var c = PresenceCap / frequency;
@@ -207,7 +210,9 @@ public sealed record RectifierModel(string Name, double Perveance) {
 ///     (the plates' centre tap), a choke or resistor to the screen node, and a dropping resistor to the preamp node,
 ///     which draws <paramref name="PreampCurrent" />. Sag is the reservoir falling under the tubes' current draw.
 /// </summary>
-/// <param name="SourceResistance">The transformer and rectifier as one resistance (the rectifier's own drop besides).</param>
+/// <param name="SourceResistance">
+///     The transformer and rectifier as one resistance (the rectifier's own drop besides).
+/// </param>
 /// <param name="Reservoir">The first filter cap.</param>
 /// <param name="ChokeResistance">The choke (or resistor) to the screen node.</param>
 /// <param name="ScreenCap">The screen node's cap.</param>
@@ -270,18 +275,18 @@ public sealed record PreampSupplyDesign(IReadOnlyList<DecouplingNode> Nodes) {
 
 /// <summary>
 ///     The phase inverter's input network: the coupling cap from the preamp's last stage into the driven grid, and the
-///     grid leak to the bias junction (which follows the input: the leak is bootstrapped). With it, the driven grid draws
-///     grid current (Dempwolf's law, at the grid-cathode voltage of the inverter's tables, which include the plates' load
-///     through the power tubes' grid leaks and the cathode's rise from the grid current itself) through the previous
-///     stage's output resistance and charges the cap: the inverter's own blocking under hard drive. The feedback's share
-///     of the cathode's movement enters a sample late. Without it (the first models) the inverter's input is the previous
-///     stage's voltage, unloaded.
+///     grid leak to the bias junction (which follows the input: the leak is bootstrapped). With it, the driven grid
+///     draws grid current (Dempwolf's law, at the grid-cathode voltage of the inverter's tables, which include the
+///     plates' load through the power tubes' grid leaks and the cathode's rise from the grid current itself) through
+///     the previous stage's output resistance and charges the cap: the inverter's own blocking under hard drive. The
+///     feedback's share of the cathode's movement enters a sample late. Without it (the first models) the inverter's
+///     input is the previous stage's voltage, unloaded.
 /// </summary>
 public sealed record InverterInputDesign(double CouplingCap, double GridLeak);
 
 /// <summary>
-///     A front-panel switch on the power supply, which while it is on puts <paramref name="Rectifier" /> in place of the
-///     design's rectifier (Mesa's tube/silicon rectifier switch) and scales the mains by <paramref name="Variac" />
+///     A front-panel switch on the power supply, which while it is on puts <paramref name="Rectifier" /> in place of
+///     the design's rectifier (Mesa's tube/silicon rectifier switch) and scales the mains by <paramref name="Variac" />
 ///     (Mesa's Bold/Spongy, a lower primary tap). The Rectifier and Variac expert parameters apply on top: a rectifier
 ///     chosen there wins, and the variacs multiply.
 /// </summary>
@@ -313,7 +318,10 @@ public enum PowerTopology {
 /// <param name="ScreenResistor">Per tube, from the screen node.</param>
 /// <param name="IdleCurrent">Plate current per tube at idle with the bias knob at noon, in amperes.</param>
 /// <param name="CathodeBias">Cathode-biased (a bypassed cathode resistor) rather than fixed bias.</param>
-/// <param name="CathodeBypass">The cathode resistor's bypass cap (cathode bias; per side with separate cathodes).</param>
+/// <param name="CathodeBypass">
+///     The cathode resistor's bypass cap (cathode bias; per side with separate
+///     cathodes).
+/// </param>
 /// <param name="RatedPower">Output power at the onset of clipping, in watts (scales the block's output level).</param>
 /// <param name="PhaseInverter">The phase inverter driving the output tubes (ignored when single-ended).</param>
 /// <param name="CouplingCap">Phase inverter plates to the power-tube grids.</param>
@@ -348,7 +356,10 @@ public enum PowerTopology {
 ///     Cathode bias with a resistor and bypass cap per side (per tube, with the tubes of a side in parallel) instead of
 ///     one shared by all.
 /// </param>
-/// <param name="InverterInput">The phase inverter's input network with grid current; null for none (see the type).</param>
+/// <param name="InverterInput">
+///     The phase inverter's input network with grid current; null for none (see the
+///     type).
+/// </param>
 /// <param name="ShuntMaster">
 ///     A master volume wired as a rheostat across the phase inverter's outputs (Matchless DC-30), turned by the Master
 ///     knob: its full track at 10, a short at 0; beside the cut control if there is one. Null for none.
@@ -358,7 +369,9 @@ public enum PowerTopology {
 ///     then sets the idle current in place of <paramref name="IdleCurrent" /> (a replacement tube keeps it, as it would
 ///     in the amp); 0 to derive it from <paramref name="IdleCurrent" />.
 /// </param>
-/// <param name="SupplySwitches">Front-panel switches on the supply (a rectifier switch, Bold/Spongy); null for none.</param>
+/// <param name="SupplySwitches">
+///     Front-panel switches on the supply (a rectifier switch, Bold/Spongy); null for none.
+/// </param>
 /// <param name="ScreenSupply">
 ///     The screen node's idle voltage where the amp runs its screens far below B+ from a winding of their own (the
 ///     Ampeg SVT: 350 V screens under 680 V plates), for the stock bias, which gives <paramref name="IdleCurrent" /> at
@@ -414,8 +427,8 @@ public sealed record PowerAmpDesign(
     public int Sides => Topology == PowerTopology.SingleEnded ? 1 : 2;
 
     /// <summary>
-    ///     The amp's bias tremolo: an oscillator swinging the grid leaks' return (<see cref="BiasTremoloDesign" />), run
-    ///     by <see cref="PowerAmp" />; null for none.
+    ///     The amp's bias tremolo: an oscillator swinging the grid leaks' return (<see cref="BiasTremoloDesign" />),
+    ///     run by <see cref="PowerAmp" />; null for none.
     /// </summary>
     public BiasTremoloDesign? BiasTremolo { get; init; }
 }

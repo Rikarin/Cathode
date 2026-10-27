@@ -13,18 +13,17 @@ namespace Cathode.Dsp.Blocks;
 ///     <list type="bullet">
 ///         <item>Off: no gate (the default, so a plain Input is a wire).</item>
 ///         <item>
-///             Classic: a downward expander on a peak detector linked across both channels. Below the threshold the gain
-///             falls by (ratio − 1) dB per dB, opening with the attack time and closing with the release time after a
-///             short hold.
+///             Classic: a downward expander on a peak detector linked across both channels. Below the threshold the
+///             gain falls by (ratio − 1) dB per dB, opening with the attack time and closing with the release time
+///             after a short hold.
 ///         </item>
 ///         <item>
 ///             Intelligent: Classic, with the detector deaf to mains hum: notches at the mains frequency and its second
 ///             and third harmonics, so a buzzing single-coil does not hold the gate open.
 ///         </item>
 ///         <item>
-///             Noise Reducer: the same gain computer acts only above a 2 kHz two-pole split, so hiss fades with the note
-///             while
-///             the body of the sound is never cut.
+///             Noise Reducer: the same gain computer acts only above a 2 kHz two-pole split, so hiss fades with the
+///             note while the body of the sound is never cut.
 ///         </item>
 ///     </list>
 ///     The rig's global noise gate offset (<see cref="BlockContext.GateOffsetDb" />) is added to the threshold.
@@ -124,7 +123,9 @@ public sealed class InputBlock() : DspBlock(Info), ISideInputBlock {
     /// <summary>Whether the pickup load filter is running (it is skipped while it would be flat).</summary>
     public bool PickupActive => pickupActive;
 
-    /// <summary>The pickup the Pickup choice <paramref name="type" /> names (custom values for Custom), or null for Off.</summary>
+    /// <summary>
+    ///     The pickup the Pickup choice <paramref name="type" /> names (custom values for Custom), or null for Off.
+    /// </summary>
     public static Pickup? PickupOf(int type, float henries, float kiloohms, float picofarads) =>
         type switch {
             1 => Pickup.SingleCoil,
@@ -218,7 +219,9 @@ public sealed class InputBlock() : DspBlock(Info), ISideInputBlock {
         }
     }
 
-    /// <summary>Redesigns the pickup load when its settings change (they are not smoothed: a choice and a few values).</summary>
+    /// <summary>
+    ///     Redesigns the pickup load when its settings change (they are not smoothed: a choice and a few values).
+    /// </summary>
     void DesignPickup() {
         var settings = (
             Impedance: (int)Params.Current(Impedance),
@@ -397,7 +400,9 @@ public sealed class InputBlock() : DspBlock(Info), ISideInputBlock {
         level = target;
     }
 
-    /// <summary>A transposed direct-form II biquad in double precision (its coefficients only change on edits).</summary>
+    /// <summary>
+    ///     A transposed direct-form II biquad in double precision (its coefficients only change on edits).
+    /// </summary>
     struct PickupFilter {
         double s1;
         double s2;

@@ -20,12 +20,14 @@ public static class IpcTypes {
     /// <summary>The device's and the graph's latency (<see cref="LatencyReport" />).</summary>
     public const string Latency = "latency";
 
-    /// <summary>Starts, retunes or stops the test tone in place of a block's output (Block, Enabled, Frequency, Level).</summary>
+    /// <summary>
+    ///     Starts, retunes or stops the test tone in place of a block's output (Block, Enabled, Frequency, Level).
+    /// </summary>
     public const string TestTone = "testTone";
 
     /// <summary>
-    ///     Turns the modifier on <c>Block</c>.<c>Param</c> on or off (<c>Enabled</c>): channel-scoped modifiers. Turning
-    ///     it off restores the parameter to the value in <c>Params[0]</c>.
+    ///     Turns the modifier on <c>Block</c>.<c>Param</c> on or off (<c>Enabled</c>): channel-scoped modifiers.
+    ///     Turning it off restores the parameter to the value in <c>Params[0]</c>.
     /// </summary>
     public const string SetModifier = "setModifier";
 
@@ -39,10 +41,14 @@ public static class IpcTypes {
 
 /// <summary>Reserved block ids for parameters that are not in the graph.</summary>
 public static class IpcBlocks {
-    /// <summary>The rig parameters (Cathode.Engine.Rig.RigControls): scene level, tempo, controllers, sources.</summary>
+    /// <summary>
+    ///     The rig parameters (Cathode.Engine.Rig.RigControls): scene level, tempo, controllers, sources.
+    /// </summary>
     public const string Rig = "rig";
 
-    /// <summary>Output 1's global EQ; Outputs 2-4 have <c>global2</c>..<c>global4</c> (<see cref="GlobalEq" />).</summary>
+    /// <summary>
+    ///     Output 1's global EQ; Outputs 2-4 have <c>global2</c>..<c>global4</c> (<see cref="GlobalEq" />).
+    /// </summary>
     public const string Global = "global";
 
     /// <summary>The block id of output <paramref name="output" />'s (0-3) global EQ.</summary>
@@ -80,8 +86,8 @@ public sealed class IpcMessage {
     public List<string>? SlotIds { get; set; }
 
     /// <summary>
-    ///     The reply to loadGraph: the id of each block meter, in the order the telemetry region's block meters come in:
-    ///     slot by slot, <c>peak</c> and then the block's own meters, so each <c>peak</c> starts the next slot's.
+    ///     The reply to loadGraph: the id of each block meter, in the order the telemetry region's block meters come
+    ///     in: slot by slot, <c>peak</c> and then the block's own meters, so each <c>peak</c> starts the next slot's.
     /// </summary>
     public string[]? MeterIds { get; set; }
 
@@ -232,7 +238,9 @@ public sealed record LatencyReport(
 /// <summary>A MIDI message as the host forwards it, timed on the engine's sample clock.</summary>
 public sealed record MidiEventMessage(int Status, int Data1, int Data2, long SampleTime, string? Port = null);
 
-/// <summary>The looper's transport, for the editor; mutable for the same reason as <see cref="HostTelemetry" />.</summary>
+/// <summary>
+///     The looper's transport, for the editor; mutable for the same reason as <see cref="HostTelemetry" />.
+/// </summary>
 public sealed class LooperStatus {
     public string State { get; set; } = string.Empty;
 

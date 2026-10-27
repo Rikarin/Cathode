@@ -21,7 +21,10 @@ public static class SpectralEnvelope {
     /// <summary>Frames quieter than this (autocorrelation at lag 0) have no envelope.</summary>
     public const double SilencePower = 1e-12;
 
-    /// <summary>The envelope's order at <paramref name="sampleRate" />: one per 2 kHz of sample rate (24 at 48 kHz), 12 to 48.</summary>
+    /// <summary>
+    ///     The envelope's order at <paramref name="sampleRate" />: one per 2 kHz of sample rate (24 at 48 kHz), 12 to
+    ///     48.
+    /// </summary>
     public static int Order(double sampleRate) => Math.Clamp((int)Math.Round(sampleRate / 2_000), 12, 48);
 
     /// <summary>Control thread: the Gaussian lag window for lags 0 to <paramref name="window" />.Length - 1.</summary>

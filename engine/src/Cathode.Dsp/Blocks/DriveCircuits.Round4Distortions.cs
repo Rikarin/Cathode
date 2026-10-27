@@ -7,14 +7,15 @@ public static partial class DriveCircuits {
     // order of initialisers across the parts of a partial class is not defined. Everything below is built in methods.
 
     /// <summary>
-    ///     Drive round 4, group D2: distortions and amp-in-a-box pedals (docs/08 §6.5, docs/09 stream D2), appended after
-    ///     group D1's overdrives. Values are from each pedal's published schematic where one exists; the docs list what was
-    ///     guessed.
+    ///     Drive round 4, group D2: distortions and amp-in-a-box pedals (docs/08 §6.5, docs/09 stream D2), appended
+    ///     after group D1's overdrives. Values are from each pedal's published schematic where one exists; the docs
+    ///     list what was guessed.
     /// </summary>
     static DriveCircuit[] Round4Distortions() => [
         new(
             "M-Zone Distortion",
-            "Boss MT-2 Metal Zone: two cascaded gain stages (rails, then silicon across the feedback), silicon to ground, "
+            "Boss MT-2 Metal Zone: two cascaded gain stages (rails, then silicon across the "
+            + "feedback), silicon to ground, "
             + "three-band active EQ with a sweepable mid"
         ) {
             // The transistor pre-gain stage ahead of the first op-amp, as a fixed gain.
@@ -71,7 +72,8 @@ public static partial class DriveCircuits {
         RiotCircuit("Suhr Riot LED/Si", "an LED one way and silicon the other", new(DiodeModel.Led, 1, Si, 1), -13),
         new(
             "MCMLXXXI Drive",
-            "1981 Inventions DRV: a RAT-family op-amp gain stage on an 18 V charge pump, silicon to ground, active treble"
+            "1981 Inventions DRV: a RAT-family op-amp gain stage on an 18 V charge pump, silicon to "
+            + "ground, active treble"
         ) {
             Stages = [
                 new(StageKind.OpAmp) {
@@ -163,7 +165,8 @@ public static partial class DriveCircuits {
         },
         new(
             "Esoteric ACB",
-            "Xotic AC Booster: an op-amp gain stage with silicon across its feedback (soft compression), bass and treble"
+            "Xotic AC Booster: an op-amp gain stage with silicon across its feedback (soft "
+            + "compression), bass and treble"
         ) {
             Stages = [
                 new(StageKind.OpAmp) {
@@ -204,7 +207,8 @@ public static partial class DriveCircuits {
         },
         new(
             "FAS LED-Drive",
-            "Fractal's own LED-clipped design (no schematic): a TL072 with red LEDs across its feedback, passive treble cut"
+            "Fractal's own LED-clipped design (no schematic): a TL072 with red LEDs across its "
+            + "feedback, passive treble cut"
         ) {
             Stages = [
                 new(StageKind.OpAmp) {
@@ -228,7 +232,8 @@ public static partial class DriveCircuits {
         },
         new(
             "Ruckus",
-            "Suhr Riot as Fractal first modelled it (the original Riot): the Riot gain stage, silicon to ground, LP/HP tone"
+            "Suhr Riot as Fractal first modelled it (the original Riot): the Riot gain stage, silicon "
+            + "to ground, LP/HP tone"
         ) {
             Stages = [
                 RiotStage(), new(StageKind.Clipper) { Series = 2.2e3, Shunt = 4.7e-9, Diodes = DiodeStacks.Pair(Si) }
@@ -246,7 +251,8 @@ public static partial class DriveCircuits {
         },
         new(
             "Shimmer Drive",
-            "Fractal's own boost for amps without a master volume (no schematic): a bright TL072 boost that softens on its "
+            "Fractal's own boost for amps without a master volume (no schematic): a bright TL072 boost "
+            + "that softens on its "
             + "rails, active treble"
         ) {
             Stages = [
@@ -298,7 +304,9 @@ public static partial class DriveCircuits {
             FeedbackCapacitance = 100e-12
         };
 
-    /// <summary>One voicing of the Suhr Riot: its gain stage into the voicing switch's diodes, passive treble cut.</summary>
+    /// <summary>
+    ///     One voicing of the Suhr Riot: its gain stage into the voicing switch's diodes, passive treble cut.
+    /// </summary>
     static DriveCircuit RiotCircuit(string name, string diodes, DiodeStacks stacks, double outputDb) =>
         new(name, $"Suhr Riot: TL072 gain stage into {diodes} to ground (the voicing switch), passive treble cut") {
             Stages = [RiotStage(), new(StageKind.Clipper) { Series = 2.2e3, Shunt = 4.7e-9, Diodes = stacks }],

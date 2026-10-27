@@ -1,6 +1,8 @@
 namespace Cathode.Dsp.Filters;
 
-/// <summary>A passive magnetic pickup: coil inductance (H), its DC resistance (Ω) and winding capacitance (F).</summary>
+/// <summary>
+///     A passive magnetic pickup: coil inductance (H), its DC resistance (Ω) and winding capacitance (F).
+/// </summary>
 public readonly record struct Pickup(double Inductance, double Resistance, double Capacitance) {
     /// <summary>A vintage-style single coil.</summary>
     public static Pickup SingleCoil { get; } = new(2.5, 6_000, 100e-12);
@@ -64,8 +66,8 @@ public static class PickupLoad {
 
     /// <summary>
     ///     The digital biquad of H<sub>chosen</sub> / H<sub>reference</sub>: b₀..b₂ over 1, a₁, a₂. The reference's
-    ///     poles become its zeros. Each quadratic goes through its own bilinear transform, warped at its own resonance, so
-    ///     both the peak and the notch it cancels land on their analog frequencies (the DC gain is kept either way).
+    ///     poles become its zeros. Each quadratic goes through its own bilinear transform, warped at its own resonance,
+    ///     so both the peak and the notch it cancels land on their analog frequencies (the DC gain is kept either way).
     /// </summary>
     public static (double B0, double B1, double B2, double A1, double A2) Design(
         Pickup pickup,

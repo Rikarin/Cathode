@@ -44,8 +44,8 @@ public static class AmpFeatures {
 
     /// <summary>
     ///     Whether a stage holds a plate-bypass cap (a triode stage's <see cref="TriodeStageDesign.PlateBypass" />, a
-    ///     network's <see cref="CapacitorRole.Plate" /> cap, or either in a channel-switched branch). Triode 2 Plate Freq
-    ///     scales the last such stage's, Triode 1 the one before it.
+    ///     network's <see cref="CapacitorRole.Plate" /> cap, or either in a channel-switched branch). Triode 2 Plate
+    ///     Freq scales the last such stage's, Triode 1 the one before it.
     /// </summary>
     public static bool HasPlateCap(AmpStageDesign stage) =>
         stage switch {
@@ -75,7 +75,9 @@ public static class AmpStacks {
     /// <summary>The stacks after Stock, in the order of the choice.</summary>
     public static IReadOnlyList<ToneStackDesign> All { get; } = Collect();
 
-    /// <summary>The choice's options: Stock, then each stack's name (with its first model's where names repeat).</summary>
+    /// <summary>
+    ///     The choice's options: Stock, then each stack's name (with its first model's where names repeat).
+    /// </summary>
     public static IReadOnlyList<string> Names { get; } = ["Stock", ..All.Select(Name)];
 
     static ToneStackDesign[] Collect() {
@@ -123,17 +125,20 @@ public static class AmpStacks {
 ///         </item>
 ///     </list>
 ///     Approximations: identical speakers, each in its own share of the box; an open back's speakers in free air
-///     (the baffle's and the neighbouring cones' air mass, which lower Fs a few per cent, are left out); the power amp's
-///     voice coil is first order (one inductance across one resistance), so the load matches the speaker's
-///     semi-inductance at 1 and 5 kHz and is within about 20 % of it between 20 Hz and 5 kHz.
-///     The table is built once (control thread); the audio thread only looks it up.
+///     (the baffle's and the neighbouring cones' air mass, which lower Fs a few per cent, are left out); the power
+///     amp's voice coil is first order (one inductance across one resistance), so the load matches the speaker's
+///     semi-inductance at 1 and 5 kHz and is within about 20 % of it between 20 Hz and 5 kHz. The table is built once
+///     (control thread); the audio thread only looks it up.
 /// </summary>
 public static class AutoSpeaker {
     static readonly SpeakerDesign[][] Table = [
         ..CabCatalogue.Enclosures.Select(static e => CabCatalogue.Speakers.Select(s => Design(e, s)).ToArray())
     ];
 
-    /// <summary>The load for DynaCab enclosure <paramref name="enclosure" /> and speaker <paramref name="speaker" />, or null.</summary>
+    /// <summary>
+    ///     The load for DynaCab enclosure <paramref name="enclosure" /> and speaker <paramref name="speaker" />, or
+    ///     null.
+    /// </summary>
     public static SpeakerDesign? For(int enclosure, int speaker) =>
         (uint)enclosure < (uint)Table.Length && (uint)speaker < (uint)Table[enclosure].Length
             ? Table[enclosure][speaker]

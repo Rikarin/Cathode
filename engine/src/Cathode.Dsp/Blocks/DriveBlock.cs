@@ -5,8 +5,8 @@ using Cathode.Dsp.Resampling;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-///     Drive pedal: three original voicings with antiderivative anti-aliased clippers, followed by a catalogue of circuit
-///     models (<see cref="DriveCircuits" />) built from wave digital filters. The original voicings:
+///     Drive pedal: three original voicings with antiderivative anti-aliased clippers, followed by a catalogue of
+///     circuit models (<see cref="DriveCircuits" />) built from wave digital filters. The original voicings:
 ///     <list type="bullet">
 ///         <item>
 ///             <b>Overdrive</b> (TS-style): the clipped path is high-passed around 720 Hz and summed with a clean path,
@@ -19,35 +19,36 @@ namespace Cathode.Dsp.Blocks;
 ///     through IIR half-band oversampling, then a tone control (low-pass from 600 Hz to 8 kHz), output level and mix.
 ///     At partial mix the dry signal takes the same up/down filtering, so the two paths cannot comb.
 ///     <para>
-///         The circuit types (index <see cref="CircuitTypes" /> onwards) run their stages, coupling, bias and DC blocker
-///         oversampled (4x, or 2x for the costliest, <see cref="DriveCircuit.Oversampling" />); Drive turns each
-///         circuit's gain pot (or input gain), and Tone works the pedal's own tone network at the base rate. They read
-///         their knobs on a fixed grid of <see cref="SubBlock" /> frames and recompute a network's components only when a
-///         smoothed knob has moved, so their output does not depend on the host's block size. Every type has the same
-///         (zero) latency.
+///         The circuit types (index <see cref="CircuitTypes" /> onwards) run their stages, coupling, bias and DC
+///         blocker oversampled (4x, or 2x for the costliest, <see cref="DriveCircuit.Oversampling" />); Drive turns
+///         each circuit's gain pot (or input gain), and Tone works the pedal's own tone network at the base rate. They
+///         read their knobs on a fixed grid of <see cref="SubBlock" /> frames and recompute a network's components only
+///         when a smoothed knob has moved, so their output does not depend on the host's block size. Every type has the
+///         same (zero) latency.
 ///     </para>
 ///     <para>
-///         Input Vol is the guitar's volume knob: the source the pedal sees is the pickup behind an audio-taper volume pot
-///         (<see cref="DriveCircuits.Guitar" />). Into a component-level first stage it is a source resistance, so a Fuzz
-///         Face's low input impedance cleans up as the knob rolls back, as on the real pedal; elsewhere it is the level
-///         and the loading of a nominal input resistance. At 10 (the default) the original voicings are untouched.
+///         Input Vol is the guitar's volume knob: the source the pedal sees is the pickup behind an audio-taper volume
+///         pot (<see cref="DriveCircuits.Guitar" />). Into a component-level first stage it is a source resistance, so
+///         a Fuzz Face's low input impedance cleans up as the knob rolls back, as on the real pedal; elsewhere it is
+///         the level and the loading of a nominal input resistance. At 10 (the default) the original voicings are
+///         untouched.
 ///     </para>
 ///     <para>The guide's EQ and Advanced pages follow, every control stock (doing nothing) at its default:</para>
 ///     <list type="bullet">
 ///         <item>
 ///             <b>EQ 1</b>, on the driven signal after the tone control: Low Cut and High Cut (12 dB/oct, off at their
-///             ends), Bass (low shelf, 100 Hz), Mid (peak at Mid Freq), High Mid (peak, 2.5 kHz) and Treble (high shelf,
-///             5 kHz), ±12 dB, a band at 0 dB skipped.
+///             ends), Bass (low shelf, 100 Hz), Mid (peak at Mid Freq), High Mid (peak, 2.5 kHz) and Treble (high
+///             shelf, 5 kHz), ±12 dB, a band at 0 dB skipped.
 ///         </item>
 ///         <item>
-///             <b>EQ 2</b>: a ten-band 2/3-octave graphic EQ (<see cref="GraphicEqualizer" />), before the drive (Pre) or
-///             after EQ 1 (Post), or off. Pre shapes what the clipping hears; the dry signal of a partial mix passes
+///             <b>EQ 2</b>: a ten-band 2/3-octave graphic EQ (<see cref="GraphicEqualizer" />), before the drive (Pre)
+///             or after EQ 1 (Post), or off. Pre shapes what the clipping hears; the dry signal of a partial mix passes
 ///             neither EQ.
 ///         </item>
 ///         <item>
 ///             <b>Clip Type</b> (original voicings): another clipping curve in place of the type's (Soft, Hard,
-///             Asymmetric, Germanium, LED, Tube, Op-Amp, FET, Rectifier, Variable, HV or LV Tube, Silicon, 4558 Diode or
-///             none); the type's filtering and clean blend stay.
+///             Asymmetric, Germanium, LED, Tube, Op-Amp, FET, Rectifier, Variable, HV or LV Tube, Silicon, 4558 Diode
+///             or none); the type's filtering and clean blend stay.
 ///             <b>Clip Shape</b> bends the curve towards a soft knee (−) or a hard clip (+).
 ///         </item>
 ///         <item>
@@ -58,12 +59,14 @@ namespace Cathode.Dsp.Blocks;
 ///             <b>Bass Response</b> (%): the input coupling corner into the clipping (the voicings' pre-filter, a
 ///             circuit's coupling capacitor): lower for a fatter drive, higher for a tighter one.
 ///         </item>
-///         <item><b>Dry Level</b>: the clean input summed after the clipping, inside the circuit (before the tone).</item>
+///         <item>
+///             <b>Dry Level</b>: the clean input summed after the clipping, inside the circuit (before the tone).
+///         </item>
 ///         <item><b>Bias</b>: an offset ahead of the clipping, for even harmonics (DC-blocked after).</item>
 ///         <item>
-///             <b>Slew Rate</b> (V/µs; 10 is off): an op-amp circuit's op-amps slew at it (the RAT's LM308 in place of its
-///             own 0.3 V/µs; a linear op-amp stage limits its output to it); any other type is slew-limited after the
-///             clipping, at the oversampled rate.
+///             <b>Slew Rate</b> (V/µs; 10 is off): an op-amp circuit's op-amps slew at it (the RAT's LM308 in place of
+///             its own 0.3 V/µs; a linear op-amp stage limits its output to it); any other type is slew-limited after
+///             the clipping, at the oversampled rate.
 ///         </item>
 ///         <item>
 ///             <b>Bass Pot</b>, <b>Middle Pot</b> (5, the pedal as built): the bass and middle pots of a circuit with a
@@ -75,19 +78,20 @@ namespace Cathode.Dsp.Blocks;
 ///         <item>
 ///             Per-pedal knobs on the Basic page, each the pedal's own network and stock at its default: the Timmy's
 ///             <b>Bass</b> (a pot across its gain stage's ground-leg capacitor; its Tone is labelled Treble), the
-///             Zendrive's <b>Voice</b> (a pot in series with its ground leg) and the OCD's <b>HP/LP</b> switch (a resistor
-///             in parallel with its clipper's series resistor). Then the B7K's <b>Hi Mids</b> (its EQ's second mid band)
-///             and <b>Blend</b> (the clean and distorted paths crossfade); the King of Tone's <b>Mode</b> (OD,
-///             Distortion, Boost) and the Full-Drive 2's (Flat-Mids, Comp-Cut, Vintage) with its <b>Boost</b> footswitch
-///             and knob; the Eternity's <b>Glow</b>; the Precision Drive's <b>Attack</b> (its coupling corner) and
+///             Zendrive's <b>Voice</b> (a pot in series with its ground leg) and the OCD's <b>HP/LP</b> switch (a
+///             resistor in parallel with its clipper's series resistor). Then the B7K's <b>Hi Mids</b> (its EQ's second
+///             mid band) and <b>Blend</b> (the clean and distorted paths crossfade); the King of Tone's <b>Mode</b>
+///             (OD, Distortion, Boost) and the Full-Drive 2's (Flat-Mids, Comp-Cut, Vintage) with its <b>Boost</b>
+///             footswitch and knob; the Eternity's <b>Glow</b>; the Precision Drive's <b>Attack</b> (its coupling
+///             corner) and
 ///             <b>Gate</b>; the Buxom Boost's <b>Bass</b> (the Bass Pot) and <b>Tight</b>; the Bass RC Booster's
 ///             <b>DIP Switches</b>; and the Super-Fuzz's two-position <b>Tone</b> switch in place of its Tone knob. A
 ///             switch that changes a network picks one of the circuits prebuilt for its positions
 ///             (<see cref="DriveCircuit.Modes" />).
 ///         </item>
 ///         <item>
-///             <b>Bit Reduce</b> and <b>Sample Rate</b>: a lo-fi word length and sample-and-hold rate on the driven signal
-///             (<see cref="Decimator" />); 0 bits and 48 kHz are off.
+///             <b>Bit Reduce</b> and <b>Sample Rate</b>: a lo-fi word length and sample-and-hold rate on the driven
+///             signal (<see cref="Decimator" />); 0 bits and 48 kHz are off.
 ///         </item>
 ///     </list>
 /// </summary>
@@ -129,16 +133,24 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
     public const int StackBass = 35;
     public const int StackMiddle = 36;
 
-    /// <summary>Oversampling: Global (each type's own factor), 1x, 2x or 4x. Changes the latency, so it recompiles.</summary>
+    /// <summary>
+    ///     Oversampling: Global (each type's own factor), 1x, 2x or 4x. Changes the latency, so it recompiles.
+    /// </summary>
     public const int OversamplingSetting = 37;
 
-    /// <summary>The Timmy's Bass pot (<see cref="DriveStage.BassShunt" />), 0..10; 0 is the circuit as listed.</summary>
+    /// <summary>
+    ///     The Timmy's Bass pot (<see cref="DriveStage.BassShunt" />), 0..10; 0 is the circuit as listed.
+    /// </summary>
     public const int PedalBass = 38;
 
-    /// <summary>The Zendrive's Voice pot (<see cref="DriveStage.VoicePot" />), 0..10; 10 is the circuit as listed.</summary>
+    /// <summary>
+    ///     The Zendrive's Voice pot (<see cref="DriveStage.VoicePot" />), 0..10; 10 is the circuit as listed.
+    /// </summary>
     public const int Voice = 39;
 
-    /// <summary>The OCD's HP/LP switch (<see cref="DriveStage.HighPeak" />): LP (0, the circuit as listed) or HP (1).</summary>
+    /// <summary>
+    ///     The OCD's HP/LP switch (<see cref="DriveStage.HighPeak" />): LP (0, the circuit as listed) or HP (1).
+    /// </summary>
     public const int HighPeak = 40;
 
     /// <summary>The Metal Zone's Middle Freq: where an active EQ's sweepable mid sits (types with one only).</summary>
@@ -171,7 +183,9 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
     /// <summary>The Eternity's Glow switch: Off (0, Glass, as built) or On.</summary>
     public const int Glow = 50;
 
-    /// <summary>The Precision Drive's Attack knob, 0..10 (5 as built): the coupling corner into the gain stage.</summary>
+    /// <summary>
+    ///     The Precision Drive's Attack knob, 0..10 (5 as built): the coupling corner into the gain stage.
+    /// </summary>
     public const int PedalAttack = 51;
 
     /// <summary>The Precision Drive's Gate knob, 0..10 (0 = off).</summary>
@@ -180,10 +194,14 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
     /// <summary>The Buxom Boost's Tight switch: Off (0, as built) or On.</summary>
     public const int Tight = 53;
 
-    /// <summary>The Bass RC Booster's internal DIP switches: the bass and treble bands' frequencies (0 = stock).</summary>
+    /// <summary>
+    ///     The Bass RC Booster's internal DIP switches: the bass and treble bands' frequencies (0 = stock).
+    /// </summary>
     public const int DipSwitches = 54;
 
-    /// <summary>The Super-Fuzz's tone switch: Scoop (0, the network as built) or Flat. Its Tone knob is hidden.</summary>
+    /// <summary>
+    ///     The Super-Fuzz's tone switch: Scoop (0, the network as built) or Flat. Its Tone knob is hidden.
+    /// </summary>
     public const int ToneSwitch = 55;
 
     public const int EqOff = 0;
@@ -199,7 +217,9 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
     /// <summary>Index of the first circuit model: the three original voicings keep indices 0-2.</summary>
     public const int CircuitTypes = 3;
 
-    /// <summary>Frames per knob reading of the circuit types, on a grid that ignores the host's block boundaries.</summary>
+    /// <summary>
+    ///     Frames per knob reading of the circuit types, on a grid that ignores the host's block boundaries.
+    /// </summary>
     public const int SubBlock = 32;
 
     /// <summary>EQ 2's band layout in <see cref="GraphicEqualizer.Layouts" />: ten bands at 2/3 octave.</summary>
@@ -209,7 +229,9 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
     const int Eq1Bands = 4;
     const float HighMidHz = 2_500f;
 
-    /// <summary>The 2x half-band of the circuits that run at 2x: the first stage of <see cref="Oversampler4x" />.</summary>
+    /// <summary>
+    ///     The 2x half-band of the circuits that run at 2x: the first stage of <see cref="Oversampler4x" />.
+    /// </summary>
     static readonly (float[], float[]) TwiceBranches =
         HalfBandStage.Split(HalfBand.Design(Oversampler4x.AttenuationDb, 0.04));
 
@@ -262,10 +284,10 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
                     TypeNames.Length,
                     [..Enumerable.Range(0, TypeNames.Length).Where(static t => !HasToneKnob(t))]
                 ),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
+            BlockParams.Level,
+            BlockParams.Mix(100f),
             ParamDescriptor.Float("inputVol", "Input Vol", 0f, 10f, 10f),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Balance,
             WetCuts.LowCutParam("lowCut", "Low Cut"),
             WetCuts.HighCutParam("highCut", "High Cut"),
             ParamDescriptor.Float("bass", "Bass", -12f, 12f, 0f, "dB"),
@@ -411,7 +433,9 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
     /// <summary>Disables antiderivative anti-aliasing, for measuring what it buys.</summary>
     public bool Antialias { get; set; } = true;
 
-    /// <summary>Disables oversampling, for measuring what it buys. Set before <see cref="IDspBlock.Prepare" />.</summary>
+    /// <summary>
+    ///     Disables oversampling, for measuring what it buys. Set before <see cref="IDspBlock.Prepare" />.
+    /// </summary>
     public bool Oversample { get; set; } = true;
 
     /// <summary>The oversamplers' filters (the global setting); set before <see cref="IDspBlock.Prepare" />.</summary>
@@ -423,7 +447,9 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
     /// </summary>
     public override int LatencySamples => latency;
 
-    /// <summary>The clipping curve of voicing <paramref name="type" /> under Clip Type <paramref name="clipType" />.</summary>
+    /// <summary>
+    ///     The clipping curve of voicing <paramref name="type" /> under Clip Type <paramref name="clipType" />.
+    /// </summary>
     public static ClipperShape ShapeOf(int type, int clipType) =>
         clipType > 0
             ? (ClipperShape)(clipType - 1)
@@ -441,8 +467,8 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
         };
 
     /// <summary>
-    ///     Whether circuit type <paramref name="type" /> has a real bass pot: a bass/middle/treble stack, or an active EQ
-    ///     with a low band.
+    ///     Whether circuit type <paramref name="type" /> has a real bass pot: a bass/middle/treble stack, or an active
+    ///     EQ with a low band.
     /// </summary>
     static bool HasBassPot(int type) =>
         type >= CircuitTypes
@@ -451,7 +477,9 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
             || (tone.Kind == ToneKind.ActiveEq && tone.LowHz > 0)
             || circuit.BassShelfHz > 0);
 
-    /// <summary>Whether circuit type <paramref name="type" /> has a real middle pot (a stack, or an EQ's mid band).</summary>
+    /// <summary>
+    ///     Whether circuit type <paramref name="type" /> has a real middle pot (a stack, or an EQ's mid band).
+    /// </summary>
     static bool HasMiddlePot(int type) =>
         type >= CircuitTypes
         && DriveCircuits.All[type - CircuitTypes].Tone is { } tone
@@ -494,7 +522,9 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
             _ => 0
         };
 
-    /// <summary>Slew Rate in V/µs as the largest step per sample at <paramref name="innerRate" />; 0 when off.</summary>
+    /// <summary>
+    ///     Slew Rate in V/µs as the largest step per sample at <paramref name="innerRate" />; 0 when off.
+    /// </summary>
     static double SlewStep(float voltsPerMicrosecond, double innerRate) =>
         voltsPerMicrosecond >= SlewOff ? 0 : voltsPerMicrosecond * 1e6 / innerRate;
 
@@ -515,7 +545,8 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
 
     /// <summary>
     ///     The circuit types run both channels through one loop: each channel is a long dependency chain, and
-    ///     interleaving two independent chains lets the core overlap them. Knobs are read once per sub-block of the grid.
+    ///     interleaving two independent chains lets the core overlap them. Knobs are read once per sub-block of the
+    ///     grid.
     /// </summary>
     void ProcessCircuits(in StereoBuffer io, int type, DriveCircuit circuit) {
         configured = circuit;
@@ -653,7 +684,9 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
         }
     }
 
-    /// <summary>The factor to run at: the Oversampling setting, or <paramref name="natural" /> (the type's own) on Global.</summary>
+    /// <summary>
+    ///     The factor to run at: the Oversampling setting, or <paramref name="natural" /> (the type's own) on Global.
+    /// </summary>
     int Desired(int natural) =>
         !Oversample
             ? 1
@@ -679,7 +712,9 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
             _ => 0
         };
 
-    /// <summary>Delays the output by what the running factor's round trip falls short of <see cref="LatencySamples" />.</summary>
+    /// <summary>
+    ///     Delays the output by what the running factor's round trip falls short of <see cref="LatencySamples" />.
+    /// </summary>
     void Pad(in StereoBuffer io) {
         var pad = latency - RoundTrip(factor);
         if (pad <= 0) {
@@ -701,7 +736,9 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
         }
     }
 
-    /// <summary>The dry signal through the same up/down filters as the processed path, so the two cannot comb.</summary>
+    /// <summary>
+    ///     The dry signal through the same up/down filters as the processed path, so the two cannot comb.
+    /// </summary>
     void CopyDry(ReadOnlySpan<float> samples, Span<float> dry, Oversampler4x four, HalfBandStage two) {
         samples.CopyTo(dry);
         switch (factor) {
@@ -980,7 +1017,9 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
             }
         }
 
-        /// <summary>The span to run the circuit on: the block oversampled by <paramref name="factor" /> (1, 2 or 4).</summary>
+        /// <summary>
+        ///     The span to run the circuit on: the block oversampled by <paramref name="factor" /> (1, 2 or 4).
+        /// </summary>
         public Span<float> Up(Span<float> samples, int factor) {
             switch (factor) {
                 case 4:

@@ -28,31 +28,71 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         var errors = new List<string>();
         var nodes = definition.Nodes;
         var indexById = IndexNodes(definition, errors);
-        var oversampling = definition.Oversampling switch {
-            "minimum" or "" => OversamplingPhase.Minimum,
-            "linear" => OversamplingPhase.Linear,
-            _ => (OversamplingPhase)(-1)
-        };
-        if ((int)oversampling < 0) {
-            errors.Add($"Unknown oversampling '{definition.Oversampling}' (minimum or linear).");
-        }
-
+        var oversampling = ParseOversampling(definition.Oversampling, errors);
         var (inputs, consumers) = ResolveCables(definition, indexById, errors);
         if (errors.Count > 0) {
             throw new GraphValidationException(errors);
         }
 
-        // Create every block instance (even unconnected ones keep their slot so the API can address them).
-        var slotOfNode = new int[nodes.Count];
-        var sideInputs = new SideInputs[nodes.Count]; // what each node's block takes from elsewhere (ISideInputBlock)
-        var blocks = new List<IDspBlock>();
-        var slotIds = new List<string>();
-        var bypassed = new List<bool>();
-        var bypassModes = new List<BypassKind>();
-        AnalyzerTap? analyzer = null;
-        InputPort? port = null;
+        var set = CreateBlocks(nodes, spec, oversampling, errors);
+        var feedbackPairs = PairFeedback(nodes, set.SlotOfNode, set.Blocks, spec, errors);
+        var modifiers = BindModifiers(definition.Modifiers, set, errors);
+        if (errors.Count > 0) {
+            set.Blocks.ForEach(static b => b.Dispose());
+            throw new GraphValidationException(errors);
+        }
+
+        // Plain loops from here on: this runs on every preset load in a process that must not collect.
+        var live = FindLiveNodes(definition, inputs, consumers, feedbackPairs);
+        var order = LiveOrder(nodes, live);
+        var timing = MeasureLatency(nodes, order, inputs, live, set);
+        FollowCabs(order, consumers, live, set);
+        var plan = new PlanBuilder(definition, order, inputs, live, set, timing);
+        plan.Build(consumers);
+        var emitter = plan.Emitter;
+        return new(
+            generation,
+            spec,
+            [..emitter.Ops],
+            emitter.BufferCount,
+            [..set.Blocks],
+            [..set.SlotIds],
+            [..set.Bypassed],
+            [..set.BypassKinds],
+            [..emitter.Delays],
+            timing.GraphLatency,
+            [..modifiers],
+            set.Analyzer,
+            set.Port
+        ) { LatencyPath = LatencyPath(nodes, timing, set), Tone = TestTone };
+    }
+
+    static OversamplingPhase ParseOversampling(string name, List<string> errors) {
+        var oversampling = name switch {
+            "minimum" or "" => OversamplingPhase.Minimum,
+            "linear" => OversamplingPhase.Linear,
+            _ => (OversamplingPhase)(-1)
+        };
+        if ((int)oversampling < 0) {
+            errors.Add($"Unknown oversampling '{name}' (minimum or linear).");
+        }
+
+        return oversampling;
+    }
+
+    /// <summary>
+    ///     Creates every block instance (even unconnected ones keep their slot so the API can address them), sets its
+    ///     parameters and assets, hands it what it reads from the engine and prepares it.
+    /// </summary>
+    BlockSet CreateBlocks(
+        List<NodeDefinition> nodes,
+        ProcessSpec spec,
+        OversamplingPhase oversampling,
+        List<string> errors
+    ) {
+        var set = new BlockSet(nodes.Count);
         for (var n = 0; n < nodes.Count; n++) {
-            slotOfNode[n] = -1;
+            set.SlotOfNode[n] = -1;
             var node = nodes[n];
             // Input and Output run their own block (gate, row mixer) when the registry has one; shunts never do.
             var builtIn = NodeTypes.IsBuiltIn(node.Type);
@@ -61,114 +101,158 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             }
 
             var block = registry.Create(node.Type);
-            foreach (var (paramId, value) in node.Parameters) {
-                var index = block.Descriptor.IndexOf(paramId);
-                if (index < 0) {
-                    errors.Add($"Node '{node.Id}': block type '{node.Type}' has no parameter '{paramId}'.");
-                    continue;
-                }
-
-                block.Params.SetTarget(index, value);
-            }
-
+            ApplyParameters(node, block, errors);
             if (!BypassModes.IsValid(node.BypassMode)) {
                 errors.Add($"Node '{node.Id}': unknown bypass mode '{node.BypassMode}'.");
             }
 
             LoadAssets(node, block, errors);
-            if (block is FxLoopBlock loop) {
-                loop.Port = HardwareLoop;
-            }
-
-            if (block is ISideInputBlock side) {
-                sideInputs[n] = side.SideInputs;
-                if ((side.SideInputs & SideInputs.Hardware) != 0 && HardwareInputs is { } hardware) {
-                    side.Inputs = port ??= new(hardware, spec.SampleRate);
-                }
-            }
-
-            if (block is RtaBlock rta) {
-                rta.Tap = analyzer ??= new(spec.MaxBlockSize);
-            }
-
-            if (block is IOversampledBlock oversampled) {
-                oversampled.OversamplingPhase = oversampling;
-            }
-
+            ConnectToEngine(block, n, set, spec, oversampling);
             block.Prepare(spec);
-            slotOfNode[n] = blocks.Count;
-            blocks.Add(block);
-            slotIds.Add(node.Id);
-            bypassed.Add(node.Bypassed && !builtIn);
-            bypassModes.Add(
-                (builtIn ? BypassModes.Thru : node.BypassMode) switch {
-                    BypassModes.Mute => BypassKind.Mute,
-                    BypassModes.MuteIn => BypassKind.MuteIn,
-                    BypassModes.MuteFxIn => BypassKind.MuteFxIn,
-                    BypassModes.MuteOut => BypassKind.MuteOut,
-                    BypassModes.MuteFxOut => BypassKind.MuteFxOut,
-                    _ => BypassKind.Thru
-                }
+            set.Add(
+                n,
+                node.Id,
+                block,
+                node.Bypassed && !builtIn,
+                ToBypassKind(builtIn ? BypassModes.Thru : node.BypassMode)
             );
         }
 
-        var feedbackPairs = PairFeedback(nodes, slotOfNode, blocks, spec, errors);
+        return set;
+    }
 
+    static void ApplyParameters(NodeDefinition node, IDspBlock block, List<string> errors) {
+        foreach (var (paramId, value) in node.Parameters) {
+            var index = block.Descriptor.IndexOf(paramId);
+            if (index < 0) {
+                errors.Add($"Node '{node.Id}': block type '{node.Type}' has no parameter '{paramId}'.");
+                continue;
+            }
+
+            block.Params.SetTarget(index, value);
+        }
+    }
+
+    /// <summary>Hands a block what it reads from the engine or the graph: FX loop, side inputs, analyzer tap.</summary>
+    void ConnectToEngine(IDspBlock block, int n, BlockSet set, ProcessSpec spec, OversamplingPhase oversampling) {
+        if (block is FxLoopBlock loop) {
+            loop.Port = HardwareLoop;
+        }
+
+        if (block is ISideInputBlock side) {
+            set.SideInputsOf[n] = side.SideInputs;
+            if ((side.SideInputs & SideInputs.Hardware) != 0 && HardwareInputs is { } hardware) {
+                side.Inputs = set.Port ??= new(hardware, spec.SampleRate);
+            }
+        }
+
+        if (block is RtaBlock rta) {
+            rta.Tap = set.Analyzer ??= new(spec.MaxBlockSize);
+        }
+
+        if (block is IOversampledBlock oversampled) {
+            oversampled.OversamplingPhase = oversampling;
+        }
+    }
+
+    static BypassKind ToBypassKind(string mode) =>
+        mode switch {
+            BypassModes.Mute => BypassKind.Mute,
+            BypassModes.MuteIn => BypassKind.MuteIn,
+            BypassModes.MuteFxIn => BypassKind.MuteFxIn,
+            BypassModes.MuteOut => BypassKind.MuteOut,
+            BypassModes.MuteFxOut => BypassKind.MuteFxOut,
+            _ => BypassKind.Thru
+        };
+
+    static List<ModifierBinding> BindModifiers(
+        List<ModifierDefinition> definitions,
+        BlockSet set,
+        List<string> errors
+    ) {
         var modifiers = new List<ModifierBinding>();
-        foreach (var modifier in definition.Modifiers) {
-            var slot = slotIds.IndexOf(modifier.Block);
-            var engage = modifier.Param == ModNames.EngageParam
-                && slot >= 0
-                && !NodeTypes.IsBuiltIn(blocks[slot].Descriptor.TypeId);
-            var index = slot < 0 ? -1 :
-                engage ? ModifierBinding.Engage : blocks[slot].Descriptor.IndexOf(modifier.Param);
+        foreach (var modifier in definitions) {
+            var (slot, index, engage) = TargetOf(modifier, set);
             if (index == -1) {
                 errors.Add($"Modifier: no parameter '{modifier.Param}' on block '{modifier.Block}'.");
             } else if (!ModNames.TryParseSource(modifier.Source, out var source)) {
                 errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown source '{modifier.Source}'.");
             } else if (!ModNames.TryParseCurve(modifier.Curve, out var curve)) {
                 errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown curve '{modifier.Curve}'.");
-            } else if (modifiers.Exists(m => m.Slot == slot && m.ParamIndex == index)) {
+            } else if (HasModifier(modifiers, slot, index)) {
                 errors.Add($"Parameter '{modifier.Block}.{modifier.Param}' has more than one modifier.");
-            } else if (engage) {
-                modifiers.Add(
-                    new(
-                        slot,
-                        index,
-                        source,
-                        curve,
-                        Math.Clamp(modifier.Min, 0f, 1f),
-                        Math.Clamp(modifier.Max, 0f, 1f),
-                        false,
-                        modifier.AttackMs,
-                        modifier.ReleaseMs
-                    ) { Enabled = modifier.Enabled }
-                );
             } else {
-                var param = blocks[slot].Descriptor.Params[index];
-                modifiers.Add(
-                    new(
-                        slot,
-                        index,
-                        source,
-                        curve,
-                        Math.Clamp(modifier.Min, param.Min, param.Max),
-                        Math.Clamp(modifier.Max, param.Min, param.Max),
-                        param.Taper == ParamTaper.Log,
-                        modifier.AttackMs,
-                        modifier.ReleaseMs
-                    ) { Enabled = modifier.Enabled }
-                );
+                modifiers.Add(Bind(modifier, slot, index, source, curve, engage ? null : set.Blocks[slot]));
             }
         }
 
-        if (errors.Count > 0) {
-            blocks.ForEach(static b => b.Dispose());
-            throw new GraphValidationException(errors);
+        return modifiers;
+    }
+
+    /// <summary>
+    ///     The block slot and parameter index a modifier drives (index −1 for none), and whether that is the block's
+    ///     engage switch.
+    /// </summary>
+    static (int Slot, int Index, bool Engage) TargetOf(ModifierDefinition modifier, BlockSet set) {
+        var slot = set.SlotIds.IndexOf(modifier.Block);
+        var engage = modifier.Param == ModNames.EngageParam
+            && slot >= 0
+            && !NodeTypes.IsBuiltIn(set.Blocks[slot].Descriptor.TypeId);
+        var index = slot < 0 ? -1 :
+            engage ? ModifierBinding.Engage : set.Blocks[slot].Descriptor.IndexOf(modifier.Param);
+        return (slot, index, engage);
+    }
+
+    static bool HasModifier(List<ModifierBinding> modifiers, int slot, int index) =>
+        modifiers.Exists(m => m.Slot == slot && m.ParamIndex == index);
+
+    /// <summary>A valid modifier's binding; <paramref name="block" /> is null for the block's engage switch.</summary>
+    static ModifierBinding Bind(
+        ModifierDefinition modifier,
+        int slot,
+        int index,
+        ModSource source,
+        ModCurve curve,
+        IDspBlock? block
+    ) {
+        if (block is null) {
+            return new(
+                slot,
+                index,
+                source,
+                curve,
+                Math.Clamp(modifier.Min, 0f, 1f),
+                Math.Clamp(modifier.Max, 0f, 1f),
+                false,
+                modifier.AttackMs,
+                modifier.ReleaseMs
+            ) { Enabled = modifier.Enabled };
         }
 
-        // Plain loops from here on: this runs on every preset load in a process that must not collect.
-        // A send feeds its return without a cable: link them for liveness only, not for ordering or latency.
+        var param = block.Descriptor.Params[index];
+        return new(
+            slot,
+            index,
+            source,
+            curve,
+            Math.Clamp(modifier.Min, param.Min, param.Max),
+            Math.Clamp(modifier.Max, param.Min, param.Max),
+            param.Taper == ParamTaper.Log,
+            modifier.AttackMs,
+            modifier.ReleaseMs
+        ) { Enabled = modifier.Enabled };
+    }
+
+    /// <summary>
+    ///     <see cref="FindLiveNodes(GraphDefinition, List{int}[], List{int}[])" /> with each send feeding its return
+    ///     without a cable: linked for liveness only, not for ordering or latency.
+    /// </summary>
+    static bool[] FindLiveNodes(
+        GraphDefinition definition,
+        List<int>[] inputs,
+        List<int>[] consumers,
+        List<(int Send, int Return)> feedbackPairs
+    ) {
         foreach (var (send, ret) in feedbackPairs) {
             consumers[send].Add(ret);
             inputs[ret].Add(send);
@@ -180,6 +264,11 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             inputs[ret].Remove(send);
         }
 
+        return live;
+    }
+
+    /// <summary>The live nodes in processing order: by column, then by row.</summary>
+    static int[] LiveOrder(List<NodeDefinition> nodes, bool[] live) {
         var liveCount = 0;
         var order = new int[nodes.Count];
         for (var n = 0; n < nodes.Count; n++) {
@@ -195,207 +284,67 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                 ? nodes[a].Column.CompareTo(nodes[b].Column)
                 : nodes[a].Row.CompareTo(nodes[b].Row)
         );
+        return order;
+    }
 
-        // Path latency: the latest-arriving input defines each node's start time.
+    /// <summary>Path latency: the latest-arriving input defines each node's start time.</summary>
+    static PathTiming MeasureLatency(
+        List<NodeDefinition> nodes,
+        int[] order,
+        List<int>[] inputs,
+        bool[] live,
+        BlockSet set
+    ) {
         var latency = new int[nodes.Count];
         var latest = new int[nodes.Count]; // the input that arrives last, for the latency report
         var graphLatency = 0;
         var slowestOutput = -1;
         foreach (var n in order) {
-            latest[n] = -1;
-            foreach (var i in inputs[n]) {
-                if (live[i] && (latest[n] < 0 || latency[i] > latency[latest[n]])) {
-                    latest[n] = i;
-                }
-            }
-
-            latency[n] = Arrival(inputs[n], live, latency)
-                + (slotOfNode[n] >= 0 ? blocks[slotOfNode[n]].LatencySamples : 0);
+            latest[n] = LatestInput(inputs[n], live, latency);
+            latency[n] = Arrival(inputs[n], live, latency) + set.LatencyOf(n);
             if (NodeTypes.IsOutput(nodes[n].Type) && (slowestOutput < 0 || latency[n] > graphLatency)) {
                 graphLatency = latency[n];
                 slowestOutput = n;
             }
         }
 
-        // Blocks that follow a Cab block (an amp's Auto speaker load): the first Cab reached through their outputs.
-        foreach (var n in order) {
-            if (slotOfNode[n] >= 0 && blocks[slotOfNode[n]] is ICabFollower follower) {
-                follower.FollowCab(DownstreamCab(n, consumers, live, slotOfNode, blocks));
+        return new(latency, latest, graphLatency, slowestOutput);
+    }
+
+    /// <summary>The live input that arrives last (the first of equals), or −1.</summary>
+    static int LatestInput(List<int> inputs, bool[] live, int[] latency) {
+        var latest = -1;
+        foreach (var i in inputs) {
+            if (live[i] && (latest < 0 || latency[i] > latency[latest])) {
+                latest = i;
             }
         }
 
-        var emitter = new PlanEmitter();
-        var bufferOf = new int[nodes.Count];
-        var readersLeft = new int[nodes.Count];
+        return latest;
+    }
+
+    /// <summary>
+    ///     Blocks that follow a Cab block (an amp's Auto speaker load): the first Cab reached through their outputs.
+    /// </summary>
+    static void FollowCabs(int[] order, List<int>[] consumers, bool[] live, BlockSet set) {
         foreach (var n in order) {
-            foreach (var c in consumers[n]) {
-                readersLeft[n] += live[c] ? 1 : 0;
+            if (set.SlotOfNode[n] >= 0 && set.Blocks[set.SlotOfNode[n]] is ICabFollower follower) {
+                follower.FollowCab(DownstreamCab(n, consumers, live, set.SlotOfNode, set.Blocks));
             }
         }
+    }
 
-        // Side inputs (ISideInputBlock). Taps: per row, the last live node to the left of the block. Each counts as one
-        // more reader, so its buffer survives (and is not processed over in place) until the block has been offered it.
-        // Cabled inputs by row are handed over below, where the block's input is assembled; hardware inputs went to the
-        // blocks with the graph's InputPort above.
-        var taps = new List<(int Row, int Source)>?[nodes.Count];
-        foreach (var n in order) {
-            if ((sideInputs[n] & SideInputs.Taps) == 0) {
-                continue;
-            }
-
-            var sources = new List<(int Row, int Source)>();
-            for (var row = 0; row < definition.Rows; row++) {
-                var best = -1;
-                foreach (var m in order) {
-                    if (nodes[m].Row == row
-                        && nodes[m].Column < nodes[n].Column
-                        && !NodeTypes.IsOutput(nodes[m].Type)
-                        && (best < 0 || nodes[m].Column > nodes[best].Column)) {
-                        best = m;
-                    }
-                }
-
-                if (best >= 0) {
-                    sources.Add((row, best));
-                    readersLeft[best]++;
-                }
-            }
-
-            taps[n] = sources;
-        }
-
-        var liveInputs = new List<int>();
-
-        foreach (var n in order) {
-            var node = nodes[n];
-            liveInputs.Clear();
-            foreach (var i in inputs[n]) {
-                if (live[i]) {
-                    liveInputs.Add(i);
-                }
-            }
-
-            var arrival = Arrival(inputs[n], live, latency);
-            int buffer;
-            if (taps[n] is { } tapSources) {
-                emitter.EmitSideInput(slotOfNode[n], -1, -1, -1); // the grid input
-                foreach (var (row, source) in tapSources) {
-                    emitter.EmitSideInput(slotOfNode[n], row, bufferOf[source], -1);
-                    if (--readersLeft[source] == 0) {
-                        emitter.Free(bufferOf[source]);
-                    }
-                }
-            }
-
-            var byRow = (sideInputs[n] & SideInputs.Cables) != 0;
-            var soleReader = liveInputs.Count == 1 && readersLeft[liveInputs[0]] == 1;
-            if (node.Type == NodeTypes.Input) {
-                buffer = emitter.Allocate();
-                emitter.Emit(new(GraphOpKind.ReadInput, buffer));
-            } else if (liveInputs.Count == 0) {
-                buffer = emitter.Allocate(); // a Feedback Return fed only by its send
-                emitter.Emit(new(GraphOpKind.Clear, buffer));
-            } else if (soleReader && slotOfNode[n] >= 0 && blocks[slotOfNode[n]] is OutputBlock) {
-                // An Output fed by one row scales it in place rather than mixing it into a second buffer.
-                var source = liveInputs[0];
-                buffer = bufferOf[source];
-                readersLeft[source] = 0;
-                emitter.EmitDelay(buffer, arrival - latency[source]);
-                emitter.Emit(new(GraphOpKind.ScaleRow, buffer, Index: slotOfNode[n], Row: nodes[source].Row));
-            } else if (byRow) {
-                // Each cabled input goes to the block by row (a multiplexer's selection fade, a mixer's row gains, a
-                // detector's side buffer) instead of a plain sum.
-                buffer = emitter.Allocate();
-                emitter.Emit(new(GraphOpKind.Clear, buffer));
-                foreach (var source in liveInputs) {
-                    var delay = arrival - latency[source];
-                    var from = bufferOf[source];
-                    var temp = -1;
-                    if (delay > 0) {
-                        temp = emitter.Allocate();
-                        emitter.Emit(new(GraphOpKind.Copy, temp, from));
-                        emitter.EmitDelay(temp, delay);
-                        from = temp;
-                    }
-
-                    emitter.EmitSideInput(slotOfNode[n], nodes[source].Row, from, buffer);
-                    if (temp >= 0) {
-                        emitter.Free(temp);
-                    }
-
-                    if (--readersLeft[source] == 0) {
-                        emitter.Free(bufferOf[source]);
-                    }
-                }
-            } else if (soleReader) {
-                // Sole remaining reader: take over the upstream buffer and process in place.
-                var source = liveInputs[0];
-                buffer = bufferOf[source];
-                readersLeft[source] = 0;
-                emitter.EmitDelay(buffer, arrival - latency[source]);
-            } else {
-                buffer = emitter.Allocate();
-                for (var k = 0; k < liveInputs.Count; k++) {
-                    var source = liveInputs[k];
-                    var delay = arrival - latency[source];
-                    if (k == 0) {
-                        emitter.Emit(new(GraphOpKind.Copy, buffer, bufferOf[source]));
-                        emitter.EmitDelay(buffer, delay);
-                    } else if (delay == 0) {
-                        emitter.Emit(new(GraphOpKind.Add, buffer, bufferOf[source]));
-                    } else {
-                        var temp = emitter.Allocate();
-                        emitter.Emit(new(GraphOpKind.Copy, temp, bufferOf[source]));
-                        emitter.EmitDelay(temp, delay);
-                        emitter.Emit(new(GraphOpKind.Add, buffer, temp));
-                        emitter.Free(temp);
-                    }
-
-                    if (--readersLeft[source] == 0) {
-                        emitter.Free(bufferOf[source]);
-                    }
-                }
-            }
-
-            bufferOf[n] = buffer;
-            if (slotOfNode[n] >= 0) {
-                emitter.Emit(new(GraphOpKind.Process, buffer, Index: slotOfNode[n]));
-            }
-
-            if (NodeTypes.IsOutput(node.Type)) {
-                // Every output is aligned to the slowest, so outputs played side by side stay in time.
-                emitter.EmitDelay(buffer, graphLatency - latency[n]);
-                emitter.Emit(new(GraphOpKind.WriteOutput, buffer, Index: NodeTypes.OutputIndex(node.Type)));
-            }
-
-            if (readersLeft[n] == 0) {
-                emitter.Free(buffer);
-            }
-        }
-
+    /// <summary>The blocks on the slowest output's path, from the input on.</summary>
+    static List<LatencyStep> LatencyPath(List<NodeDefinition> nodes, PathTiming timing, BlockSet set) {
         var path = new List<LatencyStep>();
-        for (var n = slowestOutput; n >= 0; n = latest[n]) {
-            if (slotOfNode[n] >= 0) {
-                path.Add(new(nodes[n].Id, nodes[n].Type, blocks[slotOfNode[n]].LatencySamples));
+        for (var n = timing.SlowestOutput; n >= 0; n = timing.Latest[n]) {
+            if (set.SlotOfNode[n] >= 0) {
+                path.Add(new(nodes[n].Id, nodes[n].Type, set.LatencyOf(n)));
             }
         }
 
         path.Reverse();
-        return new(
-            generation,
-            spec,
-            [..emitter.Ops],
-            emitter.BufferCount,
-            [..blocks],
-            [..slotIds],
-            [..bypassed],
-            [..bypassModes],
-            [..emitter.Delays],
-            graphLatency,
-            [..modifiers],
-            analyzer,
-            port
-        ) { LatencyPath = path, Tone = TestTone };
+        return path;
     }
 
     /// <summary>The feedback pair an instance id names: its trailing number, or 1.</summary>
@@ -432,7 +381,8 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             if (found is not null && !found.TryAdd(FeedbackPair(nodes[n].Id), n)) {
                 var kind = block is FeedbackSendBlock ? "Feedback Send" : "Feedback Return";
                 errors.Add(
-                    $"Node '{nodes[n].Id}': a preset has at most one {kind} per pair ({kind} {FeedbackPair(nodes[n].Id)} is '{nodes[found[FeedbackPair(nodes[n].Id)]].Id}')."
+                    $"Node '{nodes[n].Id}': a preset has at most one {kind} per pair ({kind} "
+                    + $"{FeedbackPair(nodes[n].Id)} is '{nodes[found[FeedbackPair(nodes[n].Id)]].Id}')."
                 );
             }
         }
@@ -497,11 +447,13 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
 
             if (node.Row < 0 || node.Row >= definition.Rows || node.Column < 0 || node.Column >= definition.Columns) {
                 errors.Add(
-                    $"Node '{node.Id}' at ({node.Row},{node.Column}) is outside the {definition.Rows}x{definition.Columns} grid."
+                    $"Node '{node.Id}' at ({node.Row},{node.Column}) is outside the "
+                    + $"{definition.Rows}x{definition.Columns} grid."
                 );
             } else if (!occupied.TryAdd((node.Row, node.Column), node.Id)) {
                 errors.Add(
-                    $"Node '{node.Id}' shares cell ({node.Row},{node.Column}) with '{occupied[(node.Row, node.Column)]}'."
+                    $"Node '{node.Id}' shares cell ({node.Row},{node.Column}) with "
+                    + $"'{occupied[(node.Row, node.Column)]}'."
                 );
             }
 
@@ -549,7 +501,9 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         return (inputs, consumers);
     }
 
-    /// <summary>The first live Cab block downstream of node <paramref name="start" />, breadth first; null for none.</summary>
+    /// <summary>
+    ///     The first live Cab block downstream of node <paramref name="start" />, breadth first; null for none.
+    /// </summary>
     static CabBlock? DownstreamCab(
         int start,
         List<int>[] consumers,
@@ -610,6 +564,264 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         return visited;
     }
 
+    /// <summary>Each node's block slot and what the compiled graph keeps per slot.</summary>
+    sealed class BlockSet(int nodeCount) {
+        /// <summary>Each node's block slot, −1 for a node without a block.</summary>
+        public int[] SlotOfNode { get; } = new int[nodeCount];
+
+        /// <summary>What each node's block takes from elsewhere (<see cref="ISideInputBlock" />).</summary>
+        public SideInputs[] SideInputsOf { get; } = new SideInputs[nodeCount];
+
+        public List<IDspBlock> Blocks { get; } = [];
+
+        public List<string> SlotIds { get; } = [];
+
+        public List<bool> Bypassed { get; } = [];
+
+        public List<BypassKind> BypassKinds { get; } = [];
+
+        public AnalyzerTap? Analyzer { get; set; }
+
+        public InputPort? Port { get; set; }
+
+        public void Add(int node, string id, IDspBlock block, bool bypassed, BypassKind bypassKind) {
+            SlotOfNode[node] = Blocks.Count;
+            Blocks.Add(block);
+            SlotIds.Add(id);
+            Bypassed.Add(bypassed);
+            BypassKinds.Add(bypassKind);
+        }
+
+        /// <summary>The latency of node <paramref name="node" />'s block, 0 without one.</summary>
+        public int LatencyOf(int node) => SlotOfNode[node] >= 0 ? Blocks[SlotOfNode[node]].LatencySamples : 0;
+    }
+
+    /// <summary>Each node's path latency and latest input, the graph's latency and its slowest output.</summary>
+    readonly record struct PathTiming(int[] Latency, int[] Latest, int GraphLatency, int SlowestOutput);
+
+    /// <summary>
+    ///     Emits the graph's ops in processing order and assigns work buffers by lifetime, so they are reused: a buffer
+    ///     is freed when its last reader has taken it.
+    /// </summary>
+    sealed class PlanBuilder(
+        GraphDefinition definition,
+        int[] order,
+        List<int>[] inputs,
+        bool[] live,
+        BlockSet set,
+        PathTiming timing
+    ) {
+        readonly List<NodeDefinition> nodes = definition.Nodes;
+        readonly int[] bufferOf = new int[definition.Nodes.Count];
+        readonly int[] readersLeft = new int[definition.Nodes.Count];
+        readonly List<int> liveInputs = [];
+
+        public PlanEmitter Emitter { get; } = new();
+
+        public void Build(List<int>[] consumers) {
+            foreach (var n in order) {
+                foreach (var c in consumers[n]) {
+                    readersLeft[n] += live[c] ? 1 : 0;
+                }
+            }
+
+            var taps = CollectTaps();
+            foreach (var n in order) {
+                EmitNode(n, taps[n]);
+            }
+        }
+
+        /// <summary>
+        ///     Side inputs (ISideInputBlock). Taps: per row, the last live node to the left of the block. Each counts
+        ///     as one more reader, so its buffer survives (and is not processed over in place) until the block has
+        ///     been offered it. Cabled inputs by row are handed over where the block's input is assembled; hardware
+        ///     inputs went to the blocks with the graph's InputPort.
+        /// </summary>
+        List<(int Row, int Source)>?[] CollectTaps() {
+            var taps = new List<(int Row, int Source)>?[nodes.Count];
+            foreach (var n in order) {
+                if ((set.SideInputsOf[n] & SideInputs.Taps) != 0) {
+                    taps[n] = TapsOf(n);
+                }
+            }
+
+            return taps;
+        }
+
+        List<(int Row, int Source)> TapsOf(int n) {
+            var sources = new List<(int Row, int Source)>();
+            for (var row = 0; row < definition.Rows; row++) {
+                var best = LastOnRowLeftOf(n, row);
+                if (best >= 0) {
+                    sources.Add((row, best));
+                    readersLeft[best]++;
+                }
+            }
+
+            return sources;
+        }
+
+        /// <summary>
+        ///     The live node on <paramref name="row" /> nearest to the left of node <paramref name="n" />, or −1.
+        /// </summary>
+        int LastOnRowLeftOf(int n, int row) {
+            var best = -1;
+            foreach (var m in order) {
+                if (nodes[m].Row == row
+                    && nodes[m].Column < nodes[n].Column
+                    && !NodeTypes.IsOutput(nodes[m].Type)
+                    && (best < 0 || nodes[m].Column > nodes[best].Column)) {
+                    best = m;
+                }
+            }
+
+            return best;
+        }
+
+        void EmitNode(int n, List<(int Row, int Source)>? tapSources) {
+            var node = nodes[n];
+            liveInputs.Clear();
+            foreach (var i in inputs[n]) {
+                if (live[i]) {
+                    liveInputs.Add(i);
+                }
+            }
+
+            var arrival = Arrival(inputs[n], live, timing.Latency);
+            if (tapSources is not null) {
+                EmitTaps(set.SlotOfNode[n], tapSources);
+            }
+
+            var buffer = AssembleInput(n, arrival);
+            bufferOf[n] = buffer;
+            if (set.SlotOfNode[n] >= 0) {
+                Emitter.Emit(new(GraphOpKind.Process, buffer, Index: set.SlotOfNode[n]));
+            }
+
+            if (NodeTypes.IsOutput(node.Type)) {
+                // Every output is aligned to the slowest, so outputs played side by side stay in time.
+                Emitter.EmitDelay(buffer, timing.GraphLatency - timing.Latency[n]);
+                Emitter.Emit(new(GraphOpKind.WriteOutput, buffer, Index: NodeTypes.OutputIndex(node.Type)));
+            }
+
+            if (readersLeft[n] == 0) {
+                Emitter.Free(buffer);
+            }
+        }
+
+        void EmitTaps(int slot, List<(int Row, int Source)> tapSources) {
+            Emitter.EmitSideInput(slot, -1, -1, -1); // the grid input
+            foreach (var (row, source) in tapSources) {
+                Emitter.EmitSideInput(slot, row, bufferOf[source], -1);
+                ReleaseReader(source);
+            }
+        }
+
+        /// <summary>The buffer node <paramref name="n" />'s input is assembled in, from its live inputs.</summary>
+        int AssembleInput(int n, int arrival) {
+            var slot = set.SlotOfNode[n];
+            var soleReader = liveInputs.Count == 1 && readersLeft[liveInputs[0]] == 1;
+            if (nodes[n].Type == NodeTypes.Input) {
+                return Fresh(GraphOpKind.ReadInput);
+            }
+
+            if (liveInputs.Count == 0) {
+                return Fresh(GraphOpKind.Clear); // a Feedback Return fed only by its send
+            }
+
+            if (soleReader && slot >= 0 && set.Blocks[slot] is OutputBlock) {
+                // An Output fed by one row scales it in place rather than mixing it into a second buffer.
+                var row = nodes[liveInputs[0]].Row;
+                var scaled = TakeOver(arrival);
+                Emitter.Emit(new(GraphOpKind.ScaleRow, scaled, Index: slot, Row: row));
+                return scaled;
+            }
+
+            if ((set.SideInputsOf[n] & SideInputs.Cables) != 0) {
+                return SideInputsByRow(slot, arrival);
+            }
+
+            // Sole remaining reader: take over the upstream buffer and process in place.
+            return soleReader ? TakeOver(arrival) : Mix(arrival);
+        }
+
+        /// <summary>A newly allocated buffer, filled by an op of kind <paramref name="kind" />.</summary>
+        int Fresh(GraphOpKind kind) {
+            var buffer = Emitter.Allocate();
+            Emitter.Emit(new(kind, buffer));
+            return buffer;
+        }
+
+        /// <summary>The sole live input's buffer, taken over and delayed to the arrival time.</summary>
+        int TakeOver(int arrival) {
+            var source = liveInputs[0];
+            var buffer = bufferOf[source];
+            readersLeft[source] = 0;
+            Emitter.EmitDelay(buffer, arrival - timing.Latency[source]);
+            return buffer;
+        }
+
+        /// <summary>
+        ///     Each cabled input goes to the block by row (a multiplexer's selection fade, a mixer's row gains, a
+        ///     detector's side buffer) instead of a plain sum.
+        /// </summary>
+        int SideInputsByRow(int slot, int arrival) {
+            var buffer = Fresh(GraphOpKind.Clear);
+            foreach (var source in liveInputs) {
+                var delay = arrival - timing.Latency[source];
+                var from = bufferOf[source];
+                var temp = -1;
+                if (delay > 0) {
+                    temp = Emitter.Allocate();
+                    Emitter.Emit(new(GraphOpKind.Copy, temp, from));
+                    Emitter.EmitDelay(temp, delay);
+                    from = temp;
+                }
+
+                Emitter.EmitSideInput(slot, nodes[source].Row, from, buffer);
+                if (temp >= 0) {
+                    Emitter.Free(temp);
+                }
+
+                ReleaseReader(source);
+            }
+
+            return buffer;
+        }
+
+        /// <summary>The live inputs summed into a new buffer, each delayed to the arrival time.</summary>
+        int Mix(int arrival) {
+            var buffer = Emitter.Allocate();
+            for (var k = 0; k < liveInputs.Count; k++) {
+                var source = liveInputs[k];
+                var delay = arrival - timing.Latency[source];
+                if (k == 0) {
+                    Emitter.Emit(new(GraphOpKind.Copy, buffer, bufferOf[source]));
+                    Emitter.EmitDelay(buffer, delay);
+                } else if (delay == 0) {
+                    Emitter.Emit(new(GraphOpKind.Add, buffer, bufferOf[source]));
+                } else {
+                    var temp = Emitter.Allocate();
+                    Emitter.Emit(new(GraphOpKind.Copy, temp, bufferOf[source]));
+                    Emitter.EmitDelay(temp, delay);
+                    Emitter.Emit(new(GraphOpKind.Add, buffer, temp));
+                    Emitter.Free(temp);
+                }
+
+                ReleaseReader(source);
+            }
+
+            return buffer;
+        }
+
+        /// <summary>One reader of <paramref name="source" />'s buffer is done; the last frees it.</summary>
+        void ReleaseReader(int source) {
+            if (--readersLeft[source] == 0) {
+                Emitter.Free(bufferOf[source]);
+            }
+        }
+    }
+
     sealed class PlanEmitter {
         readonly Stack<int> free = new();
 
@@ -626,8 +838,9 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         public void Emit(GraphOp op) => Ops.Add(op);
 
         /// <summary>
-        ///     A <see cref="GraphOpKind.SideInput" />: buffer <paramref name="source" /> (−1: the grid input), the signal on
-        ///     grid row <paramref name="row" />, to block slot <paramref name="slot" />; a cabled input is added into
+        ///     A <see cref="GraphOpKind.SideInput" />: buffer <paramref name="source" /> (−1: the grid input), the
+        ///     signal on grid row <paramref name="row" />, to block slot <paramref name="slot" />; a cabled input is
+        ///     added into
         ///     <paramref name="destination" />, a tap (<paramref name="destination" /> −1) only offered.
         /// </summary>
         public void EmitSideInput(int slot, int row, int source, int destination) =>

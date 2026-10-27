@@ -11,7 +11,9 @@ namespace Cathode.Dsp.Filters;
 ///     A passive-style layout: broad bands whose Q follows the gain, and shelves at both ends, whatever the Q mode and
 ///     shelf switch say (the approximation, where the component-level network is not run).
 /// </param>
-/// <param name="Network">The component-level network a <see cref="GraphicEqualizer" /> built with networks runs instead.</param>
+/// <param name="Network">
+///     The component-level network a <see cref="GraphicEqualizer" /> built with networks runs instead.
+/// </param>
 public sealed record GraphicEqLayout(
     string Name,
     float[] Centers,
@@ -26,9 +28,9 @@ public sealed record GraphicEqLayout(
 /// <summary>
 ///     The graphic equaliser shared by the Graphic EQ block, the Drive's EQ page and the amp's output EQ: up to ten
 ///     stereo bands (<see cref="EqBand" />) laid out by a <see cref="GraphicEqLayout" />. Bands are peaks, optionally
-///     with the outermost two as shelves. In Variable Q mode (and on the passive layouts) a band narrows as it is pushed
-///     harder: its Q runs from 40 % of the layout's near 0 dB to the full value at ±12 dB, so gentle settings are broad,
-///     as on an analogue graphic. A flat band costs nothing, so a flat EQ is bit-transparent.
+///     with the outermost two as shelves. In Variable Q mode (and on the passive layouts) a band narrows as it is
+///     pushed harder: its Q runs from 40 % of the layout's near 0 dB to the full value at ±12 dB, so gentle settings
+///     are broad, as on an analogue graphic. A flat band costs nothing, so a flat EQ is bit-transparent.
 /// </summary>
 /// <remarks>
 ///     The passive layouts (Mark, 5-, 4- and 3-band, console) run their component-level networks
@@ -124,8 +126,8 @@ public sealed class GraphicEqualizer(bool networks = false) {
     public static IReadOnlyList<string> LayoutNames { get; } = [..Layouts.Select(static l => l.Name)];
 
     /// <summary>
-    ///     The name band <paramref name="band" /> (0-based) has on each layout, with <paramref name="suffix" />, or empty
-    ///     where the layout has fewer bands: a <see cref="Parameters.ParamDescriptor.TypeLabels" /> list.
+    ///     The name band <paramref name="band" /> (0-based) has on each layout, with <paramref name="suffix" />, or
+    ///     empty where the layout has fewer bands: a <see cref="Parameters.ParamDescriptor.TypeLabels" /> list.
     /// </summary>
     public static string[] BandLabels(int band, string suffix = " Hz") =>
         [..Layouts.Select(l => band < l.Count ? Label(l, band, suffix) : string.Empty)];
@@ -140,7 +142,9 @@ public sealed class GraphicEqualizer(bool networks = false) {
         : band == layout.Count - 1 ? BiquadType.HighShelf
         : BiquadType.Peak;
 
-    /// <summary>Control thread: readies the passive networks (when built with them) for <paramref name="sampleRate" />.</summary>
+    /// <summary>
+    ///     Control thread: readies the passive networks (when built with them) for <paramref name="sampleRate" />.
+    /// </summary>
     public void Prepare(double sampleRate) => passive?.Prepare(sampleRate);
 
     public void Reset() {
@@ -152,9 +156,9 @@ public sealed class GraphicEqualizer(bool networks = false) {
     }
 
     /// <summary>
-    ///     Equalises <paramref name="io" /> in place with <paramref name="gains" /> (dB, one per band of the layout; extra
-    ///     entries are ignored). <paramref name="moving" /> says which gains are still ramping, so a band on its way to
-    ///     0 dB keeps running until it gets there.
+    ///     Equalises <paramref name="io" /> in place with <paramref name="gains" /> (dB, one per band of the layout;
+    ///     extra entries are ignored). <paramref name="moving" /> says which gains are still ramping, so a band on its
+    ///     way to 0 dB keeps running until it gets there.
     /// </summary>
     public void Process(
         in StereoBuffer io,
@@ -190,7 +194,7 @@ public sealed class GraphicEqualizer(bool networks = false) {
                 BiquadType.HighShelf => l.Centers[b] / 1.4142f,
                 _ => l.Centers[b]
             };
-            var bandQ = type == BiquadType.Peak ? proportional ? VariableQ(q, gain) : q : 0.7071f;
+            var bandQ = type != BiquadType.Peak ? 0.7071f : proportional ? VariableQ(q, gain) : q;
             bands[b].Process(io, type, sampleRate, frequency, bandQ, gain, moving[b]);
         }
     }

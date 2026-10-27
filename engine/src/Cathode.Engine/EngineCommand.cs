@@ -33,7 +33,9 @@ public readonly record struct EngineCommand(
 
     public static EngineCommand Looper(LooperAction action) => new(EngineCommandKind.Looper, 0, (int)action, 0f);
 
-    /// <summary>A MIDI note pressed (<paramref name="held" />) or released, for blocks that follow the keyboard.</summary>
+    /// <summary>
+    ///     A MIDI note pressed (<paramref name="held" />) or released, for blocks that follow the keyboard.
+    /// </summary>
     public static EngineCommand Note(int note, bool held) => new(EngineCommandKind.Note, 0, note, held ? 1f : 0f);
 
     /// <summary>

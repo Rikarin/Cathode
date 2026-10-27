@@ -8,25 +8,24 @@ namespace Cathode.Dsp.Amp.Models;
 ///     (0.02 µF and 39k to ground from the plate side, with 1M in series while it is off) and the 500 pF Ultra Hi cap;
 ///     the second 6SL7 half (220k, 2.2k unbypassed); a passive Baxandall with 1M pots; the 270k mixing resistors; a
 ///     6SL7 floating paraphase (120k plates, 470k / 510k divider, 1k ‖ 25 µF shared cathode, 220 Ω under the first
-///     half where 10k of feedback from the 16 Ω tap comes in); two 6L6GC in fixed bias (−50 V on the drawing) on a 5AR4,
-///     and the OT-214 (6.5k : 8 / 16 Ω).
+///     half where 10k of feedback from the 16 Ω tap comes in); two 6L6GC in fixed bias (−50 V on the drawing) on a
+///     5AR4, and the OT-214 (6.5k : 8 / 16 Ω).
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         Sources: Joe Piazza's redraw of the 1968 B-15-N (drtube.com/schematics/ampeg/b15n68-jp.gif, also at
 ///         schematicheaven.net/ampegamps), read by eye at 4×: every value in the signal path, the −50 V bias node, the
-///         5AR4 with 30 µF, 1k 10 W and 40 µF, the 22k / 40 µF preamp filters. The OT-214's 6.5k primary (and 290 Ω DCR)
-///         is
-///         from Ampeg's 4/69 B-15-N service manual as quoted by Rob Mercure (Music Electronics Forum, "Primary Z early
-///         Portaflexes"); plates near 450 V and screens near 445 V from builders on the same forum.
+///         5AR4 with 30 µF, 1k 10 W and 40 µF, the 22k / 40 µF preamp filters. The OT-214's 6.5k primary (and 290 Ω
+///         DCR) is from Ampeg's 4/69 B-15-N service manual as quoted by Rob Mercure (Music Electronics Forum, "Primary
+///         Z early Portaflexes"); plates near 450 V and screens near 445 V from builders on the same forum.
 ///     </para>
 ///     <para>
 ///         Assumptions: the 6SL7 runs on the 5751's curves (μ 70; the library has no 6SL7, whose plate resistance is a
-///         little lower); the pot tapers (the volume audio, the Baxandall's linear); the idle current (38 mA a tube, which
-///         gives about −50 V of bias at
-///         450 V); the supply's source resistance (60 Ω); the idle channel two, which loads the mix node through its 270k
-///         as about 150k more; and the cab: the B-15's closed 1 × 15 runs on the closed 8 × 10 preset, the library's only
-///         bass cabinet. The screens have no resistors on the drawing (1 Ω here).
+///         little lower); the pot tapers (the volume audio, the Baxandall's linear); the idle current (38 mA a tube,
+///         which gives about −50 V of bias at 450 V); the supply's source resistance (60 Ω); the idle channel two,
+///         which loads the mix node through its 270k as about 150k more; and the cab: the B-15's closed 1 × 15 runs on
+///         the closed 8 × 10 preset, the library's only bass cabinet. The screens have no resistors on the drawing (1 Ω
+///         here).
 ///     </para>
 /// </remarks>
 public static class PortaflexB15 {
@@ -119,9 +118,9 @@ public static class PortaflexB15 {
     }
 
     /// <summary>
-    ///     0.1 µF in, 220k to the 1M bass pot's top and 470 pF to the 1M treble pot's, 1 nF and 10 nF from the bass wiper
-    ///     (270k from it to ground), 22k to ground, 4.7 nF to the treble pot's bottom, 120k between the wipers; the 270k
-    ///     mixing resistor, channel two's beside it. Out at the mix node (the inverter's grid).
+    ///     0.1 µF in, 220k to the 1M bass pot's top and 470 pF to the 1M treble pot's, 1 nF and 10 nF from the bass
+    ///     wiper (270k from it to ground), 22k to ground, 4.7 nF to the treble pot's bottom, 120k between the wipers;
+    ///     the 270k mixing resistor, channel two's beside it. Out at the mix node (the inverter's grid).
     /// </summary>
     static NetworkStageDesign ToneStack() {
         var net = new StageNetlist();

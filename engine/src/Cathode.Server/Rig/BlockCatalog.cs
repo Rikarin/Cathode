@@ -16,7 +16,9 @@ public sealed class BlockCatalog {
 
     public IReadOnlyList<BlockTypeInfo> All => [..infos.Values];
 
-    /// <summary>The rig parameters (controllers, scene level, tempo, sources), for the editor's controller pages.</summary>
+    /// <summary>
+    ///     The rig parameters (controllers, scene level, tempo, sources), for the editor's controller pages.
+    /// </summary>
     public BlockTypeInfo Rig { get; } = new(
         RigControls.BlockId,
         RigControls.Descriptor.Name,

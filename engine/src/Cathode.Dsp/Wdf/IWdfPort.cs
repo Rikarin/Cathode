@@ -7,8 +7,8 @@ namespace Cathode.Dsp.Wdf;
 /// </summary>
 /// <remarks>
 ///     Implementations are structs composed through generic adaptors (<see cref="Series{TA,TB}" />,
-///     <see cref="Parallel{TA,TB}" />), so the JIT specialises every tree and inlines it: no virtual dispatch per sample
-///     (after Werner's thesis, Stanford 2016, and chowdsp_wdf's compile-time trees). A sample is evaluated as
+///     <see cref="Parallel{TA,TB}" />), so the JIT specialises every tree and inlines it: no virtual dispatch per
+///     sample (after Werner's thesis, Stanford 2016, and chowdsp_wdf's compile-time trees). A sample is evaluated as
 ///     <see cref="Reflect" /> bottom-up, the root's scattering, then <see cref="Incident" /> top-down; see
 ///     <see cref="WdfCircuit{TTree,TRoot}" />. Store trees in mutable fields and never copy them by value mid-stream.
 /// </remarks>
@@ -26,8 +26,8 @@ public interface IWdfPort {
     double Current { get; }
 
     /// <summary>
-    ///     Recomputes the port resistance (and every adaptor coefficient below) from the component values, and returns it.
-    ///     Call after changing a component, then adapt the root to the result.
+    ///     Recomputes the port resistance (and every adaptor coefficient below) from the component values, and returns
+    ///     it. Call after changing a component, then adapt the root to the result.
     /// </summary>
     double Propagate();
 
@@ -43,14 +43,17 @@ public interface IWdfPort {
 
 /// <summary>
 ///     An unadapted element at the root of a tree: it sees the whole tree as one port of resistance R and maps the
-///     tree's reflected wave to the wave it sends back. Nonlinear elements live here, where the scattering can be solved
-///     explicitly instead of through a delay-free loop.
+///     tree's reflected wave to the wave it sends back. Nonlinear elements live here, where the scattering can be
+///     solved explicitly instead of through a delay-free loop.
 /// </summary>
 public interface IWdfRoot {
     /// <summary>Port voltage at the last evaluated sample.</summary>
     double Voltage { get; }
 
-    /// <summary>Tells the root the resistance of the tree it terminates. Called after every <see cref="IWdfPort.Propagate" />.</summary>
+    /// <summary>
+    ///     Tells the root the resistance of the tree it terminates. Called after every
+    ///     <see cref="IWdfPort.Propagate" />.
+    /// </summary>
     void Adapt(double resistance);
 
     /// <summary>Returns the wave b sent back into the tree for the incident wave <paramref name="a" />.</summary>

@@ -8,7 +8,8 @@ namespace Cathode.Audio.Native;
 
 /// <summary>
 ///     Driver-thread callback durations measured natively around the managed call, as a percentage of the buffer
-///     period. Unlike <see cref="CallbackStats" />, this includes time spent waiting to enter the runtime (GC suspension).
+///     period. Unlike <see cref="CallbackStats" />, this includes time spent waiting to enter the runtime (GC
+///     suspension).
 /// </summary>
 public sealed class CallbackTiming(ulong[] bins, ulong overBudget, double maxPercent) {
     public ulong Count { get; } = bins.Aggregate(0UL, static (a, b) => a + b);
@@ -58,7 +59,8 @@ public sealed record AudioSessionStats(
 public sealed record LoopChannels(int[] Returns, int[] Sends) {
     /// <summary>
     ///     Parses 1-based lists such as <c>3,4</c>; null or empty means none. A channel below 1 is a
-    ///     <see cref="FormatException" />: it would index before the driver's channel-pointer array on the audio thread.
+    ///     <see cref="FormatException" />: it would index before the driver's channel-pointer array on the audio
+    ///     thread.
     /// </summary>
     public static LoopChannels Parse(string? returns, string? sends) =>
         new(List(returns, "--loop-in"), List(sends, "--loop-out"));
@@ -76,7 +78,9 @@ public sealed record LoopChannels(int[] Returns, int[] Sends) {
         var channel = int.Parse(text, CultureInfo.InvariantCulture);
         return channel >= 1
             ? channel - 1
-            : throw new FormatException($"{option}: device channels are numbered from 1, so '{text}' is not a channel.");
+            : throw new FormatException(
+                $"{option}: device channels are numbered from 1, so '{text}' is not a channel."
+            );
     }
 }
 
@@ -130,8 +134,8 @@ public sealed record InputMap(int[][] Sources) {
 
 /// <summary>
 ///     A running device stream that calls an <see cref="IAudioProcessor" /> on the driver's real-time thread.
-///     The <see cref="InputMap" />'s Input 1 is the engine's main input (by default channel 1 on both sides: a guitar DI
-///     is mono), and its other sources travel in <see cref="AudioIO.Sources" />. An <see cref="OutputBus" /> maps
+///     The <see cref="InputMap" />'s Input 1 is the engine's main input (by default channel 1 on both sides: a guitar
+///     DI is mono), and its other sources travel in <see cref="AudioIO.Sources" />. An <see cref="OutputBus" /> maps
 ///     Output 1 (by default to channels 1 and 2), Outputs 2-4 and the DI out to device channels; an output mapped past
 ///     the device's last channel is dropped. Optional <see cref="LoopChannels" /> carry an external effects loop.
 /// </summary>
@@ -202,7 +206,9 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         }
     }
 
-    /// <summary>Driver overloads so far. Unlike <see cref="Stats" /> it does not allocate, so it can be polled often.</summary>
+    /// <summary>
+    ///     Driver overloads so far. Unlike <see cref="Stats" /> it does not allocate, so it can be polled often.
+    /// </summary>
     public long Overloads {
         get {
             NativeMethods.Stats(stream, out var s);
@@ -222,8 +228,8 @@ public sealed unsafe class NativeAudioSession : IDisposable {
     }
 
     /// <summary>
-    ///     Exceptions the processor threw on the audio thread so far. Each one leaves that callback's output silent (the
-    ///     backends clear it before the call), so a persistent one sounds like a dead interface.
+    ///     Exceptions the processor threw on the audio thread so far. Each one leaves that callback's output silent
+    ///     (the backends clear it before the call), so a persistent one sounds like a dead interface.
     /// </summary>
     public long CallbackExceptions => Interlocked.Read(ref exceptions);
 
@@ -402,6 +408,11 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         var gain = OutputGain;
         Scale(left, gain);
         Scale(right, gain);
+        WriteBus(outputs, outputChannels, frames, gain);
+    }
+
+    /// <summary>Outputs 2-4 and the DI out, from the output bus to their device channels.</summary>
+    void WriteBus(float** outputs, int outputChannels, int frames, float gain) {
         for (var k = 1; k < OutputBus.Count; k++) {
             var pair = this.outputs.Pair(k);
             if (pair >= 0) {
@@ -429,7 +440,9 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         }
     }
 
-    /// <summary>Copies <paramref name="samples" /> to device channel <paramref name="channel" />, if the device has it.</summary>
+    /// <summary>
+    ///     Copies <paramref name="samples" /> to device channel <paramref name="channel" />, if the device has it.
+    /// </summary>
     static void Write(float** outputs, int count, int channel, ReadOnlySpan<float> samples, float gain) {
         if ((uint)channel >= (uint)count) {
             return;
@@ -440,7 +453,9 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         Scale(destination, gain);
     }
 
-    /// <summary>Side <paramref name="side" /> of an input source: its second channel, or its first again when mono.</summary>
+    /// <summary>
+    ///     Side <paramref name="side" /> of an input source: its second channel, or its first again when mono.
+    /// </summary>
     ReadOnlySpan<float> Input(float** channels, int count, int[] map, int side, int frames) {
         var channel = map.Length == 0 ? -1 : map[Math.Min(side, map.Length - 1)];
         return channel >= 0 && channel < count
@@ -448,7 +463,9 @@ public sealed unsafe class NativeAudioSession : IDisposable {
             : silence.AsSpan(0, frames);
     }
 
-    /// <summary>Copies every mapped source into <see cref="sources" />, planar, as <see cref="AudioIO.Sources" /> wants.</summary>
+    /// <summary>
+    ///     Copies every mapped source into <see cref="sources" />, planar, as <see cref="AudioIO.Sources" /> wants.
+    /// </summary>
     void FillSources(float** channels, int count, int frames) {
         var map = inputs.Sources;
         for (var s = 0; s < Dsp.Routing.HardwareInputs.Count; s++) {
@@ -458,7 +475,9 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         }
     }
 
-    /// <summary>Loop channel <paramref name="index" /> of <paramref name="map" />, the first one again for a mono loop.</summary>
+    /// <summary>
+    ///     Loop channel <paramref name="index" /> of <paramref name="map" />, the first one again for a mono loop.
+    /// </summary>
     static Span<float> Channel(float** channels, int count, int[] map, int index, int frames) {
         if (map.Length == 0) {
             return [];

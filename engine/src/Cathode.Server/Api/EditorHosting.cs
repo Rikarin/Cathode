@@ -4,9 +4,9 @@ namespace Cathode.Server.Api;
 
 /// <summary>
 ///     Serves the editor's web build (<see cref="ServerOptions.EditorDirectory" />) at the root, so a headless rig is
-///     played from any browser on the network: a phone, a tablet, a laptop. The files carry nothing secret, so they need
-///     no token; every API call still does, and the page asks for it. <c>index.html</c> is marked same-origin, so the
-///     editor talks to the Server that served it. Ahead of <see cref="Access.UseCathodeAccess" /> in the pipeline.
+///     played from any browser on the network: a phone, a tablet, a laptop. The files carry nothing secret, so they
+///     need no token; every API call still does, and the page asks for it. <c>index.html</c> is marked same-origin, so
+///     the editor talks to the Server that served it. Ahead of <see cref="Access.UseCathodeAccess" /> in the pipeline.
 /// </summary>
 public static class EditorHosting {
     const string Marker = """<meta name="cathode-server" content="same-origin">""";

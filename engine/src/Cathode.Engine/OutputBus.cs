@@ -32,7 +32,7 @@ public sealed class OutputBus : IDisposable {
     public OutputBus(IReadOnlyList<int>? pairs = null, IReadOnlyList<int>? di = null) {
         this.pairs = new int[NodeTypes.OutputCount];
         for (var k = 0; k < this.pairs.Length; k++) {
-            this.pairs[k] = pairs is null ? k == 0 ? 0 : -1 : k < pairs.Count ? pairs[k] : -1;
+            this.pairs[k] = FirstChannel(pairs, k);
         }
 
         for (var k = 1; k < NodeTypes.OutputCount; k++) {
@@ -49,13 +49,24 @@ public sealed class OutputBus : IDisposable {
     public bool HasDi => DiChannels.Length > 0;
 
     /// <summary>
+    ///     Output <paramref name="output" />'s first channel: the listed one, else 0 for Output 1 and none for others.
+    /// </summary>
+    static int FirstChannel(IReadOnlyList<int>? pairs, int output) {
+        if (pairs is null) {
+            return output == 0 ? 0 : -1;
+        }
+
+        return output < pairs.Count ? pairs[output] : -1;
+    }
+
+    /// <summary>
     ///     Parses the audio settings' 1-based lists: <paramref name="outputs" /> gives the first channel of Outputs 1-4
     ///     in order (<c>1,3</c> plays Output 1 on 1-2 and Output 2 on 3-4; 0 leaves one unmapped); null or empty keeps
     ///     the default, Output 1 on channels 1-2. <paramref name="di" /> lists one or two channels for the DI out.
     /// </summary>
     /// <remarks>
-    ///     A negative output channel, or a DI channel below 1, is a <see cref="FormatException" />: it would index before
-    ///     the driver's channel-pointer array on the audio thread.
+    ///     A negative output channel, or a DI channel below 1, is a <see cref="FormatException" />: it would index
+    ///     before the driver's channel-pointer array on the audio thread.
     /// </remarks>
     public static OutputBus Parse(string? outputs, string? di) {
         var pairs = List(outputs, "--outputs", 0);

@@ -8,8 +8,9 @@ namespace Cathode.Server.Rig;
 public static class PresetGraph {
     /// <summary>
     ///     <paramref name="held" /> holds the blocks Scene Ignore kept off the scene's state; a modifier scoped to one
-    ///     channel starts enabled only when its block is on that channel. <paramref name="oversampling" /> is the global
-    ///     oversampling filters (minimum or linear), which the graph carries because they change block latencies.
+    ///     channel starts enabled only when its block is on that channel. <paramref name="oversampling" /> is the
+    ///     global oversampling filters (minimum or linear), which the graph carries because they change block
+    ///     latencies.
     /// </summary>
     public static GraphDefinition Build(
         Preset preset,

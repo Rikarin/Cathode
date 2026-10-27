@@ -54,7 +54,8 @@ static class AudioCommands {
         Console.WriteLine($"backend: {NativeAudio.Backend}");
         foreach (var d in NativeAudio.Devices()) {
             Console.WriteLine(
-                $"  {d.Name,-40} in {d.InputChannels,2}  out {d.OutputChannels,2}  {d.SampleRate / 1000:0.#} kHz  uid: {d.Uid}"
+                $"  {d.Name,-40} in {d.InputChannels,2}  out {d.OutputChannels,2}  "
+                + $"{d.SampleRate / 1000:0.#} kHz  uid: {d.Uid}"
             );
         }
 
@@ -81,7 +82,7 @@ static class AudioCommands {
                         GraphJsonContext.Default.GraphDefinition
                     )!
                     : options.Text("nam") is { } model
-                        ? Graphs.Nam(Path.GetFullPath(model))
+                        ? GraphTemplates.Nam(Path.GetFullPath(model))
                         : GraphTemplates.Basic();
                 var assetRoot = graphPath is not null ? Path.GetDirectoryName(Path.GetFullPath(graphPath)) : null;
                 engine.Publish(
@@ -102,7 +103,8 @@ static class AudioCommands {
             Thread.Sleep(1000);
             var stats = session.Stats();
             Console.WriteLine(
-                $"  {s,3}s  callbacks {stats.Callbacks,7}  overloads {stats.Overloads}  engine p99.9 <= {engine!.Stats.Percentile(0.999):0}%  max {engine.Stats.MaxPercent:0.0}%"
+                $"  {s,3}s  callbacks {stats.Callbacks,7}  overloads {stats.Overloads}  engine p99.9 <= "
+                + $"{engine!.Stats.Percentile(0.999):0}%  max {engine.Stats.MaxPercent:0.0}%"
             );
         }
 
@@ -110,7 +112,8 @@ static class AudioCommands {
         var final = session.Stats();
         Console.WriteLine();
         Console.WriteLine(
-            $"engine callback: p50 <= {engine!.Stats.Percentile(0.5):0}%  p99.9 <= {engine.Stats.Percentile(0.999):0}%  max {engine.Stats.MaxPercent:0.0}% of budget"
+            $"engine callback: p50 <= {engine!.Stats.Percentile(0.5):0}%  p99.9 <= "
+            + $"{engine.Stats.Percentile(0.999):0}%  max {engine.Stats.MaxPercent:0.0}% of budget"
         );
         Console.WriteLine($"driver overloads: {final.Overloads}   managed exceptions: {final.CallbackExceptions}");
         PrintReportedLatency(session, final);
@@ -144,14 +147,16 @@ static class AudioCommands {
         }
 
         Console.WriteLine(
-            $"measured round trip: {median} frames = {median * 1000.0 / session.SampleRate:0.00} ms (median of {lags.Length}, range {lags.Min()}..{lags.Max()}, missed {probe.Missed})"
+            $"measured round trip: {median} frames = {median * 1000.0 / session.SampleRate:0.00} ms (median of "
+            + $"{lags.Length}, range {lags.Min()}..{lags.Max()}, missed {probe.Missed})"
         );
         return 0;
     }
 
     /// <summary>
-    ///     Measures an impulse response (a cab and mic, a room, an amp's power section into a load): plays an exponential
-    ///     sweep on outputs 1 and 2, records input 1 and writes the trimmed IR as a WAV (docs/04 Phase 6 item 8).
+    ///     Measures an impulse response (a cab and mic, a room, an amp's power section into a load): plays an
+    ///     exponential sweep on outputs 1 and 2, records input 1 and writes the trimmed IR as a WAV (docs/04 Phase 6
+    ///     item 8).
     /// </summary>
     public static int IrCapture(CommandLine options) {
         var path = options.Text("out") ?? throw new InvalidOperationException("--out <file.wav> is required.");
@@ -170,7 +175,8 @@ static class AudioCommands {
         }
 
         Console.WriteLine(
-            $"Playing a {seconds:0.#} s sweep at {20 * Math.Log10(level):0} dBFS on outputs 1-2 and recording input 1..."
+            $"Playing a {seconds:0.#} s sweep at {20 * Math.Log10(level):0} dBFS on outputs 1-2 and "
+            + "recording input 1..."
         );
         session.Start();
         while (!recorder!.Done) {
@@ -192,7 +198,8 @@ static class AudioCommands {
         var ir = measurement.Trim(measurement.Deconvolve(recorder.Recorded), options.Double("length", 500));
         WavFile.Write(path, new((int)session.SampleRate, [ir]));
         Console.WriteLine(
-            $"recorded peak {20 * Math.Log10(peak):0.0} dBFS; wrote {ir.Length} samples ({ir.Length * 1000.0 / session.SampleRate:0} ms) to {path}"
+            $"recorded peak {20 * Math.Log10(peak):0.0} dBFS; wrote {ir.Length} samples "
+            + $"({ir.Length * 1000.0 / session.SampleRate:0} ms) to {path}"
         );
         return 0;
     }
@@ -211,7 +218,8 @@ static class AudioCommands {
         var session = NativeAudioSession.Open(forwarder, options.Text("device"), rate, buffer, inputChannels);
         forwarder.Target = createProcessor(new(session.SampleRate, Math.Max(session.BufferFrames, 1)));
         Console.WriteLine(
-            $"device: {options.Text("device") ?? "(default output)"}  {session.SampleRate / 1000:0.#} kHz  buffer {session.BufferFrames}  in {session.InputChannels}  out {session.OutputChannels}"
+            $"device: {options.Text("device") ?? "(default output)"}  {session.SampleRate / 1000:0.#} kHz  buffer "
+            + $"{session.BufferFrames}  in {session.InputChannels}  out {session.OutputChannels}"
         );
         return session;
     }
@@ -219,7 +227,8 @@ static class AudioCommands {
     static void PrintReportedLatency(NativeAudioSession session, AudioSessionStats stats) {
         var total = stats.InputLatencyFrames + stats.OutputLatencyFrames;
         Console.WriteLine(
-            $"driver-reported latency: in {stats.InputLatencyFrames} + out {stats.OutputLatencyFrames} = {total} frames = {total * 1000.0 / session.SampleRate:0.00} ms"
+            $"driver-reported latency: in {stats.InputLatencyFrames} + out {stats.OutputLatencyFrames} = {total} "
+            + $"frames = {total * 1000.0 / session.SampleRate:0.00} ms"
         );
     }
 
@@ -237,7 +246,9 @@ static class AudioCommands {
         }
     }
 
-    /// <summary>Audio thread: plays the sweep then silence for the tail, recording input 1 into a preallocated buffer.</summary>
+    /// <summary>
+    ///     Audio thread: plays the sweep then silence for the tail, recording input 1 into a preallocated buffer.
+    /// </summary>
     sealed class SweepRecorder(SweepMeasurement measurement, float level, double tailSeconds) : IAudioProcessor {
         readonly float[] sweep = measurement.Sweep;
         int position;

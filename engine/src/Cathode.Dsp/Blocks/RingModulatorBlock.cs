@@ -5,11 +5,11 @@ using Cathode.Dsp.Pitch;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-///     Ring modulator: the input multiplied by a sine carrier, which replaces every input partial at f with the sidebands
-///     f + fc and |f - fc| and leaves neither the input nor the carrier in the wet signal. The carrier runs from a
-///     double-precision phase accumulator, so the sidebands stay clean. With <b>Tempo</b> set, the carrier follows the
-///     song tempo instead (a note value per carrier cycle), which turns the effect into a polarity-flipping tremolo.
-///     A high-cut tames the upper sideband before the mix.
+///     Ring modulator: the input multiplied by a sine carrier, which replaces every input partial at f with the
+///     sidebands f + fc and |f - fc| and leaves neither the input nor the carrier in the wet signal. The carrier runs
+///     from a double-precision phase accumulator, so the sidebands stay clean. With <b>Tempo</b> set, the carrier
+///     follows the song tempo instead (a note value per carrier cycle), which turns the effect into a polarity-flipping
+///     tremolo. A high-cut tames the upper sideband before the mix.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -20,7 +20,8 @@ namespace Cathode.Dsp.Blocks;
 ///     </para>
 ///     <para>
 ///         Pitch Tracking sets the carrier to the note being played (a <see cref="PitchTracker" />) times the
-///         multiplier, gliding in 10 ms; the carrier holds its last note between notes. It overrides Frequency and Tempo.
+///         multiplier, gliding in 10 ms; the carrier holds its last note between notes. It overrides Frequency and
+///         Tempo.
 ///     </para>
 /// </remarks>
 public sealed class RingModulatorBlock() : DspBlock(Info) {
@@ -63,9 +64,9 @@ public sealed class RingModulatorBlock() : DspBlock(Info) {
             ParamDescriptor.Float("frequency", "Frequency", 10f, 5_000f, 440f, "Hz", ParamTaper.Log),
             ParamDescriptor.Choice("tempo", "Tempo", ["Off", "1/4", "1/8", "1/16", "1/32", "1/64"]),
             ParamDescriptor.Float("highCut", "High Cut", 200f, 20_000f, 20_000f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Mix(100f),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Float("multiplier", "Freq Multiplier", 0.25f, 4f, 1f, "x", ParamTaper.Log),
             ParamDescriptor.Choice("type", "Type", ["Classic", "Upper Sideband", "Lower Sideband"]),
             ParamDescriptor.Switch("tracking", "Pitch Tracking")

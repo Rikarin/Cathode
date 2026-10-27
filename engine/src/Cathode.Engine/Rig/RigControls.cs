@@ -145,9 +145,9 @@ public enum ModCurve {
 
 public static class ModNames {
     /// <summary>
-    ///     The pseudo-parameter a modifier can drive to engage and bypass a block (docs/08-blocks-parity.md §3): engaged
-    ///     while the modified value (0..1) is at least 0.5, bypassed below. While one drives a block, it wins over the
-    ///     scene's bypass state.
+    ///     The pseudo-parameter a modifier can drive to engage and bypass a block (docs/08-blocks-parity.md §3):
+    ///     engaged while the modified value (0..1) is at least 0.5, bypassed below. While one drives a block, it wins
+    ///     over the scene's bypass state.
     /// </summary>
     public const string EngageParam = "engage";
 

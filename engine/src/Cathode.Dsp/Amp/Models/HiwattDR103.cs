@@ -21,17 +21,17 @@ namespace Cathode.Dsp.Amp.Models;
 ///         (linear here).
 ///     </para>
 ///     <para>
-///         The inverter: its first grid has 100k and its second 1M to a cathode follower (V3: a 1M/220k divider from the
-///         preamp rail, 220k cathode) at about 50 V; the cathodes go through 22k to the feedback node, which has 2k2 to
-///         ground and 0.1 µF to the second grid. Here it is the library's long-tail pair with the same rest point: a
-///         22.6k tail under a 1.6k bias resistor (about 3.5 V of grid bias at 2.2 mA), with the 22 nF and 100k taken
-///         into V2B's stage as its load (the follower is stiff, so the 100k returns to AC ground, not bootstrapped). The
-///         presence pot sits between 1 nF from V2B's plate and 0.1 µF to the feedback node, its wiper through 100 Ω to
-///         ground: its feedback half is the library's presence (pot and cap across the shunt), which acts only near the
-///         top of the knob (100k across 2k2), and its plate-side half is in V2B's stage (1 nF into the pot's lower part
-///         and 100 Ω: <see cref="HiwattParts.PresencePlateSide" />), the treble cut that does the work through the rest
-///         of the travel. The fixed 470 Ω with 10 nF across the shunt is left out (the library's feedback network has
-///         no fixed branch beside the presence's).
+///         The inverter: its first grid has 100k and its second 1M to a cathode follower (V3: a 1M/220k divider from
+///         the preamp rail, 220k cathode) at about 50 V; the cathodes go through 22k to the feedback node, which has
+///         2k2 to ground and 0.1 µF to the second grid. Here it is the library's long-tail pair with the same rest
+///         point: a 22.6k tail under a 1.6k bias resistor (about 3.5 V of grid bias at 2.2 mA), with the 22 nF and 100k
+///         taken into V2B's stage as its load (the follower is stiff, so the 100k returns to AC ground, not
+///         bootstrapped). The presence pot sits between 1 nF from V2B's plate and 0.1 µF to the feedback node, its
+///         wiper through 100 Ω to ground: its feedback half is the library's presence (pot and cap across the shunt),
+///         which acts only near the top of the knob (100k across 2k2), and its plate-side half is in V2B's stage (1 nF
+///         into the pot's lower part and 100 Ω: <see cref="HiwattParts.PresencePlateSide" />), the treble cut that does
+///         the work through the rest of the travel. The fixed 470 Ω with 10 nF across the shunt is left out (the
+///         library's feedback network has no fixed branch beside the presence's).
 ///     </para>
 ///     <para>
 ///         Not on the drawings (guesses): the rails (B+ 496 V at the plates, as AmpBooks gives; 450 V at the inverter
@@ -88,9 +88,9 @@ public static class HiwattDR103 {
     };
 
     /// <summary>
-    ///     V1: the guitar into the Brilliant channel's high input (34k: both 68k in parallel, 1M at the jack), into both
-    ///     with the Jumper (switch 1), into the Normal channel alone with switch 2; two triodes on 220k plates and a
-    ///     shared 1k1 with 47 nF; each plate through its coupling cap (Brilliant 1 nF, Normal 22 nF) to its 470k-A
+    ///     V1: the guitar into the Brilliant channel's high input (34k: both 68k in parallel, 1M at the jack), into
+    ///     both with the Jumper (switch 1), into the Normal channel alone with switch 2; two triodes on 220k plates and
+    ///     a shared 1k1 with 47 nF; each plate through its coupling cap (Brilliant 1 nF, Normal 22 nF) to its 470k-A
     ///     volume and through 470k from the wiper to the mixing node, V2A's grid (the output). An idle channel's grid
     ///     rests on its jack's 1M.
     /// </summary>
@@ -159,8 +159,8 @@ public static class HiwattDR103 {
     }
 
     /// <summary>
-    ///     V2B (100k, 1k5 unbypassed), 22 nF into the inverter's 100k grid resistor (the output); from its plate, 1 nF into
-    ///     the presence pot's plate-side half (<see cref="HiwattParts.PresencePlateSide" />).
+    ///     V2B (100k, 1k5 unbypassed), 22 nF into the inverter's 100k grid resistor (the output); from its plate, 1 nF
+    ///     into the presence pot's plate-side half (<see cref="HiwattParts.PresencePlateSide" />).
     /// </summary>
     static NetworkStageDesign V2B() {
         var net = new StageNetlist();

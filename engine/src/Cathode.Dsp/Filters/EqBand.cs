@@ -1,8 +1,8 @@
 namespace Cathode.Dsp.Filters;
 
 /// <summary>
-///     One stereo EQ band on a state-variable filter. A band at 0 dB that isn't moving is skipped entirely (unless it is
-///     a high- or low-pass, which have no gain), so a flat EQ is bit-transparent and costs nothing.
+///     One stereo EQ band on a state-variable filter. A band at 0 dB that isn't moving is skipped entirely (unless it
+///     is a high- or low-pass, which have no gain), so a flat EQ is bit-transparent and costs nothing.
 /// </summary>
 sealed class EqBand {
     SvfState left;

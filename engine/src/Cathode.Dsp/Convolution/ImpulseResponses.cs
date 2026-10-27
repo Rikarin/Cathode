@@ -13,7 +13,9 @@ public static class ImpulseResponses {
 
     static readonly List<ImpulseResponseFile> Cache = [];
 
-    /// <summary>The cached IR for <paramref name="path" />, read again only when the file's size or time changed.</summary>
+    /// <summary>
+    ///     The cached IR for <paramref name="path" />, read again only when the file's size or time changed.
+    /// </summary>
     public static ImpulseResponseFile Load(string path) {
         var file = new FileInfo(path);
         if (!file.Exists) {
@@ -51,8 +53,12 @@ public static class ImpulseResponses {
 }
 
 /// <summary>How an IR is shaped for convolution.</summary>
-/// <param name="MaxLength">Longest IR kept, in samples at the engine rate; longer ones fade out over 64 samples.</param>
-/// <param name="UnitEnergy">Scale to unit energy (cabs), or keep the file's gain (Tone Match's correction filters).</param>
+/// <param name="MaxLength">
+///     Longest IR kept, in samples at the engine rate; longer ones fade out over 64 samples.
+/// </param>
+/// <param name="UnitEnergy">
+///     Scale to unit energy (cabs), or keep the file's gain (Tone Match's correction filters).
+/// </param>
 public readonly record struct IrShape(int MaxLength, bool UnitEnergy = true);
 
 /// <summary>A decoded IR file and its prepared forms. Prepared channels are shared: read only.</summary>
@@ -69,7 +75,9 @@ public sealed class ImpulseResponseFile(string path, long length, DateTime writt
 
     public AudioData Source { get; } = source;
 
-    /// <summary>Resampled to <paramref name="sampleRate" />, truncated and (optionally) normalised; at most two channels.</summary>
+    /// <summary>
+    ///     Resampled to <paramref name="sampleRate" />, truncated and (optionally) normalised; at most two channels.
+    /// </summary>
     public float[][] Prepare(double sampleRate, IrShape shape) {
         lock (prepared) {
             if (prepared.TryGetValue((sampleRate, shape), out var hit)) {
@@ -80,7 +88,8 @@ public sealed class ImpulseResponseFile(string path, long length, DateTime writt
                 .Select(c => Truncate(Resampler.Resample(c, Source.SampleRate, sampleRate), shape.MaxLength))
                 .ToArray();
             if (shape.UnitEnergy) {
-                var norm = 1f / MathF.Sqrt(channels.Average(static c => c.Sum(static v => v * v)));
+                var energy = channels.Average(static float (float[] c) => c.Sum(static float (float v) => v * v));
+                var norm = 1f / MathF.Sqrt(energy);
                 foreach (var channel in channels) {
                     for (var i = 0; i < channel.Length; i++) {
                         channel[i] *= norm;

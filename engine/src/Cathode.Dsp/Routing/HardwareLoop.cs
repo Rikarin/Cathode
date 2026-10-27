@@ -21,7 +21,9 @@ public sealed class HardwareLoop : IDisposable {
     /// <summary>Whether the device has return channels configured; without them blocks hear silence.</summary>
     public bool HasReturn { get; private set; }
 
-    /// <summary>Audio thread, at the start of a callback: take the device's return channels and clear the sends.</summary>
+    /// <summary>
+    ///     Audio thread, at the start of a callback: take the device's return channels and clear the sends.
+    /// </summary>
     public void BeginCallback(ReadOnlySpan<float> returnLeft, ReadOnlySpan<float> returnRight, int frames) {
         HasReturn = !returnLeft.IsEmpty;
         if (HasReturn) {

@@ -780,7 +780,9 @@ public class ModulationParityTests {
         Assert.True(Analysis.Rms(output.AsSpan(4_800)) > 0.1);
     }
 
-    /// <summary>The level around a harmonic, summed over a few cents either side, so a noise-driven ring reads steadily.</summary>
+    /// <summary>
+    ///     The level around a harmonic, summed over a few cents either side, so a noise-driven ring reads steadily.
+    /// </summary>
     static double Band(ReadOnlySpan<float> signal, double frequency) {
         var sum = 0.0;
         for (var i = -4; i <= 4; i++) {

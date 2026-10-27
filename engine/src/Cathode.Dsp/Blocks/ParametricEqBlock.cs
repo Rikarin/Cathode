@@ -9,17 +9,18 @@ namespace Cathode.Dsp.Blocks;
 ///         <item><b>Shelf</b>: a second-order low (band 1) or high (band 5) shelf, its Q limited to 1.</item>
 ///         <item><b>Peak</b>: a peaking band.</item>
 ///         <item>
-///             <b>Blocking</b>: a high-pass (band 1) or low-pass (band 5) that ignores its gain. At 12 dB/oct its Q sets
-///             the resonance; the other slopes (6 to 36 dB/oct) are Butterworth.
+///             <b>Blocking</b>: a high-pass (band 1) or low-pass (band 5) that ignores its gain. At 12 dB/oct its Q
+///             sets the resonance; the other slopes (6 to 36 dB/oct) are Butterworth.
 ///         </item>
 ///         <item><b>Shelving 2</b>: a gentle first-order shelf, centred on the band's frequency; Q does nothing.</item>
 ///         <item>
-///             <b>Peaking 2</b>: a proportional-Q peak, broad at small gains and narrowing to the band's Q at ±12 dB, as
-///             on an analogue console.
+///             <b>Peaking 2</b>: a proportional-Q peak, broad at small gains and narrowing to the band's Q at ±12 dB,
+///             as on an analogue console.
 ///         </item>
 ///     </list>
 ///     <b>Solo</b> listens to one band's region alone: a peak's band-pass at its frequency and Q, band 1's low-pass or
-///     band 5's high-pass at its frequency. Coefficients follow smoothed parameters every <see cref="SubBlock" /> samples.
+///     band 5's high-pass at its frequency. Coefficients follow smoothed parameters every <see cref="SubBlock" />
+///     samples.
 /// </summary>
 public sealed class ParametricEqBlock : DspBlock {
     public const int Bands = 5;
@@ -78,8 +79,8 @@ public sealed class ParametricEqBlock : DspBlock {
                 "Band 5 Type",
                 ["High Shelf", "Peak", "Blocking", "Shelving 2", "Peaking 2"]
             ),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Choice("lowslope", "Band 1 Slope", CutFilter.SteepSlopes, CutFilter.Slope12),
             ParamDescriptor.Choice("highslope", "Band 5 Slope", CutFilter.SteepSlopes, CutFilter.Slope12),
             ParamDescriptor.Choice("solo", "Solo", ["Off", "Band 1", "Band 2", "Band 3", "Band 4", "Band 5"])
@@ -146,7 +147,8 @@ public sealed class ParametricEqBlock : DspBlock {
                 }
 
                 var outer = b is 1 or Bands;
-                var kind = !outer ? Peak : (int)Params.Current(b == 1 ? LowType : HighType);
+                var typeParam = b == 1 ? LowType : HighType;
+                var kind = !outer ? Peak : (int)Params.Current(typeParam);
                 switch (kind) {
                     case Shelf2:
                         shelves[b == 1 ? 0 : 1].Process(chunk, b == 1, Spec.SampleRate, frequency, gain);

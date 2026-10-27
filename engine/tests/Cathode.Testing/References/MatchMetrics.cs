@@ -4,12 +4,16 @@ using System.Numerics;
 namespace Cathode.Testing.References;
 
 /// <summary>Latency and gain that best align a prediction to a target.</summary>
-/// <param name="Lag">Samples the prediction is delayed relative to the target (positive: the prediction is late).</param>
-/// <param name="Gain">Least-squares output gain applied to the prediction (negative if the polarity is inverted).</param>
+/// <param name="Lag">
+///     Samples the prediction is delayed relative to the target (positive: the prediction is late).
+/// </param>
+/// <param name="Gain">
+///     Least-squares output gain applied to the prediction (negative if the polarity is inverted).
+/// </param>
 /// <param name="Fraction">
-///     A further delay of the prediction, in samples (-0.5 to 0.5), removed by band-limited interpolation: latencies are
-///     rarely whole samples (an oversampler's filters, a capture's interface), and half a sample is a large error at high
-///     frequencies, where the pre-emphasised ESR looks.
+///     A further delay of the prediction, in samples (-0.5 to 0.5), removed by band-limited interpolation: latencies
+///     are rarely whole samples (an oversampler's filters, a capture's interface), and half a sample is a large error
+///     at high frequencies, where the pre-emphasised ESR looks.
 /// </param>
 public readonly record struct Alignment(int Lag, double Gain, double Fraction = 0) {
     /// <summary>Half-length of the interpolator's windowed sinc, in samples.</summary>
@@ -18,8 +22,8 @@ public readonly record struct Alignment(int Lag, double Gain, double Fraction = 
     public double GainDb => Analysis.ToDb(Math.Abs(Gain));
 
     /// <summary>
-    ///     The prediction shifted by <see cref="Lag" /> (and <see cref="Fraction" />) and scaled by <see cref="Gain" />,
-    ///     as long as the input.
+    ///     The prediction shifted by <see cref="Lag" /> (and <see cref="Fraction" />) and scaled by
+    ///     <see cref="Gain" />, as long as the input.
     /// </summary>
     public float[] Apply(ReadOnlySpan<float> prediction) {
         var result = new float[prediction.Length];
@@ -75,7 +79,9 @@ public static class MatchMetrics {
     /// <summary>Harmonics analysed in a <see cref="HarmonicProfile" />, the fundamental included.</summary>
     public const int Harmonics = 9;
 
-    /// <summary>Harmonics below this (dB under the fundamental) are treated as this, so noise floors do not dominate.</summary>
+    /// <summary>
+    ///     Harmonics below this (dB under the fundamental) are treated as this, so noise floors do not dominate.
+    /// </summary>
     public const double HarmonicFloorDb = -80;
 
     /// <summary>STFT sizes of <see cref="Mrstft" />.</summary>
@@ -86,8 +92,8 @@ public static class MatchMetrics {
 
     /// <summary>
     ///     The lag within ±<paramref name="maxLag" /> maximising |cross-correlation|, refined to a fraction of a sample
-    ///     (the delay maximising the normalised correlation of the interpolated prediction), then the least-squares gain
-    ///     there.
+    ///     (the delay maximising the normalised correlation of the interpolated prediction), then the least-squares
+    ///     gain there.
     /// </summary>
     public static Alignment Align(ReadOnlySpan<float> target, ReadOnlySpan<float> prediction, int maxLag = 512) {
         var length = Math.Min(target.Length, prediction.Length);
@@ -180,8 +186,8 @@ public static class MatchMetrics {
 
     /// <summary>
     ///     Multi-resolution STFT distance (as auraloss): per size, spectral convergence ‖|Y|−|X|‖/‖|X|‖ plus the mean
-    ///     absolute log-magnitude difference, Hann windows hopping by a quarter; averaged over <see cref="StftSizes" />.
-    ///     0 is a perfect match; unrelated signals of similar level score around 2–4.
+    ///     absolute log-magnitude difference, Hann windows hopping by a quarter; averaged over
+    ///     <see cref="StftSizes" />. 0 is a perfect match; unrelated signals of similar level score around 2–4.
     /// </summary>
     public static double Mrstft(ReadOnlySpan<float> target, ReadOnlySpan<float> prediction) {
         var peak = Math.Max(Analysis.Peak(target), 1e-9);
@@ -211,8 +217,8 @@ public static class MatchMetrics {
 
     /// <summary>
     ///     Levels of harmonics 1 … <see cref="Harmonics" /> of a coherent tone (the last
-    ///     <see cref="MatchSignals.HarmonicWindow" /> samples of <paramref name="output" />): index 0 is the fundamental
-    ///     in dBFS, the rest are relative to it in dB, floored at <see cref="HarmonicFloorDb" />.
+    ///     <see cref="MatchSignals.HarmonicWindow" /> samples of <paramref name="output" />): index 0 is the
+    ///     fundamental in dBFS, the rest are relative to it in dB, floored at <see cref="HarmonicFloorDb" />.
     /// </summary>
     public static double[] HarmonicProfile(ReadOnlySpan<float> output, int cycles) {
         var window = output[^MatchSignals.HarmonicWindow..];
@@ -231,8 +237,8 @@ public static class MatchMetrics {
     }
 
     /// <summary>
-    ///     Third-octave magnitude response (dB) at <see cref="ResponseCenters" /> from a sweep and the output it caused:
-    ///     band energy of the output over band energy of the input.
+    ///     Third-octave magnitude response (dB) at <see cref="ResponseCenters" /> from a sweep and the output it
+    ///     caused: band energy of the output over band energy of the input.
     /// </summary>
     public static double[] FrequencyResponse(ReadOnlySpan<float> input, ReadOnlySpan<float> output, double sampleRate) {
         var size = (int)BitOperations.RoundUpToPowerOf2((uint)Math.Max(input.Length, output.Length));

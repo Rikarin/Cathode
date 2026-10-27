@@ -4,8 +4,8 @@ using System.Numerics;
 namespace Cathode.Dsp.Tests.Circuits;
 
 /// <summary>
-///     A circuit for <see cref="ReferenceSimulator" />: a plain SPICE-like element list, independent of the wave digital
-///     filter code (only the device models are shared, through <see cref="INonlinearDevice" />).
+///     A circuit for <see cref="ReferenceSimulator" />: a plain SPICE-like element list, independent of the wave
+///     digital filter code (only the device models are shared, through <see cref="INonlinearDevice" />).
 /// </summary>
 sealed class ReferenceCircuit {
     public const int Ground = 0;
@@ -36,7 +36,9 @@ sealed class ReferenceCircuit {
 
     public void Capacitor(int a, int b, double farads) => Capacitors.Add((a, b, farads));
 
-    /// <summary>An inductor, current flowing from <paramref name="a" /> to <paramref name="b" />: an MNA branch of its own.</summary>
+    /// <summary>
+    ///     An inductor, current flowing from <paramref name="a" /> to <paramref name="b" />: an MNA branch of its own.
+    /// </summary>
     public void Inductor(int a, int b, double henries) => Inductors.Add((a, b, henries));
 
     /// <summary>
@@ -100,7 +102,9 @@ sealed class ReferenceSimulator {
     /// <summary>Current through inductor <paramref name="index" />, from its first node to its second.</summary>
     public double InductorCurrent(int index) => x[InductorRow(index)];
 
-    /// <summary>Solves the DC operating point at time 0 (capacitors open) and makes it the transient's initial state.</summary>
+    /// <summary>
+    ///     Solves the DC operating point at time 0 (capacitors open) and makes it the transient's initial state.
+    /// </summary>
     public void OperatingPoint(int steps = 20) {
         Array.Clear(x);
         Array.Clear(capacitorCurrents);
@@ -120,7 +124,9 @@ sealed class ReferenceSimulator {
         SyncInductors();
     }
 
-    /// <summary>Advances from <paramref name="time" /> - <paramref name="step" /> to <paramref name="time" />.</summary>
+    /// <summary>
+    ///     Advances from <paramref name="time" /> - <paramref name="step" /> to <paramref name="time" />.
+    /// </summary>
     public void Step(double time, double step) {
         var previous = new double[circuit.Capacitors.Count];
         for (var i = 0; i < previous.Length; i++) {
@@ -145,8 +151,8 @@ sealed class ReferenceSimulator {
 
     /// <summary>
     ///     The response V(outPlus) - V(outMinus) to a unit amplitude on source <paramref name="input" />. With
-    ///     <paramref name="linearised" />, the devices take part as their small-signal conductances at the last solution
-    ///     (an operating point, say); otherwise they are left out.
+    ///     <paramref name="linearised" />, the devices take part as their small-signal conductances at the last
+    ///     solution (an operating point, say); otherwise they are left out.
     /// </summary>
     public Complex Ac(Complex s, int input, int outPlus, int outMinus = 0, bool linearised = false) {
         var a = new Complex[size, size];
@@ -315,8 +321,8 @@ sealed class ReferenceSimulator {
             }
         }
 
-        // Steps that only dither at the last digits (limiting toggling near a junction's knee, which varies between CPUs)
-        // are still a solution to within a microvolt; anything further off is a failure.
+        // Steps that only dither at the last digits (limiting toggling near a junction's knee, which varies between
+        // CPUs) are still a solution to within a microvolt; anything further off is a failure.
         if (change > 1e3) {
             NewtonFailures++;
         }
@@ -332,8 +338,8 @@ sealed class ReferenceSimulator {
     }
 
     /// <summary>
-    ///     Ideal transformers: a current unknown per winding; one row makes the ampere-turns sum to zero, the others make
-    ///     each winding's volts per turn equal the first's.
+    ///     Ideal transformers: a current unknown per winding; one row makes the ampere-turns sum to zero, the others
+    ///     make each winding's volts per turn equal the first's.
     /// </summary>
     void StampTransformers(double[,] a) {
         var row = circuit.Nodes + circuit.Sources.Count + circuit.Controlled.Count + circuit.Inductors.Count;

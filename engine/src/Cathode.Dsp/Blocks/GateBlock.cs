@@ -18,9 +18,8 @@ namespace Cathode.Dsp.Blocks;
 ///         threshold.
 ///     </para>
 ///     Sidechain picks what the detector hears: the block's input, the grid input, another grid row
-///     (a tap, <see cref="SideInputs.Taps" />) or one of the interface's inputs (<see cref="HardwareInputs" />), so a gate
-///     late
-///     in the chain can follow the clean guitar.
+///     (a tap, <see cref="SideInputs.Taps" />) or one of the interface's inputs (<see cref="HardwareInputs" />), so a
+///     gate late in the chain can follow the clean guitar.
 /// </summary>
 public sealed class GateBlock() : DspBlock(Info), ISideInputBlock {
     public const int Threshold = 0;
@@ -50,7 +49,9 @@ public sealed class GateBlock() : DspBlock(Info), ISideInputBlock {
     /// <summary>How far below the threshold a Modern type closes, in dB.</summary>
     public const float HysteresisDb = 6f;
 
-    /// <summary>Release of the level detector itself; short, so the gate reacts to the playing, not to its own tail.</summary>
+    /// <summary>
+    ///     Release of the level detector itself; short, so the gate reacts to the playing, not to its own tail.
+    /// </summary>
     const double DetectorReleaseMs = 10;
 
     /// <summary>Averaging time of the RMS detector.</summary>
@@ -87,8 +88,8 @@ public sealed class GateBlock() : DspBlock(Info), ISideInputBlock {
             WetCuts.LowCutParam("scLowCut", "Sidechain Low Cut"),
             WetCuts.HighCutParam("scHighCut", "Sidechain High Cut"),
             ParamDescriptor.Choice("detector", "Detector", ["Peak", "RMS"]),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Choice("knee", "Knee", ["Hard", "Soft", "Softer"])
                 .ShownOn(TypeCount, Expander, ModernExpander),
             SidechainSource.Param()
@@ -105,7 +106,9 @@ public sealed class GateBlock() : DspBlock(Info), ISideInputBlock {
     /// <summary>Current gain applied by the gate (1 = open). For meters and tests.</summary>
     public float CurrentGain => MathF.Pow(10f, gainDb / 20f);
 
-    /// <summary>The grid input and the row taps for the sidechain, and the hardware inputs (<see cref="Inputs" />).</summary>
+    /// <summary>
+    ///     The grid input and the row taps for the sidechain, and the hardware inputs (<see cref="Inputs" />).
+    /// </summary>
     public SideInputs SideInputs => SideInputs.Taps | SideInputs.Hardware;
 
     /// <summary>Audio thread: keeps the tap the Sidechain parameter selects (<see cref="SidechainSource" />).</summary>
@@ -113,8 +116,8 @@ public sealed class GateBlock() : DspBlock(Info), ISideInputBlock {
         sidechainSource.Offer(row, signal, (int)Params.GetTarget(Sidechain));
 
     /// <summary>
-    ///     The expander's gain in dB for a level <paramref name="under" /> dB from the threshold (negative below it), with
-    ///     a soft knee <paramref name="knee" /> dB wide centred on the threshold.
+    ///     The expander's gain in dB for a level <paramref name="under" /> dB from the threshold (negative below it),
+    ///     with a soft knee <paramref name="knee" /> dB wide centred on the threshold.
     /// </summary>
     public static float ExpanderGainDb(float under, float slope, float knee) {
         if (knee <= 0 || 2 * under < -knee) {

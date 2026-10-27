@@ -4,7 +4,9 @@ namespace Cathode.Dsp.Pitch;
 
 /// <summary>Keys, scales and diatonic intervals for the intelligent harmonizer.</summary>
 public static class Scales {
-    /// <summary>The Custom scale's index in <see cref="Names" />: its degrees come from the Pitch block's custom notes.</summary>
+    /// <summary>
+    ///     The Custom scale's index in <see cref="Names" />: its degrees come from the Pitch block's custom notes.
+    /// </summary>
     public const int Custom = 12;
 
     /// <summary>The intervals a custom note can take above the tonic, as degree names.</summary>
@@ -68,7 +70,9 @@ public static class Scales {
         return JustPosition(from + whole) / JustPosition(from) * Math.Pow(2, (semitones - whole) / 12);
     }
 
-    /// <summary>Whether <paramref name="scale" /> is a minor one: a minor third above its root and no major third.</summary>
+    /// <summary>
+    ///     Whether <paramref name="scale" /> is a minor one: a minor third above its root and no major third.
+    /// </summary>
     public static bool IsMinor(int scale) {
         var mask = Masks[Math.Clamp(scale, 0, Masks.Length - 1)];
         return (mask & (1 << 3)) != 0 && (mask & (1 << 4)) == 0;
@@ -79,8 +83,8 @@ public static class Scales {
 
     /// <summary>
     ///     The scale to harmonise in over a chord: <paramref name="preferred" /> when it contains every tone of
-    ///     <paramref name="chord" /> (a 12-bit pitch-class mask, bit 0 = C) from <paramref name="root" />, else the first
-    ///     scale in <see cref="Names" /> that does (chord-scale theory: Am picks Minor, G7 Mixolydian), else
+    ///     <paramref name="chord" /> (a 12-bit pitch-class mask, bit 0 = C) from <paramref name="root" />, else the
+    ///     first scale in <see cref="Names" /> that does (chord-scale theory: Am picks Minor, G7 Mixolydian), else
     ///     <paramref name="preferred" />.
     /// </summary>
     public static int ChordScale(int root, int chord, int preferred) {
@@ -112,8 +116,8 @@ public static class Scales {
         HarmonySemitones(note, key, Intervals[Math.Clamp(scale, 0, Intervals.Length - 1)], steps);
 
     /// <summary>
-    ///     <see cref="HarmonySemitones(int, int, int, int)" /> on any scale: <paramref name="degrees" /> are its semitones
-    ///     above the key, rising from 0 (the root), within the octave.
+    ///     <see cref="HarmonySemitones(int, int, int, int)" /> on any scale: <paramref name="degrees" /> are its
+    ///     semitones above the key, rising from 0 (the root), within the octave.
     /// </summary>
     public static int HarmonySemitones(int note, int key, ReadOnlySpan<int> degrees, int steps) {
         var relative = note - key;
@@ -133,14 +137,16 @@ public static class Scales {
     /// <summary>
     ///     <see cref="HarmonySemitones(int, int, int, int)" /> snapped to the tones of a chord: when the diatonic note
     ///     is not in <paramref name="chord" /> (a 12-bit pitch-class mask, bit 0 = C; 0 means no chord), the nearest
-    ///     chord tone on the same side of <paramref name="note" /> replaces it, the one nearer the played note on a tie.
-    ///     Unison and octaves stay as they are, and the snapped voice keeps at least a minor third from the played note
-    ///     (or the diatonic interval's own size, if smaller), so it never rubs a semitone against the melody.
+    ///     chord tone on the same side of <paramref name="note" /> replaces it, the one nearer the played note on a
+    ///     tie. Unison and octaves stay as they are, and the snapped voice keeps at least a minor third from the played
+    ///     note (or the diatonic interval's own size, if smaller), so it never rubs a semitone against the melody.
     /// </summary>
     public static int HarmonySemitones(int note, int key, int scale, int steps, int chord) =>
         HarmonySemitones(note, key, Intervals[Math.Clamp(scale, 0, Intervals.Length - 1)], steps, chord);
 
-    /// <summary><see cref="HarmonySemitones(int, int, int, int, int)" /> on any scale's <paramref name="degrees" />.</summary>
+    /// <summary>
+    ///     <see cref="HarmonySemitones(int, int, int, int, int)" /> on any scale's <paramref name="degrees" />.
+    /// </summary>
     public static int HarmonySemitones(int note, int key, ReadOnlySpan<int> degrees, int steps, int chord) {
         var semitones = HarmonySemitones(note, key, degrees, steps);
         var length = degrees.Length;
@@ -167,9 +173,9 @@ public static class Scales {
     }
 
     /// <summary>
-    ///     A custom scale's degrees: the first <paramref name="count" /> of <paramref name="notes" /> (semitones above the
-    ///     tonic, 0–11) with the root added, sorted and without repeats, into <paramref name="degrees" />; returns how many.
-    ///     Allocation-free.
+    ///     A custom scale's degrees: the first <paramref name="count" /> of <paramref name="notes" /> (semitones above
+    ///     the tonic, 0–11) with the root added, sorted and without repeats, into <paramref name="degrees" />; returns
+    ///     how many. Allocation-free.
     /// </summary>
     public static int CustomDegrees(ReadOnlySpan<int> notes, int count, Span<int> degrees) {
         var mask = 1; // the root is always a degree
@@ -187,7 +193,9 @@ public static class Scales {
         return length;
     }
 
-    /// <summary>Whether a scale of <paramref name="degrees" /> is minor: a minor third above its root and no major third.</summary>
+    /// <summary>
+    ///     Whether a scale of <paramref name="degrees" /> is minor: a minor third above its root and no major third.
+    /// </summary>
     public static bool IsMinor(ReadOnlySpan<int> degrees) => degrees.Contains(3) && !degrees.Contains(4);
 
     static double JustPosition(int relative) {

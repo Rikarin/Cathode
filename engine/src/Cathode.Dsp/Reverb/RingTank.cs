@@ -8,20 +8,20 @@ namespace Cathode.Dsp.Reverb;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Dattorro's plate is the two-section case of this ring (a figure eight). Four sections give a longer loop with
-///         the same density, the shape of the larger halls; the mono input enters at two opposite sections, and the left
-///         output is tapped mostly from sections 1 and 3's first halves, the right from their other points with the signs
-///         turned, so the two sides decorrelate. Every section's first allpass is modulated: a sine "spin" (two LFOs, the
-///         second half of the ring at LFO Phase from the first) plus a slow random "wander" (a new random target every
-///         half period, reached by a straight ramp), the two kinds of modulation the 224XL and 480L manuals name. The
-///         wander is our reading; the exact random process of the hardware is not published.
+///         Dattorro's plate is the two-section case of this ring (a figure eight). Four sections give a longer loop
+///         with the same density, the shape of the larger halls; the mono input enters at two opposite sections, and
+///         the left output is tapped mostly from sections 1 and 3's first halves, the right from their other points
+///         with the signs turned, so the two sides decorrelate. Every section's first allpass is modulated: a sine
+///         "spin" (two LFOs, the second half of the ring at LFO Phase from the first) plus a slow random "wander" (a
+///         new random target every half period, reached by a straight ramp), the two kinds of modulation the 224XL and
+///         480L manuals name. The wander is our reading; the exact random process of the hardware is not published.
 ///     </para>
 ///     <para>
-///         Each section loses <c>10^(-3 L / (T60 fs))</c> over its own length L (the allpasses are lossless), so the whole
-///         ring decays at the set T60, and the bass and treble multipliers of the 224 (its crossover and bass decay)
-///         are the network's Low/High Freq Time splits in every section. Echo Density scales the in-loop allpass gains
-///         (how fast the echoes multiply), Input Diffusion and its Time the four input allpasses. The section lengths
-///         are ours, mutually prime-ish, not the hardware's (which are not published).
+///         Each section loses <c>10^(-3 L / (T60 fs))</c> over its own length L (the allpasses are lossless), so the
+///         whole ring decays at the set T60, and the bass and treble multipliers of the 224 (its crossover and bass
+///         decay) are the network's Low/High Freq Time splits in every section. Echo Density scales the in-loop allpass
+///         gains (how fast the echoes multiply), Input Diffusion and its Time the four input allpasses. The section
+///         lengths are ours, mutually prime-ish, not the hardware's (which are not published).
 ///     </para>
 /// </remarks>
 sealed class RingTank : IDisposable {
@@ -32,7 +32,9 @@ sealed class RingTank : IDisposable {
     const float ExcursionMs = 0.5f;
     const float MaxDecayDiffusion = 0.85f;
 
-    /// <summary>Lines in the pool: four input diffusers, then per section allpass 1, delay 1, allpass 2, delay 2.</summary>
+    /// <summary>
+    ///     Lines in the pool: four input diffusers, then per section allpass 1, delay 1, allpass 2, delay 2.
+    /// </summary>
     const int Ap1 = 0, D1 = 1, Ap2 = 2, D2 = 3;
 
     /// <summary>The concert hall: sections of about 125 ms, a 0.5 s ring.</summary>
@@ -60,7 +62,9 @@ sealed class RingTank : IDisposable {
         0.45f
     );
 
-    /// <summary>Output taps per side: the line in its section (delay 1, allpass 2, delay 2), section, position, sign.</summary>
+    /// <summary>
+    ///     Output taps per side: the line in its section (delay 1, allpass 2, delay 2), section, position, sign.
+    /// </summary>
     static readonly (int Line, int Section, float Position, float Sign)[] LeftTaps = [
         (D1, 1, 0.13f, 1f), (D1, 1, 0.71f, 1f), (Ap2, 1, 0.47f, -1f), (D2, 1, 0.38f, 1f), (D1, 3, 0.29f, -1f),
         (Ap2, 3, 0.61f, -1f), (D2, 3, 0.83f, -1f)
@@ -109,7 +113,9 @@ sealed class RingTank : IDisposable {
 
     static int Line(int section, int line) => InputStages + 4 * section + line;
 
-    /// <summary>Control thread: room for both voicings at <paramref name="maxScale" />, the diffusers at twice their time.</summary>
+    /// <summary>
+    ///     Control thread: room for both voicings at <paramref name="maxScale" />, the diffusers at twice their time.
+    /// </summary>
     public void Allocate(double sampleRate, float maxScale, float maxInputTime, float maxModDepth) {
         rate = sampleRate;
         var ms = 0.001 * sampleRate;
@@ -154,8 +160,8 @@ sealed class RingTank : IDisposable {
     }
 
     /// <summary>
-    ///     Once per block. <paramref name="diffusion" /> and <paramref name="density" /> are fractions (1 = the voicing's
-    ///     gains, Echo Density 50 %), <paramref name="modDepth" /> a multiple of the 0.5 ms excursion.
+    ///     Once per block. <paramref name="diffusion" /> and <paramref name="density" /> are fractions (1 = the
+    ///     voicing's gains, Echo Density 50 %), <paramref name="modDepth" /> a multiple of the 0.5 ms excursion.
     /// </summary>
     public void Configure(
         Voicing voicing,

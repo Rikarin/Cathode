@@ -14,8 +14,8 @@ public static class ToneMatchDesign {
     /// <summary>
     ///     The correction filter. <paramref name="reference" /> and <paramref name="rig" /> are mean power spectra on
     ///     the <see cref="GridSize" /> grid (<see cref="PowerSpectrum.Mean" />). If the rig was measured through an
-    ///     earlier correction, pass it as <paramref name="previous" />: the new filter replaces it rather than stacking.
-    ///     The result is level-neutral between 100 Hz and 5 kHz.
+    ///     earlier correction, pass it as <paramref name="previous" />: the new filter replaces it rather than
+    ///     stacking. The result is level-neutral between 100 Hz and 5 kHz.
     /// </summary>
     public static float[] Design(
         ReadOnlySpan<double> reference,

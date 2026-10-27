@@ -7,8 +7,8 @@ using System.Numerics;
 namespace Cathode.Dsp.Tests;
 
 /// <summary>
-///     The component-level wahs against the reference MNA simulator, which builds the same schematic from its own netlist:
-///     operating point, small-signal response at heel, middle and toe, and a hot sine through the transistors.
+///     The component-level wahs against the reference MNA simulator, which builds the same schematic from its own
+///     netlist: operating point, small-signal response at heel, middle and toe, and a hot sine through the transistors.
 /// </summary>
 public class WahCircuitTests(ITestOutputHelper output) {
     const double Rate = 48_000;

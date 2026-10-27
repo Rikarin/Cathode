@@ -12,10 +12,10 @@ namespace Cathode.Dsp.Blocks;
 ///     <para>
 ///         Ten Tap: the taps evenly spaced across Time, with Shuffle (swing on the off-beat taps), a Decay taper and a
 ///         level per tap. Rhythm Tap: each tap at its own percentage of Time, optionally quantised to a tempo division,
-///         or learned from the playing: with Learn on Listen, the first note after a silence of Time starts a pattern and
-///         each further note within Time places the next tap there (up to ten); Hold keeps the last pattern learned. A
-///         learned pattern lives in the block (the tap time parameters are not rewritten), and Off returns to the
-///         parameters.
+///         or learned from the playing: with Learn on Listen, the first note after a silence of Time starts a pattern
+///         and each further note within Time places the next tap there (up to ten); Hold keeps the last pattern
+///         learned. A learned pattern lives in the block (the tap time parameters are not rewritten), and Off returns
+///         to the parameters.
 ///     </para>
 ///     <para>
 ///         Stereo places the taps by Pan Shape (alternating, left to right, right to left or centre), curved by Pan
@@ -135,9 +135,9 @@ public sealed class TenTapBlock() : DspBlock(Info) {
                 ),
             ParamDescriptor.Choice("quantize", "Quantize", TempoDivisions.Names).ShownOn(TypeCount, RhythmTap),
             ParamDescriptor.Choice("learn", "Learn", ["Off", "Listen", "Hold"]).ShownOn(TypeCount, RhythmTap),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 25f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Mix(25f),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%"),
             ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions)
         ],
@@ -207,7 +207,7 @@ public sealed class TenTapBlock() : DspBlock(Info) {
         var useLearned = (int)Params.Current(Learn) != LearnOff && learnedCount > 0;
         var grid = TempoDivisions.Milliseconds((int)Params.Current(Quantize), tempo) * 0.001 * Spec.SampleRate;
         for (var k = 0; k < MaxTaps; k++) {
-            var position = useLearned ? k < learnedCount ? learned[k] : 1f : Params.Current(Tap1Time + k) / 100f;
+            var position = !useLearned ? Params.Current(Tap1Time + k) / 100f : k < learnedCount ? learned[k] : 1f;
             var samples = time * position;
             if (grid > 0 && !useLearned) {
                 samples = (float)(Math.Round(samples / grid) * grid);

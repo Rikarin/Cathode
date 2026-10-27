@@ -139,7 +139,9 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         Assert.Equal(6, AmpDesign.All.Single(static a => a.Name == "Triple Rectifier").Power.TubesPerSide * 2);
     }
 
-    /// <summary>The Lone Star's rectifier switch puts a 5U4G in place of silicon: B+ sags further under drive.</summary>
+    /// <summary>
+    ///     The Lone Star's rectifier switch puts a 5U4G in place of silicon: B+ sags further under drive.
+    /// </summary>
     [Fact]
     public void Lone_Star_tube_rectifier_lowers_the_supply() {
         static double Supply(bool tube) {
@@ -158,7 +160,9 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         Assert.True(tube < silicon - 10);
     }
 
-    /// <summary>Every knob swept end to end in each channel while a loud chord plays: finite, bounded, Newton converging.</summary>
+    /// <summary>
+    ///     Every knob swept end to end in each channel while a loud chord plays: finite, bounded, Newton converging.
+    /// </summary>
     [Theory]
     [MemberData(nameof(Channels))]
     public void Knob_sweeps_at_full_drive_stay_finite_and_converge(string type, float s1, float s2, float s3) {
@@ -231,7 +235,9 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         }
     }
 
-    /// <summary>Every knob on the model's panel changes the sound in each channel (small signal, 80 Hz to 6 kHz).</summary>
+    /// <summary>
+    ///     Every knob on the model's panel changes the sound in each channel (small signal, 80 Hz to 6 kHz).
+    /// </summary>
     [Theory]
     [MemberData(nameof(Channels))]
     public void Every_panel_knob_is_audible(string type, float s1, float s2, float s3) {

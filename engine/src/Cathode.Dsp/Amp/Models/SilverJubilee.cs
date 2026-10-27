@@ -6,35 +6,34 @@ namespace Cathode.Dsp.Amp.Models;
 ///     Marshall Silver Jubilee 2555, 100 W (factory drawing "2555 STD" issue 3, 6-6-88, file 2555.DGM, and "2555 PSU"
 ///     issue 2: https://el34world.com/charts/Schematics/files/Marshall/Marshall_25aniv_silverjubilee_50_100w_2555.pdf):
 ///     V1A (0.047 µF in, 1M, 68k; 100k, 2k7 with 0.68 µF, 47 pF plate to cathode), 0.022 µF into the 1M log Input Gain
-///     with its 1 nF bright cap; 100k to V1B (100k with 470 pF from the rail, 1k5 with 10 µF), 0.022 µF and 47k onto the
-///     LED clipping network (1 nF and the 220k Lead Master across it), the relay's shunt feedback, 47k from the Lead
-///     Master's wiper to V2A (100k, 1k5 unbypassed, 1M from its coupled plate to its grid) with the 1N4007 pair and 2.2 nF
-///     on its grid; the
-///     100k/10k send divider and 0.1 µF into V2B (220k, 470 unbypassed) on the Jubilee's own tone network and the 1M log
-///     Output Master; a 12AX7 long-tail pair (0.022 µF in, 1M, 470, 10k, 82k/100k, 22 nF out to 220k), four EL34 (5k6
-///     stoppers, 1k5 screens) with the High/Low (pentode/triode) switch, 100k feedback with 4k7 and the 22k presence
-///     with 0.1 µF.
+///     with its 1 nF bright cap; 100k to V1B (100k with 470 pF from the rail, 1k5 with 10 µF), 0.022 µF and 47k onto
+///     the LED clipping network (1 nF and the 220k Lead Master across it), the relay's shunt feedback, 47k from the
+///     Lead Master's wiper to V2A (100k, 1k5 unbypassed, 1M from its coupled plate to its grid) with the 1N4007 pair
+///     and 2.2 nF on its grid; the 100k/10k send divider and 0.1 µF into V2B (220k, 470 unbypassed) on the Jubilee's
+///     own tone network and the 1M log Output Master; a 12AX7 long-tail pair (0.022 µF in, 1M, 470, 10k, 82k/100k, 22
+///     nF out to 220k), four EL34 (5k6 stoppers, 1k5 screens) with the High/Low (pentode/triode) switch, 100k feedback
+///     with 4k7 and the 22k presence with 0.1 µF.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         The relay RL1 (its coil shorted by the Output Master's pull switch, "Pull Boost", or the footswitch) moves one
-///         contact, L. At rest (Boost, the drawn position) L is grounded: V1B's 220k grid leak and its 220k plate load go
-///         to ground and V1B runs at full gain into the clipping network: the lead sound. Energised (Boost off) L joins
-///         the clipping network's top, T: the 220k from V1B's grid to T is shunt feedback around V1B (its gain falls to
-///         about 220k over the 100k and the Gain pot's source), the 220k from V1B's coupling cap parallels the 47k, and
-///         10k + 100k from L carry T to V2A's grid beside the Lead Master: the rhythm sound. "Pull Rhythm Clip" (on the
-///         Input Gain) joins L to the 1N4007 pair, which sits on V2A's grid through 47k and 2.2 nF and then clamps T
-///         directly. The LED strings (an LED and two 1N4007 one way, an LED and one 1N4007 the other) are three and two
-///         fitted junctions here (1.0 V at 1 mA each, n = 1.9, the strings' slope): 3.0 V and 2.0 V against about 3.0
-///         and 2.4 V for the parts (LED colour not stated). Five and four silicon junctions fit both thresholds but left
-///         Newton unconverged on a few dozen samples at full drive in the rhythm setting. C21 reads "1n" at the scan's
-///         resolution (1 µF would short the signal).
+///         The relay RL1 (its coil shorted by the Output Master's pull switch, "Pull Boost", or the footswitch) moves
+///         one contact, L. At rest (Boost, the drawn position) L is grounded: V1B's 220k grid leak and its 220k plate
+///         load go to ground and V1B runs at full gain into the clipping network: the lead sound. Energised (Boost off)
+///         L joins the clipping network's top, T: the 220k from V1B's grid to T is shunt feedback around V1B (its gain
+///         falls to about 220k over the 100k and the Gain pot's source), the 220k from V1B's coupling cap parallels the
+///         47k, and 10k + 100k from L carry T to V2A's grid beside the Lead Master: the rhythm sound. "Pull Rhythm
+///         Clip" (on the Input Gain) joins L to the 1N4007 pair, which sits on V2A's grid through 47k and 2.2 nF and
+///         then clamps T directly. The LED strings (an LED and two 1N4007 one way, an LED and one 1N4007 the other) are
+///         three and two fitted junctions here (1.0 V at 1 mA each, n = 1.9, the strings' slope): 3.0 V and 2.0 V
+///         against about 3.0 and 2.4 V for the parts (LED colour not stated). Five and four silicon junctions fit both
+///         thresholds but left Newton unconverged on a few dozen samples at full drive in the rhythm setting. C21 reads
+///         "1n" at the scan's resolution (1 µF would short the signal).
 ///     </para>
 ///     <para>
 ///         The tone network, from V2B's plate: 0.1 µF to the back gang of the tandem 1M log Bass pot (100k to ground at
-///         its foot), whose wiper is node P, also fed by 4.7 nF; P through 220 pF to the 220k linear Treble's top and on
-///         through 470 pF to the 100k log Middle's top; P through 100k to a node feeding the Middle's wiper through 10 nF
-///         and, through 0.1 µF and 10k, the Treble's foot S; S has 2.2 nF and 100k plus the Bass's front gang (a
+///         its foot), whose wiper is node P, also fed by 4.7 nF; P through 220 pF to the 220k linear Treble's top and
+///         on through 470 pF to the 100k log Middle's top; P through 100k to a node feeding the Middle's wiper through
+///         10 nF and, through 0.1 µF and 10k, the Treble's foot S; S has 2.2 nF and 100k plus the Bass's front gang (a
 ///         rheostat) to ground. The Treble's wiper feeds the Output Master. The direction of the tandem gangs is
 ///         assumed (the back gang's wiper toward 0.1 µF and the front gang's resistance both rise with Bass).
 ///     </para>

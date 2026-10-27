@@ -140,7 +140,9 @@ public sealed class HalfBandStage {
         coefficients.Where(static (_, i) => i % 2 != 0).Select(static c => (float)c).ToArray()
     );
 
-    /// <summary>The filters in use: the IIR design (the default) or a linear-phase FIR of the same band edges.</summary>
+    /// <summary>
+    ///     The filters in use: the IIR design (the default) or a linear-phase FIR of the same band edges.
+    /// </summary>
     public OversamplingPhase Phase => linear is null ? OversamplingPhase.Minimum : OversamplingPhase.Linear;
 
     /// <summary>
@@ -206,8 +208,8 @@ public sealed class HalfBandStage {
 }
 
 /// <summary>
-///     4x oversampling as two cascaded 2x half-band stages. Process a block with <see cref="Up" />, run the nonlinearity
-///     on the returned span, then <see cref="Down" />. Allocation-free after construction.
+///     4x oversampling as two cascaded 2x half-band stages. Process a block with <see cref="Up" />, run the
+///     nonlinearity on the returned span, then <see cref="Down" />. Allocation-free after construction.
 /// </summary>
 public sealed class Oversampler4x {
     /// <summary>Stopband attenuation of each stage, in dB.</summary>
@@ -236,8 +238,8 @@ public sealed class Oversampler4x {
     public OversamplingPhase Phase => first.Phase;
 
     /// <summary>
-    ///     Delay of <see cref="Up" /> then <see cref="Down" /> in base-rate samples: the first stage's round trip plus the
-    ///     second's, which runs at twice the rate.
+    ///     Delay of <see cref="Up" /> then <see cref="Down" /> in base-rate samples: the first stage's round trip plus
+    ///     the second's, which runs at twice the rate.
     /// </summary>
     public int LatencySamples => first.RoundTripLatency + second.RoundTripLatency / 2;
 

@@ -23,15 +23,17 @@ namespace Cathode.Dsp.Pitch;
 ///     </para>
 ///     <para>
 ///         Formant shift: <see cref="Read(int, double, double, double)" /> resamples each grain by the formant ratio r
-///         (the grain's waveform played r times faster, over 2T / r samples), which moves the spectral envelope by r and
-///         leaves the pitch, set by the grains' spacing, alone (the classic PSOLA formant shift). The source still spans
-///         two periods, so the analysis delay does not change; the grains' overlap, and with it the gain, does.
+///         (the grain's waveform played r times faster, over 2T / r samples), which moves the spectral envelope by r
+///         and leaves the pitch, set by the grains' spacing, alone (the classic PSOLA formant shift). The source still
+///         spans two periods, so the analysis delay does not change; the grains' overlap, and with it the gain, does.
 ///     </para>
 /// </remarks>
 public sealed class PsolaShifter(int voiceCount) : IDisposable {
     const double FallbackPeriodSeconds = 0.005;
 
-    /// <summary>The lowest formant ratio <see cref="Read(int, double, double, double)" /> takes (an octave down).</summary>
+    /// <summary>
+    ///     The lowest formant ratio <see cref="Read(int, double, double, double)" /> takes (an octave down).
+    /// </summary>
     public const double MinFormantRatio = 0.5;
 
     /// <summary>The highest formant ratio (an octave up).</summary>
@@ -75,7 +77,10 @@ public sealed class PsolaShifter(int voiceCount) : IDisposable {
         }
     }
 
-    /// <summary>Silences voice <paramref name="index" /> and forgets its marks, for a voice that resumes after being skipped.</summary>
+    /// <summary>
+    ///     Silences voice <paramref name="index" /> and forgets its marks, for a voice that resumes after being
+    ///     skipped.
+    /// </summary>
     public void ResetVoice(int index) => voices[index].Reset();
 
     /// <summary>Writes the next input sample. Call once per sample, before reading the voices.</summary>
@@ -86,8 +91,8 @@ public sealed class PsolaShifter(int voiceCount) : IDisposable {
 
     /// <summary>
     ///     Returns voice <paramref name="index" />'s output for the sample just written, shifted by
-    ///     <paramref name="ratio" /> (2 = an octave up). <paramref name="period" /> is the input period in samples, or 0
-    ///     when unknown.
+    ///     <paramref name="ratio" /> (2 = an octave up). <paramref name="period" /> is the input period in samples, or
+    ///     0 when unknown.
     /// </summary>
     public float Read(int index, double ratio, double period) => Read(index, ratio, period, 1);
 
@@ -129,26 +134,8 @@ public sealed class PsolaShifter(int voiceCount) : IDisposable {
     }
 
     void PlaceGrain(Voice voice, double centre, double t, double ratio) {
-        // Analysis marks advance in whole periods, so consecutive grains are phase-coherent with each other.
-        var target = centre - AnalysisDelay;
-        if (voice.AnalysisMark > target || target - voice.AnalysisMark > 4 * maxPeriod) {
-            voice.AnalysisMark = target;
-        }
-
-        while (voice.AnalysisMark + t <= target) {
-            voice.AnalysisMark += t;
-        }
-
-        // Overlapping Hann windows sum to the ratio; spread-out grains (lowering) are boosted towards equal power.
-        var gain = (float)(ratio >= 1 ? 1 / ratio : 1 / Math.Sqrt(ratio));
-        var first = Math.Max((long)Math.Ceiling(centre - t), now);
-        var last = (long)Math.Floor(centre + t);
-        var scale = Math.PI / t;
-        for (var j = first; j <= last; j++) {
-            var offset = j - centre;
-            var window = (float)(0.5 + 0.5 * Math.Cos(offset * scale));
-            voice.Add(j, gain * window * Interpolate(voice.AnalysisMark + offset));
-        }
+        Align(voice, centre - AnalysisDelay, t);
+        Spread(voice, centre, t, ratio, 1);
     }
 
     /// <summary>
@@ -158,7 +145,16 @@ public sealed class PsolaShifter(int voiceCount) : IDisposable {
     void PlaceGrain(Voice voice, double centre, double t, double ratio, double formant) {
         // A longer grain is placed earlier, so its source sits further back by the extra half-length.
         var half = t / formant;
-        var target = centre - AnalysisDelay - Math.Max(0, half - t);
+        Align(voice, centre - AnalysisDelay - Math.Max(0, half - t), t);
+        Spread(voice, centre, half, ratio / formant, formant);
+    }
+
+    /// <summary>
+    ///     Steps the voice's analysis mark in whole periods <paramref name="t" /> to the last one at or before
+    ///     <paramref name="target" /> (restarting there when it has strayed).
+    /// </summary>
+    void Align(Voice voice, double target, double t) {
+        // Analysis marks advance in whole periods, so consecutive grains are phase-coherent with each other.
         if (voice.AnalysisMark > target || target - voice.AnalysisMark > 4 * maxPeriod) {
             voice.AnalysisMark = target;
         }
@@ -166,8 +162,15 @@ public sealed class PsolaShifter(int voiceCount) : IDisposable {
         while (voice.AnalysisMark + t <= target) {
             voice.AnalysisMark += t;
         }
+    }
 
-        var overlap = ratio / formant;
+    /// <summary>
+    ///     Adds a Hann grain of half-length <paramref name="half" /> centred on <paramref name="centre" />, read
+    ///     from the analysis mark at <paramref name="formant" /> times the output's pace (1: unresampled), with the
+    ///     gain for an <paramref name="overlap" /> of grains.
+    /// </summary>
+    void Spread(Voice voice, double centre, double half, double overlap, double formant) {
+        // Overlapping Hann windows sum to the overlap; spread-out grains (lowering) are boosted towards equal power.
         var gain = (float)(overlap >= 1 ? 1 / overlap : 1 / Math.Sqrt(overlap));
         var first = Math.Max((long)Math.Ceiling(centre - half), now);
         var last = (long)Math.Floor(centre + half);
@@ -175,7 +178,8 @@ public sealed class PsolaShifter(int voiceCount) : IDisposable {
         for (var j = first; j <= last; j++) {
             var offset = j - centre;
             var window = (float)(0.5 + 0.5 * Math.Cos(offset * scale));
-            voice.Add(j, gain * window * Interpolate(voice.AnalysisMark + offset * formant));
+            var source = formant == 1 ? offset : offset * formant;
+            voice.Add(j, gain * window * Interpolate(voice.AnalysisMark + source));
         }
     }
 

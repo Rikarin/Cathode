@@ -4,7 +4,9 @@ using System.Net.Http.Json;
 
 namespace Cathode.Server.Tests;
 
-/// <summary>The editor's workflow on the live rig: revert, clear, snapshots, templates and the grid operations.</summary>
+/// <summary>
+///     The editor's workflow on the live rig: revert, clear, snapshots, templates and the grid operations.
+/// </summary>
 public sealed class WorkflowApiTests : IAsyncLifetime {
     readonly ServerFixture server = new();
     HttpClient client = null!;
@@ -308,7 +310,8 @@ public sealed class WorkflowApiTests : IAsyncLifetime {
     static async Task Succeeded(HttpResponseMessage response) {
         if (!response.IsSuccessStatusCode) {
             Assert.Fail(
-                $"{response.RequestMessage?.RequestUri}: {(int)response.StatusCode} {await response.Content.ReadAsStringAsync(Token)}"
+                $"{response.RequestMessage?.RequestUri}: {(int)response.StatusCode} "
+                + $"{await response.Content.ReadAsStringAsync(Token)}"
             );
         }
     }

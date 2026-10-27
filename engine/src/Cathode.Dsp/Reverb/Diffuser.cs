@@ -4,13 +4,13 @@ namespace Cathode.Dsp.Reverb;
 
 /// <summary>
 ///     The Diffuser page of the delays: four Schroeder allpasses per side, their lengths set by a Diffusion Time and
-///     slowly modulated by a sine LFO, blended with the signal by a Diffusion Mix. It smears each echo into a short wash
-///     without changing its level (an allpass chain is lossless), so a mix of 100 % is a "diffused delay".
+///     slowly modulated by a sine LFO, blended with the signal by a Diffusion Mix. It smears each echo into a short
+///     wash without changing its level (an allpass chain is lossless), so a mix of 100 % is a "diffused delay".
 /// </summary>
 /// <remarks>
-///     The stage lengths are fixed, mutually prime-ish fractions of the time; the right side's are 7 % longer, so the two
-///     sides decorrelate. The LFO moves every length by up to <see cref="MaxModulation" /> of itself, with the stages in
-///     quadrature so the modulation never lines up.
+///     The stage lengths are fixed, mutually prime-ish fractions of the time; the right side's are 7 % longer, so the
+///     two sides decorrelate. The LFO moves every length by up to <see cref="MaxModulation" /> of itself, with the
+///     stages in quadrature so the modulation never lines up.
 /// </remarks>
 public sealed class Diffuser : IDisposable {
     public const float MaxModulation = 0.08f;

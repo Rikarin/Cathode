@@ -41,13 +41,17 @@ public sealed class IpcFrameWriter : IDisposable {
     public void Dispose() => json.Dispose();
 }
 
-/// <summary>The reading half of <see cref="IpcFrameWriter" />: header and payload buffers are reused across frames.</summary>
+/// <summary>
+///     The reading half of <see cref="IpcFrameWriter" />: header and payload buffers are reused across frames.
+/// </summary>
 public sealed class IpcFrameReader {
     readonly byte[] header = new byte[4];
     byte[] payload = new byte[4_096];
     int length;
 
-    /// <summary>The UTF-8 JSON of the frame last read by <see cref="ReadFrameAsync" />; valid until the next read.</summary>
+    /// <summary>
+    ///     The UTF-8 JSON of the frame last read by <see cref="ReadFrameAsync" />; valid until the next read.
+    /// </summary>
     public ReadOnlySpan<byte> Frame => payload.AsSpan(0, length);
 
     /// <summary>Returns null when the peer closed the connection cleanly.</summary>

@@ -11,8 +11,8 @@ public static class MarshallParts {
     const double Open = 1e12;
 
     /// <summary>
-    ///     JCM800 2203/2204 (drawings 2203 STD and 2204 STD, issue 4): 470 pF, 33k, 22 nF, 22 nF; 220k linear treble, 1M
-    ///     log bass, 22k linear middle.
+    ///     JCM800 2203/2204 (drawings 2203 STD and 2204 STD, issue 4): 470 pF, 33k, 22 nF, 22 nF; 220k linear treble,
+    ///     1M log bass, 22k linear middle.
     /// </summary>
     public static ToneStackDesign JCM800Stack { get; } = new(
         "JCM800",
@@ -54,7 +54,9 @@ public static class MarshallParts {
         new(25e3, PotTaper.Linear)
     );
 
-    /// <summary>The panel of a two-channel Marshall without a master: the jumper and the normal input on switches 1 and 2.</summary>
+    /// <summary>
+    ///     The panel of a two-channel Marshall without a master: the jumper and the normal input on switches 1 and 2.
+    /// </summary>
     public static AmpPanel TwoChannelPanel { get; } = AmpPanel.Standard with {
         Gain = "Treble Vol",
         Control1 = "Normal Vol",
@@ -73,7 +75,9 @@ public static class MarshallParts {
     public static FeedbackDesign JCM800Feedback { get; } =
         new(Math.Sqrt(0.5), 100e3, 4.7e3, new(22e3, PotTaper.Linear), 0.1e-6, 80);
 
-    /// <summary>The panel of a JCM800-style master-volume amp: no Cut, Depth or Bright; the Low input on switch 1.</summary>
+    /// <summary>
+    ///     The panel of a JCM800-style master-volume amp: no Cut, Depth or Bright; the Low input on switch 1.
+    /// </summary>
     public static AmpPanel MasterVolumePanel { get; } = AmpPanel.Standard with {
         Gain = "Preamp",
         Cut = null,
@@ -83,10 +87,10 @@ public static class MarshallParts {
     };
 
     /// <summary>
-    ///     A cathode follower DC-coupled to the previous plate, driving a TMB stack whose treble wiper is the output: an
-    ///     amp without a master volume, whose stack feeds the phase inverter. As a <see cref="ToneStackStage" /> with a
-    ///     fixed <paramref name="load" /> (the inverter's grid leak) in place of the load pot, or none (0) where the power
-    ///     amp models the inverter's input network (<see cref="InverterInputDesign" />).
+    ///     A cathode follower DC-coupled to the previous plate, driving a TMB stack whose treble wiper is the output:
+    ///     an amp without a master volume, whose stack feeds the phase inverter. As a <see cref="ToneStackStage" />
+    ///     with a fixed <paramref name="load" /> (the inverter's grid leak) in place of the load pot, or none (0) where
+    ///     the power amp models the inverter's input network (<see cref="InverterInputDesign" />).
     /// </summary>
     public static NetworkStageDesign FollowerStack(
         string name,
@@ -119,8 +123,9 @@ public static class MarshallParts {
     /// <summary>
     ///     The JCM800's first stage and its input jacks (2203 STD / 2204 STD preamp): High input through 68k (1M at the
     ///     jack) to V1A (100k plate, 2k7 with 0.68 µF, 100 pF plate to cathode), 22 nF out; the Low input (switch 1)
-    ///     takes the guitar past V1A straight into the 470k/470 pF attenuator, as its jack's switching contact does; then
-    ///     the 1M log preamp volume with its 1 nF bright cap. The output is the volume's wiper, which feeds V1B's grid.
+    ///     takes the guitar past V1A straight into the 470k/470 pF attenuator, as its jack's switching contact does;
+    ///     then the 1M log preamp volume with its 1 nF bright cap. The output is the volume's wiper, which feeds V1B's
+    ///     grid.
     /// </summary>
     public static NetworkStageDesign JCM800Input(double supply) {
         var net = new StageNetlist();
@@ -154,8 +159,8 @@ public static class MarshallParts {
     }
 
     /// <summary>
-    ///     The JCM800 preamp after the first stage: V1B cold clipper (100k, 10k unbypassed), 22 nF into 470k with 470 pF
-    ///     over 470k, V2A (100k, 820 unbypassed), the V2B cathode follower (100k) on the JCM800 stack and the 1M log
+    ///     The JCM800 preamp after the first stage: V1B cold clipper (100k, 10k unbypassed), 22 nF into 470k with 470
+    ///     pF over 470k, V2A (100k, 820 unbypassed), the V2B cathode follower (100k) on the JCM800 stack and the 1M log
     ///     master.
     /// </summary>
     public static AmpStageDesign[] JCM800Preamp(double firstSupply, double supply) => [
@@ -185,11 +190,12 @@ public static class MarshallParts {
     ];
 
     /// <summary>
-    ///     The first tube of a two-channel Marshall with separate cathodes (1959): both triodes with 100k plates, the two
-    ///     channels' volumes mixed into the next grid through their mixing resistors; the output is that grid (the mixing
-    ///     node). The guitar plays into the bright channel's high input (34k: both 68k stoppers in parallel, 1M at the
-    ///     jack); switch 1 jumpers it into the normal channel as well, switch 2 moves it to the normal channel alone. An
-    ///     idle channel's grid rests on its jack's 1M, and its volume still loads the mixing node, as in the amp.
+    ///     The first tube of a two-channel Marshall with separate cathodes (1959): both triodes with 100k plates, the
+    ///     two channels' volumes mixed into the next grid through their mixing resistors; the output is that grid (the
+    ///     mixing node). The guitar plays into the bright channel's high input (34k: both 68k stoppers in parallel, 1M
+    ///     at the jack); switch 1 jumpers it into the normal channel as well, switch 2 moves it to the normal channel
+    ///     alone. An idle channel's grid rests on its jack's 1M, and its volume still loads the mixing node, as in the
+    ///     amp.
     /// </summary>
     public static NetworkStageDesign TwoChannelInput(double supply, ChannelDesign bright, ChannelDesign normal) {
         var net = new StageNetlist();
@@ -221,10 +227,11 @@ public static class MarshallParts {
     /// <summary>
     ///     The first tube of a two-channel Marshall whose triodes share a bypassed cathode (JTM45), as one triode: with
     ///     the shared cathode at AC ground and both grids fed the same, the two plates swing alike, so one triode (on
-    ///     twice the cathode resistor, as each sees both currents) drives the active channels' volumes. An idle channel's
-    ///     coupling cap hangs on the idle triode's plate: its rest voltage behind 100k in parallel with r_p. Switches as
-    ///     <see cref="TwoChannelInput" />. Jumpered, the one plate drives both volumes' 1M loads instead of each its own,
-    ///     a fraction of a decibel at 100k.
+    ///     twice the cathode resistor, as each sees both currents) drives the active channels' volumes. An idle
+    ///     channel's coupling cap hangs on the idle triode's plate: its rest voltage behind 100k in parallel with r_p.
+    ///     Switches as
+    ///     <see cref="TwoChannelInput" />. Jumpered, the one plate drives both volumes' 1M loads instead of each its
+    ///     own, a fraction of a decibel at 100k.
     /// </summary>
     public static NetworkStageDesign SharedCathodeInput(
         double supply,
@@ -272,7 +279,9 @@ public static class MarshallParts {
         return new("V1", net);
     }
 
-    /// <summary>A channel's coupling cap, volume (with its bright cap) and mixing resistor (with its bypass), plate to mix.</summary>
+    /// <summary>
+    ///     A channel's coupling cap, volume (with its bright cap) and mixing resistor (with its bypass), plate to mix.
+    /// </summary>
     static void Volume(StageNetlist net, int plate, int mix, ChannelDesign channel) {
         var top = net.Node();
         net.Capacitor(plate, top, channel.CouplingCap);
@@ -289,8 +298,8 @@ public static class MarshallParts {
 
     /// <summary>
     ///     One channel of a two-channel Marshall's first tube, as <see cref="TwoChannelInput" /> wires it: its cathode
-    ///     network (unused where the channels share one), coupling cap, volume pot with an optional bright cap across its
-    ///     upper half, mixing resistor with an optional bypass cap.
+    ///     network (unused where the channels share one), coupling cap, volume pot with an optional bright cap across
+    ///     its upper half, mixing resistor with an optional bypass cap.
     /// </summary>
     public sealed record ChannelDesign(
         double CathodeResistor,

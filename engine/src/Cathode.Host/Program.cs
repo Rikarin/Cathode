@@ -55,18 +55,21 @@ int Usage() {
            --self-test                     offline real-time path check (no device)
            --devices [--json]              list audio devices
            --audio-test [options]          run the engine on a device and report timing and dropouts
-                 --device <uid>  --rate 48000  --buffer 64  --seconds 10  --input  --monitor  --nam <file.nam> | --graph <graph.json>
-                 (output is muted unless --monitor; with --input, input 1 is processed)
-           --latency-test [options]        round-trip latency through a loopback cable (output 1 -> input 1)
-                 --device <uid>  --rate 48000  --buffer 64  --seconds 5   (plays audible clicks)
-           --ir-capture --out <file.wav> [options]
-                                           measure an IR: sweep out of outputs 1-2, record input 1
-                 --device <uid>  --seconds 5  --level -18 (dBFS)  --tail 1.5 (s)  --length 500 (ms)
-           --bench-nam --model <file.nam|file.aidax> | --graph <graph.json> [options]
-                                           CPU cost of a capture model or a whole graph through the engine (offline)
-                 --buffer 64  --seconds 10  --size <0..1 for slimmable models>  --exact-tanh  --ftz  --silent-input
-           --version
+                 --device <uid>  --rate 48000  --buffer 64  --seconds 10  --input  --monitor
          """
+        + "  --nam <file.nam> | --graph <graph.json>\n"
+        + """
+                  (output is muted unless --monitor; with --input, input 1 is processed)
+            --latency-test [options]        round-trip latency through a loopback cable (output 1 -> input 1)
+                  --device <uid>  --rate 48000  --buffer 64  --seconds 5   (plays audible clicks)
+            --ir-capture --out <file.wav> [options]
+                                            measure an IR: sweep out of outputs 1-2, record input 1
+                  --device <uid>  --seconds 5  --level -18 (dBFS)  --tail 1.5 (s)  --length 500 (ms)
+            --bench-nam --model <file.nam|file.aidax> | --graph <graph.json> [options]
+                                            CPU cost of a capture model or a whole graph through the engine (offline)
+                  --buffer 64  --seconds 10  --size <0..1 for slimmable models>  --exact-tanh  --ftz  --silent-input
+            --version
+          """
     );
     // Plain usage (no arguments, or --help) succeeds; arguments that name no command are an error, so a caller such as
     // the desktop app never mistakes an unrecognised command for one that ran.

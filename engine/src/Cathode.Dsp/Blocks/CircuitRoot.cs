@@ -4,7 +4,9 @@ using System.Runtime.InteropServices;
 
 namespace Cathode.Dsp.Blocks;
 
-/// <summary>Four doubles held inline: the device-port vectors of a <see cref="CircuitRoot{TSource,TDevice}" />.</summary>
+/// <summary>
+///     Four doubles held inline: the device-port vectors of a <see cref="CircuitRoot{TSource,TDevice}" />.
+/// </summary>
 [InlineArray(4)]
 struct DeviceVector {
     double element;
@@ -64,10 +66,11 @@ sealed class NewtonState {
 }
 
 /// <summary>
-///     The root of one drive stage: an R-type adaptor (<see cref="RTypeScattering" />, from a <see cref="WdfNetlist" />)
-///     whose children are the stage's source (port 0, any adapted one-port: a resistive voltage source, or one in series
-///     with a guitar pickup's inductance) and up to seven capacitors (ports 1 onwards), with up to four nonlinear device
-///     ports at the root (none for a linear network, <see cref="NoDevice" />). It solves what
+///     The root of one drive stage: an R-type adaptor (<see cref="RTypeScattering" />, from a
+///     <see cref="WdfNetlist" />) whose children are the stage's source (port 0, any adapted one-port: a resistive
+///     voltage source, or one in series with a guitar pickup's inductance) and up to seven capacitors (ports 1
+///     onwards), with up to four nonlinear device ports at the root (none for a linear network,
+///     <see cref="NoDevice" />). It solves what
 ///     <see cref="RTypeRoot{TPorts,TDevice}" /> solves, with the same damped Newton (device step limiting with a
 ///     constrained re-solve, a late line search, a graceful fallback), specialised for the oversampled hot loop of the
 ///     drive circuits.
@@ -75,13 +78,13 @@ sealed class NewtonState {
 /// <remarks>
 ///     <para>
 ///         Every row of the scattering matrix is packed once per recompute into one short row of the child waves, the K
-///         device currents and a constant, which holds the supply rails (the netlist's voltage sources, constant between
-///         recomputes). I + F G_c, the constant part of the Newton Jacobian, is precomputed with it.
+///         device currents and a constant, which holds the supply rails (the netlist's voltage sources, constant
+///         between recomputes). I + F G_c, the constant part of the Newton Jacobian, is precomputed with it.
 ///     </para>
 ///     <para>
 ///         Newton starts from the last solution carried along the last Jacobian: the solution moves with the prediction
-///         p = E u as dv = J⁻¹ dp, and the last converged sample's LU factors are kept, so the start costs one forward and
-///         back substitution. On noisy input that start is far better than extrapolating in time, and most samples
+///         p = E u as dv = J⁻¹ dp, and the last converged sample's LU factors are kept, so the start costs one forward
+///         and back substitution. On noisy input that start is far better than extrapolating in time, and most samples
 ///         converge at the first or second iteration.
 ///     </para>
 ///     <para>
@@ -189,18 +192,22 @@ public sealed class CircuitRoot<TSource, TDevice>
     /// <summary>Capacitor <paramref name="index" /> (netlist port <paramref name="index" /> + 1).</summary>
     public ref Capacitor Capacitor(int index) => ref capacitors[index];
 
-    /// <summary>Sets voltage source <paramref name="index" />, a supply rail; takes effect at <see cref="Propagate" />.</summary>
+    /// <summary>
+    ///     Sets voltage source <paramref name="index" />, a supply rail; takes effect at <see cref="Propagate" />.
+    /// </summary>
     public void SetSupply(int index, double volts) => supplies[index] = volts;
 
-    /// <summary>Changes internal resistor <paramref name="index" />; takes effect at <see cref="Propagate" />.</summary>
+    /// <summary>
+    ///     Changes internal resistor <paramref name="index" />; takes effect at <see cref="Propagate" />.
+    /// </summary>
     public void SetResistance(int index, double ohms) => Scattering.SetResistance(index, ohms);
 
     /// <summary>Changes the gain of VCVS <paramref name="index" />; takes effect at <see cref="Propagate" />.</summary>
     public void SetGain(int index, double gain) => Scattering.SetGain(index, gain);
 
     /// <summary>
-    ///     Recomputes the scattering matrix from the component values and packs it. Allocation-free; returns false (keeping
-    ///     the previous matrix) for a singular network.
+    ///     Recomputes the scattering matrix from the component values and packs it. Allocation-free; returns false
+    ///     (keeping the previous matrix) for a singular network.
     /// </summary>
     public bool Propagate() {
         var resistances = Scattering.PortResistances;
@@ -383,8 +390,8 @@ public sealed class CircuitRoot<TSource, TDevice>
     }
 
     /// <summary>
-    ///     Damped Newton on g(v) = v - p - F r(v); leaves the solution in the voltages and its residual currents. See the
-    ///     remarks on the type and on <see cref="RTypeRoot{TPorts,TDevice}" />.
+    ///     Damped Newton on g(v) = v - p - F r(v); leaves the solution in the voltages and its residual currents. See
+    ///     the remarks on the type and on <see cref="RTypeRoot{TPorts,TDevice}" />.
     /// </summary>
     void Solve() {
         var k = device.Ports;
@@ -395,8 +402,6 @@ public sealed class CircuitRoot<TSource, TDevice>
         Span<double> way = newton.direction;
         Span<double> j = newton.jacobian;
         Span<double> a = newton.system;
-        Span<double> t = newton.trial;
-        Span<double> gc = newton.conductances;
         Span<double> r = newton.currents;
         Span<double> negative = newton.rhs;
         Span<int> order = newton.pivots;
@@ -433,14 +438,8 @@ public sealed class CircuitRoot<TSource, TDevice>
             }
 
             if (converged) {
-                // The currents at the new voltages, to second order in the step: r + (∂i/∂v - G_c) Δ.
                 for (var d = 0; d < k; d++) {
-                    var sum = t[d] - gc[d] * delta[d];
-                    for (var l = 0; l < k; l++) {
-                        sum += j[d * k + l] * delta[l];
-                    }
-
-                    r[d] = sum;
+                    r[d] = SteppedCurrent(d, k, delta);
                 }
 
                 Copy(next, v, k);
@@ -553,19 +552,22 @@ public sealed class CircuitRoot<TSource, TDevice>
 
     /// <summary>
     ///     When the devices limited some ports' steps, re-solves the linearised system for the other ports with the
-    ///     limited ones held, so a limited junction cannot leave its neighbours stepping as if it had moved all the way.
+    ///     limited ones held, so a limited junction cannot leave its neighbours stepping as if it had moved all the
+    ///     way.
     /// </summary>
     void Constrain(ReadOnlySpan<double> v, ReadOnlySpan<double> unlimited, Span<double> next) {
         var k = device.Ports;
         DevicePivots freeBuffer = default;
         Span<int> free = freeBuffer;
         var count = 0;
-#pragma warning disable SK2003 // Exact by design: the limiter leaves a free port's step bit for bit, so equality is "not limited".
+        // Exact by design: the limiter leaves a free port's step bit for bit, so equality is "not limited".
+#pragma warning disable SK2003
         for (var d = 0; d < k; d++) {
             if (next[d] == v[d] + unlimited[d]) {
                 free[count++] = d;
             }
         }
+#pragma warning restore SK2003
 
         if (count == k || count == 0) {
             return;
@@ -577,23 +579,7 @@ public sealed class CircuitRoot<TSource, TDevice>
         Linearise(newton.jacobian, full);
         Span<double> a = subsystem;
         Span<double> b = newton.direction;
-        ReadOnlySpan<double> negative = newton.rhs;
-        for (var i = 0; i < count; i++) {
-            var row = free[i];
-            var sum = negative[row];
-            for (var d = 0; d < k; d++) {
-                if (next[d] != v[d] + unlimited[d]) {
-#pragma warning restore SK2003
-                    sum -= full[row * k + d] * (next[d] - v[d]);
-                }
-            }
-
-            b[i] = sum;
-            for (var c = 0; c < count; c++) {
-                a[i * count + c] = full[row * k + free[c]];
-            }
-        }
-
+        ConstrainedStep.Gather(full, newton.rhs, free, count, k, v, unlimited, next, a, b);
         DevicePivots orderBuffer = default;
         DeviceVector reciprocalBuffer = default;
         Span<int> order = orderBuffer;
@@ -621,8 +607,6 @@ public sealed class CircuitRoot<TSource, TDevice>
         Span<double> delta = newton.step;
         Span<double> j = newton.jacobian;
         Span<double> a = newton.system;
-        Span<double> t = newton.trial;
-        Span<double> gc = newton.conductances;
         Span<double> next = newton.proposed;
         Span<int> order = newton.pivots;
         Span<double> reciprocals = newton.inverses;
@@ -637,11 +621,7 @@ public sealed class CircuitRoot<TSource, TDevice>
 
         Substitute(a, order, reciprocals, k, delta);
         for (var d = 0; d < k; d++) {
-            var sum = t[d] - gc[d] * delta[d];
-            for (var l = 0; l < k; l++) {
-                sum += j[d * k + l] * delta[l];
-            }
-
+            var sum = SteppedCurrent(d, k, delta);
             if (!double.IsFinite(sum) || !double.IsFinite(delta[d])) {
                 return;
             }
@@ -656,8 +636,26 @@ public sealed class CircuitRoot<TSource, TDevice>
     }
 
     /// <summary>
-    ///     Evaluates the devices at <paramref name="v" />: currents, Jacobian, residual currents r = i - G_c v, and -g into
-    ///     the step. Returns |g|² scaled by the tolerances, and remembers the best point seen.
+    ///     Device port <paramref name="d" />'s residual current at the stepped voltages, to second order in the step
+    ///     <paramref name="delta" />: r + (∂i/∂v - G_c) Δ, from the trial currents and Jacobian the last
+    ///     <see cref="Residual" /> left.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    double SteppedCurrent(int d, int k, ReadOnlySpan<double> delta) {
+        ReadOnlySpan<double> t = newton.trial;
+        ReadOnlySpan<double> gc = newton.conductances;
+        ReadOnlySpan<double> j = newton.jacobian;
+        var sum = t[d] - gc[d] * delta[d];
+        for (var l = 0; l < k; l++) {
+            sum += j[d * k + l] * delta[l];
+        }
+
+        return sum;
+    }
+
+    /// <summary>
+    ///     Evaluates the devices at <paramref name="v" />: currents, Jacobian, residual currents r = i - G_c v, and -g
+    ///     into the step. Returns |g|² scaled by the tolerances, and remembers the best point seen.
     /// </summary>
     double Residual(ReadOnlySpan<double> v, ref double bestNorm) {
         var k = device.Ports;
@@ -719,9 +717,9 @@ public sealed class CircuitRoot<TSource, TDevice>
     }
 
     /// <summary>
-    ///     LU factorisation in place with partial pivoting (whole rows swapped, as LAPACK's getrf): <paramref name="order" />
-    ///     records the swaps and <paramref name="reciprocals" /> the inverted pivots, so <see cref="Substitute" /> needs no
-    ///     division.
+    ///     LU factorisation in place with partial pivoting (whole rows swapped, as LAPACK's getrf):
+    ///     <paramref name="order" /> records the swaps and <paramref name="reciprocals" /> the inverted pivots, so
+    ///     <see cref="Substitute" /> needs no division.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static bool Factor(Span<double> a, Span<int> order, Span<double> reciprocals, int k) {
@@ -758,16 +756,7 @@ public sealed class CircuitRoot<TSource, TDevice>
             reciprocals[c] = inverse;
             ref var pivotRow = ref Unsafe.Add(ref a0, c * k);
             for (var row = c + 1; row < k; row++) {
-                ref var target = ref Unsafe.Add(ref a0, row * k);
-                var factor = Unsafe.Add(ref target, c) * inverse;
-                Unsafe.Add(ref target, c) = factor;
-                if (factor == 0) {
-                    continue;
-                }
-
-                for (var l = c + 1; l < k; l++) {
-                    Unsafe.Add(ref target, l) -= factor * Unsafe.Add(ref pivotRow, l);
-                }
+                DenseLu.EliminateRow(ref Unsafe.Add(ref a0, row * k), ref pivotRow, inverse, c, k);
             }
         }
 

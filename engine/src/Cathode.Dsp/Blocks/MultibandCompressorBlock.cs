@@ -5,8 +5,8 @@ namespace Cathode.Dsp.Blocks;
 
 /// <summary>
 ///     Three-band compressor. Linkwitz–Riley 4th-order crossovers split the signal at <b>Low Freq</b> and
-///     <b>High Freq</b>; the low band also runs through the second crossover's allpass, so the three bands sum flat when
-///     nothing is compressed. Each band has its own feed-forward compressor (the soft-knee static curve of
+///     <b>High Freq</b>; the low band also runs through the second crossover's allpass, so the three bands sum flat
+///     when nothing is compressed. Each band has its own feed-forward compressor (the soft-knee static curve of
 ///     <see cref="CompressorBlock" />, peak detection linked across channels, decoupled attack/release on the gain) and
 ///     output level. The mix blends each band against its uncompressed self, which has the same phase response, so
 ///     parallel compression does not comb; the band's level and mute come after it, so a muted band is silent at any
@@ -14,8 +14,8 @@ namespace Cathode.Dsp.Blocks;
 ///     <para>
 ///         <b>Crossover Slope</b> 12 dB/oct uses second-order Linkwitz–Riley splits instead (two one-poles squared; the
 ///         high band is inverted so the bands still sum to an allpass). <b>Detector</b> picks peak or RMS (5 ms) level,
-///         <b>Auto Attack/Release</b> scales each band's times by its crest factor (<see cref="CrestFactor" />), and each
-///         band can be muted (mute two to solo the third).
+///         <b>Auto Attack/Release</b> scales each band's times by its crest factor (<see cref="CrestFactor" />), and
+///         each band can be muted (mute two to solo the third).
 ///     </para>
 /// </summary>
 public sealed class MultibandCompressorBlock() : DspBlock(Info) {
@@ -95,9 +95,9 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
                     }
                 ),
             ParamDescriptor.Float("knee", "Knee", 0f, 24f, 6f, "dB"),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Mix(100f),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Choice("detector", "Detector", ["Peak", "RMS"]),
             ParamDescriptor.Choice("slope", "Crossover Slope", ["24 dB/oct", "12 dB/oct"]),
             ParamDescriptor.Switch("autoTime", "Auto Attack/Release"),
@@ -126,7 +126,9 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
 
     public static int Mute(int band) => LowMute + band;
 
-    /// <summary>Current gain reduction of <paramref name="band" /> (0 = low) in dB, 0 or negative. For meters and tests.</summary>
+    /// <summary>
+    ///     Current gain reduction of <paramref name="band" /> (0 = low) in dB, 0 or negative. For meters and tests.
+    /// </summary>
     public float GainReductionDb(int band) => reduction[band];
 
     float MuteTarget(int band) => Params.Current(Mute(band)) >= 0.5f ? 0f : 1f;
@@ -334,8 +336,9 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
     }
 
     /// <summary>
-    ///     One channel of the three-way split with second-order Linkwitz–Riley crossovers: each band a TPT one-pole squared
-    ///     (low-pass for the low side, high-pass for the high side, inverted), so a split sums to the first-order allpass
+    ///     One channel of the three-way split with second-order Linkwitz–Riley crossovers: each band a TPT one-pole
+    ///     squared (low-pass for the low side, high-pass for the high side, inverted), so a split sums to the
+    ///     first-order allpass
     ///     <c>(1 - s) / (1 + s)</c>; the low band also runs through the second split's allpass.
     /// </summary>
     struct SecondOrderChannel {
@@ -381,8 +384,8 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
         }
 
         /// <summary>
-        ///     One LR2 split: the first one-pole gives the low and high halves, each squared by a second one-pole; the high
-        ///     band is inverted so the two sum to an allpass.
+        ///     One LR2 split: the first one-pole gives the low and high halves, each squared by a second one-pole; the
+        ///     high band is inverted so the two sum to an allpass.
         /// </summary>
         static (double Low, double High) Split(
             ref double first,

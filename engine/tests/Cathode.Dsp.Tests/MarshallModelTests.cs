@@ -7,8 +7,8 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 /// <summary>
-///     The Marshall-family stages (docs/06 §3.2, stream F2) against the reference simulator: the JCM800's input with its
-///     Low input jack, the two-channel first tubes with their jumper (two triodes; one for a shared cathode), the
+///     The Marshall-family stages (docs/06 §3.2, stream F2) against the reference simulator: the JCM800's input with
+///     its Low input jack, the two-channel first tubes with their jumper (two triodes; one for a shared cathode), the
 ///     cathode follower on a stack without a master, the Laney's first stage; and a network stage's output resistance
 ///     following its knobs.
 /// </summary>
@@ -161,8 +161,8 @@ public partial class AmpStageTests {
 }
 
 /// <summary>
-///     The Marshall-family models in the Circuit Amp block (docs/06 §5.4 step 3): each knob does what the circuit's does
-///     over its whole travel, the panel's switches are audible, and full sweeps stay finite and bounded.
+///     The Marshall-family models in the Circuit Amp block (docs/06 §5.4 step 3): each knob does what the circuit's
+///     does over its whole travel, the panel's switches are audible, and full sweeps stay finite and bounded.
 /// </summary>
 public class MarshallModelTests(ITestOutputHelper output) {
     const double Rate = 48_000;
@@ -208,7 +208,8 @@ public class MarshallModelTests(ITestOutputHelper output) {
             }
 
             output.WriteLine(
-                $"{model} {CircuitAmpBlock.Info.Params[knob].Id}: {string.Join(", ", levels.Select(static l => $"{l:0.0}"))} dB"
+                $"{model} {CircuitAmpBlock.Info.Params[knob].Id}: "
+                + $"{string.Join(", ", levels.Select(static l => $"{l:0.0}"))} dB"
             );
             for (var i = 1; i < levels.Count; i++) {
                 Assert.True(
@@ -242,7 +243,8 @@ public class MarshallModelTests(ITestOutputHelper output) {
             var switched = Render(type, chord, (index, 1f));
             var difference = Analysis.NullResidualDb(stock, switched) - Analysis.ToDb(Analysis.Rms(stock));
             output.WriteLine(
-                $"{model} {label}: {difference:0.0} dB from stock, peak {Analysis.ToDb(Analysis.Peak(switched)):0.0} dBFS"
+                $"{model} {label}: {difference:0.0} dB from stock, peak "
+                + $"{Analysis.ToDb(Analysis.Peak(switched)):0.0} dBFS"
             );
             Assert.True(Analysis.AllFinite(switched));
             Assert.True(difference > -30, $"{model} {label}: {difference:0.0} dB from stock");

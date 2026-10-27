@@ -4,11 +4,11 @@ using Cathode.Dsp.Routing;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-///     An external effects loop through the audio interface's spare channels: the input goes out of the send channels to
-///     a pedal and comes back on the return channels (<see cref="HardwareLoop" />). The round trip delays the return, so
-///     the dry signal is delayed by the same <c>latency</c> and the graph compiler compensates parallel paths by it.
-///     Measure the latency with the loopback test (send cabled to return) and enter it here; changes to it take effect
-///     on the next preset load. With no return channels configured, the return is silent.
+///     An external effects loop through the audio interface's spare channels: the input goes out of the send channels
+///     to a pedal and comes back on the return channels (<see cref="HardwareLoop" />). The round trip delays the
+///     return, so the dry signal is delayed by the same <c>latency</c> and the graph compiler compensates parallel
+///     paths by it. Measure the latency with the loopback test (send cabled to return) and enter it here; changes to it
+///     take effect on the next preset load. With no return channels configured, the return is silent.
 /// </summary>
 public sealed class FxLoopBlock() : DspBlock(Info) {
     public const int Send = 0;
@@ -35,10 +35,10 @@ public sealed class FxLoopBlock() : DspBlock(Info) {
         [
             ParamDescriptor.Float("send", "Send Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Float("return", "Return Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
+            BlockParams.Mix(100f),
             ParamDescriptor.Float("latency", "Loop Latency", 0f, MaxLatencyMs, 0f, "ms"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
+            BlockParams.Level,
+            BlockParams.Balance
         ],
         maxInstances: 2
     );

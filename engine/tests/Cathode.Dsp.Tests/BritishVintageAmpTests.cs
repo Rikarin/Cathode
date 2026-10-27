@@ -6,9 +6,9 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 /// <summary>
-///     The British vintage and boutique stream's preamps against the reference MNA simulator as whole chains (no Thévenin
-///     cut): the tremolo-loaded and the shared-cathode, unequal-plate first stages, the Tiny Terror's dual gain pot and
-///     the Cornford's channels (a channel switch's chain is checked through its stages).
+///     The British vintage and boutique stream's preamps against the reference MNA simulator as whole chains (no
+///     Thévenin cut): the tremolo-loaded and the shared-cathode, unequal-plate first stages, the Tiny Terror's dual
+///     gain pot and the Cornford's channels (a channel switch's chain is checked through its stages).
 /// </summary>
 public partial class AmpStageTests {
     public static TheoryData<string, bool, int, double, double> BritishVintageChains =>
@@ -159,7 +159,9 @@ public class BritishVintageAmpTests(ITestOutputHelper output) {
         }
     }
 
-    /// <summary>Every knob swept end to end and every switch flipped while a loud chord plays: finite, bounded, converging.</summary>
+    /// <summary>
+    ///     Every knob swept end to end and every switch flipped while a loud chord plays: finite, bounded, converging.
+    /// </summary>
     [Theory]
     [MemberData(nameof(Types))]
     public void Knob_sweeps_at_full_drive_stay_finite_and_converge(string type) {
@@ -196,9 +198,9 @@ public class BritishVintageAmpTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     Every control on the panel changes the sound: at a moderate setting, a knob from 0 to 10 or a switch on moves
-    ///     the level or the spectrum of a two-tone signal by more than a fraction of a decibel somewhere. The Cornford's
-    ///     Gain and Overdrive are checked on its Overdrive channel, its tone knobs on both.
+    ///     Every control on the panel changes the sound: at a moderate setting, a knob from 0 to 10 or a switch on
+    ///     moves the level or the spectrum of a two-tone signal by more than a fraction of a decibel somewhere. The
+    ///     Cornford's Gain and Overdrive are checked on its Overdrive channel, its tone knobs on both.
     /// </summary>
     [Theory]
     [MemberData(nameof(Types))]
@@ -237,7 +239,8 @@ public class BritishVintageAmpTests(ITestOutputHelper output) {
                     : (Bands(control, low, channel), Bands(control, high, channel));
                 var change = Math.Max(Math.Abs(a[0] - b[0]), Math.Abs(a[1] - b[1]));
                 output.WriteLine(
-                    $"{type} channel {channel} control {control}: 110 Hz {b[0] - a[0]:+0.0;-0.0} dB, 2.5 kHz {b[1] - a[1]:+0.0;-0.0} dB"
+                    $"{type} channel {channel} control {control}: 110 Hz {b[0] - a[0]:+0.0;-0.0} dB, 2.5 kHz "
+                    + $"{b[1] - a[1]:+0.0;-0.0} dB"
                 );
                 Assert.True(change > 0.2, $"{type}: control {control} moves the sound by only {change:0.00} dB");
             }
@@ -272,8 +275,8 @@ public class BritishVintageAmpTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     The 1959T's tremolo load on its normal channel: its first stage, against the same stage without the load (the
-    ///     1959 Super Lead's), is about 6 dB quieter with the normal volume at noon.
+    ///     The 1959T's tremolo load on its normal channel: its first stage, against the same stage without the load
+    ///     (the 1959 Super Lead's), is about 6 dB quieter with the normal volume at noon.
     /// </summary>
     [Fact]
     public void The_tremolo_load_lowers_the_1959Ts_normal_channel() {

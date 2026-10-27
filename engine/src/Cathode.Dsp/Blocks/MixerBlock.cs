@@ -4,22 +4,17 @@ namespace Cathode.Dsp.Blocks;
 
 /// <summary>
 ///     Mixes up to six stereo inputs, one per grid row, each with its own gain (0-100 %) and balance, into a stereo or
-///     summed-mono output with a master level and balance. Like the Multiplexer, the graph compiler hands it each cabled
-///     input through <see cref="MixInput" /> instead of summing them; inputs from rows below the sixth use the sixth
-///     row's controls. Row gains glide to new settings at a fixed rate (full scale in 20 ms), so scene changes never
-///     click.
+///     summed-mono output with a master level and balance. Like the Multiplexer, the graph compiler hands it each
+///     cabled input through <see cref="RowMixerBlock.MixInput" /> instead of summing them; inputs from rows below the
+///     sixth use the sixth row's controls. Row gains glide to new settings at a fixed rate (full scale in 20 ms), so
+///     scene changes never click.
 /// </summary>
-public sealed class MixerBlock() : DspBlock(Info), ISideInputBlock {
+public sealed class MixerBlock() : RowMixerBlock(Info, Rows) {
     public const int Rows = 6;
     public const int Mode = 2 * Rows;
     public const int Level = Mode + 1;
     public const int Balance = Level + 1;
 
-    const double GlideMs = 20;
-
-    readonly float[] gainLeft = new float[Rows];
-    readonly float[] gainRight = new float[Rows];
-    float glideStep = 1f;
     OutputStage output;
 
     public static BlockDescriptor Info { get; } = new(
@@ -42,63 +37,21 @@ public sealed class MixerBlock() : DspBlock(Info), ISideInputBlock {
 
     public static int RowBalance(int row) => Rows + row;
 
-    /// <summary>Its cabled inputs by row (<see cref="MixInput" />).</summary>
-    public SideInputs SideInputs => SideInputs.Cables;
-
-    /// <summary>Audio thread: a cabled input, through <see cref="MixInput" />.</summary>
-    public void SideInput(SideInputKind kind, int row, in StereoBuffer signal, in StereoBuffer destination) =>
-        MixInput(row, signal, destination);
-
-    public void MixInput(int row, in StereoBuffer source, in StereoBuffer destination) {
-        var slot = Math.Clamp(row, 0, Rows - 1);
-        var (targetLeft, targetRight) = Target(slot);
-        var left = gainLeft[slot];
-        var right = gainRight[slot];
-        if (left == targetLeft && right == targetRight) {
-            for (var i = 0; i < source.Length; i++) {
-                destination.Left[i] += source.Left[i] * left;
-                destination.Right[i] += source.Right[i] * right;
-            }
-
-            return;
-        }
-
-        for (var i = 0; i < source.Length; i++) {
-            left = Glide(left, targetLeft);
-            right = Glide(right, targetRight);
-            destination.Left[i] += source.Left[i] * left;
-            destination.Right[i] += source.Right[i] * right;
-        }
-
-        gainLeft[slot] = left;
-        gainRight[slot] = right;
-    }
-
     /// <summary>Row <paramref name="row" />'s left and right gains for its current gain and balance targets.</summary>
-    (float Left, float Right) Target(int row) {
+    protected override (float Left, float Right) Target(int row) {
         var gain = Params.GetTarget(Gain(row)) / 100f;
         var (left, right) = OutputStage.Gains(0f, Params.GetTarget(RowBalance(row)));
         return (gain * left, gain * right);
     }
 
-    float Glide(float gain, float target) =>
-        target > gain ? Math.Min(target, gain + glideStep) : Math.Max(target, gain - glideStep);
-
-    protected override void OnPrepare(in ProcessSpec spec) =>
-        glideStep = (float)(1.0 / Math.Max(1.0, GlideMs * 0.001 * spec.SampleRate));
-
     protected override void OnReset() {
-        for (var row = 0; row < Rows; row++) {
-            (gainLeft[row], gainRight[row]) = Target(row);
-        }
+        ResetRows();
 
         output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
-        for (var p = 0; p < 2 * Rows; p++) {
-            Params.Advance(p, io.Length); // the rows glide in MixInput; keep their smoothers in step
-        }
+        AdvanceRows(io.Length);
 
         if ((int)Params.Current(Mode) == 1) {
             for (var i = 0; i < io.Length; i++) {

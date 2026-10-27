@@ -9,40 +9,46 @@ namespace Cathode.Dsp.Blocks;
 
 /// <summary>
 ///     Algorithmic reverb. Room, Hall, Plate, Chamber and Cathedral are a feedback delay network of 4 to 16 lines (Jot
-///     and Chaigne 1991) with a Householder feedback matrix; Dattorro is Dattorro's plate (<see cref="DattorroPlate" />)
-///     and Spring a dispersive tank of one to six springs (<see cref="SpringTank" />). The classic digital types (appended
-///     after Cathedral) have their own topologies: Classic Hall and Classic Plate a 224-style ring of four modulated
-///     sections (<see cref="RingTank" />), Vintage Digital Schroeder–Moorer combs and allpasses (<see cref="CombReverb" />)
-///     and Classic Room Gardner's nested-allpass room (<see cref="NestedRoom" />). Pre-delay, early reflections, the wet
-///     EQ, the pitch section, ducker, mix and level are shared.
+///     and Chaigne 1991) with a Householder feedback matrix; Dattorro is Dattorro's plate
+///     (<see cref="DattorroPlate" />) and Spring a dispersive tank of one to six springs (<see cref="SpringTank" />).
+///     The classic digital types (appended after Cathedral) have their own topologies: Classic Hall and Classic Plate a
+///     224-style ring of four modulated sections (<see cref="RingTank" />), Vintage Digital Schroeder–Moorer combs and
+///     allpasses (<see cref="CombReverb" />) and Classic Room Gardner's nested-allpass room
+///     (<see cref="NestedRoom" />). Pre-delay, early reflections, the wet EQ, the pitch section, ducker, mix and level
+///     are shared.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         Signal flow: input select and gain, the pitch section when it sits at the input, a pre-delay with its own
 ///         feedback (echoes into the tank) and mix (how much of the tank's input is pre-delayed), then the early
-///         reflections (a 12-tap pattern per type, scaled by Size and Early Time, decaying by Early Decay and smeared by
-///         two allpasses per side) and the tank, which hears the pre-delayed input blended with the reflections by Late
-///         Input Mix. The wet is Late Level × tank + Early Level × reflections, then low cut, two peaking bands (Low Mid,
-///         High Mid), mic spacing (the right side delayed), ducker and stereo spread.
+///         reflections (a 12-tap pattern per type, scaled by Size and Early Time, decaying by Early Decay and smeared
+///         by two allpasses per side) and the tank, which hears the pre-delayed input blended with the reflections by
+///         Late Input Mix. The wet is Late Level × tank + Early Level × reflections, then low cut, two peaking bands
+///         (Low Mid, High Mid), mic spacing (the right side delayed), ducker and stereo spread.
 ///     </para>
 ///     <para>
 ///         The network: four input allpass diffusers (gain and length scaled by Input Diffusion and its Time) feed the
 ///         lines. Each line's gain is set from the decay time so the T60 is analytic; a one-pole damping filter (High
-///         Cut) shortens the high-frequency decay, and the Low and High Freq Time multipliers set the decay below the low
-///         crossover and above the high one through one-pole splits, as <c>gm·y + (gl - gm)·low + (gh - gm)·high</c>.
-///         Wall Diffusion puts an allpass in every loop (its length set by Echo Density, taken out of the line so the
-///         loop time and decay are kept). Two lines are modulated by a sine (Mod Depth, Rate, and the phase between
-///         them). Quality is the line count: Economy 4, Normal 8, High 12, Ultra High 16, with injection and output
-///         scaled by √(8/N) so the level does not change. Left and right take decorrelated sign patterns of the lines.
+///         Cut) shortens the high-frequency decay, and the Low and High Freq Time multipliers set the decay below the
+///         low crossover and above the high one through one-pole splits, as
+///         <c>
+///             gm·y + (gl - gm)·low + (gh -
+///             gm)·high
+///         </c>
+///         . Wall Diffusion puts an allpass in every loop (its length set by Echo Density, taken out of the
+///         line so the loop time and decay are kept). Two lines are modulated by a sine (Mod Depth, Rate, and the phase
+///         between them). Quality is the line count: Economy 4, Normal 8, High 12, Ultra High 16, with injection and
+///         output scaled by √(8/N) so the level does not change. Left and right take decorrelated sign patterns of the
+///         lines.
 ///     </para>
 ///     <para>
 ///         Hold closes the input and stretches the decay to 600 s; Stack keeps the input open, and the network's line
 ///         writes then pass a soft limit so the stacked tail stays bounded. The pitch section is two granular shifters
-///         (<see cref="GrainShifter" />, reversed grains for Direction Reverse) blended by Voice Balance: at the input it
-///         pitches what enters the tank, at the output it pitches the wet, and in the tank it feeds the pitched wet back
-///         into the tank input, so every pass climbs again (shimmer). Pitch Feedback is that tank send, or at the input
-///         and output the shifters' own feedback. Stereo Spread runs from −200 % to 200 %: beyond ±100 % it widens the
-///         wet by raising its side signal (M/S).
+///         (<see cref="GrainShifter" />, reversed grains for Direction Reverse) blended by Voice Balance: at the input
+///         it pitches what enters the tank, at the output it pitches the wet, and in the tank it feeds the pitched wet
+///         back into the tank input, so every pass climbs again (shimmer). Pitch Feedback is that tank send, or at the
+///         input and output the shifters' own feedback. Stereo Spread runs from −200 % to 200 %: beyond ±100 % it
+///         widens the wet by raising its side signal (M/S).
 ///     </para>
 /// </remarks>
 public sealed class ReverbBlock : DspBlock {
@@ -153,13 +159,17 @@ public sealed class ReverbBlock : DspBlock {
     /// <summary>The longest <see cref="LineMs" /> entry (Cathedral's), which sizes the lines.</summary>
     const float LongestLineMs = 111.3f;
 
-    /// <summary>The longest <see cref="EarlyMs" /> entry (Cathedral's last tap), which sizes the reflection line.</summary>
+    /// <summary>
+    ///     The longest <see cref="EarlyMs" /> entry (Cathedral's last tap), which sizes the reflection line.
+    /// </summary>
     const float LongestEarlyMs = 117.7f;
 
     /// <summary>Line counts of the Quality choices.</summary>
     public static ReadOnlySpan<int> QualityLines => [4, 8, 12, 16];
 
-    /// <summary>Early reflection tap times in ms at size 50 % and Early Time 100 %, per ER row (see <see cref="ErRow" />).</summary>
+    /// <summary>
+    ///     Early reflection tap times in ms at size 50 % and Early Time 100 %, per ER row (see <see cref="ErRow" />).
+    /// </summary>
     public static readonly ImmutableArray<ImmutableArray<float>> EarlyMs = [
         [3.1f, 5.3f, 7.9f, 10.1f, 12.7f, 15.1f, 18.3f, 21.1f, 24.7f, 28.3f, 32.9f, 37.1f], // Room
         [7.3f, 11.9f, 17.1f, 21.7f, 26.3f, 31.9f, 37.7f, 43.1f, 49.3f, 56.9f, 63.1f, 71.3f], // Hall
@@ -286,9 +296,9 @@ public sealed class ReverbBlock : DspBlock {
             ParamDescriptor.Float("predelay", "Pre-Delay", 0f, MaxPreDelayMs, 0f, "ms"),
             ParamDescriptor.Float("damping", "High Cut", 1_000f, 20_000f, 6_000f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("lowcut", "Low Cut", LowCutOff, 1_000f, 80f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 20f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Mix(20f),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%"),
             ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions),
             Stereo.SpreadParam("spread"),
@@ -309,12 +319,8 @@ public sealed class ReverbBlock : DspBlock {
             Reflecting(ParamDescriptor.Float("earlyTime", "Early Time", 25f, 200f, 100f, "%", ParamTaper.Log)),
             Reflecting(ParamDescriptor.Float("earlyDecay", "Early Decay", 0f, 100f, 50f, "%")),
             Reflecting(ParamDescriptor.Float("lateInputMix", "Late Input Mix", 0f, 100f, 0f, "%")),
-            ParamDescriptor.Float("lowMidFrequency", "Low Mid Freq", 100f, 2_000f, 400f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("lowMidQ", "Low Mid Q", 0.1f, 10f, 0.7f, string.Empty, ParamTaper.Log),
-            ParamDescriptor.Float("lowMidGain", "Low Mid Gain", -12f, 12f, 0f, "dB"),
-            ParamDescriptor.Float("highMidFrequency", "High Mid Freq", 500f, 10_000f, 2_500f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("highMidQ", "High Mid Q", 0.1f, 10f, 0.7f, string.Empty, ParamTaper.Log),
-            ParamDescriptor.Float("highMidGain", "High Mid Gain", -12f, 12f, 0f, "dB"),
+            ..BlockParams.PeakingBand("lowMid", "Low Mid", 100f, 2_000f, 400f, 0.7f),
+            ..BlockParams.PeakingBand("highMid", "High Mid", 500f, 10_000f, 2_500f, 0.7f),
             ParamDescriptor.Choice("preDelayTempo", "Pre-Delay Tempo", TempoDivisions.Names),
             ParamDescriptor.Float("preDelayFeedback", "Pre-Delay Feedback", 0f, 90f, 0f, "%"),
             ParamDescriptor.Float("preDelayMix", "Pre-Delay Mix", 0f, 100f, 100f, "%"),
@@ -451,14 +457,18 @@ public sealed class ReverbBlock : DspBlock {
     static ParamDescriptor Dense(ParamDescriptor p) =>
         ShownOn(p, Room, Hall, Plate, Chamber, Cathedral, ClassicHall, ClassicPlate);
 
-    /// <summary>Input Diffusion and Time: the network's and the ring's input diffusers, the combs' series allpasses.</summary>
+    /// <summary>
+    ///     Input Diffusion and Time: the network's and the ring's input diffusers, the combs' series allpasses.
+    /// </summary>
     static ParamDescriptor Diffused(ParamDescriptor p) =>
         ShownOn(p, Room, Hall, Plate, Chamber, Cathedral, ClassicHall, ClassicPlate, VintageDigital);
 
     static ParamDescriptor Modulated(ParamDescriptor p) =>
         ShownOn(p, Room, Hall, Plate, Chamber, Cathedral, ClassicHall, ClassicPlate);
 
-    /// <summary>Whether <paramref name="type" /> is one of the classic digital tanks (ring, combs, nested room).</summary>
+    /// <summary>
+    ///     Whether <paramref name="type" /> is one of the classic digital tanks (ring, combs, nested room).
+    /// </summary>
     public static bool IsClassic(int type) => type is ClassicHall or ClassicPlate or VintageDigital or ClassicRoom;
 
     static ParamDescriptor SpringOnly(ParamDescriptor p) => ShownOn(p, Spring);
@@ -601,7 +611,8 @@ public sealed class ReverbBlock : DspBlock {
         var density = Params.Advance(EchoDensity, n) / 100f;
         wallGain = Params.Advance(WallDiffusion, n) / 100f * 0.7f;
         wall = wallGain > 0;
-        // Per-line settings in the order the lines run (slot p holds line i), so the per-sample loop reads them in turn.
+        // Per-line settings in the order the lines run (slot p holds line i), so the per-sample loop reads them in
+        // turn.
         for (var p = 0; p < lineCount; p++) {
             var i = quality == 0 ? EconomyLines[p] : p;
             slots[p] = i;
@@ -668,7 +679,9 @@ public sealed class ReverbBlock : DspBlock {
         }
     }
 
-    /// <summary>Early reflection taps for this block: times, the decay across the pattern, sides and the diffusion.</summary>
+    /// <summary>
+    ///     Early reflection taps for this block: times, the decay across the pattern, sides and the diffusion.
+    /// </summary>
     void ConfigureEarly(int type, float scale, float rate, int n) {
         var row = ErRow(type);
         var time = Params.Advance(EarlyTime, n) / 100f;
@@ -1109,7 +1122,9 @@ public sealed class ReverbBlock : DspBlock {
 
         public void Dispose() => buffer.Dispose();
 
-        /// <summary>A linear fractional read <paramref name="delay" /> samples back (1 = the most recent write).</summary>
+        /// <summary>
+        ///     A linear fractional read <paramref name="delay" /> samples back (1 = the most recent write).
+        /// </summary>
         public float Read(int line, float delay) {
             var position = writes[line] - delay;
             var index = (int)MathF.Floor(position);
@@ -1127,7 +1142,9 @@ public sealed class ReverbBlock : DspBlock {
             }
         }
 
-        /// <summary>A Schroeder allpass of fractional length <paramref name="delay" /> on line <paramref name="line" />.</summary>
+        /// <summary>
+        ///     A Schroeder allpass of fractional length <paramref name="delay" /> on line <paramref name="line" />.
+        /// </summary>
         public float Allpass(int line, float value, float delay, float gain) {
             var whole = (int)delay;
             var frac = delay - whole;

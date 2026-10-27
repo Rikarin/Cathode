@@ -6,11 +6,11 @@ namespace Cathode.Dsp.Tests;
 
 /// <summary>
 ///     The drive catalogue against committed renders (<c>tests/assets/golden/drive-circuits.wav</c>, one channel per
-///     circuit type, antialiased then exact), a guard on the solvers: a faster closed form, a different Newton start or a
-///     changed tolerance may move the last bits, never the sound. Circuits appended after the render was made are
-///     skipped until it is regenerated. Regenerate with <c>CATHODE_UPDATE_GOLDEN=1</c> only for
-///     an intended change to the catalogue (last: the component-level tone networks, op-amp stages and transistor
-///     fuzzes, and the guitar source).
+///     circuit type, antialiased then exact), a guard on the solvers: a faster closed form, a different Newton start or
+///     a changed tolerance may move the last bits, never the sound. Circuits appended after the render was made are
+///     skipped until it is regenerated. Regenerate with <c>CATHODE_UPDATE_GOLDEN=1</c> only for an intended change to
+///     the catalogue (last: the component-level tone networks, op-amp stages and transistor fuzzes, and the guitar
+///     source).
 /// </summary>
 public class DriveCircuitSolveTests(ITestOutputHelper output) {
     const int Frames = 2_048;

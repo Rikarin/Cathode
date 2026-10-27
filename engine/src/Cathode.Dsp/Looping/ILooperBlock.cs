@@ -8,9 +8,9 @@ public interface ILooperBlock {
     Looper? Looper { get; }
 
     /// <summary>
-    ///     Audio thread, at a preset swap: takes <paramref name="outgoing" />'s loop (and its transport state) and gives
-    ///     it this block's own, so a running loop carries on into the next preset. Both loopers have the same capacity,
-    ///     so nothing is allocated. Returns false if either has no looper.
+    ///     Audio thread, at a preset swap: takes <paramref name="outgoing" />'s loop (and its transport state) and
+    ///     gives it this block's own, so a running loop carries on into the next preset. Both loopers have the same
+    ///     capacity, so nothing is allocated. Returns false if either has no looper.
     /// </summary>
     bool TakeLoop(ILooperBlock outgoing);
 }

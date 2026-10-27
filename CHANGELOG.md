@@ -4,6 +4,16 @@ Cathode follows [semantic versioning](https://semver.org). From 1.0 on, a preset
 in every later one: the preset format carries a schema version (`schemaVersion`, now 2), and a release that changes
 the format upgrades older presets as it reads them.
 
+## Unreleased
+
+### Internal
+
+- **Skala's baseline is burnt down** (#161): from 4,321 accepted findings to 134, all of them duplicated-block
+  groups between data (amp schematics, presets, catalogues) or code kept apart on purpose, each kind named in
+  `skala.jsonc`. The rest were fixed, or their rule was switched off in `.editorconfig` with the reason it does not
+  fit. CI writes the baseline's size to the run's summary and fails if it grows. No sound changes: the refactored
+  DSP renders bit-identically.
+
 ## 1.0.0-rc.3 — 2026-10-26
 
 ### Added
@@ -25,7 +35,8 @@ the format upgrades older presets as it reads them.
 ### Internal
 
 - The engine is checked by [Skala](https://github.com/Rikarin/Skala) in CI: formatting, analysis and duplication,
-  with its findings in GitHub code scanning. Its 139 errors are fixed; no sound changes.
+  with its findings in GitHub code scanning. Its 139 errors are fixed; the other 4,321 findings (171 warnings,
+  4,150 notes) were accepted in a committed baseline, which only kept new code from adding to them. No sound changes.
 
 ## 1.0.0-rc.2 — 2026-10-25
 

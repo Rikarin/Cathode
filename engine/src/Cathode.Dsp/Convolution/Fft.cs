@@ -12,19 +12,10 @@ public sealed class Fft {
     public int Size { get; }
 
     public Fft(int size) {
-        if (size < 2 || (size & (size - 1)) != 0) {
-            throw new ArgumentOutOfRangeException(nameof(size), size, "FFT size must be a power of two >= 2.");
-        }
-
-        Size = size;
+        Size = CheckSize(size);
         cos = new float[size / 2];
         sin = new float[size / 2];
-        for (var i = 0; i < size / 2; i++) {
-            var angle = -2.0 * Math.PI * i / size;
-            cos[i] = (float)Math.Cos(angle);
-            sin[i] = (float)Math.Sin(angle);
-        }
-
+        Twiddles(cos, sin, size);
         reverse = new int[size];
         var bits = 0;
         while (1 << bits < size) {
@@ -53,20 +44,37 @@ public sealed class Fft {
         }
     }
 
-    void Transform(Span<float> re, Span<float> im, bool inverse) {
-        var n = Size;
-        if (re.Length < n || im.Length < n) {
-            throw new ArgumentException("Buffers are shorter than the FFT size.");
+    /// <summary><paramref name="size" />, which must be a power of two of at least 2.</summary>
+    internal static int CheckSize(int size) {
+        if (size < 2 || (size & (size - 1)) != 0) {
+            throw new ArgumentOutOfRangeException(nameof(size), size, "FFT size must be a power of two >= 2.");
         }
 
-        for (var i = 0; i < n; i++) {
-            var j = reverse[i];
-            if (i < j) {
-                (re[i], re[j]) = (re[j], re[i]);
-                (im[i], im[j]) = (im[j], im[i]);
-            }
-        }
+        return size;
+    }
 
+    /// <summary>The forward twiddles e^(-2πik/N), k &lt; N/2, for an FFT of <paramref name="size" /> (N).</summary>
+    internal static void Twiddles(Span<float> cos, Span<float> sin, int size) {
+        for (var i = 0; i < size / 2; i++) {
+            var angle = -2.0 * Math.PI * i / size;
+            cos[i] = (float)Math.Cos(angle);
+            sin[i] = (float)Math.Sin(angle);
+        }
+    }
+
+    /// <summary>
+    ///     The butterfly passes of a radix-2 transform of size <paramref name="n" /> on bit-reversed
+    ///     <paramref name="re" />/<paramref name="im" />, with the twiddles of <see cref="Twiddles" /> (conjugated for
+    ///     the inverse, which is left unscaled).
+    /// </summary>
+    internal static void Butterflies(
+        ReadOnlySpan<float> cos,
+        ReadOnlySpan<float> sin,
+        Span<float> re,
+        Span<float> im,
+        int n,
+        bool inverse
+    ) {
         var sign = inverse ? -1f : 1f;
         for (var length = 2; length <= n; length <<= 1) {
             var half = length >> 1;
@@ -86,5 +94,22 @@ public sealed class Fft {
                 }
             }
         }
+    }
+
+    void Transform(Span<float> re, Span<float> im, bool inverse) {
+        var n = Size;
+        if (re.Length < n || im.Length < n) {
+            throw new ArgumentException("Buffers are shorter than the FFT size.");
+        }
+
+        for (var i = 0; i < n; i++) {
+            var j = reverse[i];
+            if (i < j) {
+                (re[i], re[j]) = (re[j], re[i]);
+                (im[i], im[j]) = (im[j], im[i]);
+            }
+        }
+
+        Butterflies(cos, sin, re, im, n, inverse);
     }
 }

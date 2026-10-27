@@ -4,22 +4,24 @@ using System.Runtime.CompilerServices;
 namespace Cathode.Dsp.Amp;
 
 /// <summary>
-///     A tremolo that lives in a preamp stage (<see cref="NetworkStageDesign.Tremolo" />): the stage the design builds is
-///     wrapped in its runtime. The Circuit Amp's <c>tremrate</c> (hertz) and <c>tremdepth</c> reach it through
-///     <see cref="AmpControls.TremoloRate" /> and <see cref="AmpControls.TremoloDepth" />; at depth 0 the wrapper passes
-///     the stage through untouched.
+///     A tremolo that lives in a preamp stage (<see cref="NetworkStageDesign.Tremolo" />): the stage the design builds
+///     is wrapped in its runtime. The Circuit Amp's <c>tremrate</c> (hertz) and <c>tremdepth</c> reach it through
+///     <see cref="AmpControls.TremoloRate" /> and <see cref="AmpControls.TremoloDepth" />; at depth 0 the wrapper
+///     passes the stage through untouched.
 /// </summary>
 public abstract record StageTremoloDesign {
-    /// <summary>Wraps <paramref name="stage" />, built from <paramref name="design" />, in this tremolo's runtime.</summary>
+    /// <summary>
+    ///     Wraps <paramref name="stage" />, built from <paramref name="design" />, in this tremolo's runtime.
+    /// </summary>
     internal abstract AmpStage Wrap(NetworkStageDesign design, AmpStage stage, double sampleRate);
 }
 
 /// <summary>
 ///     A cadmium-sulphide photocell (LDR) lit by a lamp: its resistance falls with the light as a power law,
 ///     <c>R = Lit × (I / ReferenceCurrent)^−Exponent</c> in parallel with <paramref name="Dark" />, and it follows the
-///     light with an <paramref name="Attack" /> time constant as it brightens and a slower <paramref name="Release" /> as
-///     it darkens (the cell's conductance, not the lamp, is slow). The defaults are typical of the neon-lamp cells in
-///     Fender's "roach" (a guess: no data sheet for it is published): about 5M dark, a few kilohms with the lamp at
+///     light with an <paramref name="Attack" /> time constant as it brightens and a slower <paramref name="Release" />
+///     as it darkens (the cell's conductance, not the lamp, is slow). The defaults are typical of the neon-lamp cells
+///     in Fender's "roach" (a guess: no data sheet for it is published): about 5M dark, a few kilohms with the lamp at
 ///     1 mA, 5 ms and 35 ms.
 /// </summary>
 public sealed record LdrDesign(
@@ -38,25 +40,24 @@ public sealed record LdrDesign(
 }
 
 /// <summary>
-///     Fender's optical vibrato (the AB763 and AA763 amps, the Vibro-King): the oscillator's second ladder node drives a
-///     12AX7 half whose plate current lights a neon lamp (from <paramref name="DriverSupply" /> through
+///     Fender's optical vibrato (the AB763 and AA763 amps, the Vibro-King): the oscillator's second ladder node drives
+///     a 12AX7 half whose plate current lights a neon lamp (from <paramref name="DriverSupply" /> through
 ///     <paramref name="LampResistor" />, <paramref name="LampShunt" /> across it), and the lamp's photocell, from the
 ///     <paramref name="Intensity" /> pot's wiper to ground, shunts the signal at the node the pot's top hangs on
 ///     (<paramref name="NodeResistance" />: that node's Thévenin resistance without the pot; 0 to take the stage's own
 ///     output resistance, less the pot's track, in parallel with <paramref name="DownstreamLoad" />). The stage's
-///     netlist must carry the pot's track (<c>Intensity.Ohms</c>) from that node to ground. <paramref name="Channel" />,
-///     when set, is
-///     the switch under which the signal passes that node (the Vibrato channel).
+///     netlist must carry the pot's track (<c>Intensity.Ohms</c>) from that node to ground.
+///     <paramref name="Channel" />, when set, is the switch under which the signal passes that node (the Vibrato
+///     channel).
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <b>The lamp.</b> The driver's cathode (<paramref name="DriverCathode" /> with a large cap) charges up to near
-///         the
-///         positive peaks of its grid, so it conducts in pulses near each peak (class C). Its bias is solved where the
-///         pulses' mean current holds the cathode, each point of the pulse on the tube's Koren curves with the lamp lit
-///         (its plate at the supply less <paramref name="LampVoltage" /> and the resistor's drop); the drawings' 17 V at
-///         the AB763 driver's cathode is that balance. The lamp's current is the plate current less what the shunt
-///         carries. All per Speed rotation, on the oscillator's table.
+///         <b>The lamp.</b> The driver's cathode (<paramref name="DriverCathode" /> with a large cap) charges up to
+///         near the positive peaks of its grid, so it conducts in pulses near each peak (class C). Its bias is solved
+///         where the pulses' mean current holds the cathode, each point of the pulse on the tube's Koren curves with
+///         the lamp lit (its plate at the supply less <paramref name="LampVoltage" /> and the resistor's drop); the
+///         drawings' 17 V at the AB763 driver's cathode is that balance. The lamp's current is the plate current less
+///         what the shunt carries. All per Speed rotation, on the oscillator's table.
 ///     </para>
 ///     <para>
 ///         <b>The shunt.</b> With the photocell at R, the node sees <c>R_top + R_bottom ‖ R</c> to ground (the pot's
@@ -90,7 +91,9 @@ public sealed record OpticalTremoloDesign(
     /// <summary>The photocell.</summary>
     public LdrDesign Cell => Ldr ?? Roach;
 
-    /// <summary>The lamp's current over a cycle and the driver's bias, per Speed rotation (built on first use).</summary>
+    /// <summary>
+    ///     The lamp's current over a cycle and the driver's bias, per Speed rotation (built on first use).
+    /// </summary>
     internal LampTable Lamp => Tables.GetValue(this, static d => new(d));
 
     /// <summary>The driver's cathode voltage (its class-C bias) at Speed rotation <paramref name="speed" />.</summary>
@@ -110,9 +113,9 @@ public sealed record OpticalTremoloDesign(
     }
 
     /// <summary>
-    ///     The signal's gain at the shunted node with the photocell at <paramref name="cell" /> ohms and the Intensity pot
-    ///     at <paramref name="intensity" />, against the netlist's pot track (see the remarks); <paramref name="node" /> is
-    ///     the node's resistance without the pot.
+    ///     The signal's gain at the shunted node with the photocell at <paramref name="cell" /> ohms and the Intensity
+    ///     pot at <paramref name="intensity" />, against the netlist's pot track (see the remarks);
+    ///     <paramref name="node" /> is the node's resistance without the pot.
     /// </summary>
     public double Gain(double cell, double intensity, double node) {
         var track = Intensity.Ohms;
@@ -214,10 +217,10 @@ sealed class LampTable {
 }
 
 /// <summary>
-///     A stage with an <see cref="OpticalTremoloDesign" /> on its output: every <see cref="ControlPeriod" /> samples the
-///     lamp's light (from the table, at the oscillator's phase) moves the photocell's conductance with its attack or
-///     release, and the shunt's gain on the stage's signal (its output less its rest) is ramped there. Passes the stage
-///     through while the depth is 0 or its channel is not playing.
+///     A stage with an <see cref="OpticalTremoloDesign" /> on its output: every <see cref="ControlPeriod" /> samples
+///     the lamp's light (from the table, at the oscillator's phase) moves the photocell's conductance with its attack
+///     or release, and the shunt's gain on the stage's signal (its output less its rest) is ramped there. Passes the
+///     stage through while the depth is 0 or its channel is not playing.
 /// </summary>
 public sealed class OpticalTremoloStage : AmpStage {
     /// <summary>Samples per photocell update.</summary>
@@ -394,10 +397,11 @@ public sealed class OpticalTremoloStage : AmpStage {
 
 /// <summary>
 ///     A tremolo whose oscillator is a tube of the stage itself (the Marshall 18 W's V3B, which shares its plate supply
-///     and cathode with the Tremolo channel's V3A): <paramref name="Modulated" /> is the stage's netlist with that tube's
-///     grid on a source (supply element <paramref name="Source" />) instead of grounded, and the source swings with the
-///     oscillator's grid (<paramref name="Oscillator" />, its swing scaled by the depth, its positive peaks clamped by
-///     grid current), so the network itself works out what the oscillating tube's current does to the channel.
+///     and cathode with the Tremolo channel's V3A): <paramref name="Modulated" /> is the stage's netlist with that
+///     tube's grid on a source (supply element <paramref name="Source" />) instead of grounded, and the source swings
+///     with the oscillator's grid (<paramref name="Oscillator" />, its swing scaled by the depth, its positive peaks
+///     clamped by grid current), so the network itself works out what the oscillating tube's current does to the
+///     channel.
 /// </summary>
 /// <remarks>
 ///     At depth 0 the stage the design builds plays (the footswitch's grounded grid), bit for bit. Engaging runs the
@@ -418,7 +422,7 @@ public sealed record GridDriveTremoloDesign(
 }
 
 /// <summary>The runtime of a <see cref="GridDriveTremoloDesign" />.</summary>
-public sealed class GridDriveTremoloStage : AmpStage {
+public sealed class GridDriveTremoloStage : PairedAmpStage {
     readonly AmpStage plain;
     readonly AmpStage modulated;
     readonly IRailModulation rails;
@@ -462,7 +466,7 @@ public sealed class GridDriveTremoloStage : AmpStage {
         AmpStage plain,
         AmpStage modulated,
         double sampleRate
-    ) {
+    ) : base(plain, modulated) {
         Design = design;
         this.plain = plain;
         this.modulated = modulated;
@@ -472,27 +476,12 @@ public sealed class GridDriveTremoloStage : AmpStage {
         Step();
     }
 
-    public override void SetSampleRate(double sampleRate) {
+    protected override void OnSampleRate(double sampleRate) {
         this.sampleRate = sampleRate;
-        plain.SetSampleRate(sampleRate);
-        modulated.SetSampleRate(sampleRate);
         Step();
     }
 
-    public override void SetSourceResistance(double ohms) {
-        plain.SetSourceResistance(ohms);
-        modulated.SetSourceResistance(ohms);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override void SetSupply(double scale) {
-        plain.SetSupply(scale);
-        modulated.SetSupply(scale);
-    }
-
-    public override void Update(in AmpControls controls) {
-        plain.Update(controls);
-        modulated.Update(controls);
+    protected override void OnUpdate(in AmpControls controls) {
         depth = Math.Clamp(controls.TremoloDepth, 0, 1);
         var position = table.Position(controls.TremoloRate);
         if (controls.TremoloRate != rate) {
@@ -509,11 +498,6 @@ public sealed class GridDriveTremoloStage : AmpStage {
             modulated.Reset(restInput);
             direction = 1;
         }
-    }
-
-    public override void Apply(in PreampSettings settings) {
-        plain.Apply(settings);
-        modulated.Apply(settings);
     }
 
     public override void Retune(double restInput) {

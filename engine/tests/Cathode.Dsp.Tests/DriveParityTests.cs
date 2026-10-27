@@ -5,11 +5,15 @@ using Cathode.Testing;
 
 namespace Cathode.Dsp.Tests;
 
-/// <summary>The Drive block's EQ and Advanced pages and the Dynamic Distortion's filter section (docs/08 §6.5–6.6).</summary>
+/// <summary>
+///     The Drive block's EQ and Advanced pages and the Dynamic Distortion's filter section (docs/08 §6.5–6.6).
+/// </summary>
 public class DriveParityTests {
     const double Rate = 48_000;
 
-    /// <summary>Clip Type None: the Distortion voicing is then a linear chain, so EQ responses can be measured.</summary>
+    /// <summary>
+    ///     Clip Type None: the Distortion voicing is then a linear chain, so EQ responses can be measured.
+    /// </summary>
     const float Clean = (float)ClipperShape.Linear + 1;
 
     [Theory]

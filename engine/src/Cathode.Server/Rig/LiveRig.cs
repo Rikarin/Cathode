@@ -47,7 +47,9 @@ public sealed partial class LiveRig(
     /// <summary>The working copy as last loaded or saved, for Scene Revert.</summary>
     string savedJson = JsonSerializer.Serialize(Preset.CreateDefault(), ContractsJsonContext.Default.Preset);
 
-    /// <summary>Controller settings a preset may store; the rest of the rig bank is scene, global or live state.</summary>
+    /// <summary>
+    ///     Controller settings a preset may store; the rest of the rig bank is scene, global or live state.
+    /// </summary>
     static readonly HashSet<string> ControllerParams = [
         ..RigControls.Descriptor.Params.Select(static p => p.Id)
             .Where(static id => id.StartsWith("lfo", StringComparison.Ordinal)
@@ -73,8 +75,8 @@ public sealed partial class LiveRig(
     public Task<LiveState> StateAsync() => Locked(() => Task.FromResult(State()));
 
     /// <summary>
-    ///     Sends the whole rig to the engine again (after the host (re)connects): the graph and its parameters, mute, the
-    ///     tuner and whether to follow MIDI clock.
+    ///     Sends the whole rig to the engine again (after the host (re)connects): the graph and its parameters, mute,
+    ///     the tuner and whether to follow MIDI clock.
     /// </summary>
     public Task ResyncAsync() =>
         Locked(async () => {
@@ -152,33 +154,33 @@ public sealed partial class LiveRig(
                 // A new Input takes the first hardware input no other Input reads.
                 var source = request.Type == BuiltInTypes.Input ? FreeSource(preset) : 0;
 
-                await StructuralAsync(p => {
-                        // Dropping a block onto a shunt replaces it and keeps its cables, as on the Axe-Fx.
-                        var occupant = p.Blocks.Find(b => b.Row == request.Row && b.Column == request.Column);
-                        if (occupant is not null && occupant.Type != BuiltInTypes.Shunt) {
-                            throw RigException.Conflict(
-                                $"Cell ({request.Row},{request.Column}) holds '{occupant.Id}'."
-                            );
-                        }
-
-                        if (occupant is not null) {
-                            p.Blocks.Remove(occupant);
-                            Repoint(p, occupant.Id, id);
-                        }
-
-                        var added = new PresetBlock {
-                            Id = id, Type = request.Type, Row = request.Row, Column = request.Column
-                        };
-                        if (source > 0) {
-                            SetSource(added, source, info.Channels);
-                        }
-
-                        p.Blocks.Add(added);
-                    }
-                );
+                await StructuralAsync(p => PlaceNewBlock(p, request, id, source, info.Channels));
                 return Changed("blockAdded", id);
             }
         );
+
+    /// <summary>
+    ///     Adds a new block in its cell, reading hardware input <paramref name="source" /> when above 0. Dropping a
+    ///     block onto a shunt replaces it and keeps its cables, as on the Axe-Fx.
+    /// </summary>
+    static void PlaceNewBlock(Preset p, AddBlockRequest request, string id, int source, int channels) {
+        var occupant = p.Blocks.Find(b => b.Row == request.Row && b.Column == request.Column);
+        if (occupant is not null && occupant.Type != BuiltInTypes.Shunt) {
+            throw RigException.Conflict($"Cell ({request.Row},{request.Column}) holds '{occupant.Id}'.");
+        }
+
+        if (occupant is not null) {
+            p.Blocks.Remove(occupant);
+            Repoint(p, occupant.Id, id);
+        }
+
+        var added = new PresetBlock { Id = id, Type = request.Type, Row = request.Row, Column = request.Column };
+        if (source > 0) {
+            SetSource(added, source, channels);
+        }
+
+        p.Blocks.Add(added);
+    }
 
     public Task<LiveState> RemoveBlockAsync(string id, long? expected) =>
         Locked(async () => {
@@ -194,7 +196,8 @@ public sealed partial class LiveRig(
                         held.TryRemove(id, out _);
 
                         // A block in a signal path leaves a shunt that keeps its cables, so the path stays whole: the
-                        // reverse of dropping a block onto a shunt. A shunt, or a block at the end of a branch, just goes.
+                        // reverse of dropping a block onto a shunt. A shunt, or a block at the end of a branch, just
+                        // goes.
                         if (!LeaveShunt(p, block, block.Row, block.Column)) {
                             p.Cables.RemoveAll(c => c.From == id || c.To == id);
                         }
@@ -251,11 +254,7 @@ public sealed partial class LiveRig(
                     throw new RigException(400, "Cables run left to right, to a block in a later column.");
                 }
 
-                // Across empty cells, shunts carry the cable on the source's row (or else the target's).
-                var row = new[] { from.Row, to.Row }.Cast<int?>()
-                    .FirstOrDefault(r => Enumerable.Range(from.Column + 1, to.Column - from.Column - 1)
-                        .All(c => BlockAt(preset, r!.Value, c) is null or { Type: BuiltInTypes.Shunt })
-                    );
+                var row = CableRow(from, to);
                 if (row is null) {
                     throw new RigException(400, "A block is in the way: cables cross only empty cells and shunts.");
                 }
@@ -263,7 +262,8 @@ public sealed partial class LiveRig(
                 if (BuiltInTypes.IsOutput(from.Type) || to.Type == BuiltInTypes.Input) {
                     throw new RigException(
                         400,
-                        "Cables run from an output side to an input side: nothing leaves an Output block or enters an Input block."
+                        "Cables run from an output side to an input side: nothing leaves an Output block or "
+                        + "enters an Input block."
                     );
                 }
 
@@ -271,31 +271,43 @@ public sealed partial class LiveRig(
                     throw RigException.Conflict("That cable already exists.");
                 }
 
-                await StructuralAsync(p => {
-                        var previous = request.From;
-                        for (var column = from.Column + 1; column < to.Column; column++) {
-                            var shunt = BlockAt(p, row.Value, column);
-                            if (shunt is null) {
-                                var id = $"shunt-r{row}c{column}";
-                                shunt = new() {
-                                    Id = p.Blocks.Exists(b => b.Id == id) ? NextId(BuiltInTypes.Shunt) : id,
-                                    Type = BuiltInTypes.Shunt,
-                                    Row = row.Value,
-                                    Column = column
-                                };
-                                p.Blocks.Add(shunt);
-                            }
-
-                            Connect(p, previous, shunt.Id);
-                            previous = shunt.Id;
-                        }
-
-                        Connect(p, previous, request.To);
-                    }
-                );
+                await StructuralAsync(p => LayCable(p, request, from.Column, to.Column, row.Value));
                 return Changed("cableAdded", request.From);
             }
         );
+
+    /// <summary>
+    ///     The row a cable from <paramref name="from" /> to <paramref name="to" /> can take: across empty cells,
+    ///     shunts carry it on the source's row (or else the target's); null when blocks are in the way on both.
+    /// </summary>
+    int? CableRow(PresetBlock from, PresetBlock to) =>
+        new[] { from.Row, to.Row }.Cast<int?>()
+            .FirstOrDefault(r => Enumerable.Range(from.Column + 1, to.Column - from.Column - 1)
+                .All(c => BlockAt(preset, r!.Value, c) is null or { Type: BuiltInTypes.Shunt })
+            );
+
+    /// <summary>Cables the request's blocks on <paramref name="row" />, through shunts (added where missing).</summary>
+    void LayCable(Preset p, CableRequest request, int fromColumn, int toColumn, int row) {
+        var previous = request.From;
+        for (var column = fromColumn + 1; column < toColumn; column++) {
+            var shunt = BlockAt(p, row, column);
+            if (shunt is null) {
+                var id = $"shunt-r{row}c{column}";
+                shunt = new() {
+                    Id = HasBlock(p, id) ? NextId(BuiltInTypes.Shunt) : id,
+                    Type = BuiltInTypes.Shunt,
+                    Row = row,
+                    Column = column
+                };
+                p.Blocks.Add(shunt);
+            }
+
+            Connect(p, previous, shunt.Id);
+            previous = shunt.Id;
+        }
+
+        Connect(p, previous, request.To);
+    }
 
     public Task<LiveState> RemoveCableAsync(CableRequest request, long? expected) =>
         Locked(async () => {
@@ -344,18 +356,8 @@ public sealed partial class LiveRig(
                 var target = channel ?? state.Channel;
                 CheckChannel(target, descriptor.Channels);
 
-                var unknown = values.Keys.Where(k => descriptor.IndexOf(k) < 0).ToList();
-                if (unknown.Count > 0) {
-                    throw new RigException(
-                        400,
-                        $"{descriptor.Name} has no parameter(s) {string.Join(", ", unknown)}.",
-                        unknown
-                    );
-                }
-
-                int? source = block.Type == BuiltInTypes.Input && values.TryGetValue(SourceParam, out var rawSource)
-                    ? (int)descriptor.Params[descriptor.IndexOf(SourceParam)].Sanitize(rawSource)
-                    : null;
+                CheckParamNames(descriptor, values);
+                var source = RequestedSource(block, descriptor, values);
                 if (source is { } wanted) {
                     CheckSource(block, wanted);
                 }
@@ -363,61 +365,25 @@ public sealed partial class LiveRig(
                 PushUndo($"params:{id}:{target}:{string.Join(',', values.Keys.Order())}");
                 var stored = block.Channel(target);
                 var sent = new List<ParamValue>();
-                var recompile = false;
-                var typeParam = descriptor.IndexOf("type") is var typeIndex and >= 0
-                    ? descriptor.Params[typeIndex]
-                    : null;
-                var typeChanged = typeParam is not null
-                    && values.TryGetValue("type", out var type)
-                    && typeParam.Sanitize(type) != stored.GetValueOrDefault("type", typeParam.Default);
-                foreach (var (param, raw) in values) {
-                    var descriptorParam = descriptor.Params[descriptor.IndexOf(param)];
-                    var value = descriptorParam.Sanitize(raw);
-                    recompile |= descriptorParam.Recompile
-                        && stored.GetValueOrDefault(param, descriptorParam.Default) != value;
-                    stored[param] = value;
-                    sent.Add(new(id, param, value));
-                }
-
+                var typeChanged = ChangesType(descriptor, values, stored);
+                var recompile = StoreParams(id, descriptor, values, stored, sent);
                 if (source is { } chosen) {
                     SetSource(block, chosen, descriptor.Channels);
                 }
 
                 // A new model starts from its own defaults, not the old one's settings (values sent with it still win).
                 if (typeChanged) {
-                    foreach (var param in descriptor.TypeResets.Where(r => !values.ContainsKey(r))) {
-                        var value = descriptor.Params[descriptor.IndexOf(param)].Default;
-                        recompile |= descriptor.Params[descriptor.IndexOf(param)].Recompile
-                            && stored.GetValueOrDefault(param, value) != value;
-                        stored[param] = value;
-                        sent.Add(new(id, param, value));
-                    }
+                    recompile |= ResetForNewType(id, descriptor, values, stored, sent);
                 }
 
                 if (block.Global is { } link) {
-                    globals.Update(g => {
-                            if (g.Blocks.Find(b => b.Id == link) is { } shared) {
-                                shared.Channels[target] = new(stored);
-                            }
-                        }
-                    );
+                    ShareWithGlobal(link, target, stored);
                 }
 
                 // The preset's other blocks linked to the same global block follow.
                 var linked = MirrorLinked(block);
                 var running = linked.Where(b => Live(b.Id).Channel == target).ToList();
-                if (recompile && (target == state.Channel || running.Count > 0)) {
-                    await SyncGraphAsync(); // a latency change (look-ahead): the compiler has to see it
-                } else {
-                    if (target == state.Channel) {
-                        engine.SetParams(generation, sent);
-                    }
-
-                    foreach (var other in running) {
-                        engine.SetParams(generation, [..sent.Select(v => v with { Block = other.Id })]);
-                    }
-                }
-
+                await SendParamsAsync(recompile, target == state.Channel, running, sent);
                 revision++;
                 dirty = true;
                 foreach (var value in sent) {
@@ -532,7 +498,9 @@ public sealed partial class LiveRig(
         }
     }
 
-    /// <summary>Turns the block's channel-scoped modifiers on for <paramref name="channel" /> and off for the rest.</summary>
+    /// <summary>
+    ///     Turns the block's channel-scoped modifiers on for <paramref name="channel" /> and off for the rest.
+    /// </summary>
     void SyncModifiers(PresetBlock block, string channel) {
         var descriptor = catalog.Descriptor(block.Type);
         foreach (var modifier in preset.Modifiers.Where(m => m.Block == block.Id && m.Channel is not null)) {
@@ -634,7 +602,8 @@ public sealed partial class LiveRig(
     /// </summary>
     static string? SceneUndoKey(int scene, SceneUpdateRequest request) =>
         request is { Name: null, Midi: null } && (request.Level is not null || request.Controllers is not null)
-            ? $"scene:{scene}:{(request.Level is null ? "" : "level")},{(request.Controllers is null ? "" : "controllers")}"
+            ? $"scene:{scene}:{(request.Level is null ? "" : "level")},"
+            + $"{(request.Controllers is null ? "" : "controllers")}"
             : null;
 
     /// <summary>
@@ -789,7 +758,9 @@ public sealed partial class LiveRig(
         );
     }
 
-    /// <summary>The rig bank as this preset and scene set it: controllers, tempo, scene level and controllers.</summary>
+    /// <summary>
+    ///     The rig bank as this preset and scene set it: controllers, tempo, scene level and controllers.
+    /// </summary>
     List<ParamValue> RigValues() {
         var values = new List<ParamValue>(SceneValues());
         foreach (var id in ControllerParams) {
@@ -837,7 +808,9 @@ public sealed partial class LiveRig(
         Changes?.Invoke(change);
     }
 
-    /// <summary>Records an undo point unless this edit continues the previous one (e.g. a knob being dragged).</summary>
+    /// <summary>
+    ///     Records an undo point unless this edit continues the previous one (e.g. a knob being dragged).
+    /// </summary>
     void PushUndo(string? key) {
         if (key is null || key != coalesceKey) {
             Remember(undo, Capture());
@@ -942,46 +915,7 @@ public sealed partial class LiveRig(
         }
     }
 
-    void Check(long? expected) {
-        if (expected is { } value && value != revision) {
-            throw new RigException(
-                412,
-                $"The rig changed (revision {revision}, expected {value}). Reload and try again."
-            );
-        }
-    }
-
-    void CheckCell(int row, int column) {
-        if (row < 0 || row >= preset.Rows || column < 0 || column >= preset.Columns) {
-            throw new RigException(400, $"Cell ({row},{column}) is outside the {preset.Rows}x{preset.Columns} grid.");
-        }
-    }
-
-    static void CheckChannel(string channel, int channels) {
-        var index = Preset.ChannelNames.IndexOf(channel);
-        if (index < 0 || index >= channels) {
-            throw new RigException(
-                400,
-                $"Channel '{channel}' does not exist; this block has {string.Join(", ", Preset.ChannelNames[..channels])}."
-            );
-        }
-    }
-
-    static void CheckSceneMidi(List<SceneMidiMessage> messages) {
-        if (messages.Count > SceneMidiMessage.MaxPerScene) {
-            throw new RigException(400, $"A scene sends at most {SceneMidiMessage.MaxPerScene} MIDI messages.");
-        }
-
-        if (messages.Select(static m => m.Problem()).FirstOrDefault(static p => p is not null) is { } problem) {
-            throw new RigException(400, problem);
-        }
-    }
-
-    static void CheckScene(int scene) {
-        if (scene is < 0 or >= Preset.SceneCount) {
-            throw new RigException(400, $"Scenes are numbered 0 to {Preset.SceneCount - 1}.");
-        }
-    }
+    static bool HasBlock(Preset p, string id) => p.Blocks.Exists(b => b.Id == id);
 
     static bool Adjacent(Preset p, PresetCable cable) {
         var from = p.Blocks.First(b => b.Id == cable.From);
@@ -990,7 +924,8 @@ public sealed partial class LiveRig(
     }
 
     async Task<LiveState> Locked(Func<Task<LiveState>> operation) {
-        await gate.WaitAsync();
+        // Not cancellable: every rig operation is queued for the lock and runs to completion once it has it.
+        await gate.WaitAsync(CancellationToken.None);
         try {
             return await operation();
         } finally {
@@ -998,7 +933,9 @@ public sealed partial class LiveRig(
         }
     }
 
-    /// <summary>Raised (inside the rig's lock) for every change, like the WebSocket events: for in-process listeners.</summary>
+    /// <summary>
+    ///     Raised (inside the rig's lock) for every change, like the WebSocket events: for in-process listeners.
+    /// </summary>
     public event Action<RigEvent>? Changes;
 
     sealed record Snapshot(string Json, int ActiveScene);

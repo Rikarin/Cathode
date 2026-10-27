@@ -602,7 +602,8 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         using (response) {
             if (!response.IsSuccessStatusCode) {
                 Assert.Fail(
-                    $"{response.RequestMessage?.Method} {response.RequestMessage?.RequestUri}: {(int)response.StatusCode} {await response.Content.ReadAsStringAsync(Token)}"
+                    $"{response.RequestMessage?.Method} {response.RequestMessage?.RequestUri}: "
+                    + $"{(int)response.StatusCode} {await response.Content.ReadAsStringAsync(Token)}"
                 );
             }
 

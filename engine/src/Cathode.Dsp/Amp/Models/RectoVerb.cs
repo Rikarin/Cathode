@@ -3,21 +3,22 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Mesa/Boogie Rect-o-Verb (first series, 50 W), lead channel: V1A (220k, 1.8k ‖ 1 µF), 20 nF and 680k ‖ 2 nF into the
-///     250k audio lead gain (1 nF from its top to the wiper), 470k with 20 pF to ground and 150 Ω into V1B (100k, 1.8k ‖
-///     1 µF and 15 µF through 22k), 47 nF with 1.5M to ground and 475k into the V2B cold clipper (1M grid leak, 39k
-///     unbypassed, 100k plate with 1 nF across it), 20 nF with 330k to ground and 220k into V3A (220k, 1.8k ‖ 1 µF), a
-///     DC-coupled cathode follower (100k) driving the stack (500 pF, 47k slope, 20 nF, 20 nF; 250k linear treble, 1M
-///     audio bass, 25k linear middle), the presence shunt on the treble wiper (22k and 3 nF into a rheostat), 220k into
-///     the 1M audio lead master; a long-tail pair (82k/100k, 470 Ω, 10k tail, feedback 47k into 4.7k from the 8 Ω tap)
-///     and two 6L6GC at 454 V with 1k screens.
+///     Mesa/Boogie Rect-o-Verb (first series, 50 W), lead channel: V1A (220k, 1.8k ‖ 1 µF), 20 nF and 680k ‖ 2 nF into
+///     the 250k audio lead gain (1 nF from its top to the wiper), 470k with 20 pF to ground and 150 Ω into V1B (100k,
+///     1.8k ‖ 1 µF and 15 µF through 22k), 47 nF with 1.5M to ground and 475k into the V2B cold clipper (1M grid leak,
+///     39k unbypassed, 100k plate with 1 nF across it), 20 nF with 330k to ground and 220k into V3A (220k, 1.8k ‖ 1
+///     µF), a DC-coupled cathode follower (100k) driving the stack (500 pF, 47k slope, 20 nF, 20 nF; 250k linear
+///     treble, 1M audio bass, 25k linear middle), the presence shunt on the treble wiper (22k and 3 nF into a
+///     rheostat), 220k into the 1M audio lead master; a long-tail pair (82k/100k, 470 Ω, 10k tail, feedback 47k into
+///     4.7k from the 8 Ω tap) and two 6L6GC at 454 V with 1k screens.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         Source: the Mesa/Boogie factory drawing set "Solo 50 / Rectoverb" (seven sheets; the Rectoverb's own parts
-///         boxed "Rectoverb only"), https://el34world.com/charts/Schematics/files/Mesa_boogie/Boogie_solo50_rectoverb.pdf.
-///         Every preamp and power-amp value above is read from it, with its voltages (E 394 V, D 376 V, C 415 V, A 454 V,
-///         B 451 V, bias -48 V). The supply sheet is titled Solo 50 (silicon rectifier).
+///         boxed "Rectoverb only"),
+///         https://el34world.com/charts/Schematics/files/Mesa_boogie/Boogie_solo50_rectoverb.pdf. Every preamp and
+///         power-amp value above is read from it, with its voltages (E 394 V, D 376 V, C 415 V, A 454 V, B 451 V, bias
+///         -48 V). The supply sheet is titled Solo 50 (silicon rectifier).
 ///     </para>
 ///     <para>
 ///         The supply's decoupling, from that sheet: the choke to B (30 µF), 5.6k to C (10 µF: V3, the inverter), and
@@ -28,13 +29,13 @@ namespace Cathode.Dsp.Amp.Models;
 ///     </para>
 ///     <para>
 ///         Guesses and simplifications, marked: the presence rheostat's value is not printed (250k linear here); the
-///         effects-loop stage V4 and the output level control are left out (the lead master feeds the inverter, here the
-///         Master knob); the reverb is at zero (its send, a 475k from the treble wiper, is left out); in the lead channel
-///         the feedback shunt carries 0.1 µF, 2.7k and 5.6k in series (the rhythm channel's presence pot is switched
-///         out), here the power amp's presence network at that value with its knob hidden; the 120 pF across each
-///         inverter plate resistor and the 75 pF between the plates are left out. Not on the drawing: the idle current
-///         (40 mA), the primary (4k, a typical value for two 6L6) and the Series II changes. The rhythm channel is not
-///         modelled.
+///         effects-loop stage V4 and the output level control are left out (the lead master feeds the inverter, here
+///         the Master knob); the reverb is at zero (its send, a 475k from the treble wiper, is left out); in the lead
+///         channel the feedback shunt carries 0.1 µF, 2.7k and 5.6k in series (the rhythm channel's presence pot is
+///         switched out), here the power amp's presence network at that value with its knob hidden; the 120 pF across
+///         each inverter plate resistor and the 75 pF between the plates are left out. Not on the drawing: the idle
+///         current (40 mA), the primary (4k, a typical value for two 6L6) and the Series II changes. The rhythm channel
+///         is not modelled.
 ///     </para>
 /// </remarks>
 public static class RectoVerb {

@@ -1,0 +1,53 @@
+# Skala (skala.jsonc, .github/workflows/skala.yml) reads its rule severities and thresholds from here, as Roslyn and the
+# IDE do; skala.jsonc holds only the gates. The policy is in skala.jsonc: a rule that fits this codebase is fixed to zero
+# findings, and one that does not is switched off or re-tuned below, with the reason, instead of being parked in
+# .skala/baseline.sarif. Every rule not named here runs at Skala's default.
+root = true
+
+[*.cs]
+# SK6034, a public constant is baked into every caller: the hazard needs an assembly that ships separately from its
+# callers. The engine's assemblies are one application, built and shipped together from this solution (nothing is
+# published as a library), so every caller is always rebuilt with the constant; the circuits' component values and the
+# blocks' parameter indices are constants on purpose (they appear in switch labels and attribute arguments).
+dotnet_diagnostic.SK6034.severity = none
+
+# SK4002, review a delegate that captures an iteration-local: a prompt to review allocation, not a defect. It cannot
+# tell the audio thread from the control thread, and every finding was on control-plane, tool or test code; the audio
+# path's allocation discipline is enforced by tests that measure it (HostAllocationTests and the engine's own).
+dotnet_diagnostic.SK4002.severity = none
+
+# SK1084, use a LINQ operator for part of a loop: the opposite of this codebase's deliberate style. An explicit loop
+# with a `continue` allocates nothing, and the engine, the graph compiler and the host keep LINQ off every path that
+# runs per preset load or near the audio thread.
+dotnet_diagnostic.SK1084.severity = none
+
+# SK7005, a member takes more than 8 parameters: positional records are this codebase's form for wire contracts, amp
+# and stage designs and circuit parts (one parameter per field or per component, named at the call site), so the count
+# measures the circuit or the contract, not a design smell.
+dotnet_diagnostic.SK7005.severity = none
+
+# Tests, test references and spikes: table-driven test methods, repeated file names and ids, reference simulators
+# written as one routine per paper and throwaway measurement harnesses are the readable choice there (Skala's own
+# duplication rule measures tests apart for the same reason). The metrics and the repeated-literal rule stay on for the
+# shipped code.
+[engine/{tests,spikes}/**.cs]
+dotnet_diagnostic.SK7001.severity = none
+dotnet_diagnostic.SK7002.severity = none
+dotnet_diagnostic.SK7003.severity = none
+dotnet_diagnostic.SK7082.severity = none
+dotnet_diagnostic.SK7083.severity = none
+
+# The DSP library: a per-sample kernel or a circuit solver is one routine per algorithm on purpose (the hot path stays
+# inline and allocation-free, and it reads against the circuit or the paper it implements), and a circuit is one file.
+# Splitting them buys nothing a reader of the schematic wants, and every split is a re-verification against the
+# bit-identical renders. (SK7082, nested conditionals, stays on here: it is fixed to zero.)
+[engine/src/Cathode.Dsp/**.cs]
+dotnet_diagnostic.SK7001.severity = none
+dotnet_diagnostic.SK7002.severity = none
+dotnet_diagnostic.SK7003.severity = none
+dotnet_diagnostic.SK7030.severity = none
+
+# The factory presets and recipes are data tables: a block type or parameter id repeated once per preset is the table,
+# and a named constant per id would only rename it.
+[engine/src/Cathode.Server/Stores/Factory*.cs]
+dotnet_diagnostic.SK7083.severity = none

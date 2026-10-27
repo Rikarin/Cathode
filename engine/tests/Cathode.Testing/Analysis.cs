@@ -57,7 +57,9 @@ public static class Analysis {
         return sum.Magnitude;
     }
 
-    /// <summary>Total harmonic distortion of a coherent sine at <paramref name="fundamentalBin" />, as a ratio.</summary>
+    /// <summary>
+    ///     Total harmonic distortion of a coherent sine at <paramref name="fundamentalBin" />, as a ratio.
+    /// </summary>
     public static double Thd(ReadOnlySpan<float> signal, int fundamentalBin, int harmonics = 9) {
         var magnitudes = Fft.Magnitudes(signal);
         double sum = 0;

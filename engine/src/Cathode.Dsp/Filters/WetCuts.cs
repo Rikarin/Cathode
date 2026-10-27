@@ -3,9 +3,9 @@ using Cathode.Dsp.Parameters;
 namespace Cathode.Dsp.Filters;
 
 /// <summary>
-///     The Low Cut and High Cut many blocks put on their wet signal: second-order Butterworth high- and low-pass SVFs on
-///     both channels. A cut at or beyond its "off" end (<see cref="LowOff" />, <see cref="HighOff" />) is skipped, so the
-///     signal passes untouched.
+///     The Low Cut and High Cut many blocks put on their wet signal: second-order Butterworth high- and low-pass SVFs
+///     on both channels. A cut at or beyond its "off" end (<see cref="LowOff" />, <see cref="HighOff" />) is skipped,
+///     so the signal passes untouched.
 /// </summary>
 public struct WetCuts {
     public const float LowOff = 20f;

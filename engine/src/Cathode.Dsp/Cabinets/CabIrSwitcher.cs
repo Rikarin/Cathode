@@ -51,8 +51,9 @@ public sealed class StereoIr : IDisposable {
     }
 
     /// <summary>
-    ///     Two pairs: the left input through <paramref name="leftToLeft" /> and <paramref name="leftToRight" />, the right
-    ///     input through <paramref name="rightToLeft" /> and <paramref name="rightToRight" />, for callbacks of up to
+    ///     Two pairs: the left input through <paramref name="leftToLeft" /> and <paramref name="leftToRight" />, the
+    ///     right input through <paramref name="rightToLeft" /> and <paramref name="rightToRight" />, for callbacks of
+    ///     up to
     ///     <paramref name="maxBlockSize" /> frames.
     /// </summary>
     public StereoIr(
@@ -158,7 +159,9 @@ public sealed class CabIrSwitcher : IDisposable {
     /// <summary>Changes taken by the audio thread since <see cref="Prepare" /> (for tests and diagnostics).</summary>
     public int Swaps { get; private set; }
 
-    /// <summary>Control thread, audio stopped: sizes the fade buffers and starts on <paramref name="initial" />.</summary>
+    /// <summary>
+    ///     Control thread, audio stopped: sizes the fade buffers and starts on <paramref name="initial" />.
+    /// </summary>
     public void Prepare(in ProcessSpec spec, StereoIr initial) {
         DisposePairs();
         oldLeft.Dispose();

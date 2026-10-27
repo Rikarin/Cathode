@@ -3,7 +3,9 @@ using Cathode.Testing;
 
 namespace Cathode.Dsp.Tests;
 
-/// <summary>IR import processing: minimum phase keeps the magnitude, auto-trim and polarity, channels and length.</summary>
+/// <summary>
+///     IR import processing: minimum phase keeps the magnitude, auto-trim and polarity, channels and length.
+/// </summary>
 public class IrImportTests {
     const int Rate = 48_000;
 

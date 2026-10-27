@@ -8,9 +8,10 @@ namespace Cathode.Dsp.Reverb;
 /// <remarks>
 ///     <para>
 ///         The small-room layout: a short delay, a 35 ms allpass (gain 0.3) with a 22 ms (0.4) and an 8.3 ms (0.6)
-///         allpass nested in series inside it, then a 66 ms allpass (0.1) with a 30 ms (0.4) one inside, each followed by
-///         an output tap at half level. Lengths and gains are our reading of the published figure. The nested allpasses
-///         thicken the echoes quickly without colouring them, which is why the design suits short, dense ambiences.
+///         allpass nested in series inside it, then a 66 ms allpass (0.1) with a 30 ms (0.4) one inside, each followed
+///         by an output tap at half level. Lengths and gains are our reading of the published figure. The nested
+///         allpasses thicken the echoes quickly without colouring them, which is why the design suits short, dense
+///         ambiences.
 ///     </para>
 ///     <para>
 ///         A nested allpass of total order N delays a signal by N samples on average over frequency, so the loop's gain

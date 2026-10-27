@@ -7,8 +7,8 @@ namespace Cathode.Dsp.Tests;
 
 /// <summary>
 ///     R-type roots with nonlinear multiport devices against the reference simulator (trapezoidal MNA with a full
-///     Newton solve per step, run 16 times faster than the WDF): operating points, time-domain renders at moderate level,
-///     and Newton's behaviour under abuse.
+///     Newton solve per step, run 16 times faster than the WDF): operating points, time-domain renders at moderate
+///     level, and Newton's behaviour under abuse.
 /// </summary>
 public class NonlinearRootTests(ITestOutputHelper output) {
     const double Rate = 192_000; // a 4x-oversampled 48 kHz stage

@@ -10,8 +10,8 @@ public sealed record IrMixInput(
 );
 
 /// <summary>
-///     Blends impulse responses into one (Cab-Lab style): each is resampled to the target rate, optionally aligned on its
-///     peak, delayed, scaled and summed, then faded at the end and optionally normalised to unit energy.
+///     Blends impulse responses into one (Cab-Lab style): each is resampled to the target rate, optionally aligned on
+///     its peak, delayed, scaled and summed, then faded at the end and optionally normalised to unit energy.
 /// </summary>
 public static class IrMix {
     const int FadeLength = 64;

@@ -1,3 +1,4 @@
+using Cathode.Dsp.Amp;
 using System.Runtime.CompilerServices;
 
 namespace Cathode.Dsp.Filters;
@@ -13,7 +14,9 @@ public enum BiquadType {
     AllPass
 }
 
-/// <summary>Normalised biquad coefficients (a0 = 1). Double precision keeps low-frequency, high-Q sections stable.</summary>
+/// <summary>
+///     Normalised biquad coefficients (a0 = 1). Double precision keeps low-frequency, high-Q sections stable.
+/// </summary>
 public readonly record struct BiquadCoefficients(double B0, double B1, double B2, double A1, double A2) {
     /// <summary>Shelves above this Q develop a large resonant bump at the corner, so their Q is limited.</summary>
     public const double MaxShelfQ = 1.0;
@@ -131,8 +134,6 @@ public readonly record struct BiquadCoefficients(double B0, double B1, double B2
 
 /// <summary>Transposed direct form II biquad state for one channel.</summary>
 public struct BiquadState {
-    const double DenormalThreshold = 1e-30;
-
     double z1;
     double z2;
 
@@ -159,12 +160,7 @@ public struct BiquadState {
 
     /// <summary>Zeroes state that has decayed into the subnormal range, where arithmetic gets very slow.</summary>
     public void FlushDenormals() {
-        if (Math.Abs(z1) < DenormalThreshold) {
-            z1 = 0;
-        }
-
-        if (Math.Abs(z2) < DenormalThreshold) {
-            z2 = 0;
-        }
+        z1 = Flush.Value(z1);
+        z2 = Flush.Value(z2);
     }
 }

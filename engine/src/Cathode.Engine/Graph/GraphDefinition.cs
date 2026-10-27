@@ -9,7 +9,9 @@ public static class NodeTypes {
     public const string Output = "output";
     public const string Shunt = "shunt";
 
-    /// <summary>Outputs 2-4: grid outputs of their own, each mapped to a device channel pair in the audio settings.</summary>
+    /// <summary>
+    ///     Outputs 2-4: grid outputs of their own, each mapped to a device channel pair in the audio settings.
+    /// </summary>
     public const string Output2 = "output2";
 
     public const string Output3 = "output3";
@@ -50,7 +52,9 @@ public static class BypassModes {
     /// <summary>The dry signal passes and the block's tails are added: spillover for delays and reverbs.</summary>
     public const string MuteFxIn = "muteFxIn";
 
-    /// <summary>The block keeps running on its input but its output is muted, so tails are ready when it is engaged.</summary>
+    /// <summary>
+    ///     The block keeps running on its input but its output is muted, so tails are ready when it is engaged.
+    /// </summary>
     public const string MuteOut = "muteOut";
 
     /// <summary>As <see cref="MuteOut" />, with the dry signal passing in place of the block's output.</summary>
@@ -93,7 +97,9 @@ public sealed class ModifierDefinition {
 
     public string Param { get; set; } = string.Empty;
 
-    /// <summary>A source name (Cathode.Engine.Rig.ModNames.Sources): lfo1, adsr2, env, manualA, scene3, ext5, …</summary>
+    /// <summary>
+    ///     A source name (Cathode.Engine.Rig.ModNames.Sources): lfo1, adsr2, env, manualA, scene3, ext5, …
+    /// </summary>
     public string Source { get; set; } = string.Empty;
 
     public float Min { get; set; }

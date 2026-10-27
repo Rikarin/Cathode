@@ -7,9 +7,9 @@ namespace Cathode.Dsp.Tests;
 
 /// <summary>
 ///     The class-A family's stages (stream F3: AC30, AC15, DC-30) against the reference simulator: the top boost's gain
-///     stage and its cathode follower with the treble/bass network, the EF86 channels with the brilliance switch and the
-///     six-way tone rotary, a pair of paralleled triodes, the power amps with the cut and a master across the inverter's
-///     outputs; and the operating points against the voltages on the schematics.
+///     stage and its cathode follower with the treble/bass network, the EF86 channels with the brilliance switch and
+///     the six-way tone rotary, a pair of paralleled triodes, the power amps with the cut and a master across the
+///     inverter's outputs; and the operating points against the voltages on the schematics.
 /// </summary>
 public partial class AmpStageTests {
     public static TheoryData<string, int, double, double, double> ClassAStages =>
@@ -147,7 +147,8 @@ public partial class AmpStageTests {
         reference.OperatingPoint(40);
         output.WriteLine(
             $"{name}: rest output {stage.RestOutput:0.000} V (reference {reference.Voltage(node):0.000} V), source "
-            + $"{rest:0.00} V behind {sourceResistance / 1e3:0.0}k, output resistance {stage.OutputResistance / 1e3:0.0}k"
+            + $"{rest:0.00} V behind {sourceResistance / 1e3:0.0}k, output resistance "
+            + $"{stage.OutputResistance / 1e3:0.0}k"
         );
         Assert.Equal(reference.Voltage(node), stage.RestOutput, 0.002 * Math.Abs(reference.Voltage(node)) + 1e-6);
 
@@ -186,17 +187,19 @@ public partial class AmpStageTests {
             master: master
         );
         output.WriteLine(
-            $"{name}: B+ {power.Supply:0.0} V, cathode {power.CathodeVoltage:0.00} V across {power.CathodeResistor:0} Ω, "
-            + $"idle {power.PlateCurrents.A * 1e3:0.0} mA per tube, inverter grids {power.PhaseInverter.RestGrid:0.00} V"
+            $"{name}: B+ {power.Supply:0.0} V, cathode {power.CathodeVoltage:0.00} V across "
+            + $"{power.CathodeResistor:0} Ω, "
+            + $"idle {power.PlateCurrents.A * 1e3:0.0} mA per tube, inverter grids "
+            + $"{power.PhaseInverter.RestGrid:0.00} V"
         );
         var errorDb = CompareInTime(name, power.Tick, power.Newton, circuit, speaker, amplitude, 8);
         Assert.True(errorDb < -35, $"{name}: {errorDb:0.0} dB from the reference");
     }
 
     /// <summary>
-    ///     Operating points against the schematics' voltages: Vox OS/010 and OS/065 (AC30), AmpBooks' AC15 and Matchless
-    ///     EF86 pages. The 12AX7's Koren model runs about 15 % less current than Vox's tubes did, so their plates sit
-    ///     up to 10 % high; the EF86 is fitted to the AC15's stage, so it lands within 2 %.
+    ///     Operating points against the schematics' voltages: Vox OS/010 and OS/065 (AC30), AmpBooks' AC15 and
+    ///     Matchless EF86 pages. The 12AX7's Koren model runs about 15 % less current than Vox's tubes did, so their
+    ///     plates sit up to 10 % high; the EF86 is fitted to the AC15's stage, so it lands within 2 %.
     /// </summary>
     [Fact]
     public void Class_a_operating_points_match_the_schematics() {
@@ -284,7 +287,9 @@ public partial class AmpStageTests {
         }
     }
 
-    /// <summary>The stages of a model's channel: <paramref name="on" /> picks a channel switch's other channel.</summary>
+    /// <summary>
+    ///     The stages of a model's channel: <paramref name="on" /> picks a channel switch's other channel.
+    /// </summary>
     static IReadOnlyList<AmpStageDesign> Chain(AmpDesign design, bool on) =>
         [..design.Preamp.SelectMany(s => s is ChannelSwitchStageDesign c ? on ? c.On : c.Off : [s])];
 }

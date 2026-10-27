@@ -3,24 +3,25 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Fender Vibro-King (Custom Shop, 1993; 60 W, 3 × 10), revision F: a cathode follower on the input (V1A: 0.047 µF in,
-///     its grid held at half its plate supply by 2.2M / 2.2M, 100k cathode), 0.1 µF and 220k into V4A (1M grid leak, 100k,
-///     1.5k with 22 µF over 22k that the <b>Fat</b> switch grounds), 0.22 µF, 470k, 0.0068 µF into the 500k volume (470k
-///     beside it), V4B (100k, 1.5k ‖ 0.47 µF) with the Fender stack on its plate (150 pF, 100k slope, 0.047 µF bass,
-///     0.022 µF mid; 250k treble and bass, 25k mid), 100k and 0.01 µF into a 12AX7 long-tail pair (91k/100k, 820 Ω, 39k
-///     tail), two 6L6GC in fixed bias at 465 V on a silicon bridge, and no global feedback. Panel: Volume, Treble, Bass,
-///     Middle, Fat. Reverb (Mix at its dry end) is not modelled; the vibrato is <see cref="Vibrato" />.
+///     Fender Vibro-King (Custom Shop, 1993; 60 W, 3 × 10), revision F: a cathode follower on the input (V1A: 0.047 µF
+///     in, its grid held at half its plate supply by 2.2M / 2.2M, 100k cathode), 0.1 µF and 220k into V4A (1M grid
+///     leak, 100k, 1.5k with 22 µF over 22k that the <b>Fat</b> switch grounds), 0.22 µF, 470k, 0.0068 µF into the 500k
+///     volume (470k beside it), V4B (100k, 1.5k ‖ 0.47 µF) with the Fender stack on its plate (150 pF, 100k slope,
+///     0.047 µF bass, 0.022 µF mid; 250k treble and bass, 25k mid), 100k and 0.01 µF into a 12AX7 long-tail pair
+///     (91k/100k, 820 Ω, 39k tail), two 6L6GC in fixed bias at 465 V on a silicon bridge, and no global feedback.
+///     Panel: Volume, Treble, Bass, Middle, Fat. Reverb (Mix at its dry end) is not modelled; the vibrato is
+///     <see cref="Vibrato" />.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         Source: the Fender drawing 041253
 ///         (thetubestore.com/lib/thetubestore/schematics/Fender/Fender-Vibro-King-Schematic.pdf),
-///         revision F (EC1907, 17 May 1997), with revision A (1993) agreeing on the stack, V4B, the inverter and the power
-///         stage: every value above, the supply (465 V on 2 × 220 µF in series, a choke to 464 V for the screens, 1.2k and
-///         10k to 392 V for the preamp and the inverter), the screens' 470 Ω, 1.5k grid stoppers, 220k grid leaks,
-///         0.047 µF coupling caps, the −46 V bias, the tail returning to ground (no feedback, no presence). Revision A's
-///         Fat
-///         switch has 100k where revision F has 22k (both leave the cathode effectively unbypassed with Fat off).
+///         revision F (EC1907, 17 May 1997), with revision A (1993) agreeing on the stack, V4B, the inverter and the
+///         power stage: every value above, the supply (465 V on 2 × 220 µF in series, a choke to 464 V for the screens,
+///         1.2k and 10k to 392 V for the preamp and the inverter), the screens' 470 Ω, 1.5k grid stoppers, 220k grid
+///         leaks, 0.047 µF coupling caps, the −46 V bias, the tail returning to ground (no feedback, no presence).
+///         Revision A's Fat switch has 100k where revision F has 22k (both leave the cathode effectively unbypassed
+///         with Fat off).
 ///     </para>
 ///     <para>
 ///         With the Mix control at its dry end the follower drives V4A directly; the reverb's wet network on the pot's
@@ -38,14 +39,15 @@ public static class VibroKing {
     const double Preamp = 392;
 
     /// <summary>
-    ///     The vibrato, from revision A of the drawing: V5A (½ 12AX7, R48 220k from the "Z" node, taken as the 392 V preamp
-    ///     node; R55 2.7k with C24 22 µF; C36 220 pF from the plate to the cathode's return) with C27 0.022 µF from its
-    ///     plate to R53 270k and the 5M Speed rheostat R8 to ground, C39 0.01 µF to a node with R52 1M to the pedal's
-    ///     return (R54 470k with C23 10 µF: an AC ground), C38 0.01 µF to the grid with R51 1M to the same return; V5B as
-    ///     the lamp driver on that node (R56 100k with C25 22 µF), the neon lamp and R49 100k from "Z" to its plate, R50 10M
-    ///     across them; the two photocells of the optocoupler, in parallel, from the 250k Intensity pot R9's wiper to
-    ///     ground, the pot's top on the output of the stack's 100k (the inverter's input). Not on the drawing (guesses):
-    ///     the Speed and Intensity tapers (reverse audio and linear) and the "Z" node's voltage.
+    ///     The vibrato, from revision A of the drawing: V5A (½ 12AX7, R48 220k from the "Z" node, taken as the 392 V
+    ///     preamp node; R55 2.7k with C24 22 µF; C36 220 pF from the plate to the cathode's return) with C27 0.022 µF
+    ///     from its plate to R53 270k and the 5M Speed rheostat R8 to ground, C39 0.01 µF to a node with R52 1M to the
+    ///     pedal's return (R54 470k with C23 10 µF: an AC ground), C38 0.01 µF to the grid with R51 1M to the same
+    ///     return; V5B as the lamp driver on that node (R56 100k with C25 22 µF), the neon lamp and R49 100k from "Z"
+    ///     to its plate, R50 10M across them; the two photocells of the optocoupler, in parallel, from the 250k
+    ///     Intensity pot R9's wiper to ground, the pot's top on the output of the stack's 100k (the inverter's input).
+    ///     Not on the drawing (guesses): the Speed and Intensity tapers (reverse audio and linear) and the "Z" node's
+    ///     voltage.
     /// </summary>
     static OpticalTremoloDesign Vibrato { get; } = new(
         new(
@@ -116,9 +118,9 @@ public static class VibroKing {
     };
 
     /// <summary>
-    ///     V1A, the input cathode follower: 0.047 µF into its grid, held at half the plate supply by 2.2M to its plate node
-    ///     and 2.2M to ground, the plate on the preamp node (its 10k decoupler left out), 100k from the cathode; 0.1 µF into
-    ///     220k (the Mix pot's dry end) and V4A's 1M grid leak, the output.
+    ///     V1A, the input cathode follower: 0.047 µF into its grid, held at half the plate supply by 2.2M to its plate
+    ///     node and 2.2M to ground, the plate on the preamp node (its 10k decoupler left out), 100k from the cathode;
+    ///     0.1 µF into 220k (the Mix pot's dry end) and V4A's 1M grid leak, the output.
     /// </summary>
     static NetworkStageDesign Follower() {
         var net = new StageNetlist();
@@ -137,8 +139,8 @@ public static class VibroKing {
     }
 
     /// <summary>
-    ///     V4A: 100k, 1.5k, its 22 µF over 22k to ground, which <see cref="SwitchRole.Switch1" /> (Fat) grounds; 0.22 µF,
-    ///     470k, 0.0068 µF into the volume beside 470k; the output is the volume's wiper (V4B's grid).
+    ///     V4A: 100k, 1.5k, its 22 µF over 22k to ground, which <see cref="SwitchRole.Switch1" /> (Fat) grounds; 0.22
+    ///     µF, 470k, 0.0068 µF into the volume beside 470k; the output is the volume's wiper (V4B's grid).
     /// </summary>
     static NetworkStageDesign FirstStage() {
         var net = new StageNetlist();

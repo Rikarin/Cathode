@@ -9,9 +9,10 @@ using System.Threading.Channels;
 namespace Cathode.Server.Midi;
 
 /// <summary>
-///     Turns MIDI into rig actions (docs/02-architecture.md §5.10). The host forwards every message with the engine sample
-///     time it arrived at; the router applies MIDI learn, the global mappings and the active footswitch layout, and
-///     drives footswitch LEDs. All state changes still go through <see cref="LiveRig" />, so the editor sees them too.
+///     Turns MIDI into rig actions (docs/02-architecture.md §5.10). The host forwards every message with the engine
+///     sample time it arrived at; the router applies MIDI learn, the global mappings and the active footswitch layout,
+///     and drives footswitch LEDs. All state changes still go through <see cref="LiveRig" />, so the editor sees them
+///     too.
 /// </summary>
 /// <remarks>
 ///     Footswitches: a switch without a hold action acts on press. One with a hold action acts on release (a tap), or
@@ -38,7 +39,9 @@ public sealed partial class MidiRouter : IDisposable {
     readonly Dictionary<int, int> leds = [];
     readonly Timer ledRefresh;
 
-    /// <summary>Actions run one at a time, in the order the MIDI arrived: a scene change then a bypass must not swap.</summary>
+    /// <summary>
+    ///     Actions run one at a time, in the order the MIDI arrived: a scene change then a bypass must not swap.
+    /// </summary>
     readonly Channel<Func<Task>> actions =
         Channel.CreateUnbounded<Func<Task>>(new() { SingleReader = true });
 
@@ -121,31 +124,32 @@ public sealed partial class MidiRouter : IDisposable {
             }
 
             var down = kind == "pc" || (message.Data2 >= 64 && (message.Status & 0xF0) != 0x80);
-            var layout = settings.Footswitches.Find(l => l.Id == settings.ActiveLayout);
-            foreach (var footswitch in ActiveSwitches(settings, layout)) {
-                if (footswitch.Message == kind
-                    && footswitch.Number == message.Data1
-                    && (footswitch.Channel == 0 || footswitch.Channel == channel)) {
-                    Footswitch(footswitch, down, message.SampleTime);
-                }
-            }
+            PressFootswitches(settings, kind, channel, down, message);
+            RunMappings(settings, kind, channel, down, message);
+        }
+    }
 
-            foreach (var mapping in settings.MidiMappings) {
-                // A presetSlot mapping takes any program change (its number picks the slot); everything else matches
-                // its own CC, note or program number.
-                var matches = mapping.Message == kind
-                    && (mapping.Channel == 0 || mapping.Channel == channel)
-                    && ((kind == "pc" && mapping.Action == "presetSlot") || mapping.Number == message.Data1);
-                if (matches) {
-                    var data = kind == "pc" ? message.Data1 : message.Data2;
-                    Run(
-                        new(mapping.Action, mapping.Target, mapping.Value),
-                        data,
-                        kind == "cc",
-                        down,
-                        message.SampleTime
-                    );
-                }
+    /// <summary>The active layout's switches that listen to the message.</summary>
+    void PressFootswitches(GlobalSettings settings, string kind, int channel, bool down, MidiEventMessage message) {
+        var layout = settings.Footswitches.Find(l => l.Id == settings.ActiveLayout);
+        var pressed = ActiveSwitches(settings, layout)
+            .Where(s => s.Message == kind && s.Number == message.Data1 && (s.Channel == 0 || s.Channel == channel));
+        foreach (var footswitch in pressed) {
+            Footswitch(footswitch, down, message.SampleTime);
+        }
+    }
+
+    /// <summary>The global MIDI mappings that match the message.</summary>
+    void RunMappings(GlobalSettings settings, string kind, int channel, bool down, MidiEventMessage message) {
+        foreach (var mapping in settings.MidiMappings) {
+            // A presetSlot mapping takes any program change (its number picks the slot); everything else matches
+            // its own CC, note or program number.
+            var matches = mapping.Message == kind
+                && (mapping.Channel == 0 || mapping.Channel == channel)
+                && ((kind == "pc" && mapping.Action == "presetSlot") || mapping.Number == message.Data1);
+            if (matches) {
+                var data = kind == "pc" ? message.Data1 : message.Data2;
+                Run(new(mapping.Action, mapping.Target, mapping.Value), data, kind == "cc", down, message.SampleTime);
             }
         }
     }
@@ -280,7 +284,9 @@ public sealed partial class MidiRouter : IDisposable {
         }
     }
 
-    /// <summary>Queues an action behind the ones before it; failures are logged, as there is nobody to answer.</summary>
+    /// <summary>
+    ///     Queues an action behind the ones before it; failures are logged, as there is nobody to answer.
+    /// </summary>
     void Run(SwitchAction action, int data, bool continuous, bool down, long sampleTime) =>
         actions.Writer.TryWrite(() => ExecuteAsync(action, data, continuous, down, sampleTime));
 
@@ -299,6 +305,26 @@ public sealed partial class MidiRouter : IDisposable {
     }
 
     async Task ExecuteAsync(SwitchAction action, int data, bool continuous, bool down, long sampleTime) {
+        switch (action.Action) {
+            case "scene" or "sceneLevelUp" or "sceneLevelDown" or "sceneNext" or "scenePrevious":
+                await SceneAsync(action, data, continuous, down);
+                break;
+            case "save" or "presetSlot" or "presetNext" or "presetPrevious":
+                await PresetAsync(action, data, down);
+                break;
+            case "bypass" or "channel" or "external" or "manual" or "tap":
+                await BlockAsync(action, data, continuous, down, sampleTime);
+                break;
+            case "tuner" or "metronome" or "mute" or "looper":
+                await ToggleAsync(action, data, continuous, down);
+                break;
+            case "layout" or "view" or "viewNext" or "viewPrevious" when down:
+                Layout(action);
+                break;
+        }
+    }
+
+    async Task SceneAsync(SwitchAction action, int data, bool continuous, bool down) {
         var scenes = Preset.SceneCount;
         switch (action.Action) {
             case "scene" when continuous && action.Value is null && data > 63: // the top half of a CC steps on
@@ -310,31 +336,48 @@ public sealed partial class MidiRouter : IDisposable {
             case "sceneLevelUp" or "sceneLevelDown" when down:
                 await rig.StepSceneLevelAsync(action.Action == "sceneLevelUp" ? 1f : -1f);
                 break;
-            case "save" when down:
-                await rig.SaveAsync(new(), null);
-                break;
             case "sceneNext" when down:
                 await rig.SelectSceneAsync((rig.ActiveScene + 1) % scenes);
                 break;
             case "scenePrevious" when down:
                 await rig.SelectSceneAsync((rig.ActiveScene + scenes - 1) % scenes);
                 break;
-            case "presetSlot" when down && action.Target is { } bank:
+        }
+    }
+
+    async Task PresetAsync(SwitchAction action, int data, bool down) {
+        if (!down) {
+            return;
+        }
+
+        switch (action.Action) {
+            case "save":
+                await rig.SaveAsync(new(), null);
+                break;
+            case "presetSlot" when action.Target is { } bank:
                 var slot = library.Slot(bank, action.Value ?? data);
                 if (!(globals.Get().IgnoreRedundantPc && slot == rig.PresetId)) {
                     await rig.LoadAsync(slot);
                 }
 
                 break;
-            case "presetNext" or "presetPrevious" when down:
-                var all = presets.List().OrderBy(static p => p.Name, StringComparer.OrdinalIgnoreCase).ToList();
-                if (all.Count > 0) {
-                    var current = all.FindIndex(p => p.Id == rig.PresetId);
-                    var step = action.Action == "presetNext" ? 1 : -1;
-                    await rig.LoadAsync(all[(Math.Max(current, 0) + step + all.Count) % all.Count].Id);
-                }
-
+            case "presetNext" or "presetPrevious":
+                await StepPresetAsync(action.Action == "presetNext" ? 1 : -1);
                 break;
+        }
+    }
+
+    /// <summary>Loads the next or previous preset by name, wrapping around.</summary>
+    async Task StepPresetAsync(int step) {
+        var all = presets.List().OrderBy(static p => p.Name, StringComparer.OrdinalIgnoreCase).ToList();
+        if (all.Count > 0) {
+            var current = all.FindIndex(p => p.Id == rig.PresetId);
+            await rig.LoadAsync(all[(Math.Max(current, 0) + step + all.Count) % all.Count].Id);
+        }
+    }
+
+    async Task BlockAsync(SwitchAction action, int data, bool continuous, bool down, long sampleTime) {
+        switch (action.Action) {
             case "bypass" when action.Target is { } block:
                 if (continuous) {
                     await rig.SetBypassAsync(block, data < 64, null);
@@ -355,6 +398,11 @@ public sealed partial class MidiRouter : IDisposable {
             case "tap" when down:
                 rig.Tap(sampleTime);
                 break;
+        }
+    }
+
+    async Task ToggleAsync(SwitchAction action, int data, bool continuous, bool down) {
+        switch (action.Action) {
             case "tuner" when down || continuous:
                 await rig.SetTunerAsync(continuous ? data >= 64 : !rig.TunerOn);
                 break;
@@ -367,7 +415,13 @@ public sealed partial class MidiRouter : IDisposable {
             case "looper" when down && action.Target is { } looper:
                 engine.Looper(looper);
                 break;
-            case "layout" when down && action.Target is { } target:
+        }
+    }
+
+    /// <summary>Jumps to a footswitch layout, or to one of the active layout's views.</summary>
+    void Layout(SwitchAction action) {
+        if (action.Action == "layout") {
+            if (action.Target is { } target) {
                 globals.Update(g => {
                         if (g.Footswitches.Exists(l => l.Id == target)) {
                             g.ActiveLayout = target;
@@ -375,25 +429,25 @@ public sealed partial class MidiRouter : IDisposable {
                         }
                     }
                 );
-                break;
-            case "view" or "viewNext" or "viewPrevious" when down:
-                globals.Update(g => {
-                        var views = Math.Max(
-                            1,
-                            g.Footswitches.Find(l => l.Id == g.ActiveLayout)?.Views?.Count ?? 0
-                        );
-                        g.ActiveView = action.Action switch {
-                            "view" => Math.Clamp(action.Value ?? 0, 0, views - 1),
-                            "viewNext" => (g.ActiveView + 1) % views,
-                            _ => (g.ActiveView + views - 1) % views
-                        };
-                    }
-                );
-                break;
+            }
+
+            return;
         }
+
+        globals.Update(g => {
+                var views = Math.Max(1, g.Footswitches.Find(l => l.Id == g.ActiveLayout)?.Views?.Count ?? 0);
+                g.ActiveView = action.Action switch {
+                    "view" => Math.Clamp(action.Value ?? 0, 0, views - 1),
+                    "viewNext" => (g.ActiveView + 1) % views,
+                    _ => (g.ActiveView + views - 1) % views
+                };
+            }
+        );
     }
 
-    /// <summary>Scene MIDI: the messages a scene sends to other gear when it is selected or its preset loads on it.</summary>
+    /// <summary>
+    ///     Scene MIDI: the messages a scene sends to other gear when it is selected or its preset loads on it.
+    /// </summary>
     void SendSceneMidi(int scene) {
         if (!engine.IsConnected) {
             return;
@@ -429,32 +483,43 @@ public sealed partial class MidiRouter : IDisposable {
         }
 
         foreach (var footswitch in ActiveSwitches(settings, layout).Where(static s => s.Led)) {
-            var on = footswitch.Tap.Action switch {
-                "scene" => rig.ActiveScene == footswitch.Tap.Value,
-                "bypass" when footswitch.Tap.Target is { } block => !rig.IsBypassed(block),
-                "tuner" => rig.TunerOn,
-                "metronome" => settings.Metronome,
-                "mute" => rig.Muted,
-                "looper" => footswitch.Tap.Target switch {
-                    "record" => looper == "recording",
-                    "play" => looper is "playing" or "overdubbing",
-                    "overdub" => looper == "overdubbing",
-                    _ => false
-                },
-                _ => false
-            };
-            var value = on ? 127 : 0;
-            lock (gate) {
-                if (leds.TryGetValue(footswitch.Index, out var sent) && sent == value) {
-                    continue;
-                }
-
-                leds[footswitch.Index] = value;
+            var value = IsLit(footswitch.Tap, settings, looper) ? 127 : 0;
+            if (!MarkLed(footswitch.Index, value)) {
+                continue;
             }
 
             var channel = Math.Clamp(footswitch.Channel == 0 ? 1 : footswitch.Channel, 1, 16) - 1;
             var status = footswitch.Message == "note" ? 0x90 : 0xB0;
             engine.MidiOut(null, [(byte)(status | channel), (byte)footswitch.Number, (byte)value]);
+        }
+    }
+
+    /// <summary>Whether a switch's tap action is in effect, so its LED is on.</summary>
+    bool IsLit(SwitchAction tap, GlobalSettings settings, string? looper) =>
+        tap.Action switch {
+            "scene" => rig.ActiveScene == tap.Value,
+            "bypass" when tap.Target is { } block => !rig.IsBypassed(block),
+            "tuner" => rig.TunerOn,
+            "metronome" => settings.Metronome,
+            "mute" => rig.Muted,
+            "looper" => tap.Target switch {
+                "record" => looper == "recording",
+                "play" => looper is "playing" or "overdubbing",
+                "overdub" => looper == "overdubbing",
+                _ => false
+            },
+            _ => false
+        };
+
+    /// <summary>Records an LED's new value; false when that is what was last sent, so nothing needs sending.</summary>
+    bool MarkLed(int index, int value) {
+        lock (gate) {
+            if (leds.TryGetValue(index, out var sent) && sent == value) {
+                return false;
+            }
+
+            leds[index] = value;
+            return true;
         }
     }
 

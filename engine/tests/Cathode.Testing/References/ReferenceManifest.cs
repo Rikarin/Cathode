@@ -6,8 +6,8 @@ namespace Cathode.Testing.References;
 /// <summary>
 ///     The committed list of amp references (docs/06 §4): captures of real amps made by other people, which Cathode's
 ///     circuit amps are matched against. The files themselves live in the <see cref="ReferenceCache" />, never in the
-///     repository; the manifest records where each comes from, its licence, the amp settings it was captured at, and its
-///     SHA-256.
+///     repository; the manifest records where each comes from, its licence, the amp settings it was captured at, and
+///     its SHA-256.
 /// </summary>
 public sealed record ReferenceManifest(int Version, IReadOnlyList<ReferenceEntry> References) {
     /// <summary>The manifest's path in the repository, relative to the engine folder.</summary>
@@ -19,7 +19,9 @@ public sealed record ReferenceManifest(int Version, IReadOnlyList<ReferenceEntry
             ?? throw new InvalidDataException($"Empty reference manifest '{path}'.");
     }
 
-    /// <summary>Finds the manifest by walking up from <paramref name="start" /> (default: this assembly's folder).</summary>
+    /// <summary>
+    ///     Finds the manifest by walking up from <paramref name="start" /> (default: this assembly's folder).
+    /// </summary>
     public static string Locate(string? start = null) {
         for (var directory = new DirectoryInfo(start ?? AppContext.BaseDirectory);
              directory is not null;
@@ -45,20 +47,30 @@ public sealed record ReferenceManifest(int Version, IReadOnlyList<ReferenceEntry
 /// <summary>One reference capture.</summary>
 /// <param name="Id">Stable identifier; also the file name in the cache (plus the format's extension).</param>
 /// <param name="Amp">The real amp, as precisely as the source states it.</param>
-/// <param name="Family">The Phase 7 stream that uses it: <c>fender</c>, <c>marshall</c>, <c>class-a</c>, <c>high-gain</c>.</param>
-/// <param name="Format"><c>nam</c>, <c>guitarml-lstm</c> (Proteus/NeuralPi JSON) or <c>measured-response</c> (CSV).</param>
-/// <param name="Url">Direct download URL (redistributable files) or the page to fetch it from by hand (local-only).</param>
+/// <param name="Family">
+///     The Phase 7 stream that uses it: <c>fender</c>, <c>marshall</c>, <c>class-a</c>, <c>high-gain</c>.
+/// </param>
+/// <param name="Format">
+///     <c>nam</c>, <c>guitarml-lstm</c> (Proteus/NeuralPi JSON) or <c>measured-response</c> (CSV).
+/// </param>
+/// <param name="Url">
+///     Direct download URL (redistributable files) or the page to fetch it from by hand (local-only).
+/// </param>
 /// <param name="Author">The capture's author as the source names them.</param>
 /// <param name="Licence">SPDX id (e.g. <c>GPL-3.0</c>) or <c>T3K</c>.</param>
 /// <param name="Redistributable">
 ///     True only for GPL-compatible licences: the fetch tool may download it. False: the user must fetch it by hand
 ///     (the T3K terms forbid scripted downloads) and it must never be committed.
 /// </param>
-/// <param name="SourceName">The file or model name at the source, so a hand-fetched file can be found and renamed.</param>
+/// <param name="SourceName">
+///     The file or model name at the source, so a hand-fetched file can be found and renamed.
+/// </param>
 /// <param name="Settings">The amp's knobs and switches as the author states them.</param>
 /// <param name="Conditioning">Knob values (0–1) fed to a conditioned model's extra inputs.</param>
 /// <param name="Rig">How it was captured.</param>
-/// <param name="SampleRate">The rate the model runs at; null: the format's default (48 kHz NAM, 44.1 kHz GuitarML).</param>
+/// <param name="SampleRate">
+///     The rate the model runs at; null: the format's default (48 kHz NAM, 44.1 kHz GuitarML).
+/// </param>
 /// <param name="Sha256">Hex SHA-256 of the file; null for local-only files not yet seen.</param>
 /// <param name="Size">File size in bytes, when known.</param>
 /// <param name="Circuit">The circuit amp type and settings to compare with; null if no type matches yet.</param>
@@ -108,7 +120,9 @@ public sealed record ReferenceRig(string Output, string? Load, double? InputDbu,
 
 /// <summary>The circuit amp configuration matched against a reference: the block's parameters by id.</summary>
 /// <param name="Type">The circuit amp's Type option name, e.g. <c>Plexi</c>.</param>
-/// <param name="Params">Other parameters by id (e.g. <c>gain</c>, <c>bright</c>); unset ones keep their defaults.</param>
+/// <param name="Params">
+///     Other parameters by id (e.g. <c>gain</c>, <c>bright</c>); unset ones keep their defaults.
+/// </param>
 public sealed record CircuitSettings(string Type, IReadOnlyDictionary<string, double>? Params);
 
 /// <param name="Esr">Largest passing pre-emphasised ESR.</param>

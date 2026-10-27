@@ -142,8 +142,8 @@ public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection eng
 
     /// <summary>
     ///     A Cab block's current mixed IR (left and right, every slot that plays, DynaCab and IR pack slots included,
-    ///     with the slots' and master cuts, proximity and smoothing baked in) at the engine's rate, as a stereo WAV. The
-    ///     block is rebuilt here from the active scene's channel and its assets, so it is exactly what the engine
+    ///     with the slots' and master cuts, proximity and smoothing baked in) at the engine's rate, as a stereo WAV.
+    ///     The block is rebuilt here from the active scene's channel and its assets, so it is exactly what the engine
     ///     convolves.
     /// </summary>
     public async Task<byte[]> ExportCabAsync(string blockId) {

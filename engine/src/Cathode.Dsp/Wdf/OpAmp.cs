@@ -33,26 +33,27 @@ public readonly record struct OpAmpModel(
 
 /// <summary>
 ///     An op-amp macro-model as a two-port <see cref="INonlinearDevice" />: port 0 is the differential input
-///     (non-inverting, inverting), port 1 the output against the reference its rails are measured from (declare them with
-///     <see cref="WdfNetlist.OpAmp(int, int, int, int)" />). It has memory: the dominant pole, so it must sit at the root
-///     of an <see cref="RTypeRoot{TPorts,TDevice}" />, which calls <see cref="Commit" /> every sample.
+///     (non-inverting, inverting), port 1 the output against the reference its rails are measured from (declare them
+///     with
+///     <see cref="WdfNetlist.OpAmp(int, int, int, int)" />). It has memory: the dominant pole, so it must sit at the
+///     root of an <see cref="RTypeRoot{TPorts,TDevice}" />, which calls <see cref="Commit" /> every sample.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         The internal output y follows the single-pole open-loop response dy/dt = ω_p (A₀ v_d - y), ω_p = 2π GBW / A₀,
-///         discretised with the trapezoidal rule like every reactance of the wave digital filter:
-///         y[n] = ((1 - k) y[n-1] + k A₀ (v_d[n] + v_d[n-1])) / (1 + k), k = ω_p T / 2. Its change per sample is then
-///         limited smoothly to the slew rate, Δ → S Δ / √(S² + Δ²) with S = SR T, and the output saturates between the
-///         rails, v_o = m + h s((y - m) / h) (m and h the centre and half-span of the swing) with
-///         s(x) = x / (1 + x⁸)^(1/8): unity gain within about 80 % of the swing and a firm knee, like a real output stage,
-///         yet smooth for Newton. The output is a source of resistance R_out behind v_o, and the input a resistance R_in.
-///         At audio rates the slew limit only bites on large, fast edges (an LM308 at 192 kHz moves 1.6 V per sample).
+///         The internal output y follows the single-pole open-loop response dy/dt = ω_p (A₀ v_d - y), ω_p = 2π GBW /
+///         A₀, discretised with the trapezoidal rule like every reactance of the wave digital filter: y[n] = ((1 - k)
+///         y[n-1] + k A₀ (v_d[n] + v_d[n-1])) / (1 + k), k = ω_p T / 2. Its change per sample is then limited smoothly
+///         to the slew rate, Δ → S Δ / √(S² + Δ²) with S = SR T, and the output saturates between the rails, v_o = m +
+///         h s((y - m) / h) (m and h the centre and half-span of the swing) with s(x) = x / (1 + x⁸)^(1/8): unity gain
+///         within about 80 % of the swing and a firm knee, like a real output stage, yet smooth for Newton. The output
+///         is a source of resistance R_out behind v_o, and the input a resistance R_in. At audio rates the slew limit
+///         only bites on large, fast edges (an LM308 at 192 kHz moves 1.6 V per sample).
 ///     </para>
 ///     <para>
 ///         After every sample y is clamped a little beyond the rails, so that a saturated stage recovers at once (real
-///         op-amps take microseconds, not the dominant pole's tens of milliseconds). For a linear circuit (a tone stack's
-///         buffer, an active filter) an ideal or finite-gain op-amp is cheaper as a <see cref="WdfNetlist.Vcvs" /> inside
-///         the adaptor, with no device at all.
+///         op-amps take microseconds, not the dominant pole's tens of milliseconds). For a linear circuit (a tone
+///         stack's buffer, an active filter) an ideal or finite-gain op-amp is cheaper as a
+///         <see cref="WdfNetlist.Vcvs" /> inside the adaptor, with no device at all.
 ///     </para>
 /// </remarks>
 public struct OpAmp : INonlinearDevice {
@@ -175,7 +176,7 @@ public struct OpAmp : INonlinearDevice {
 
     /// <summary>The smooth limiter L s(x / L), s(x) = x / (1 + x⁸)^(1/8), and its slope (1 + x⁸)^(-9/8).</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static double Limit(double x, double limit, out double slope) {
+    internal static double Limit(double x, double limit, out double slope) {
         var u = x / limit;
         if (!(Math.Abs(u) < 1e30)) {
             slope = 0;

@@ -21,16 +21,18 @@ public enum ParamSmoothing {
     Linear
 }
 
-/// <summary>Describes one parameter of a block type. <see cref="Id" /> is a stable identifier used by presets and the API.</summary>
+/// <summary>
+///     Describes one parameter of a block type. <see cref="Id" /> is a stable identifier used by presets and the API.
+/// </summary>
 /// <remarks>
 ///     <see cref="TypeLabels" />, for a block whose models differ in their front panels (the Circuit Amp): the
 ///     parameter's name per value of the block's <c>type</c> parameter, or empty where that type has no such control
 ///     (the editor hides it there). Null for a parameter that is the same on every type.
 ///     <para>
 ///         <see cref="Recompile" />: the parameter changes the block's <see cref="IDspBlock.LatencySamples" /> (a
-///         compressor's look-ahead), which the graph compiler reads only when it compiles. The server rebuilds the graph
-///         (a gapless swap) when one changes, instead of only setting the target; the block keeps the value it was
-///         compiled with until then.
+///         compressor's look-ahead), which the graph compiler reads only when it compiles. The server rebuilds the
+///         graph (a gapless swap) when one changes, instead of only setting the target; the block keeps the value it
+///         was compiled with until then.
 ///     </para>
 ///     <para>
 ///         <see cref="Page" />: the editor page the parameter sits on (Basic, Tone, Advanced, ...), set by the block's

@@ -17,7 +17,10 @@ public static class DenseLu {
     /// </summary>
     public const double WorkingPrecision = 1e-14;
 
-    /// <summary>Orders up to which <see cref="Factor" /> keeps its row scales on the stack (beyond it, on the heap).</summary>
+    /// <summary>
+    ///     Orders up to which <see cref="Factor" /> keeps its row scales on the stack (beyond it, on the
+    ///     heap).
+    /// </summary>
     const int MaxStackOrder = 256;
 
     /// <summary>
@@ -104,16 +107,7 @@ public static class DenseLu {
             }
 
             for (; i < n; i++) {
-                ref var row = ref Unsafe.Add(ref m, i * n);
-                var factor = Unsafe.Add(ref row, k) * inverse;
-                Unsafe.Add(ref row, k) = factor;
-                if (factor == 0) {
-                    continue;
-                }
-
-                for (var j = k + 1; j < n; j++) {
-                    Unsafe.Add(ref row, j) -= factor * Unsafe.Add(ref top, j);
-                }
+                EliminateRow(ref Unsafe.Add(ref m, i * n), ref top, inverse, k, n);
             }
         }
 
@@ -121,7 +115,29 @@ public static class DenseLu {
         return true;
     }
 
-    /// <summary>The growth factor partial pivoting may reach before <see cref="CheckGrowth" /> calls it a failure.</summary>
+    /// <summary>
+    ///     One elimination step on one row of an n-wide row-major matrix: its multiplier for column
+    ///     <paramref name="k" /> (the entry times <paramref name="inverse" />, the pivot's reciprocal) is stored in
+    ///     place of that entry, and the multiplier times the pivot row <paramref name="top" /> is subtracted from the
+    ///     row's entries right of it. A zero multiplier leaves the row as it is.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal static void EliminateRow(ref double row, ref double top, double inverse, int k, int n) {
+        var factor = Unsafe.Add(ref row, k) * inverse;
+        Unsafe.Add(ref row, k) = factor;
+        if (factor == 0) {
+            return;
+        }
+
+        for (var j = k + 1; j < n; j++) {
+            Unsafe.Add(ref row, j) -= factor * Unsafe.Add(ref top, j);
+        }
+    }
+
+    /// <summary>
+    ///     The growth factor partial pivoting may reach before <see cref="CheckGrowth" /> calls it a
+    ///     failure.
+    /// </summary>
     const double MaxGrowth = 1e4;
 
     /// <summary>Debug builds: the largest magnitude of the matrix before <see cref="Factor" /> eliminates it.</summary>
@@ -129,8 +145,8 @@ public static class DenseLu {
     static void MeasureLargest(ref double m, int n, ref double largest) => largest = Largest(ref m, n * n);
 
     /// <summary>
-    ///     Debug builds: the growth factor, the largest entry of U against the largest of the matrix it came from, stays
-    ///     below <see cref="MaxGrowth" />. Partial pivoting bounds it by 2^(n-1) in theory and keeps it near 1 in
+    ///     Debug builds: the growth factor, the largest entry of U against the largest of the matrix it came from,
+    ///     stays below <see cref="MaxGrowth" />. Partial pivoting bounds it by 2^(n-1) in theory and keeps it near 1 in
     ///     practice (nodal matrices are diagonally dominant); a large one means the factors, and every solve with them,
     ///     have lost that many digits however large the pivots are.
     /// </summary>
@@ -168,12 +184,13 @@ public static class DenseLu {
     }
 
     /// <summary>
-    ///     Step <paramref name="k" /> of the elimination for one row of an even order: its multiplier (the pivot column's
-    ///     entry times <paramref name="inverse" />) into the pivot column, then row[j] -= multiplier × top[j] for j &gt;
-    ///     <paramref name="k" />, two entries at a time at even offsets; each lane the same multiply and subtract as the
-    ///     scalar code, so the same bits. At an even step the pair holding the pivot column is updated whole and its
-    ///     first lane replaced by the multiplier, so that no load ever reads half of a two-lane store (which waits for
-    ///     the store to retire).
+    ///     Step <paramref name="k" /> of the elimination for one row of an even order: its multiplier (the pivot
+    ///     column's entry times <paramref name="inverse" />) into the pivot column, then row[j] -= multiplier × top[j]
+    ///     for j &gt;
+    ///     <paramref name="k" />, two entries at a time at even offsets; each lane the same multiply and subtract as
+    ///     the scalar code, so the same bits. At an even step the pair holding the pivot column is updated whole and
+    ///     its first lane replaced by the multiplier, so that no load ever reads half of a two-lane store (which waits
+    ///     for the store to retire).
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static void EliminatePaired(ref double row, ref double top, double inverse, int k, int n) {
@@ -417,7 +434,9 @@ public static class DenseLu {
         return factor != 0 ? product : 0.0;
     }
 
-    /// <summary>Solves the n × n system A x = b in place for one right-hand side. Returns false if A is singular.</summary>
+    /// <summary>
+    ///     Solves the n × n system A x = b in place for one right-hand side. Returns false if A is singular.
+    /// </summary>
     public static bool SolveInPlace(Span<double> a, int n, Span<int> pivots, Span<double> b) {
         if (!Factor(a, n, pivots)) {
             return false;

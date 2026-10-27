@@ -1841,8 +1841,8 @@ export interface components {
     };
     /**
      * @description One slot: whether it has something to play and is heard, its onset within its own IR (the first sample within
-     *     20 dB of the peak), the delay Auto Delay gives it and its own Delay, in ms, and the first 10 ms of its IR as mixed
-     *     (cut and normalised, before level, pan and delay). It is heard at `OnsetMs + AutoDelayMs + DelayMs`.
+     *     20 dB of the peak), the delay Auto Delay gives it and its own Delay, in ms, and the first 10 ms of its IR as
+     *     mixed (cut and normalised, before level, pan and delay). It is heard at `OnsetMs + AutoDelayMs + DelayMs`.
      */
     CabSlotAlignmentInfo: {
       /** Format: int32 */
@@ -1950,8 +1950,8 @@ export interface components {
       deviceStatus: string;
     };
     /**
-     * @description One switch: the message it sends (a CC or note; value 64 or more is "down"), what a tap does, what holding it for
-     *     half a second does instead, and whether its LED is driven (the same CC or note, 127 when its tap action is
+     * @description One switch: the message it sends (a CC or note; value 64 or more is "down"), what a tap does, what holding it
+     *     for half a second does instead, and whether its LED is driven (the same CC or note, 127 when its tap action is
      *     active, 0 when not). It answers only while its `View` is the active one, and a `Link` (a layout id)
      *     switches to that layout after its tap action.
      */
@@ -2040,8 +2040,8 @@ export interface components {
        */
       noiseGateOffset: number;
       /**
-       * @description Cab modeling off: every Cab and IR Player block passes audio through, for playing into a real speaker cabinet
-       *     without changing the presets.
+       * @description Cab modeling off: every Cab and IR Player block passes audio through, for playing into a real speaker
+       *     cabinet without changing the presets.
        */
       cabModelingOff: boolean;
       /**
@@ -2092,8 +2092,8 @@ export interface components {
       /** @description Ignore Redundant PC: a program change that selects the preset already loaded does nothing. */
       ignoreRedundantPc: boolean;
       /**
-       * @description Preset-change spillover: on, the outgoing preset's delay and reverb tails ring out under the new one; off, it
-       *     stops with the swap fade (a clean cut).
+       * @description Preset-change spillover: on, the outgoing preset's delay and reverb tails ring out under the new one; off,
+       *     it stops with the swap fade (a clean cut).
        */
       presetSpillover: boolean;
       /** @description Whether editors ask before changing presets while the working copy has unsaved edits. */
@@ -2286,7 +2286,8 @@ export interface components {
     };
     /**
      * @description A block parameter. `TypeLabels`, where present, names the parameter per value of the block's `type`
-     *     parameter (an amp model's own name for a generic control), empty where that type lacks the control: hide it there.
+     *     parameter (an amp model's own name for a generic control), empty where that type lacks the control: hide it
+     *     there.
      */
     ParameterInfo: {
       id: string;
@@ -2327,8 +2328,8 @@ export interface components {
       description?: null | string;
       tags: string[];
       /**
-       * @description True for a preset of the factory bank, which ships with Cathode and cannot be overwritten, renamed or deleted
-       *     (saving one stores a copy); null for the user's own.
+       * @description True for a preset of the factory bank, which ships with Cathode and cannot be overwritten, renamed or
+       *     deleted (saving one stores a copy); null for the user's own.
        */
       factory?: null | boolean;
       /** Format: double */
@@ -2385,8 +2386,8 @@ export interface components {
         [key: string]: string;
       };
       /**
-       * @description What bypassing does: thru, mute, muteIn, muteFxIn, muteOut or muteFxOut (the "in" modes let tails spill over,
-       *     the "out" modes keep the block listening while bypassed).
+       * @description What bypassing does: thru, mute, muteIn, muteFxIn, muteOut or muteFxOut (the "in" modes let tails spill
+       *     over, the "out" modes keep the block listening while bypassed).
        */
       bypassMode: string;
       /**
@@ -2500,8 +2501,8 @@ export interface components {
       /** @description Scene controllers 1-4 (0..1), modifier sources that change with the scene. */
       controllers: number[];
       /**
-       * @description Up to int SceneMidiMessage.MaxPerScene MIDI messages sent through the rig's MIDI output whenever this
-       *     scene is selected, or its preset loads on it: program changes and CCs for other gear.
+       * @description Up to int SceneMidiMessage.MaxPerScene MIDI messages sent through the rig's MIDI output whenever
+       *     this scene is selected, or its preset loads on it: program changes and CCs for other gear.
        */
       midi: components['schemas']['SceneMidiMessage'][];
     };
@@ -2631,7 +2632,8 @@ export interface components {
       level: number;
     };
     /**
-     * @description Learn a Tone Match: the Server listens to the rig's output for `Seconds` while you play, compares it with the
+     * @description Learn a Tone Match: the Server listens to the rig's output for `Seconds` while you play, compares it with
+     *     the
      *     `Reference` recording (a .wav asset) and stores the correction as the block's `match` asset.
      */
     ToneMatchRequest: {

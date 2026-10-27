@@ -48,8 +48,9 @@ public enum ElementKind {
 /// <summary>
 ///     One element of a <see cref="StageNetlist" />; the optional properties apply to the kinds that use them. Nodes: a
 ///     two-terminal element or a supply (to ground) is A-B; a triode is plate A, grid B, cathode C; a pentode plate A,
-///     screen B, grid C, cathode D; a diode clipper anode A, cathode B; an op-amp non-inverting input A, inverting input
-///     B, output C (its rails ± <see cref="Value" /> volts, about ground); a linear amplifier likewise, its open-loop gain
+///     screen B, grid C, cathode D; a diode clipper anode A, cathode B; an op-amp non-inverting input A, inverting
+///     input B, output C (its rails ± <see cref="Value" /> volts, about ground); a linear amplifier likewise, its
+///     open-loop gain
 ///     <see cref="Value" />.
 /// </summary>
 public sealed record StageElement(ElementKind Kind, int A, int B, double Value) {
@@ -144,13 +145,15 @@ public sealed class StageNetlist {
 
     public void Resistor(int a, int b, double ohms) => Add(new(ElementKind.Resistor, a, b, ohms));
 
-    /// <summary>A cathode resistor: the one <see cref="PreampSettings.CathodeResistor" /> scales (Preamp Bias).</summary>
+    /// <summary>
+    ///     A cathode resistor: the one <see cref="PreampSettings.CathodeResistor" /> scales (Preamp Bias).
+    /// </summary>
     public void CathodeResistor(int a, int b, double ohms) =>
         Add(new(ElementKind.Resistor, a, b, ohms) { Cathode = true });
 
     /// <summary>
-    ///     A resistor of <paramref name="on" /> ohms while <paramref name="role" /> is on, else <paramref name="off" />;
-    ///     either 0 is an open contact (a closed one is a small resistance, e.g. 1 Ω).
+    ///     A resistor of <paramref name="on" /> ohms while <paramref name="role" /> is on, else
+    ///     <paramref name="off" />; either 0 is an open contact (a closed one is a small resistance, e.g. 1 Ω).
     /// </summary>
     public void SwitchedResistor(int a, int b, double off, double on, SwitchRole role) =>
         Add(new(ElementKind.Resistor, a, b, on) { OffValue = off, Switch = role });
@@ -200,8 +203,8 @@ public sealed class StageNetlist {
 
     /// <summary>
     ///     A pot wired as a variable resistor: the track's fraction at the knob's rotation (a TMB stack's bass pot), or
-    ///     with <paramref name="falling" /> the rest of the track, so that turning the knob up takes resistance out (the
-    ///     Matchless Chieftain's bass pot, in series with its bass path).
+    ///     with <paramref name="falling" /> the rest of the track, so that turning the knob up takes resistance out
+    ///     (the Matchless Chieftain's bass pot, in series with its bass path).
     /// </summary>
     public void Rheostat(int a, int b, Pot pot, PotRole role, bool falling = false) =>
         Add(
@@ -211,10 +214,10 @@ public sealed class StageNetlist {
         );
 
     /// <summary>
-    ///     A DC block after <paramref name="node" />: a 1 µF series cap and 100M to ground (a corner of 1.6 mHz); returns
-    ///     the blocked node. For a stage whose output (a plate, a mix of plates) rests at a high voltage and feeds the power
-    ///     amp, whose input network (<see cref="InverterInputDesign" />) holds the real coupling cap and grid leak and takes
-    ///     an input that rests at 0 V.
+    ///     A DC block after <paramref name="node" />: a 1 µF series cap and 100M to ground (a corner of 1.6 mHz);
+    ///     returns the blocked node. For a stage whose output (a plate, a mix of plates) rests at a high voltage and
+    ///     feeds the power amp, whose input network (<see cref="InverterInputDesign" />) holds the real coupling cap
+    ///     and grid leak and takes an input that rests at 0 V.
     /// </summary>
     public int DcBlock(int node) {
         var blocked = Node();
@@ -234,7 +237,8 @@ public sealed class StageNetlist {
 
     /// <summary>
     ///     Antiparallel diode stacks from <paramref name="anode" /> to <paramref name="cathode" />:
-    ///     <paramref name="forward" /> diodes conducting from anode to cathode, <paramref name="reverse" /> the other way.
+    ///     <paramref name="forward" /> diodes conducting from anode to cathode, <paramref name="reverse" /> the other
+    ///     way.
     /// </summary>
     public void Diodes(int anode, int cathode, DiodeModel model, int forward, int reverse) =>
         Add(new(ElementKind.Diodes, anode, cathode, 0) { Diode = model, Forward = forward, Reverse = reverse });
@@ -247,8 +251,8 @@ public sealed class StageNetlist {
         Add(new(ElementKind.OpAmp, nonInverting, inverting, rails) { C = output, OpAmp = model });
 
     /// <summary>
-    ///     An op-amp whose signal never reaches its rails (a return buffer, a summing stage, a stage's make-up gain), as
-    ///     an ideal amplifier of open-loop gain <paramref name="gain" /> with its output referred to ground: a
+    ///     An op-amp whose signal never reaches its rails (a return buffer, a summing stage, a stage's make-up gain),
+    ///     as an ideal amplifier of open-loop gain <paramref name="gain" /> with its output referred to ground: a
     ///     voltage-controlled voltage source inside the adaptor, so the stage has no device to solve for it. Use
     ///     <see cref="OpAmp" /> where the stage can clip.
     /// </summary>
@@ -409,23 +413,25 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
     static OpAmp OpAmp(StageElement e, double sampleRate) => new(e.OpAmp, -e.Value, e.Value, sampleRate);
 }
 
-/// <summary>A stage whose supply rails another part of the amp moves per sample (an oscillator on a bias line).</summary>
+/// <summary>
+///     A stage whose supply rails another part of the amp moves per sample (an oscillator on a bias line).
+/// </summary>
 public interface IRailModulation {
     /// <summary>
-    ///     Sets supply <paramref name="element" /> (an index into the netlist's elements) to its nominal voltage, with the
-    ///     sag, plus <paramref name="volts" />, for the coming samples. A supply change (<see cref="AmpStage.SetSupply" />)
-    ///     puts it back at nominal, so set it after that, before each sample.
+    ///     Sets supply <paramref name="element" /> (an index into the netlist's elements) to its nominal voltage, with
+    ///     the sag, plus <paramref name="volts" />, for the coming samples. A supply change
+    ///     (<see cref="AmpStage.SetSupply" />) puts it back at nominal, so set it after that, before each sample.
     /// </summary>
     void OffsetRail(int element, double volts);
 }
 
 /// <summary>
-///     A <see cref="NetworkStageDesign" /> as one R-type root: capacitors and inductors as adapted ports, resistors, pots
-///     and supply rails inside the adaptor (a knob or switch only recomputes the matrix), the devices at the root,
-///     solved by Newton's method per sample. Its operating point comes from a DC solve of the same netlist
-///     (capacitors open, inductors shorted, Newton with source stepping, allocation-free), and its output resistance
-///     from the circuit linearised there at 1 kHz magnitudes (each capacitor and inductor as the resistance of its
-///     reactance), for the next stage's Thévenin cut; turning a knob or a switch recomputes it there.
+///     A <see cref="NetworkStageDesign" /> as one R-type root: capacitors and inductors as adapted ports, resistors,
+///     pots and supply rails inside the adaptor (a knob or switch only recomputes the matrix), the devices at the root,
+///     solved by Newton's method per sample. Its operating point comes from a DC solve of the same netlist (capacitors
+///     open, inductors shorted, Newton with source stepping, allocation-free), and its output resistance from the
+///     circuit linearised there at 1 kHz magnitudes (each capacitor and inductor as the resistance of its reactance),
+///     for the next stage's Thévenin cut; turning a knob or a switch recomputes it there.
 /// </summary>
 public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDevice : struct, INonlinearDevice {
     const double Off = 1e-15; // a switched-off capacitor
@@ -584,7 +590,9 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
     /// <summary>The voltage at node <paramref name="node" /> of the netlist at the last sample.</summary>
     public double Voltage(int node) => node == StageNetlist.Ground ? 0 : root.Probe(node);
 
-    /// <summary>The voltage at node <paramref name="node" /> at the operating point (after <see cref="Reset" />).</summary>
+    /// <summary>
+    ///     The voltage at node <paramref name="node" /> at the operating point (after <see cref="Reset" />).
+    /// </summary>
     public double RestVoltage(int node) => node == StageNetlist.Ground ? 0 : solution[node - 1];
 
     public override void SetSampleRate(double sampleRate) {
@@ -604,14 +612,10 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
     }
 
     public override void SetSourceResistance(double ohms) {
-        var total = Math.Max(ohms + Design.InputResistance, 1);
-        if (total == sourceResistance) {
-            return;
+        if (TrySetSourceResistance(ref sourceResistance, ohms, Design.InputResistance)) {
+            root.Ports.Source.Value = sourceResistance;
+            root.Propagate();
         }
-
-        sourceResistance = total;
-        root.Ports.Source.Value = total;
-        root.Propagate();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -685,7 +689,9 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
     public void OffsetRail(int element, double volts) =>
         root.SetVoltage(index[element], elements[element].Value * supplyScale + volts);
 
-    /// <summary>Every element's value for the current knobs, switches and settings; recomputes the matrix if one moved.</summary>
+    /// <summary>
+    ///     Every element's value for the current knobs, switches and settings; recomputes the matrix if one moved.
+    /// </summary>
     void Refresh() {
         var changed = false;
         for (var i = 0; i < elements.Length; i++) {
@@ -715,7 +721,8 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         root.Propagate();
         if (solved) {
             // A pot or switch in the output's path moves its resistance (a volume's wiper, a switched input): the next
-            // stage reads it for its Thévenin cut. The operating point stays (pots and switches sit behind coupling caps).
+            // stage reads it for its Thévenin cut. The operating point stays (pots and switches sit behind coupling
+            // caps).
             outputResistance = SmallSignalOutputResistance();
         }
     }
@@ -727,7 +734,13 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         switch (e.Kind) {
             case ElementKind.Resistor: {
                 // A switched resistor's 0 is absent (an open contact) in either position, as documented.
-                var ohms = on ? e.Switch is null || e.Value > 0 ? e.Value : Open : e.OffValue > 0 ? e.OffValue : Open;
+                double ohms;
+                if (on) {
+                    ohms = e.Switch is null || e.Value > 0 ? e.Value : Open;
+                } else {
+                    ohms = e.OffValue > 0 ? e.OffValue : Open;
+                }
+
                 if (e.Part != PotPart.None) {
                     var fraction = e.Pot.Fraction(controls.Rotation(e.Role));
                     ohms = (e.Part == PotPart.Upper ? 1 - fraction : fraction) * e.Pot.Ohms;
@@ -753,7 +766,9 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         }
     }
 
-    /// <summary>Whether <paramref name="cap" /> sits across the upper half of a master pot among <paramref name="all" />.</summary>
+    /// <summary>
+    ///     Whether <paramref name="cap" /> sits across the upper half of a master pot among <paramref name="all" />.
+    /// </summary>
     static bool AcrossMaster(StageElement cap, StageElement[] all) {
         foreach (var pot in all) {
             if (pot is { Role: PotRole.Master, Part: PotPart.Upper }
@@ -825,7 +840,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         }
 
         var input0 = Design.Netlist.Input;
-        Conductance(a, input0, StageNetlist.Ground, 1 / sourceResistance);
+        RTypeScattering.Conductance(a, size, input0, StageNetlist.Ground, 1 / sourceResistance);
         if (dc) {
             b[input0 - 1] += input / sourceResistance;
         }
@@ -837,16 +852,16 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
             var e = elements[i];
             switch (e.Kind) {
                 case ElementKind.Resistor:
-                    Conductance(a, e.A, e.B, 1 / Math.Max(values[i], EndStop));
+                    RTypeScattering.Conductance(a, size, e.A, e.B, 1 / Math.Max(values[i], EndStop));
                     break;
                 case ElementKind.Capacitor:
                     if (!dc) {
-                        Conductance(a, e.A, e.B, Omega * values[i]);
+                        RTypeScattering.Conductance(a, size, e.A, e.B, Omega * values[i]);
                     }
 
                     break;
                 case ElementKind.Inductor:
-                    Conductance(a, e.A, e.B, dc ? Short : 1 / (Omega * values[i]));
+                    RTypeScattering.Conductance(a, size, e.A, e.B, dc ? Short : 1 / (Omega * values[i]));
                     break;
                 case ElementKind.Amplifier: {
                     // v(C) = A (v(A) - v(B)), its output current the row's unknown.
@@ -939,21 +954,6 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         }
 
         return Math.Max(b[output - 1], 1);
-    }
-
-    void Conductance(Span<double> a, int p, int m, double g) {
-        if (p > 0) {
-            a[(p - 1) * size + p - 1] += g;
-        }
-
-        if (m > 0) {
-            a[(m - 1) * size + m - 1] += g;
-        }
-
-        if (p > 0 && m > 0) {
-            a[(p - 1) * size + m - 1] -= g;
-            a[(m - 1) * size + p - 1] -= g;
-        }
     }
 
     void Stamp(Span<double> a, int row, int column, double g) {

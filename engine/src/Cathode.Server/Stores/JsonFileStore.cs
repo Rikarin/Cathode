@@ -7,10 +7,10 @@ using System.Text.RegularExpressions;
 namespace Cathode.Server.Stores;
 
 /// <summary>
-///     One JSON file per item in a folder, written atomically (a temporary file of each save's own, flushed to the disk,
-///     then renamed: <see cref="AtomicRename.Write" />), so a crash or a power cut never leaves a half-written file. Ids
-///     become file names and are restricted to safe characters. An <c>upgrade</c> rewrites a
-///     file's JSON before it is read (a stored format's migrations, <see cref="PresetMigrations" />).
+///     One JSON file per item in a folder, written atomically (a temporary file of each save's own, flushed to the
+///     disk, then renamed: <see cref="AtomicRename.Write" />), so a crash or a power cut never leaves a half-written
+///     file. Ids become file names and are restricted to safe characters. An <c>upgrade</c> rewrites a file's JSON
+///     before it is read (a stored format's migrations, <see cref="PresetMigrations" />).
 /// </summary>
 /// <remarks>
 ///     Reads share delete, and a save renames with POSIX semantics on Windows (<see cref="AtomicRename" />), so a save

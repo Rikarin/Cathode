@@ -27,7 +27,9 @@ public class TremoloTests(ITestOutputHelper output) {
     /// <summary>The models with a tremolo of their own.</summary>
     public static TheoryData<string> Models => new(Names);
 
-    /// <summary>One model of each kind: bias (direct and through a follower), optical, the 18 W's oscillating tube.</summary>
+    /// <summary>
+    ///     One model of each kind: bias (direct and through a follower), optical, the 18 W's oscillating tube.
+    /// </summary>
     public static TheoryData<string> Kinds => new(KindNames);
 
     /// <summary>
@@ -58,9 +60,9 @@ public class TremoloTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     Each model's slowest and fastest rate, from its drawing's ladder, Speed rheostat and plate: the ladder turns the
-    ///     phase by exactly 180° there, checked by an independent nodal solve of the same network; every rate lies in the
-    ///     range tube-amp tremolos run at.
+    ///     Each model's slowest and fastest rate, from its drawing's ladder, Speed rheostat and plate: the ladder turns
+    ///     the phase by exactly 180° there, checked by an independent nodal solve of the same network; every rate lies
+    ///     in the range tube-amp tremolos run at.
     /// </summary>
     [Theory]
     [MemberData(nameof(Models))]
@@ -86,15 +88,16 @@ public class TremoloTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     The AB763's lamp driver idles at the cathode voltage its class-C pulses hold it at: the drawings mark 17 V there
-    ///     with the vibrato running (the Deluxe Reverb's and the Twin's "+17.0V").
+    ///     The AB763's lamp driver idles at the cathode voltage its class-C pulses hold it at: the drawings mark 17 V
+    ///     there with the vibrato running (the Deluxe Reverb's and the Twin's "+17.0V").
     /// </summary>
     [Fact]
     public void The_lamp_driver_sits_where_the_drawings_measure_it() {
         var vibrato = Optical(Design("Deluxe Reverb"));
         var bias = vibrato.DriverBias(0.5);
         output.WriteLine(
-            $"driver cathode {vibrato.DriverBias(0):0.0} / {bias:0.0} / {vibrato.DriverBias(1):0.0} V at Speed 0, 5, 10; "
+            $"driver cathode {vibrato.DriverBias(0):0.0} / {bias:0.0} / {vibrato.DriverBias(1):0.0} "
+            + "V at Speed 0, 5, 10; "
             + $"lamp peak {vibrato.PeakLampCurrent(0.5) * 1e3:0.00} mA, cell "
             + $"{vibrato.Cell.Resistance(vibrato.PeakLampCurrent(0.5)):0} ohm"
         );
@@ -156,9 +159,9 @@ public class TremoloTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     The optical vibratos' Intensity pot loads the node its top hangs on with its whole track, as the drawings show
-    ///     it (the cell's shunt acts against it): each such stage's netlist carries a resistor of the pot's value from a
-    ///     node to ground.
+    ///     The optical vibratos' Intensity pot loads the node its top hangs on with its whole track, as the drawings
+    ///     show it (the cell's shunt acts against it): each such stage's netlist carries a resistor of the pot's value
+    ///     from a node to ground.
     /// </summary>
     [Theory]
     [MemberData(nameof(Models))]
@@ -213,7 +216,9 @@ public class TremoloTests(ITestOutputHelper output) {
         Assert.True(onset <= 1.05 * Math.Max(before, steady), $"a step of {onset:0.0000} at the onset");
     }
 
-    /// <summary>The panel names the tremolo's knobs on the models that have one, and keeps the generic names elsewhere.</summary>
+    /// <summary>
+    ///     The panel names the tremolo's knobs on the models that have one, and keeps the generic names elsewhere.
+    /// </summary>
     [Fact]
     public void The_panel_names_the_tremolo() {
         Assert.Equal("Intensity", Label("tremdepth", "Deluxe Reverb"));
@@ -260,9 +265,9 @@ public class TremoloTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     The oscillators are behavioural, solved at control rate: a model with its tremolo running costs about what it
-    ///     costs without. The two are timed interleaved, block by block (a busy machine slows both alike), and the median
-    ///     of the per-block ratios taken, which a pre-empted block cannot move.
+    ///     The oscillators are behavioural, solved at control rate: a model with its tremolo running costs about what
+    ///     it costs without. The two are timed interleaved, block by block (a busy machine slows both alike), and the
+    ///     median of the per-block ratios taken, which a pre-empted block cannot move.
     /// </summary>
     [Theory]
     [MemberData(nameof(Kinds))]
@@ -372,9 +377,8 @@ public class TremoloTests(ITestOutputHelper output) {
 
     /// <summary>
     ///     A steady 240 Hz note through <paramref name="model" /> (its tremolo channel, gain low) with the tremolo at
-    ///     <paramref name="depth" /> % and <paramref name="hertz" />: the swing of its envelope (three periods of the note
-    ///     per window) in dB, and the rate
-    ///     of that envelope's swell (from its upward crossings of its mean).
+    ///     <paramref name="depth" /> % and <paramref name="hertz" />: the swing of its envelope (three periods of the
+    ///     note per window) in dB, and the rate of that envelope's swell (from its upward crossings of its mean).
     /// </summary>
     static (double Swing, double Hertz) Envelope(string model, float depth, double hertz) {
         using var block = Create(

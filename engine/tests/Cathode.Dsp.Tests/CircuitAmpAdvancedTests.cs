@@ -8,10 +8,11 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 /// <summary>
-///     The Circuit Amp's advanced page (docs/08 §4, stream PB): tube hardness, the generic switches, tone-stack type and
-///     location, plate frequencies, cathode-follower and bias-excursion controls, suppressor diodes, master location
-///     and cap, output mode, the Auto speaker load and the screen supply. Every one is stock at its default (the
-///     all-model check is <see cref="AmpDefaultsTests" />); here each does what it says, analytically where it can.
+///     The Circuit Amp's advanced page (docs/08 §4, stream PB): tube hardness, the generic switches, tone-stack type
+///     and location, plate frequencies, cathode-follower and bias-excursion controls, suppressor diodes, master
+///     location and cap, output mode, the Auto speaker load and the screen supply. Every one is stock at its default
+///     (the all-model check is <see cref="AmpDefaultsTests" />); here each does what it says, analytically where it
+///     can.
 /// </summary>
 public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
     const double Rate = 48_000;
@@ -60,7 +61,9 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
             var peak = Analysis.ToDb(Analysis.Peak(changed));
             var id = CircuitAmpBlock.Info.Params[index].Id;
             output.WriteLine(
-                $"{AmpDesign.All[type].Name,-24} {id,-11} {value,5}: {Analysis.NullResidualDb(stock, changed) - Analysis.ToDb(Analysis.Rms(stock)),7:0.0} dB, peak {peak:0.0}"
+                $"{AmpDesign.All[type].Name,-24} {id,-11} {value,5}: "
+                + $"{Analysis.NullResidualDb(stock, changed) - Analysis.ToDb(Analysis.Rms(stock)),7:0.0} dB, peak "
+                + $"{peak:0.0}"
             );
             Assert.True(Analysis.AllFinite(changed), $"{id} = {value}");
             Assert.True(peak < 6, $"{id} = {value}: peak {peak:0.0} dBFS");

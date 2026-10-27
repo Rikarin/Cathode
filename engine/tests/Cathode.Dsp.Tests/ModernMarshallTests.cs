@@ -75,8 +75,8 @@ public partial class AmpStageTests {
 }
 
 /// <summary>
-///     The modern-Marshall models on the Circuit Amp block: their panels, knob sweeps at full drive without instability,
-///     every control audible, gain and master monotonic, levels below +6 dBFS.
+///     The modern-Marshall models on the Circuit Amp block: their panels, knob sweeps at full drive without
+///     instability, every control audible, gain and master monotonic, levels below +6 dBFS.
 /// </summary>
 public class ModernMarshallTests(ITestOutputHelper output) {
     const double Rate = 48_000;
@@ -103,8 +103,8 @@ public class ModernMarshallTests(ITestOutputHelper output) {
 
     /// <summary>
     ///     The Valvestate's power amp is solid state but its boost channel runs an ECC83: the preamp-tube parameters
-    ///     (tube type, bias, hardness, grid current) stay on its panel (the JC-120, with no triode at all, has none) and
-    ///     each one changes the boost channel.
+    ///     (tube type, bias, hardness, grid current) stay on its panel (the JC-120, with no triode at all, has none)
+    ///     and each one changes the boost channel.
     /// </summary>
     [Fact]
     public void Valvestate_keeps_and_answers_the_preamp_tube_parameters() {
@@ -115,6 +115,7 @@ public class ModernMarshallTests(ITestOutputHelper output) {
         var chord = Signals.Sine(82.4, Rate, 24_000, 0.8f)
             .Zip(Signals.Sine(123.5, Rate, 24_000, 0.8f), static (a, b) => a + b)
             .ToArray();
+
         float[] Render(params (int Index, float Value)[] settings) {
             using var block = Create(
                 "Valvestate 8080",
@@ -140,7 +141,9 @@ public class ModernMarshallTests(ITestOutputHelper output) {
         }
     }
 
-    /// <summary>Every knob swept end to end and every switch flipped while a loud chord plays: finite, bounded, converging.</summary>
+    /// <summary>
+    ///     Every knob swept end to end and every switch flipped while a loud chord plays: finite, bounded, converging.
+    /// </summary>
     [Theory]
     [MemberData(nameof(Types))]
     public void Knob_sweeps_at_full_drive_stay_finite_and_converge(string type) {
@@ -239,7 +242,8 @@ public class ModernMarshallTests(ITestOutputHelper output) {
             foreach (var knob in new[] { CircuitAmpBlock.Gain, CircuitAmpBlock.Master }) {
                 var levels = new[] { 0f, 2.5f, 5f, 7.5f, 10f }.Select(v => Level(knob, v)).ToArray();
                 output.WriteLine(
-                    $"{type} channel {channel} knob {knob}: {string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB"
+                    $"{type} channel {channel} knob {knob}: "
+                    + $"{string.Join(" ", levels.Select(static l => $"{l:0.0}"))} dB"
                 );
                 for (var i = 1; i < levels.Length; i++) {
                     if (levels[i - 1] > -100) {

@@ -20,7 +20,9 @@ public enum PotRole {
     /// <summary>The treble knob.</summary>
     Treble,
 
-    /// <summary>The model's first extra pot (<see cref="AmpPanel.Control1" />): a lead drive, a second volume.</summary>
+    /// <summary>
+    ///     The model's first extra pot (<see cref="AmpPanel.Control1" />): a lead drive, a second volume.
+    /// </summary>
     Control1,
 
     /// <summary>The model's second extra pot (<see cref="AmpPanel.Control2" />).</summary>
@@ -99,8 +101,8 @@ public readonly record struct EqualizerGains(double Band1, double Band2, double 
 ///     The preamp knobs, as rotations 0..1, and the switches: the bright switch, the model's extra pots
 ///     (<paramref name="Control1" />, <paramref name="Control2" />) and switches (<paramref name="Switch1" /> to
 ///     <paramref name="Switch3" />), a graphic equaliser's band gains, and the model's own tremolo
-///     (<see cref="StageTremoloDesign" />): <paramref name="TremoloRate" /> in hertz, <paramref name="TremoloDepth" /> its
-///     Intensity knob's rotation (0 stops it), and the presence knob for a stage that holds part of the presence
+///     (<see cref="StageTremoloDesign" />): <paramref name="TremoloRate" /> in hertz, <paramref name="TremoloDepth" />
+///     its Intensity knob's rotation (0 stops it), and the presence knob for a stage that holds part of the presence
 ///     control (<see cref="PotRole.Presence" />).
 /// </summary>
 public readonly record struct AmpControls(
@@ -149,13 +151,17 @@ public readonly record struct AmpControls(
         };
 }
 
-/// <summary>The preamp's expert settings, as the Circuit Amp's expert parameters set them; the defaults are stock.</summary>
+/// <summary>
+///     The preamp's expert settings, as the Circuit Amp's expert parameters set them; the defaults are stock.
+/// </summary>
 /// <param name="Tube">
 ///     A triode type replacing every preamp triode of the stock 12AX7 type (<see cref="TriodeModel.Ecc83" />), or null
 ///     for the stock tubes.
 /// </param>
 /// <param name="BrightCap">The bright caps' values as a multiple of stock.</param>
-/// <param name="StackFrequency">The tone stacks' frequencies as a multiple of stock (their capacitors divided by it).</param>
+/// <param name="StackFrequency">
+///     The tone stacks' frequencies as a multiple of stock (their capacitors divided by it).
+/// </param>
 /// <param name="CathodeResistor">
 ///     The cathode resistor as a multiple of stock: the channel applies it to its last gain stage only (the Axe-Fx's
 ///     Preamp Bias), 1 elsewhere.
@@ -242,7 +248,9 @@ public abstract class AmpStage {
     /// <summary>The Newton statistics of the stage's nonlinear root, or null for a linear stage.</summary>
     public virtual NewtonSolver? Newton => null;
 
-    /// <summary>Whether this is a common-cathode gain stage, which <see cref="PreampSettings.CathodeResistor" /> may bias.</summary>
+    /// <summary>
+    ///     Whether this is a common-cathode gain stage, which <see cref="PreampSettings.CathodeResistor" /> may bias.
+    /// </summary>
     public virtual bool IsGainStage => false;
 
     public abstract void SetSampleRate(double sampleRate);
@@ -275,17 +283,17 @@ public abstract class AmpStage {
     /// <summary>
     ///     Applies the expert settings (component values; allocation-free). A new tube moves the operating point, so
     ///     the channel resets afterwards (<see cref="Reset" />); a continuous setting that moves it (the cathode
-    ///     resistor, the hardness, a follower's bias) only retunes it (<see cref="Retune" />), so the knob can be swept or
-    ///     automated without cutting the signal.
+    ///     resistor, the hardness, a follower's bias) only retunes it (<see cref="Retune" />), so the knob can be swept
+    ///     or automated without cutting the signal.
     /// </summary>
     public virtual void Apply(in PreampSettings settings) { }
 
     /// <summary>
     ///     Recomputes <see cref="RestOutput" /> and <see cref="OutputResistance" /> for the current settings and a
-    ///     source resting at <paramref name="restInput" /> volts, leaving the circuit's state alone: the caps and Newton
-    ///     carry on from where they are and the circuit slews to its new operating point by itself (a cathode bypass
-    ///     cap recharging through the new resistor). Allocation-free. A stage whose operating point no setting moves
-    ///     keeps the default, which does nothing.
+    ///     source resting at <paramref name="restInput" /> volts, leaving the circuit's state alone: the caps and
+    ///     Newton carry on from where they are and the circuit slews to its new operating point by itself (a cathode
+    ///     bypass cap recharging through the new resistor). Allocation-free. A stage whose operating point no setting
+    ///     moves keeps the default, which does nothing.
     /// </summary>
     public virtual void Retune(double restInput) { }
 
@@ -299,6 +307,21 @@ public abstract class AmpStage {
     public abstract double Tick(double input);
 
     public abstract void FlushDenormals();
+
+    /// <summary>
+    ///     For a stage whose input source is a resistive voltage source: the previous stage's <paramref name="ohms" />
+    ///     plus the stage's <paramref name="inputResistance" /> (at least 1 Ω) into
+    ///     <paramref name="sourceResistance" />. False when it has not changed, so the root needs no new propagation.
+    /// </summary>
+    protected static bool TrySetSourceResistance(ref double sourceResistance, double ohms, double inputResistance) {
+        var total = Math.Max(ohms + inputResistance, 1);
+        if (total == sourceResistance) {
+            return false;
+        }
+
+        sourceResistance = total;
+        return true;
+    }
 }
 
 /// <summary>DC operating points of tube stages, by bisection on the tube equations (control thread or reset).</summary>

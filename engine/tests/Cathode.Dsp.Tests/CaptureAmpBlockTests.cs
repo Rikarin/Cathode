@@ -55,11 +55,14 @@ public class CaptureAmpBlockTests : IDisposable {
         "dense output"
     )]
     [InlineData(
-        """{"in_shape":[null,null,1],"layers":[{"type":"conv1d","shape":[null,null,4],"weights":[]},{"type":"dense","shape":[null,null,1],"weights":[[[1]],[0]]}]}""",
+        """{"in_shape":[null,null,1],"layers":[{"type":"conv1d","shape":[null,null,4],"weights":[]},"""
+        + """{"type":"dense","shape":[null,null,1],"weights":[[[1]],[0]]}]}""",
         "conv1d"
     )]
     [InlineData(
-        """{"in_shape":[null,null,1],"layers":[{"type":"lstm","shape":[null,null,2],"weights":[[[1,2,3]],[[0],[0]],[0]]},{"type":"dense","shape":[null,null,1],"weights":[[[1],[1]],[0]]}]}""",
+        """{"in_shape":[null,null,1],"layers":[{"type":"lstm","shape":[null,null,2],"weights":"""
+        + """[[[1,2,3]],[[0],[0]],[0]]},"""
+        + """{"type":"dense","shape":[null,null,1],"weights":[[[1],[1]],[0]]}]}""",
         "weights per row"
     )]
     public void Malformed_models_are_rejected_with_a_reason(string json, string reason) {
@@ -128,7 +131,9 @@ public class CaptureAmpBlockTests : IDisposable {
         Assert.Equal(input, BlockRender.Mono(block, input, 64));
     }
 
-    /// <summary>A random AIDA-X model in Keras layout, plus a deliberately naive double-precision evaluation of it.</summary>
+    /// <summary>
+    ///     A random AIDA-X model in Keras layout, plus a deliberately naive double-precision evaluation of it.
+    /// </summary>
     sealed record SyntheticModel(string Json, Func<float[], float[]> Reference) {
         public static SyntheticModel Create(string type, int hidden, int depth, bool skip, int seed) {
             var random = new Random(seed);

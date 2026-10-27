@@ -9,8 +9,10 @@ namespace Cathode.Server.Realtime;
 ///     editor closing its tuner (or starting up) does not switch it off for another. A client names itself with the
 ///     same <c>client</c> id on its requests and its <c>/ws</c> socket; when its last socket closes, whatever it left
 ///     on is released. A request without a client id acts as before clients were counted: on adds an anonymous client,
-///     off turns the analyser off for everyone. The tuner's on or off is applied through <see cref="LiveRig.SetTunerAsync" />,
-///     which owns the tuner state (its event, the footswitch LED and the resync after a host restart), one change at a time.
+///     off turns the analyser off for everyone. The tuner's on or off is applied through
+///     <see cref="LiveRig.SetTunerAsync" />,
+///     which owns the tuner state (its event, the footswitch LED and the resync after a host restart), one change at a
+///     time.
 /// </summary>
 public sealed class AnalysisSubscriptions(LiveRig rig, EngineConnection engine) : IDisposable {
     readonly Lock gate = new();
@@ -37,9 +39,14 @@ public sealed class AnalysisSubscriptions(LiveRig rig, EngineConnection engine) 
         return ApplyTunerAsync();
     }
 
-    /// <summary>Brings the rig's tuner to whether any client wants it, one change at a time so none lands out of order.</summary>
+    /// <summary>
+    ///     Brings the rig's tuner to whether any client wants it, one change at a time so none lands out of
+    ///     order.
+    /// </summary>
     async Task ApplyTunerAsync() {
-        await tunerApply.WaitAsync();
+        // Not cancellable on purpose: a change that has started is carried through, or the rig and the clients
+        // would disagree about whether the tuner is on.
+        await tunerApply.WaitAsync(CancellationToken.None);
         try {
             if (TunerOn != rig.TunerOn) {
                 await rig.SetTunerAsync(TunerOn);
@@ -56,7 +63,10 @@ public sealed class AnalysisSubscriptions(LiveRig rig, EngineConnection engine) 
         }
     }
 
-    /// <summary>Applies the RTA's settings (whoever sends them) and the client's on or off. Throws on invalid settings.</summary>
+    /// <summary>
+    ///     Applies the RTA's settings (whoever sends them) and the client's on or off. Throws on invalid
+    ///     settings.
+    /// </summary>
     public void SetRta(string? client, RtaRequest request) {
         lock (gate) {
             engine.SetRta(request with { Enabled = engine.RtaEnabled }); // validates before anything changes

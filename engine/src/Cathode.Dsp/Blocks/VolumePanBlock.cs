@@ -4,9 +4,9 @@ namespace Cathode.Dsp.Blocks;
 
 /// <summary>
 ///     Volume/Pan: a volume pedal (Volume, through a choice of pot tapers), an output Level and Balance, input select
-///     and per-side panning. Auto-Swell fades each note in from silence over Attack once the input crosses Threshold, like
-///     a guitarist rolling the volume knob up after picking. Gains are interpolated per sample, so changes never click,
-///     and at the default settings the block is bit-transparent.
+///     and per-side panning. Auto-Swell fades each note in from silence over Attack once the input crosses Threshold,
+///     like a guitarist rolling the volume knob up after picking. Gains are interpolated per sample, so changes never
+///     click, and at the default settings the block is bit-transparent.
 /// </summary>
 public sealed class VolumePanBlock() : DspBlock(Info) {
     public const int Level = 0;
@@ -28,7 +28,9 @@ public sealed class VolumePanBlock() : DspBlock(Info) {
 
     const double EnvelopeReleaseMs = 30;
 
-    /// <summary>The pot tapers: linear, then audio tapers named by their resistance at half rotation, then an S curve.</summary>
+    /// <summary>
+    ///     The pot tapers: linear, then audio tapers named by their resistance at half rotation, then an S curve.
+    /// </summary>
     static readonly string[] Tapers = ["Linear", "Log 30A", "Log 20A", "Log 15A", "Log 10A", "Log 5A", "S-Taper"];
 
     static readonly float[] TaperMidpoints = [0.5f, 0.3f, 0.2f, 0.15f, 0.1f, 0.05f];
@@ -45,8 +47,8 @@ public sealed class VolumePanBlock() : DspBlock(Info) {
         "Volume/Pan",
         "Utility",
         [
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Float("volume", "Volume", 0f, 100f, 100f, "%"),
             ParamDescriptor.Choice("taper", "Taper", Tapers),
             ParamDescriptor.Choice("type", "Type", ["Volume", "Auto-Swell"]),
@@ -58,7 +60,9 @@ public sealed class VolumePanBlock() : DspBlock(Info) {
         ]
     );
 
-    /// <summary>The gain of a volume pedal at <paramref name="volume" /> (0..1) through <paramref name="taper" />.</summary>
+    /// <summary>
+    ///     The gain of a volume pedal at <paramref name="volume" /> (0..1) through <paramref name="taper" />.
+    /// </summary>
     public static float TaperGain(int taper, float volume) {
         var v = Math.Clamp(volume, 0f, 1f);
         if (taper >= TaperMidpoints.Length) {
@@ -69,7 +73,8 @@ public sealed class VolumePanBlock() : DspBlock(Info) {
             return v;
         }
 
-        // An audio taper b^v, offset to start at zero and scaled to reach one, passing the pot's midpoint at half rotation.
+        // An audio taper b^v, offset to start at zero and scaled to reach one, passing the pot's midpoint at half
+        // rotation.
         var root = 1 / TaperMidpoints[taper] - 1;
         var b = root * root;
         return (MathF.Pow(b, v) - 1) / (b - 1);
@@ -84,8 +89,9 @@ public sealed class VolumePanBlock() : DspBlock(Info) {
     }
 
     /// <summary>
-    ///     Auto-Swell: a peak envelope of the input opens the swell when it crosses <paramref name="threshold" />, which
-    ///     then rises from zero to one in <paramref name="attackMs" />; it re-arms once the envelope falls 6 dB below.
+    ///     Auto-Swell: a peak envelope of the input opens the swell when it crosses <paramref name="threshold" />,
+    ///     which then rises from zero to one in <paramref name="attackMs" />; it re-arms once the envelope falls 6 dB
+    ///     below.
     /// </summary>
     void Swell(in StereoBuffer io, float threshold, float attackMs) {
         var step = (float)(1 / Math.Max(1, attackMs * 0.001 * Spec.SampleRate));

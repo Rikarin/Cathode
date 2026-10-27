@@ -6,7 +6,9 @@ using Cathode.Testing;
 
 namespace Cathode.Engine.Tests;
 
-/// <summary>Multiplexer, Feedback Send/Return and FX Loop: the routing blocks the graph compiler wires up itself.</summary>
+/// <summary>
+///     Multiplexer, Feedback Send/Return and FX Loop: the routing blocks the graph compiler wires up itself.
+/// </summary>
 public class RoutingTests {
     static readonly ProcessSpec Spec = new(48_000, 64);
     static readonly GraphCompiler Compiler = new(TestRegistry.Create());
@@ -221,7 +223,9 @@ public class RoutingTests {
             ("mux", "out")
         );
 
-    /// <summary>in → return → (out, send): the send feeds the return, so each repeat is <paramref name="levelDb" /> down.</summary>
+    /// <summary>
+    ///     in → return → (out, send): the send feeds the return, so each repeat is <paramref name="levelDb" /> down.
+    /// </summary>
     static GraphDefinition Feedback(float levelDb) =>
         Graph(
             [

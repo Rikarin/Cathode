@@ -3,7 +3,6 @@ using Cathode.Dsp;
 using Cathode.Dsp.Native;
 using Cathode.Engine;
 using Cathode.Engine.Graph;
-using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 
@@ -27,19 +26,8 @@ static class NamBenchmark {
         NamModel.SetFastTanh(fastTanh);
 
         var graph = graphPath is not null
-            ? new GraphCompiler(
-                BlockRegistry.CreateDefault().AddNativeBlocks(),
-                Path.GetDirectoryName(Path.GetFullPath(graphPath))
-            )
-                .Compile(
-                    JsonSerializer.Deserialize(
-                        File.ReadAllText(graphPath),
-                        GraphJsonContext.Default.GraphDefinition
-                    )!,
-                    spec,
-                    1
-                )
-            : Compile(Graphs.Nam(Path.GetFullPath(path!)), spec);
+            ? CompileFile(graphPath, spec)
+            : Compile(GraphTemplates.Nam(Path.GetFullPath(path!)), spec);
         var amp = graph.SlotOf("amp1") is >= 0 and var ampSlot ? graph.Block(ampSlot) as NamAmpBlock : null;
         if (options.Text("size") is { } size && amp is not null) {
             amp.SetModelSize(double.Parse(size, CultureInfo.InvariantCulture));
@@ -53,81 +41,55 @@ static class NamBenchmark {
             NativeAudio.FlushDenormalsOnCurrentThread();
         }
 
-        var random = new Random(1);
-        var input = new float[(int)spec.SampleRate * seconds];
-        if (!options.Flag("silent-input")) // upstream's benchmodel feeds zeros; real DI costs more
-        {
-            for (var i = 0; i < input.Length; i++) {
-                input[i] = (float)(random.NextDouble() * 2 - 1) * 0.1f; // about -25 dBFS RMS, a typical DI
-            }
-        }
-
-        var outLeft = new float[input.Length];
-        var outRight = new float[input.Length];
-        var callbacks = input.Length / spec.MaxBlockSize;
-
-        void RenderAll() {
-            for (var c = 0; c < callbacks; c++) {
-                var offset = c * spec.MaxBlockSize;
-                var block = input.AsSpan(offset, spec.MaxBlockSize);
-                engine.Process(
-                    new(
-                        block,
-                        block,
-                        outLeft.AsSpan(offset, spec.MaxBlockSize),
-                        outRight.AsSpan(offset, spec.MaxBlockSize)
-                    )
-                );
-            }
-        }
-
-        RenderAll(); // warm-up
-        engine.Stats.Reset();
-        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
-        var started = Stopwatch.GetTimestamp();
-        RenderAll();
-        var elapsed = Stopwatch.GetElapsedTime(started);
-        var allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+        var length = (int)spec.SampleRate * seconds;
+        var input = options.Flag("silent-input")
+            ? new float[length] // upstream's benchmodel feeds zeros; real DI costs more
+            : OfflineRender.Noise(length, 0.1f); // about -25 dBFS RMS, a typical DI
+        var (outLeft, callbacks, elapsed, allocated) = OfflineRender.Measure(engine, input, spec.MaxBlockSize);
 
         Console.WriteLine(
             graphPath is not null
-                ? $"graph:        {Path.GetFileName(graphPath)}  {graph.SlotIds.Count} blocks ({string.Join(", ", graph.SlotIds)})  tanh {(fastTanh ? "fast" : "exact")}"
-                : $"model:        {Path.GetFileName(path)}  {amp?.Model?.Architecture} (file {amp?.Model?.FileVersion})  NAM core {NamModel.CoreVersion}  size {options.Text("size") ?? "default"}  tanh {(fastTanh ? "fast" : "exact")}  input {(options.Flag("silent-input") ? "silence" : "noise")}  ftz {options.Flag("ftz")}"
+                ? DescribeGraph(graphPath, graph, fastTanh)
+                : DescribeModel(options, path, amp, fastTanh)
         );
         Console.WriteLine(
-            $"rendered:     {seconds} s at {spec.SampleRate / 1000:0.#} kHz / {spec.MaxBlockSize} frames in {elapsed.TotalMilliseconds:0.0} ms"
+            $"rendered:     {seconds} s at {spec.SampleRate / 1000:0.#} kHz / {spec.MaxBlockSize} frames in "
+            + $"{elapsed.TotalMilliseconds:0.0} ms"
         );
         Console.WriteLine(
-            $"cpu:          {elapsed.TotalSeconds / seconds * 100:0.00}% of one core  ({seconds / elapsed.TotalSeconds:0}x real time)"
+            $"cpu:          {elapsed.TotalSeconds / seconds * 100:0.00}% of one core  "
+            + $"({seconds / elapsed.TotalSeconds:0}x real time)"
         );
         Console.WriteLine(
-            $"callback:     p50 <= {engine.Stats.Percentile(0.5):0}%  p99.9 <= {engine.Stats.Percentile(0.999):0}%  max {engine.Stats.MaxPercent:0.0}% of budget"
+            $"callback:     p50 <= {engine.Stats.Percentile(0.5):0}%  p99.9 <= {engine.Stats.Percentile(0.999):0}%  "
+            + $"max {engine.Stats.MaxPercent:0.0}% of budget"
         );
         Console.WriteLine($"allocations:  {allocated} bytes across {callbacks} callbacks");
         Console.WriteLine($"output:       peak {outLeft.Max(Math.Abs):0.000}, finite {outLeft.All(float.IsFinite)}");
         return allocated == 0 && outLeft.All(float.IsFinite) ? 0 : 1;
     }
 
+    static string DescribeGraph(string graphPath, CompiledGraph graph, bool fastTanh) =>
+        $"graph:        {Path.GetFileName(graphPath)}  {graph.SlotIds.Count} blocks "
+        + $"({string.Join(", ", graph.SlotIds)})  tanh {(fastTanh ? "fast" : "exact")}";
+
+    static string DescribeModel(CommandLine options, string? path, NamAmpBlock? amp, bool fastTanh) =>
+        $"model:        {Path.GetFileName(path)}  {amp?.Model?.Architecture} (file {amp?.Model?.FileVersion})  "
+        + $"NAM core {NamModel.CoreVersion}  size {options.Text("size") ?? "default"}  "
+        + $"tanh {(fastTanh ? "fast" : "exact")}  input {(options.Flag("silent-input") ? "silence" : "noise")}  "
+        + $"ftz {options.Flag("ftz")}";
+
+    /// <summary>A graph from a JSON file; relative asset paths resolve against the file's folder.</summary>
+    static CompiledGraph CompileFile(string graphPath, ProcessSpec spec) =>
+        new GraphCompiler(
+            BlockRegistry.CreateDefault().AddNativeBlocks(),
+            Path.GetDirectoryName(Path.GetFullPath(graphPath))
+        ).Compile(
+            JsonSerializer.Deserialize(File.ReadAllText(graphPath), GraphJsonContext.Default.GraphDefinition)!,
+            spec,
+            1
+        );
+
     static CompiledGraph Compile(GraphDefinition definition, ProcessSpec spec) =>
         new GraphCompiler(BlockRegistry.CreateDefault().AddNativeBlocks()).Compile(definition, spec, 1);
-}
-
-/// <summary>Graphs used by the host's diagnostics.</summary>
-static class Graphs {
-    /// <summary>Input -> NAM amp (normalised) -> Output.</summary>
-    public static GraphDefinition Nam(string modelPath) =>
-        new() {
-            Nodes = [
-                new() { Id = "in1", Type = NodeTypes.Input, Row = 0, Column = 0 },
-                new() {
-                    Id = "amp1",
-                    Type = "nam",
-                    Row = 0,
-                    Column = 1,
-                    Assets = { ["model"] = modelPath }
-                },
-                new() { Id = "out1", Type = NodeTypes.Output, Row = 0, Column = 2 }
-            ],
-            Cables = [new() { From = "in1", To = "amp1" }, new() { From = "amp1", To = "out1" }]
-        };
 }

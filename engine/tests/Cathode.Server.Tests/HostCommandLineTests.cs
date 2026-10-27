@@ -20,10 +20,9 @@ public sealed class HostCommandLineTests {
     }
 
     internal static async Task<(int Exit, string Output)> RunHostAsync(params string[] args) {
-        using var process = new Process {
-            StartInfo = new("dotnet", ["exec", HostDll(), .. args]) {
-                RedirectStandardOutput = true, RedirectStandardError = true
-            }
+        using var process = new Process();
+        process.StartInfo = new("dotnet", ["exec", HostDll(), ..args]) {
+            RedirectStandardOutput = true, RedirectStandardError = true
         };
         process.Start();
         var stdout = process.StandardOutput.ReadToEndAsync(Token);

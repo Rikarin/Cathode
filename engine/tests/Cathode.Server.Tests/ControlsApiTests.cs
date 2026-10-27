@@ -15,7 +15,9 @@ using System.Text.Json.Nodes;
 
 namespace Cathode.Server.Tests;
 
-/// <summary>Phase 5 through the API: bypass modes, modifiers, controllers, tempo, scenes, globals, looper, MIDI.</summary>
+/// <summary>
+///     Phase 5 through the API: bypass modes, modifiers, controllers, tempo, scenes, globals, looper, MIDI.
+/// </summary>
 public sealed class ControlsApiTests : IAsyncLifetime {
     readonly ServerFixture server = new();
     HttpClient client = null!;
@@ -355,6 +357,7 @@ public sealed class ControlsApiTests : IAsyncLifetime {
     public async Task The_tuner_scope_and_rta_run_while_any_client_has_them_on() {
         var engine = server.Services.GetRequiredService<EngineConnection>();
         var analysis = server.Services.GetRequiredService<AnalysisSubscriptions>();
+
         async Task Set(string who, bool on) {
             using var tuner = await client.PutAsJsonAsync($"/api/v1/tuner?client={who}", new BypassRequest(!on), Token);
             using var scope = await client.PutAsJsonAsync($"/api/v1/scope?client={who}", new ScopeRequest(on), Token);
@@ -553,7 +556,8 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         using var response = await call;
         if (!response.IsSuccessStatusCode) {
             Assert.Fail(
-                $"{response.RequestMessage?.RequestUri}: {(int)response.StatusCode} {await response.Content.ReadAsStringAsync(Token)}"
+                $"{response.RequestMessage?.RequestUri}: {(int)response.StatusCode} "
+                + $"{await response.Content.ReadAsStringAsync(Token)}"
             );
         }
     }
@@ -562,7 +566,8 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         using (response) {
             if (!response.IsSuccessStatusCode) {
                 Assert.Fail(
-                    $"{response.RequestMessage?.RequestUri}: {(int)response.StatusCode} {await response.Content.ReadAsStringAsync(Token)}"
+                    $"{response.RequestMessage?.RequestUri}: {(int)response.StatusCode} "
+                    + $"{await response.Content.ReadAsStringAsync(Token)}"
                 );
             }
 

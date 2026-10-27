@@ -3,7 +3,9 @@ using System.Runtime.CompilerServices;
 
 namespace Cathode.Dsp.Amp;
 
-/// <summary>A phase inverter's design: its triode and supply; <see cref="PhaseInverter.For" /> builds its table.</summary>
+/// <summary>
+///     A phase inverter's design: its triode and supply; <see cref="PhaseInverter.For" /> builds its table.
+/// </summary>
 public abstract record PhaseInverterDesign(TriodeModel Tube, double Supply);
 
 /// <summary>
@@ -45,16 +47,16 @@ public sealed record CathodyneDesign(
 ///         A justified simplification: a long-tail pair or a cathodyne has no capacitance of its own (its coupling and
 ///         grid caps are outside it), so at audio frequencies it is a memoryless two-output nonlinearity, and a table
 ///         makes it about the cost of two polynomial evaluations instead of a multi-port Newton solve. Global negative
-///         feedback enters as part of the differential input, which a static map lets the power amp's one-unknown Newton
-///         solve include without a delay. What the table leaves out: grid current (modelled outside it, at the driven
-///         grid, where a design asks for it) and Miller capacitance; and its supply is taken as constant.
+///         feedback enters as part of the differential input, which a static map lets the power amp's one-unknown
+///         Newton solve include without a delay. What the table leaves out: grid current (modelled outside it, at the
+///         driven grid, where a design asks for it) and Miller capacitance; and its supply is taken as constant.
 ///     </para>
 ///     <para>
-///         The outputs drive the power tubes' grid networks as a two-port Thévenin source: open-circuit voltages from the
-///         table behind the output impedance matrix (<see cref="OutputImpedance" />), found from the exact solution
-///         with a small current drawn from each output in turn. The cross terms are large (a long-tail pair's plates are
-///         coupled through the shared cathode; a cathodyne's plate output is high-impedance and its cathode output low),
-///         and with push-pull loading they matter.
+///         The outputs drive the power tubes' grid networks as a two-port Thévenin source: open-circuit voltages from
+///         the table behind the output impedance matrix (<see cref="OutputImpedance" />), found from the exact solution
+///         with a small current drawn from each output in turn. The cross terms are large (a long-tail pair's plates
+///         are coupled through the shared cathode; a cathodyne's plate output is high-impedance and its cathode output
+///         low), and with push-pull loading they matter.
 ///     </para>
 /// </remarks>
 public abstract class PhaseInverter {
@@ -90,14 +92,14 @@ public abstract class PhaseInverter {
     public double RestPlateB { get; protected init; }
 
     /// <summary>
-    ///     The small-signal output impedance matrix at rest: output A's voltage falls by Zaa per ampere drawn from A and
-    ///     by Zab per ampere drawn from B, and so on.
+    ///     The small-signal output impedance matrix at rest: output A's voltage falls by Zaa per ampere drawn from A
+    ///     and by Zab per ampere drawn from B, and so on.
     /// </summary>
     public (double Zaa, double Zab, double Zba, double Zbb) OutputImpedance { get; protected init; }
 
     /// <param name="range">
-    ///     The table's span, ± volts of input: both sides are saturated or cut off beyond it (60 V for a single inverter
-    ///     stage; less for a chain with gain ahead of its splitter, whose linear region is narrower).
+    ///     The table's span, ± volts of input: both sides are saturated or cut off beyond it (60 V for a single
+    ///     inverter stage; less for a chain with gain ahead of its splitter, whose linear region is narrower).
     /// </param>
     protected PhaseInverter(double range = 60) {
         Range = range;
@@ -109,9 +111,9 @@ public abstract class PhaseInverter {
     ///     The (cached) table for <paramref name="design" />. Control thread: builds it on first use. With a
     ///     <paramref name="load" />, the driven grid's tables (<see cref="GridToCathode" />, <see cref="LeakReturn" />,
     ///     <see cref="CathodeResistance" />) are those of the inverter with each plate loaded by that resistance to its
-    ///     rest voltage (the power tubes' grid leaks through their coupling caps): the load lowers the plate swing, so the
-    ///     driven triode carries more current and its cathode rises further, which is what keeps its grid current small.
-    ///     The output tables stay open-circuit (the grid networks load them as a Thévenin source).
+    ///     rest voltage (the power tubes' grid leaks through their coupling caps): the load lowers the plate swing, so
+    ///     the driven triode carries more current and its cathode rises further, which is what keeps its grid current
+    ///     small. The output tables stay open-circuit (the grid networks load them as a Thévenin source).
     /// </summary>
     public static PhaseInverter For(PhaseInverterDesign design, double load = 0) {
         lock (Cache) {
@@ -171,7 +173,9 @@ public abstract class PhaseInverter {
         return (h00 * a0 + h10 * ma0 + h01 * a1 + h11 * ma1, h00 * b0 + h10 * mb0 + h01 * b1 + h11 * mb1);
     }
 
-    /// <summary>The output tables side by side, as <see cref="Evaluate" /> reads them (each slope times the step).</summary>
+    /// <summary>
+    ///     The output tables side by side, as <see cref="Evaluate" /> reads them (each slope times the step).
+    /// </summary>
     void Pack() {
         for (var i = 0; i < Points; i++) {
             outputs[4 * i] = a[i];
@@ -217,7 +221,8 @@ public abstract class PhaseInverter {
 
     /// <summary>
     ///     The AC voltage of the node the driven grid's leak returns to (the tail or cathode-load junction, which
-    ///     follows the input: the leak is bootstrapped) for the grid's AC voltage <paramref name="vd" />, and its slope.
+    ///     follows the input: the leak is bootstrapped) for the grid's AC voltage <paramref name="vd" />, and its
+    ///     slope.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double LeakReturn(double vd, out double slope) {
@@ -373,9 +378,9 @@ public sealed class LongTailPair : PhaseInverter {
     /// <summary>
     ///     The exact DC solution for grid voltages <paramref name="gridA" /> and <paramref name="gridB" /> (no grid
     ///     current), with <paramref name="drawA" /> and <paramref name="drawB" /> amperes drawn from the plates by a
-    ///     load and <paramref name="inject" /> injected into the cathode (grid current leaving through it): plate currents
-    ///     and the cathode voltage, by bisection on the cathode voltage with each triode's current found from its own load
-    ///     line.
+    ///     load and <paramref name="inject" /> injected into the cathode (grid current leaving through it): plate
+    ///     currents and the cathode voltage, by bisection on the cathode voltage with each triode's current found from
+    ///     its own load line.
     /// </summary>
     public static (double A, double B, double Cathode) Solve(
         Triode triode,
@@ -409,10 +414,10 @@ public sealed class LongTailPair : PhaseInverter {
 }
 
 /// <summary>
-///     A <see cref="CathodyneDesign" />'s table: the plate's and the cathode load's AC voltages as functions of the grid's
-///     AC voltage. Its gain is a little under one on each side; the plate output's impedance is high and the cathode
-///     output's low, and as the plate falls to meet the cathode the plate side clips first, which is the cathodyne's
-///     sound.
+///     A <see cref="CathodyneDesign" />'s table: the plate's and the cathode load's AC voltages as functions of the
+///     grid's AC voltage. Its gain is a little under one on each side; the plate output's impedance is high and the
+///     cathode output's low, and as the plate falls to meet the cathode the plate side clips first, which is the
+///     cathodyne's sound.
 /// </summary>
 public sealed class Cathodyne : PhaseInverter {
     public CathodyneDesign Design { get; }

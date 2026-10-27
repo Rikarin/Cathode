@@ -3,11 +3,11 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Fender blackface (AB763 Super Reverb-style channel): V1 into the Fender stack and the volume, V2, then the mixing
-///     network (a small coupling cap and the 220k mixing resistor into the other channel's 220k) and the (added) master,
-///     a 12AT7 long-tail pair, two 6L6GC at 460 V with GZ34-like sag, feedback from the 4 Ω tap with a presence control.
-///     The original's V4B mixer and reverb recovery are left out: the mixing network's loss stands in for the mixer's
-///     net gain into the inverter.
+///     Fender blackface (AB763 Super Reverb-style channel): V1 into the Fender stack and the volume, V2, then the
+///     mixing network (a small coupling cap and the 220k mixing resistor into the other channel's 220k) and the (added)
+///     master, a 12AT7 long-tail pair, two 6L6GC at 460 V with GZ34-like sag, feedback from the 4 Ω tap with a presence
+///     control. The original's V4B mixer and reverb recovery are left out: the mixing network's loss stands in for the
+///     mixer's net gain into the inverter.
 /// </summary>
 public static class Blackface {
     public static AmpDesign Design { get; } = new(

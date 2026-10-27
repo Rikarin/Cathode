@@ -11,16 +11,16 @@ namespace Cathode.Dsp.Amp.Models;
 ///     stack directly: 330 pF to the 250k linear treble pot, 150k to a node S, S through 0.1 µF to the treble pot's far
 ///     end, the 500k log bass pot (1 nF across it) and 9.8k to ground, S through 10 nF and the 250k log middle pot to
 ///     ground; the treble wiper into the 1M log volume, its wiper through 220k ‖ 390 pF to V1A (150k plate, 3.3k with
-///     5 µF; 206 V, 1.788 V), 47 nF on. Clean: the 1M log master (47 pF from its top to the wiper, per the notes) to the
-///     output section. Overdrive: from the same 47 nF, 100k into the 100k linear OD trim, 68k into V2A (180k, 2.7k with
-///     5 µF; 227.5 V, 2.03 V), 2.2 nF and 100k into the 250k log Drive pot, 180k into V2B (120k, 1.8k with 1 µF; 229 V,
-///     2.03 V), its plate into a fixed Marshall-topology stack (330 pF, 33k, 22 nF, 22 nF; 250k treble, 1M bass and 20k
-///     middle trimmers) and the 1M log OD Level, whose wiper replaces the master's on the relay. The output section:
-///     10 nF into a 12AX7 long-tail pair (1M leaks, 820 Ω bias, 24k tail; 91k / 110k plates from 433 V; 303 / 317 V,
-///     cathodes 60.9 V), 0.1 µF into 200k leaks and 5.1k stoppers, four EL34 (the notes' V4-V7; the drawing shows one
-///     pair) at 465 V with 458 V screens through 1k, fixed bias at -40.7 V; feedback through 4.7k into the tail's
-///     foot, which has 390 Ω to ground and the 2k linear presence pot with 1 µF across it; silicon rectifier from
-///     345-0-345 V, 200 + 200 µF stacked, a 3 H choke, and 3k / 12k / 10k droppers to the 433 / 361 / 323 V nodes.
+///     5 µF; 206 V, 1.788 V), 47 nF on. Clean: the 1M log master (47 pF from its top to the wiper, per the notes) to
+///     the output section. Overdrive: from the same 47 nF, 100k into the 100k linear OD trim, 68k into V2A (180k, 2.7k
+///     with 5 µF; 227.5 V, 2.03 V), 2.2 nF and 100k into the 250k log Drive pot, 180k into V2B (120k, 1.8k with 1 µF;
+///     229 V, 2.03 V), its plate into a fixed Marshall-topology stack (330 pF, 33k, 22 nF, 22 nF; 250k treble, 1M bass
+///     and 20k middle trimmers) and the 1M log OD Level, whose wiper replaces the master's on the relay. The output
+///     section: 10 nF into a 12AX7 long-tail pair (1M leaks, 820 Ω bias, 24k tail; 91k / 110k plates from 433 V; 303 /
+///     317 V, cathodes 60.9 V), 0.1 µF into 200k leaks and 5.1k stoppers, four EL34 (the notes' V4-V7; the drawing
+///     shows one pair) at 465 V with 458 V screens through 1k, fixed bias at -40.7 V; feedback through 4.7k into the
+///     tail's foot, which has 390 Ω to ground and the 2k linear presence pot with 1 µF across it; silicon rectifier
+///     from 345-0-345 V, 200 + 200 µF stacked, a 3 H choke, and 3k / 12k / 10k droppers to the 433 / 361 / 323 V nodes.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -182,8 +182,9 @@ public static class OverdriveSpecial {
     }
 
     /// <summary>
-    ///     2.2 nF and 100k into the Drive pot (250k log, Control 1), 180k into V2B (120k from 361 V, 1.8k with 1 µF), the
-    ///     fixed OD stack on its plate (trimmers at half) and the OD Level (1M log, Control 2); the output is its wiper.
+    ///     2.2 nF and 100k into the Drive pot (250k log, Control 1), 180k into V2B (120k from 361 V, 1.8k with 1 µF),
+    ///     the fixed OD stack on its plate (trimmers at half) and the OD Level (1M log, Control 2); the output is its
+    ///     wiper.
     /// </summary>
     static StageNetlist OverdriveSecond() {
         var net = new StageNetlist();

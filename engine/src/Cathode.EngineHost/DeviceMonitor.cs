@@ -13,7 +13,9 @@ public interface IDeviceMonitor {
     /// <summary>Returns the window that just ended (overloads are cumulative) and starts a new one.</summary>
     DeviceWindow CloseWindow();
 
-    /// <summary>The device's input and output latency in frames, as the driver reports them (each with one buffer).</summary>
+    /// <summary>
+    ///     The device's input and output latency in frames, as the driver reports them (each with one buffer).
+    /// </summary>
     (int Input, int Output) Latency { get; }
 
     /// <summary>Whether the device is still the one the engine was prepared for; read without allocating.</summary>

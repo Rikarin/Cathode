@@ -9,9 +9,9 @@ namespace Cathode.Dsp.Tests;
 ///     The guard of the circuit solver's speed work: every Circuit Amp model at gains 2, 5 and 8, and at 8 with every
 ///     switch and Bright on, and the AFD100 and the Quick Rod at every combination of their switches, render
 ///     bit-identical to the hashes in <c>tests/assets/defaults/circuit-solver.sha256</c>, taken before it (on a6bc94f).
-///     Each render plays noise, a sine, loud noise and silence through uneven host blocks. A change meant to alter a model
-///     regenerates the file with <c>CATHODE_UPDATE_SOLVER=1 dotnet test</c>, and is reviewed. The hashes are macOS ARM64
-///     renders, so the test runs there only (<see cref="BaselinePlatform" />).
+///     Each render plays noise, a sine, loud noise and silence through uneven host blocks. A change meant to alter a
+///     model regenerates the file with <c>CATHODE_UPDATE_SOLVER=1 dotnet test</c>, and is reviewed. The hashes are
+///     macOS ARM64 renders, so the test runs there only (<see cref="BaselinePlatform" />).
 /// </summary>
 public class CircuitAmpBitIdentityTests {
     static readonly string Path =

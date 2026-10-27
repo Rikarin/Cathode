@@ -15,9 +15,9 @@ public enum PotTaper {
 }
 
 /// <summary>
-///     A potentiometer: its track resistance and taper; for an audio taper, <paramref name="Midpoint" /> is the fraction
-///     of the track below the wiper at half rotation (Fender marks it in the part number: "250k15A" is 15 %, "100k30A"
-///     30 %; 10 % is the usual A taper).
+///     A potentiometer: its track resistance and taper; for an audio taper, <paramref name="Midpoint" /> is the
+///     fraction of the track below the wiper at half rotation (Fender marks it in the part number: "250k15A" is 15 %,
+///     "100k30A" 30 %; 10 % is the usual A taper).
 /// </summary>
 public readonly record struct Pot(double Ohms, PotTaper Taper, double Midpoint = 0.1) {
     /// <summary>
@@ -34,8 +34,8 @@ public readonly record struct Pot(double Ohms, PotTaper Taper, double Midpoint =
     }
 
     /// <summary>
-    ///     An exponential law through (0, 0), (0.5, <paramref name="midpoint" />) and (1, 1), like a real A-taper track:
-    ///     (b^p - 1) / (b - 1) with b = ((1 - m) / m)², which is 81 for the usual 10 %.
+    ///     An exponential law through (0, 0), (0.5, <paramref name="midpoint" />) and (1, 1), like a real A-taper
+    ///     track: (b^p - 1) / (b - 1) with b = ((1 - m) / m)², which is 81 for the usual 10 %.
     /// </summary>
     static double AudioLaw(double p, double midpoint) {
         var m = midpoint is > 0 and < 0.5 ? midpoint : 0.1;
@@ -49,7 +49,10 @@ public readonly record struct Pot(double Ohms, PotTaper Taper, double Midpoint =
 ///     bottom end, as internal resistors. Moving it changes both and needs a propagate of the tree.
 /// </summary>
 public readonly record struct PotDivider(int Top, int Bottom, int Wiper, Pot Pot) {
-    /// <summary>Adds the pot between <paramref name="top" /> and <paramref name="bottom" />; returns it with a new wiper node.</summary>
+    /// <summary>
+    ///     Adds the pot between <paramref name="top" /> and <paramref name="bottom" />; returns it with a new wiper
+    ///     node.
+    /// </summary>
     public static PotDivider Add(WdfNetlist net, int top, int bottom, Pot pot) {
         var wiper = net.Node();
         var upper = net.Resistor(top, wiper, pot.Ohms / 2);

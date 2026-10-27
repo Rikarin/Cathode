@@ -32,13 +32,16 @@ public sealed partial class EngineConnection {
         set => rtaEnabled = value;
     }
 
-    /// <summary>Applies an RTA request: on or off, and its resolution, decay and window. Throws on invalid settings.</summary>
+    /// <summary>
+    ///     Applies an RTA request: on or off, and its resolution, decay and window. Throws on invalid settings.
+    /// </summary>
     public void SetRta(RtaRequest request) {
         var window = RtaWindows.IndexOf(request.Window);
         if (!RtaResolutions.Contains(request.BandsPerOctave) || window < 0 || request.DecayMs is < 0 or > 10_000) {
             throw new RigException(
                 400,
-                "The RTA takes 3, 6 or 12 bands per octave, a decay of 0-10000 ms and a hann, blackmanHarris, flatTop or rectangular window."
+                "The RTA takes 3, 6 or 12 bands per octave, a decay of 0-10000 ms and a hann, blackmanHarris, flatTop "
+                + "or rectangular window."
             );
         }
 

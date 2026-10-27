@@ -6,9 +6,9 @@ using Cathode.Testing;
 namespace Cathode.Dsp.Tests;
 
 /// <summary>
-///     The Circuit Amp's non-model stages (docs/08 §4): input boost, input filter and Definition, output EQ at its three
-///     locations, saturation, input dynamics, output compressor, speaker drive, thump and compression, bias tremolo and
-///     balance. Each is neutral at its default.
+///     The Circuit Amp's non-model stages (docs/08 §4): input boost, input filter and Definition, output EQ at its
+///     three locations, saturation, input dynamics, output compressor, speaker drive, thump and compression, bias
+///     tremolo and balance. Each is neutral at its default.
 /// </summary>
 public class CircuitAmpInsertTests {
     const double Rate = 48_000;

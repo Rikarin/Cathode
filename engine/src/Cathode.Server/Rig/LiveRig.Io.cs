@@ -29,51 +29,62 @@ public sealed partial class LiveRig {
 
         var scene = state.Preset.Scenes[state.ActiveScene];
         var info = CircuitAmpBlock.Info;
-        var speaker = (int)Value(block, info, CircuitAmpBlock.SpeakerCurve);
-        var cab = speaker == CircuitAmpBlock.SpeakerAuto ? FollowedCab(state.Preset, id) : null;
-        var baseHz = CircuitAmpBlock.SpeakerResonanceHz((int)Value(block, info, CircuitAmpBlock.Type), speaker, cab);
-        var percent = Value(block, info, CircuitAmpBlock.SpeakerResonance);
+        var speaker = (int)ValueIn(scene, block, info, CircuitAmpBlock.SpeakerCurve);
+        var cab = speaker == CircuitAmpBlock.SpeakerAuto ? FollowedCab(scene, state.Preset, id) : null;
+        var model = (int)ValueIn(scene, block, info, CircuitAmpBlock.Type);
+        var baseHz = CircuitAmpBlock.SpeakerResonanceHz(model, speaker, cab);
+        var percent = ValueIn(scene, block, info, CircuitAmpBlock.SpeakerResonance);
         return new(baseHz, percent, baseHz * percent / 100);
+    }
 
-        float Value(PresetBlock of, BlockDescriptor descriptor, int index) {
-            var param = descriptor.Params[index];
-            var values = of.Channels.GetValueOrDefault(scene.StateOf(of.Id).Channel);
-            return values?.GetValueOrDefault(param.Id, param.Default) ?? param.Default;
-        }
+    /// <summary>A parameter of a block in the channel <paramref name="scene" /> gives it, or the default.</summary>
+    static float ValueIn(Scene scene, PresetBlock of, BlockDescriptor descriptor, int index) {
+        var param = descriptor.Params[index];
+        var values = of.Channels.GetValueOrDefault(scene.StateOf(of.Id).Channel);
+        return values?.GetValueOrDefault(param.Id, param.Default) ?? param.Default;
+    }
 
-        // As the graph compiler links it (ICabFollower): the nearest Cab block downstream through the cables, breadth
-        // first; in it the first unmuted DynaCab slot.
-        (int Enclosure, int Speaker)? FollowedCab(Preset preset, string from) {
-            var queue = new Queue<string>([from]);
-            var seen = new HashSet<string> { from };
-            while (queue.Count > 0) {
-                var node = queue.Dequeue();
-                foreach (var cable in preset.Cables) {
-                    if (cable.From != node || !seen.Add(cable.To)) {
-                        continue;
-                    }
-
-                    var next = preset.Blocks.Find(b => b.Id == cable.To);
-                    if (next?.Type == CabBlock.Info.TypeId) {
-                        for (var slot = 0; slot < CabBlock.Slots; slot++) {
-                            if ((int)Value(next, CabBlock.Info, CabBlock.SlotParam(slot, CabBlock.Source))
-                                == CabBlock.SourceDynaCab
-                                && Value(next, CabBlock.Info, CabBlock.SlotParam(slot, CabBlock.Mute)) < 0.5f) {
-                                return (
-                                    (int)Value(next, CabBlock.Info, CabBlock.SlotParam(slot, CabBlock.Cab)),
-                                    (int)Value(next, CabBlock.Info, CabBlock.SlotParam(slot, CabBlock.Speaker))
-                                );
-                            }
-                        }
-
-                        return null;
-                    }
-
-                    queue.Enqueue(cable.To);
+    /// <summary>
+    ///     As the graph compiler links it (ICabFollower): the nearest Cab block downstream through the cables, breadth
+    ///     first; in it the first unmuted DynaCab slot.
+    /// </summary>
+    static (int Enclosure, int Speaker)? FollowedCab(Scene scene, Preset preset, string from) {
+        var queue = new Queue<string>([from]);
+        var seen = new HashSet<string> { from };
+        while (queue.Count > 0) {
+            var node = queue.Dequeue();
+            foreach (var cable in preset.Cables) {
+                if (cable.From != node || !seen.Add(cable.To)) {
+                    continue;
                 }
-            }
 
-            return null;
+                var next = BlockById(preset, cable.To);
+                if (next?.Type == CabBlock.Info.TypeId) {
+                    return DynaCabOf(scene, next);
+                }
+
+                queue.Enqueue(cable.To);
+            }
         }
+
+        return null;
+    }
+
+    static PresetBlock? BlockById(Preset preset, string id) => preset.Blocks.Find(b => b.Id == id);
+
+    /// <summary>A Cab block's first unmuted DynaCab slot: its enclosure and speaker; null for none.</summary>
+    static (int Enclosure, int Speaker)? DynaCabOf(Scene scene, PresetBlock cab) {
+        for (var slot = 0; slot < CabBlock.Slots; slot++) {
+            if ((int)ValueIn(scene, cab, CabBlock.Info, CabBlock.SlotParam(slot, CabBlock.Source))
+                == CabBlock.SourceDynaCab
+                && ValueIn(scene, cab, CabBlock.Info, CabBlock.SlotParam(slot, CabBlock.Mute)) < 0.5f) {
+                return (
+                    (int)ValueIn(scene, cab, CabBlock.Info, CabBlock.SlotParam(slot, CabBlock.Cab)),
+                    (int)ValueIn(scene, cab, CabBlock.Info, CabBlock.SlotParam(slot, CabBlock.Speaker))
+                );
+            }
+        }
+
+        return null;
     }
 }

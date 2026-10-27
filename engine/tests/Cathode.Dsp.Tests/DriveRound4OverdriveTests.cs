@@ -7,9 +7,9 @@ namespace Cathode.Dsp.Tests;
 /// <summary>
 ///     Drive round 4, group D1 (docs/09): ten overdrives from the guide's list, and the per-pedal knobs of PB1 (the
 ///     Timmy's Bass and Treble, the Zendrive's Voice, the OCD's HP/LP). Each pedal's Drive spans the gain its netlist
-///     gives, its Tone brightens, and it clips the way its diodes sit (across the feedback, which keeps the clean signal
-///     in the output, or to ground, which clamps it). The generic checks run in <see cref="DriveCatalogueTests" />;
-///     defaults stay stock (<see cref="AmpDefaultsTests" />).
+///     gives, its Tone brightens, and it clips the way its diodes sit (across the feedback, which keeps the clean
+///     signal in the output, or to ground, which clamps it). The generic checks run in
+///     <see cref="DriveCatalogueTests" />; defaults stay stock (<see cref="AmpDefaultsTests" />).
 /// </summary>
 public class DriveRound4OverdriveTests(ITestOutputHelper output) {
     const double Rate = 48_000;
@@ -20,9 +20,9 @@ public class DriveRound4OverdriveTests(ITestOutputHelper output) {
     ];
 
     /// <summary>
-    ///     Per pedal, from its netlist: the drive stage's feedback resistance and ground-leg resistance at Drive 0 and 10
-    ///     (the pots at their ends), its feedback and ground-leg capacitors, whether it is symmetric, and whether its diodes
-    ///     go to ground.
+    ///     Per pedal, from its netlist: the drive stage's feedback resistance and ground-leg resistance at Drive 0 and
+    ///     10 (the pots at their ends), its feedback and ground-leg capacitors, whether it is symmetric, and whether
+    ///     its diodes go to ground.
     /// </summary>
     public static TheoryData<string, Stage, bool, bool> Pedals =>
         new() {
@@ -94,8 +94,8 @@ public class DriveRound4OverdriveTests(ITestOutputHelper output) {
         var circuit = DriveCircuits.All[TypeOf(name) - DriveBlock.CircuitTypes];
         Assert.Equal(symmetric, circuit.IsSymmetric);
 
-        // Full drive, 24 dB more input: diodes to ground clamp the output; diodes across a non-inverting stage's feedback
-        // leave its input in the output, so it keeps growing.
+        // Full drive, 24 dB more input: diodes to ground clamp the output; diodes across a non-inverting stage's
+        // feedback leave its input in the output, so it keeps growing.
         double Level(float amplitude) =>
             SteadyDb(Render(name, Signals.Sine(500, Rate, 19_200, amplitude), (DriveBlock.Drive, 10f)));
 

@@ -4,9 +4,9 @@ using System.Text.Json;
 namespace Cathode.Server.Rig;
 
 /// <summary>
-///     Preset and scene tools (docs/08-blocks-parity.md, presets and scenes): Scene Ignore, the Scene Manager's per-scene
-///     block states, copying and swapping scenes, swapping and resetting channels, scene level steps from MIDI, and the
-///     startup preset. Every edit is undoable.
+///     Preset and scene tools (docs/08-blocks-parity.md, presets and scenes): Scene Ignore, the Scene Manager's
+///     per-scene block states, copying and swapping scenes, swapping and resetting channels, scene level steps from
+///     MIDI, and the startup preset. Every edit is undoable.
 /// </summary>
 public sealed partial class LiveRig {
     /// <summary>Turns Scene Ignore on or off for one channel of a block.</summary>
@@ -28,7 +28,9 @@ public sealed partial class LiveRig {
             }
         );
 
-    /// <summary>Sets a block's bypass and channel in any scene (the Scene Manager); the active scene takes effect at once.</summary>
+    /// <summary>
+    ///     Sets a block's bypass and channel in any scene (the Scene Manager); the active scene takes effect at once.
+    /// </summary>
     public Task<LiveState> SetSceneBlockAsync(int scene, string id, SceneBlockState state, long? expected) =>
         Locked(async () => {
                 Check(expected);
@@ -94,7 +96,9 @@ public sealed partial class LiveRig {
             }
         );
 
-    /// <summary>Swaps two channels of a block: their parameters and Scene Ignore. Scenes keep naming the same letters.</summary>
+    /// <summary>
+    ///     Swaps two channels of a block: their parameters and Scene Ignore. Scenes keep naming the same letters.
+    /// </summary>
     public Task<LiveState> SwapChannelsAsync(string id, CopyChannelRequest request, long? expected) =>
         Locked(async () => {
                 Check(expected);
@@ -163,8 +167,8 @@ public sealed partial class LiveRig {
         );
 
     /// <summary>
-    ///     MIDI Vol Inc / Vol Dec: steps the active scene's level by <paramref name="deltaDb" /> and saves the preset, so
-    ///     the change is kept.
+    ///     MIDI Vol Inc / Vol Dec: steps the active scene's level by <paramref name="deltaDb" /> and saves the preset,
+    ///     so the change is kept.
     /// </summary>
     public Task<LiveState> StepSceneLevelAsync(float deltaDb) =>
         Locked(() => {

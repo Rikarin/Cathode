@@ -6,20 +6,22 @@ using System.Collections.Immutable;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-///     Chorus: short delays swept by an LFO, mixed with the dry signal. Each side reads its line with 1 to 8 voices whose
-///     LFOs are spread evenly around the cycle (summed at equal power), and the right channel's LFO is offset by the
-///     LFO Phase angle for width.
+///     Chorus: short delays swept by an LFO, mixed with the dry signal. Each side reads its line with 1 to 8 voices
+///     whose LFOs are spread evenly around the cycle (summed at equal power), and the right channel's LFO is offset by
+///     the LFO Phase angle for width.
 ///     <list type="bullet">
 ///         <item>
 ///             Dual: the right side's rate, depth and delay time are ratios of the left's (all 1 by default), and Width
 ///             moves the right side's delay toward 1 ms.
 ///         </item>
-///         <item>LFO 2 wobbles the main LFO's rate, so the sweep is less regular; Auto Depth tames depth at fast rates.</item>
+///         <item>
+///             LFO 2 wobbles the main LFO's rate, so the sweep is less regular; Auto Depth tames depth at fast rates.
+///         </item>
 ///         <item>Drive saturates what goes into the lines, as an overdriven bucket brigade does.</item>
 ///         <item>
-///             Dimension (Low, Medium, High): one voice per line, the lines swept in antiphase, and each side's wet takes
-///             the other side's wet inverted at 30, 50 or 70 %. The static part of the two wets cancels, so the sound is
-///             wide and still with very little audible pitch movement.
+///             Dimension (Low, Medium, High): one voice per line, the lines swept in antiphase, and each side's wet
+///             takes the other side's wet inverted at 30, 50 or 70 %. The static part of the two wets cancels, so the
+///             sound is wide and still with very little audible pitch movement.
 ///         </item>
 ///     </list>
 ///     The wet signal has its own low and high cut, Stereo Spread, and can be phase-inverted per side.
@@ -82,10 +84,10 @@ public sealed class ChorusBlock() : DspBlock(Info) {
             ParamDescriptor.Float("rate", "Rate", 0.05f, 10f, 0.8f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("depth", "Depth", 0f, 100f, 50f, "%"),
             ParamDescriptor.Float("delay", "Delay", 1f, MaxDelayMs, 8f, "ms"),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 50f, "%"),
+            BlockParams.Mix(50f),
             ParamDescriptor.Float("spread", "LFO Phase", 0f, 180f, 90f, "°"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Choice("tempo", "Tempo", TempoDivisions.Names),
             ParamDescriptor.Choice("lfoType", "LFO Type", Lfo.ShapeNames),
             ParamDescriptor.Choice("voices", "Voices", ["1", "2", "3", "4", "5", "6", "7", "8"]),

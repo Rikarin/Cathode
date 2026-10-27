@@ -5,14 +5,14 @@ namespace Cathode.Dsp.Amp.Models;
 /// <summary>
 ///     Mesa/Boogie Lone Star, both channels. The input stage V1B (100k, 1.5k ‖ 15 µF) drives channel 1's or channel 2's
 ///     Mark-style stack (250 pF, 100k slope, 0.1 µF, 47 nF; 250k audio treble and bass, 10k linear middle) and its 1M
-///     audio gain pot (120 pF and 82k in series across the upper half). Channel 2's Drive switch puts the drive stage in
-///     front of its stack: 5 nF, 1M to ground, 220k into the 1M audio drive pot, its wiper on V1A's grid with 220k to
-///     ground (100k, 1.5k ‖ 15 µF); its Thick switch adds 250 pF from the stack's input straight to the gain pot. Both
-///     channels then share V2B (100k grid stopper, 100k, 1.5k ‖ 15 µF), the reverb mixer (47 nF, 2.2M ‖ 20 pF into
-///     V2A's grid, loaded by 680k and the reverb return's 470k), V2A (100k, 1.5k ‖ 100 µF), the master (47 nF, 220k into
-///     1M audio) with the passive presence on its wiper (1 nF into a 1M audio rheostat ‖ 120 pF), a long-tail pair
-///     (82k/100k, 470 Ω, 15k tail, feedback 820 Ω into 100 Ω from the 8 Ω tap), four 6L6GC at 456 V (2.2k stoppers,
-///     470 Ω screens) and the rectifier switch (silicon or a 5U4G).
+///     audio gain pot (120 pF and 82k in series across the upper half). Channel 2's Drive switch puts the drive stage
+///     in front of its stack: 5 nF, 1M to ground, 220k into the 1M audio drive pot, its wiper on V1A's grid with 220k
+///     to ground (100k, 1.5k ‖ 15 µF); its Thick switch adds 250 pF from the stack's input straight to the gain pot.
+///     Both channels then share V2B (100k grid stopper, 100k, 1.5k ‖ 15 µF), the reverb mixer (47 nF, 2.2M ‖ 20 pF into
+///     V2A's grid, loaded by 680k and the reverb return's 470k), V2A (100k, 1.5k ‖ 100 µF), the master (47 nF, 220k
+///     into 1M audio) with the passive presence on its wiper (1 nF into a 1M audio rheostat ‖ 120 pF), a long-tail pair
+///     (82k/100k, 470 Ω, 15k tail, feedback 820 Ω into 100 Ω from the 8 Ω tap), four 6L6GC at 456 V (2.2k stoppers, 470
+///     Ω screens) and the rectifier switch (silicon or a 5U4G).
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -132,7 +132,9 @@ public static class LoneStar {
         return wiper;
     }
 
-    /// <summary>V1B with a channel's stack and gain pot on its plate (channel 2 with its drive stage bypassed).</summary>
+    /// <summary>
+    ///     V1B with a channel's stack and gain pot on its plate (channel 2 with its drive stage bypassed).
+    /// </summary>
     static StageNetlist InputAndStack(bool thick) {
         var net = new StageNetlist();
         net.Output = StackAndGain(net, InputStage(net), thick);
@@ -156,7 +158,9 @@ public static class LoneStar {
         return net;
     }
 
-    /// <summary>V1A (100k from the 302 V node, 1.5k ‖ 15 µF) with channel 2's stack and gain pot on its plate.</summary>
+    /// <summary>
+    ///     V1A (100k from the 302 V node, 1.5k ‖ 15 µF) with channel 2's stack and gain pot on its plate.
+    /// </summary>
     static StageNetlist DriveAndStack() {
         var net = new StageNetlist();
         var (supply, plate, cathode) = (net.Node(), net.Node(), net.Node());

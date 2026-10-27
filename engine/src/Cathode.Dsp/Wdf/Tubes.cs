@@ -35,7 +35,9 @@ public readonly record struct TriodeModel(
     /// <summary>ECC81 / 12AT7: μ 60, higher current (reverb drivers, phase inverters).</summary>
     public static TriodeModel Ecc81 { get; } = new(60, 1.35, 460, 300, 300);
 
-    /// <summary>ECC82 / 12AU7: μ 21.5, low gain and low plate resistance (cathode followers, phase inverters).</summary>
+    /// <summary>
+    ///     ECC82 / 12AU7: μ 21.5, low gain and low plate resistance (cathode followers, phase inverters).
+    /// </summary>
     public static TriodeModel Ecc82 { get; } = new(21.5, 1.3, 1_180, 84, 300);
 
     /// <summary>
@@ -51,20 +53,21 @@ public readonly record struct TriodeModel(
     public static TriodeModel FiveSevenFiveOne { get; } = new(70, 1.4, 1_508, 370.5, 300);
 
     /// <summary>
-    ///     6EU7: μ 100, a low-hum twin triode with the 12AX7's ratings on a different base (Gibson's GA-17RVT Scout). Fitted
-    ///     with μ held at the datasheet's 100 (RCA 6EU7, data 1 and 2, 8-60) by least squares on log errors to the
-    ///     tabulated characteristics (100 V, -1 V: 0.5 mA, 1.25 mS, 80k; 250 V, -2 V: 1.2 mA, 1.6 mS, 62.5k) and 17 points
-    ///     read off the average plate characteristics (92CM-10470: 0 to -3 V at 0.5, 1 and 2 mA). The fit runs to
-    ///     Ex 1.0 (refitted with Koren's 1.4, the chart is 32 % off RMS): the chart points within 11 % RMS, 32 % at worst;
-    ///     the tabulated points 0.475 mA, 1.18 mS, 77k and 1.42 mA, 1.48 mS, 60k. The Scout's stages as drawn (470k from
-    ///     257 V, 4.7k) then sit at 119 V and 1.38 V against the drawing's 120 V and 1.2 V (Koren's 12AX7 gives 136 V).
+    ///     6EU7: μ 100, a low-hum twin triode with the 12AX7's ratings on a different base (Gibson's GA-17RVT Scout).
+    ///     Fitted with μ held at the datasheet's 100 (RCA 6EU7, data 1 and 2, 8-60) by least squares on log errors to
+    ///     the tabulated characteristics (100 V, -1 V: 0.5 mA, 1.25 mS, 80k; 250 V, -2 V: 1.2 mA, 1.6 mS, 62.5k) and 17
+    ///     points read off the average plate characteristics (92CM-10470: 0 to -3 V at 0.5, 1 and 2 mA). The fit runs
+    ///     to Ex 1.0 (refitted with Koren's 1.4, the chart is 32 % off RMS): the chart points within 11 % RMS, 32 % at
+    ///     worst; the tabulated points 0.475 mA, 1.18 mS, 77k and 1.42 mA, 1.48 mS, 60k. The Scout's stages as drawn
+    ///     (470k from 257 V, 4.7k) then sit at 119 V and 1.38 V against the drawing's 120 V and 1.2 V (Koren's 12AX7
+    ///     gives 136 V).
     /// </summary>
     public static TriodeModel SixEU7 { get; } = new(100, 1.0, 988, 503, 4_240);
 
     /// <summary>
-    ///     <paramref name="count" /> of these triodes in parallel (plates, grids and cathodes tied) as one: plate and grid
-    ///     currents scale with the count at the same voltages, which Koren's and Dempwolf's laws take exactly through
-    ///     K_g1 and G_g.
+    ///     <paramref name="count" /> of these triodes in parallel (plates, grids and cathodes tied) as one: plate and
+    ///     grid currents scale with the count at the same voltages, which Koren's and Dempwolf's laws take exactly
+    ///     through K_g1 and G_g.
     /// </summary>
     public TriodeModel Paralleled(int count) =>
         this with { Kg1 = Kg1 / count, GridConductance = GridConductance * count };
@@ -117,8 +120,8 @@ public readonly record struct PentodeModel(
     public static PentodeModel EL84 { get; } = new(19, 1.35, 677.4, 1_977, 200, 20);
 
     /// <summary>
-    ///     6V6GT beam tetrode (Deluxe, Princeton, tweeds). Fitted like <see cref="EL84" />: μ 9.8, Ex 1.35, K_vb 12, and
-    ///     K_g1, K_p, K_g2 from 250 V plate and screen, -12.5 V: 45 mA, 4.1 mS, 4.5 mA screen.
+    ///     6V6GT beam tetrode (Deluxe, Princeton, tweeds). Fitted like <see cref="EL84" />: μ 9.8, Ex 1.35, K_vb 12,
+    ///     and K_g1, K_p, K_g2 from 250 V plate and screen, -12.5 V: 45 mA, 4.1 mS, 4.5 mA screen.
     /// </summary>
     public static PentodeModel SixV6GT { get; } = new(9.8, 1.35, 2_276, 7_097, 45, 12);
 
@@ -136,28 +139,29 @@ public readonly record struct PentodeModel(
 
     /// <summary>
     ///     EF86 / 6267 small-signal pentode, as a preamp stage (Vox AC15, Matchless). Fitted with Ex 1.2, K_vb 5 and a
-    ///     sharp cut-off (K_p 1000) to two points: the datasheet's 250 V plate, 140 V screen, -2 V (3.0 mA, 0.6 mA screen)
-    ///     and the Vox AC15's resistance-coupled stage as built (220k plate, 1M screen resistor, 2.2k cathode from 291 V:
-    ///     0.91 mA and 0.19 mA at -2.4 V, the screen 102.6 V and the plate 88.6 V above the cathode; AmpBooks, with Vox's
-    ///     measured 90 V plate), which sets μ to 30. Its slope there is 1.1 mS (gain about 165 into 220k || 500k); at the
-    ///     datasheet point 1.35 mS against the datasheet's 2.0, which no Koren fit through both currents reaches. Use the
-    ///     exact <see cref="Pentode" /> device: its screen argument is below the power-tube tables' range.
+    ///     sharp cut-off (K_p 1000) to two points: the datasheet's 250 V plate, 140 V screen, -2 V (3.0 mA, 0.6 mA
+    ///     screen) and the Vox AC15's resistance-coupled stage as built (220k plate, 1M screen resistor, 2.2k cathode
+    ///     from 291 V: 0.91 mA and 0.19 mA at -2.4 V, the screen 102.6 V and the plate 88.6 V above the cathode;
+    ///     AmpBooks, with Vox's measured 90 V plate), which sets μ to 30. Its slope there is 1.1 mS (gain about 165
+    ///     into 220k || 500k); at the datasheet point 1.35 mS against the datasheet's 2.0, which no Koren fit through
+    ///     both currents reaches. Use the exact <see cref="Pentode" /> device: its screen argument is below the
+    ///     power-tube tables' range.
     /// </summary>
     public static PentodeModel EF86 { get; } = new(30, 1.2, 3_367, 5_427, 1_000, 5);
 
     /// <summary>
-    ///     6AQ5 / 6005 beam pentode, a 6V6GT on a seven-pin base (Gibson Scout, small combos). Fitted with Ex 1.35 by least
-    ///     squares on log errors to GE's ET-T885 (6-55): the class-A points 180 V plate and screen, -8.5 V (29 mA, 3.0 mA
-    ///     screen, 3.7 mS, r_p 58k) and 250 V, -12.5 V (45 mA, 4.5 mA, 4.1 mS, 52k), and the triode connection at 250 V,
-    ///     -12.5 V (49.5 mA). It gives 29.5 / 3.04 mA, 3.65 mS, 48k and 44.6 / 4.44 mA, 4.14 mS, 62k, and 49.1 mA strapped;
-    ///     μ comes out at 9.5, the datasheet's triode μ. K_vb (33 V) is free here, so that r_p comes out near the datasheet's
-    ///     instead of three times it, as K_vb 12 gives.
+    ///     6AQ5 / 6005 beam pentode, a 6V6GT on a seven-pin base (Gibson Scout, small combos). Fitted with Ex 1.35 by
+    ///     least squares on log errors to GE's ET-T885 (6-55): the class-A points 180 V plate and screen, -8.5 V (29
+    ///     mA, 3.0 mA screen, 3.7 mS, r_p 58k) and 250 V, -12.5 V (45 mA, 4.5 mA, 4.1 mS, 52k), and the triode
+    ///     connection at 250 V, -12.5 V (49.5 mA). It gives 29.5 / 3.04 mA, 3.65 mS, 48k and 44.6 / 4.44 mA, 4.14 mS,
+    ///     62k, and 49.1 mA strapped; μ comes out at 9.5, the datasheet's triode μ. K_vb (33 V) is free here, so that
+    ///     r_p comes out near the datasheet's instead of three times it, as K_vb 12 gives.
     /// </summary>
     public static PentodeModel SixAQ5 { get; } = new(9.535, 1.35, 2_257, 7_733, 56.43, 32.88);
 
     /// <summary>
-    ///     The tube with both knees sharpened by <paramref name="hardness" />: the cut-off knee K_p multiplied by it and
-    ///     the plate knee K_vb divided by it, so the tube goes into cut-off and into plate saturation more abruptly
+    ///     The tube with both knees sharpened by <paramref name="hardness" />: the cut-off knee K_p multiplied by it
+    ///     and the plate knee K_vb divided by it, so the tube goes into cut-off and into plate saturation more abruptly
     ///     (or, below 1, more gently), with the current well inside its range unchanged. The Circuit Amp's Power Tube
     ///     Hardness; 1 is the model itself.
     /// </summary>
@@ -166,8 +170,8 @@ public readonly record struct PentodeModel(
 }
 
 /// <summary>
-///     A triode as a two-port <see cref="INonlinearDevice" />: port 0 is grid-cathode, port 1 plate-cathode (declare them
-///     with <see cref="WdfNetlist.Triode(int, int, int)" />). The cathode current is their sum.
+///     A triode as a two-port <see cref="INonlinearDevice" />: port 0 is grid-cathode, port 1 plate-cathode (declare
+///     them with <see cref="WdfNetlist.Triode(int, int, int)" />). The cathode current is their sum.
 /// </summary>
 /// <remarks>
 ///     Plate current (Koren): E₁ = (V_pk / K_p) ln(1 + exp(K_p (1/μ + V_gk / √(K_vb + V_pk²)))) and
@@ -226,8 +230,8 @@ public struct Triode(TriodeModel model) : INonlinearDevice {
 /// </summary>
 /// <remarks>
 ///     Koren: E₁ = (V_g2k / K_p) ln(1 + exp(K_p (1/μ + V_g1k / V_g2k))), I_p = 2 E₁^Ex / K_g1 × atan(V_pk / K_vb) and
-///     I_g2 = (V_g2k / μ + V_g1k)^Ex / K_g2, each zero where its base is not positive (the plate term is also zero for a
-///     negative plate voltage). The control grid draws Dempwolf's grid current, as in <see cref="Triode" />.
+///     I_g2 = (V_g2k / μ + V_g1k)^Ex / K_g2, each zero where its base is not positive (the plate term is also zero for
+///     a negative plate voltage). The control grid draws Dempwolf's grid current, as in <see cref="Triode" />.
 /// </remarks>
 public struct Pentode(PentodeModel model) : INonlinearDevice {
     const double MinimumScreen = 1e-3; // V: below it the screen is treated as off
@@ -297,9 +301,9 @@ public struct Pentode(PentodeModel model) : INonlinearDevice {
 static class Tube {
     /// <summary>
     ///     Newton step limiting for a plate or screen voltage: on the way down it may at most halve per step. Below
-    ///     zero volts the current is zero with zero slope, so from a hard-conducting plate (a grid driven positive) plain
-    ///     Newton jumps far below zero, finds a flat characteristic, jumps back up and cycles; halving approaches a
-    ///     bottomed-out plate geometrically instead, and quadratic convergence takes over near it.
+    ///     zero volts the current is zero with zero slope, so from a hard-conducting plate (a grid driven positive)
+    ///     plain Newton jumps far below zero, finds a flat characteristic, jumps back up and cycles; halving approaches
+    ///     a bottomed-out plate geometrically instead, and quadratic convergence takes over near it.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double LimitPlate(double previous, double proposed) =>

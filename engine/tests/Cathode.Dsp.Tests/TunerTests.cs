@@ -24,7 +24,8 @@ public class TunerTests(ITestOutputHelper output) {
         var expectedCents = 1_200
             * Math.Log2(frequency / (440 * Math.Pow(2, Math.Round(12 * Math.Log2(frequency / 440)) / 12)));
         output.WriteLine(
-            $"{frequency} Hz: {reading.Value.Frequency:0.000} Hz, {reading.Value.Cents - expectedCents:+0.000;-0.000} cents error, clarity {reading.Value.Clarity:0.000}"
+            $"{frequency} Hz: {reading.Value.Frequency:0.000} Hz, {reading.Value.Cents - expectedCents:+0.000;-0.000} "
+            + $"cents error, clarity {reading.Value.Clarity:0.000}"
         );
         Assert.Equal(expectedCents, reading.Value.Cents, 0.5);
     }

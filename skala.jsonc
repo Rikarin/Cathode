@@ -1,6 +1,26 @@
 {
-  // Skala (https://github.com/Rikarin/Skala): the C# formatter, linter and quality gate, run over the engine with
-  // its default settings. The tool is pinned in dotnet-tools.json; CI runs it in .github/workflows/skala.yml.
+  // Skala (https://github.com/Rikarin/Skala): the C# formatter, linter and quality gate, run over the engine. The tool
+  // is pinned in dotnet-tools.json; CI runs it in .github/workflows/skala.yml.
+  //
+  // The rules: every rule runs at Skala's default severity and threshold unless .editorconfig (the only place Skala
+  // reads them from) switches it off or re-tunes it, and every such line there says why the rule does not fit this
+  // codebase. A rule that fits is fixed to zero findings. Suppressing one finding in place (#pragma with the reason on
+  // the line above) is for a finding that is wrong for that code, never for one that is merely inconvenient.
+  //
+  // The baseline (.skala/baseline.sarif): only what remains on purpose, and it only shrinks. It holds SK7020
+  // (duplicated block) groups alone, because SK7020 is a whole-repository pass that honours no #pragma,
+  // [SuppressMessage] or per-path severity, so a deliberate clone cannot be suppressed where it is. Each accepted group
+  // is one of:
+  //   - schematic and catalogue data: the amp models (Dsp/Amp/Models, positional design records: two amps with the
+  //     same topology and different component values are a type-2 clone), the pedal circuits, the speaker catalogue,
+  //     the tube and speaker presets, the factory presets and recipes, the [JsonSerializable] list;
+  //   - tables of public parameter-index constants and node indices (the blocks' API);
+  //   - code kept apart on purpose: a test reference model independent of the code it checks, the generic Ports<...>
+  //     family, two tone networks whose resistor order is significant, two workflow endpoints that differ at every step.
+  // CI writes the baseline's size, by rule, to the run's summary and fails when it grows against the base branch. New
+  // findings are fixed, or their rule is switched off in .editorconfig with the reason; regenerating the baseline to
+  // absorb them is not the way (`skala baseline create --duplication` only after a deliberate decision like the above,
+  // and `skala baseline prune` when entries stop firing).
   "gates": {
     // What a developer runs (`dotnet skala verify engine`): errors stop you, nothing else does, and what the
     // committed baseline has accepted is not reported as something to do.

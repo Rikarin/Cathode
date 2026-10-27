@@ -7,10 +7,10 @@ namespace Cathode.Dsp.Blocks;
 /// <summary>
 ///     Rotary speaker (Leslie 122/147 style). The mono input (Input Select) goes through an optional tube-style drive,
 ///     then a Linkwitz–Riley crossover splits it between the treble horn and the bass drum. Each rotor is a rotating
-///     source heard by two microphones, placed HF or LF Mic Spacing degrees apart: the changing path length to each mic is
-///     a modulated delay (Doppler), and the rotor's directivity is an amplitude modulation. The speed switch moves each
-///     rotor towards its new speed with its own acceleration and deceleration inertia, as the real motors and belts do;
-///     Brake stops (parks) both rotors.
+///     source heard by two microphones, placed HF or LF Mic Spacing degrees apart: the changing path length to each mic
+///     is a modulated delay (Doppler), and the rotor's directivity is an amplitude modulation. The speed switch moves
+///     each rotor towards its new speed with its own acceleration and deceleration inertia, as the real motors and
+///     belts do; Brake stops (parks) both rotors.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -108,10 +108,10 @@ public sealed class RotaryBlock() : DspBlock(Info) {
             ParamDescriptor.Float("hornFast", "Horn Fast", 2f, 10f, 6.7f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("drumSlow", "Drum Slow", 0.1f, 3f, 0.67f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("drumFast", "Drum Fast", 2f, 10f, 5.8f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("hornAccel", "Horn Accel", 0.05f, 10f, 0.8f, "s", ParamTaper.Log),
-            ParamDescriptor.Float("hornDecel", "Horn Decel", 0.05f, 10f, 1.2f, "s", ParamTaper.Log),
-            ParamDescriptor.Float("drumAccel", "Drum Accel", 0.05f, 10f, 4f, "s", ParamTaper.Log),
-            ParamDescriptor.Float("drumDecel", "Drum Decel", 0.05f, 10f, 5f, "s", ParamTaper.Log),
+            SpeedChange("hornAccel", "Horn Accel", 0.8f),
+            SpeedChange("hornDecel", "Horn Decel", 1.2f),
+            SpeedChange("drumAccel", "Drum Accel", 4f),
+            SpeedChange("drumDecel", "Drum Decel", 5f),
             ParamDescriptor.Float("crossover", "Crossover", 200f, 2_000f, 800f, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("hornDepth", "Horn Doppler", 0f, 100f, 50f, "%"),
             ParamDescriptor.Float("drumDepth", "Drum Doppler", 0f, 100f, 50f, "%"),
@@ -120,9 +120,9 @@ public sealed class RotaryBlock() : DspBlock(Info) {
             ParamDescriptor.Float("hornLevel", "Horn Level", Decibels.SilenceDb, 12f, 0f, "dB"),
             ParamDescriptor.Float("drumLevel", "Drum Level", Decibels.SilenceDb, 12f, 0f, "dB"),
             ParamDescriptor.Float("drive", "Drive", 0f, 100f, 0f, "%"),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Mix(100f),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Choice("tempo", "Tempo", TempoDivisions.Names),
             ParamDescriptor.Float("rotorLength", "Rotor Length", 50f, 100f * MaxRotorLength, 100f, "%"),
             ParamDescriptor.Float("drumSpread", "LF Mic Spacing", 0f, 180f, 120f, "°"),
@@ -151,10 +151,14 @@ public sealed class RotaryBlock() : DspBlock(Info) {
         ]
     );
 
+    /// <summary>A rotor's time to change speed (a speed-up or a slow-down), 0.05 to 10 s.</summary>
+    static ParamDescriptor SpeedChange(string id, string name, float seconds) =>
+        ParamDescriptor.Float(id, name, 0.05f, 10f, seconds, "s", ParamTaper.Log);
+
     /// <summary>
     ///     The near-field path of a rotor to a mic <paramref name="k" /> radii from its axis, at
-    ///     <paramref name="cosAngle" />: the change in path length in radii (−1 facing, +1 away) and the inverse-distance
-    ///     level relative to facing it.
+    ///     <paramref name="cosAngle" />: the change in path length in radii (−1 facing, +1 away) and the
+    ///     inverse-distance level relative to facing it.
     /// </summary>
     public static (float Path, float Level) NearField(float k, float cosAngle) {
         var distance = MathF.Sqrt(k * k + 1 - 2 * k * cosAngle);
@@ -167,7 +171,9 @@ public sealed class RotaryBlock() : DspBlock(Info) {
     /// <summary>Rotor gain towards a mic: 1 facing it, 1 - <paramref name="depth" /> facing away.</summary>
     static float Directivity(float depth, float cosAngle) => 1 - depth * 0.5f * (1 - cosAngle);
 
-    /// <summary>The mic's distance in rotor radii for Mic Distance below 100 % (0 % is 1.2 radii, 99 % about 10).</summary>
+    /// <summary>
+    ///     The mic's distance in rotor radii for Mic Distance below 100 % (0 % is 1.2 radii, 99 % about 10).
+    /// </summary>
     static float Radii(float distance) => 1.2f + 8.8f * distance;
 
     /// <summary>One rotor heard by one mic in the near field.</summary>
@@ -200,8 +206,9 @@ public sealed class RotaryBlock() : DspBlock(Info) {
         SetCrossover(Params.Current(Crossover));
         var speed = (int)Params.Current(Speed);
         var fast = speed == Fast;
-        hornRate = speed == Brake ? 0 : Params.Current(fast ? HornFast : HornSlow);
-        drumRate = speed == Brake ? 0 : Params.Current(fast ? DrumFast : DrumSlow) * Params.Current(LowRateMultiplier);
+        var (hornParam, drumParam) = fast ? (HornFast, DrumFast) : (HornSlow, DrumSlow);
+        hornRate = speed == Brake ? 0 : Params.Current(hornParam);
+        drumRate = speed == Brake ? 0 : Params.Current(drumParam) * Params.Current(LowRateMultiplier);
         hornPhase = 0;
         drumPhase = DrumStartPhase;
         mix = Params.Current(Mix) / 100f;

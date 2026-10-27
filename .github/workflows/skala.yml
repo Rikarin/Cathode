@@ -10,7 +10,7 @@ name: skala
 
 on:
   pull_request:
-    paths: ["engine/**", "skala.jsonc", ".skala/**", "dotnet-tools.json", ".github/workflows/skala.yml"]
+    paths: ["engine/**", "skala.jsonc", ".editorconfig", ".skala/**", "dotnet-tools.json", ".github/workflows/skala.yml"]
   push:
     branches: [master]
 
@@ -27,6 +27,47 @@ jobs:
           fetch-depth: 0 # `--since` needs the merge base with origin/master
       - uses: ./.github/actions/setup-dotnet
       - run: dotnet tool restore
+
+      # The baseline only goes down (skala.jsonc, "The baseline"): its size, by rule, goes to the run's summary, and the
+      # job fails when it holds more entries than the same file on the base (the pull request's target, or the commit a
+      # push to master replaced). Shrinking it, or keeping it, passes; a first push with no base to compare skips the
+      # comparison.
+      - name: Baseline size
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
+        run: |
+          set -euo pipefail
+          count() {
+            python3 -c '
+          import collections, json, sys
+          runs = json.load(sys.stdin)["runs"]
+          results = [r for run in runs for r in run.get("results", [])]
+          if sys.argv[1] == "total":
+              print(len(results))
+          else:
+              for rule, n in collections.Counter(r["ruleId"] for r in results).most_common():
+                  print(f"| {rule} | {n} |")
+          ' "$1"
+          }
+          now=$(count total < .skala/baseline.sarif)
+          before=""
+          if [ -n "$BASE" ] && git cat-file -e "$BASE:.skala/baseline.sarif" 2>/dev/null; then
+            before=$(git show "$BASE:.skala/baseline.sarif" | count total)
+          fi
+          {
+            echo "### Skala baseline: $now accepted finding(s)"
+            if [ -n "$before" ]; then echo; echo "On the base ($BASE): $before."; fi
+            if [ "$now" != 0 ]; then
+              echo
+              echo "| Rule | Accepted |"
+              echo "| --- | ---: |"
+              count rules < .skala/baseline.sarif
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$before" ] && [ "$now" -gt "$before" ]; then
+            echo "::error file=.skala/baseline.sarif::the baseline grew from $before to $now accepted findings; fix the new findings, or switch the rule off in .editorconfig with the reason (skala.jsonc)"
+            exit 1
+          fi
       - name: Cache native dependencies
         uses: actions/cache@v6
         with:

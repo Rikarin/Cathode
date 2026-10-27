@@ -5,9 +5,9 @@ namespace Cathode.Dsp.Blocks;
 
 /// <summary>
 ///     The sending half of a feedback loop: its input goes to the preset's <see cref="FeedbackReturnBlock" /> one block
-///     later (<see cref="FeedbackBus.Delay" />), so a later column can feed an earlier one, as on the hardware. It has no
-///     output of its own. The graph compiler pairs the two and keeps the send alive even though no cable leaves it. A
-///     preset has up to two pairs, matched by the number their ids end in (<c>fbsend2</c> feeds <c>fbreturn2</c>).
+///     later (<see cref="FeedbackBus.Delay" />), so a later column can feed an earlier one, as on the hardware. It has
+///     no output of its own. The graph compiler pairs the two and keeps the send alive even though no cable leaves it.
+///     A preset has up to two pairs, matched by the number their ids end in (<c>fbsend2</c> feeds <c>fbreturn2</c>).
 /// </summary>
 public sealed class FeedbackSendBlock() : DspBlock(Info) {
     public const int Level = 0;
@@ -61,7 +61,7 @@ public sealed class FeedbackReturnBlock() : DspBlock(Info) {
         [
             ParamDescriptor.Float("level", "Return Level", Decibels.SilenceDb, 6f, 0f, "dB"),
             ParamDescriptor.Float("outputLevel", "Output Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
+            BlockParams.Balance
         ],
         maxInstances: 2,
         channels: 1

@@ -13,8 +13,8 @@ public class BlockConformanceTests {
 
     /// <summary>
     ///     Blow-up ceiling. Legitimate gain can be very large (five PEQ bands stacked at +24 dB plus +20 dB level is
-    ///     +140 dB), while a genuinely unstable filter grows exponentially and passes any fixed level within a render, or
-    ///     goes non-finite. Marginal instabilities are covered by the decay-to-silence test.
+    ///     +140 dB), while a genuinely unstable filter grows exponentially and passes any fixed level within a render,
+    ///     or goes non-finite. Marginal instabilities are covered by the decay-to-silence test.
     /// </summary>
     const double PeakBoundDb = 160;
 

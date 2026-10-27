@@ -6,8 +6,8 @@ namespace Cathode.Dsp.Amp;
 ///     A preamp stage inside the global feedback loop (the Marshall Major's V2A): a common-cathode triode whose cathode
 ///     takes the feedback, followed by a linear network with pots and switches (its tone stack) into the phase
 ///     inverter's grid. The feedback enters at the bottom of the cathode circuit: <paramref name="BypassedCathode" />
-///     (bypassed: only its DC drop) above <paramref name="CathodeResistor" />, the unbypassed part, which is the feedback
-///     network's shunt seen from the cathode (the shunt in parallel with the feedback resistor).
+///     (bypassed: only its DC drop) above <paramref name="CathodeResistor" />, the unbypassed part, which is the
+///     feedback network's shunt seen from the cathode (the shunt in parallel with the feedback resistor).
 /// </summary>
 /// <param name="Tube">The triode.</param>
 /// <param name="Supply">Its plate supply.</param>
@@ -31,10 +31,10 @@ public sealed record LoopStageDesign(
 );
 
 /// <summary>
-///     A <see cref="LoopStageDesign" /> at run time, inside the power amp's per-sample solve: the triode as a table (its
-///     plate's open-circuit AC voltage as a function of its grid-to-feedback voltage, from the exact DC solution) and the
-///     network as a linear discrete-time system (trapezoidal capacitors), whose output is an affine function of this
-///     sample's input, so the power amp's scalar Newton keeps the whole loop without a delay.
+///     A <see cref="LoopStageDesign" /> at run time, inside the power amp's per-sample solve: the triode as a table
+///     (its plate's open-circuit AC voltage as a function of its grid-to-feedback voltage, from the exact DC solution)
+///     and the network as a linear discrete-time system (trapezoidal capacitors), whose output is an affine function of
+///     this sample's input, so the power amp's scalar Newton keeps the whole loop without a delay.
 /// </summary>
 /// <remarks>
 ///     The triode's plate drives the network through its output resistance at rest (a Thévenin cut, as between preamp
@@ -115,7 +115,9 @@ public sealed class LoopStage {
         Build();
     }
 
-    /// <summary>Applies the knobs and switches; rebuilds only when one the network uses moved. Allocation-free.</summary>
+    /// <summary>
+    ///     Applies the knobs and switches; rebuilds only when one the network uses moved. Allocation-free.
+    /// </summary>
     public void Configure(in AmpControls controls) {
         if (configured && controls == this.controls) {
             return;
@@ -132,8 +134,8 @@ public sealed class LoopStage {
     }
 
     /// <summary>
-    ///     The network's output (the inverter's grid, AC) for the stage's grid-to-feedback voltage <paramref name="vd" />
-    ///     this sample, and its slope; no state moves.
+    ///     The network's output (the inverter's grid, AC) for the stage's grid-to-feedback voltage
+    ///     <paramref name="vd" /> this sample, and its slope; no state moves.
     /// </summary>
     public double Peek(double vd, out double slope) {
         var (plate, _) = triode.Evaluate(vd * inverseSupply, out var plateSlope, out _);
@@ -170,9 +172,9 @@ public sealed class LoopStage {
     }
 
     /// <summary>
-    ///     The stage's supply as a fraction of nominal (the preamp node's sag), set per sample: the triode's transfer is
-    ///     scaled with it, its swing and its input range in proportion (exact for the scale-free part of the 3/2 law, a
-    ///     close approximation for the few percent a supply sags).
+    ///     The stage's supply as a fraction of nominal (the preamp node's sag), set per sample: the triode's transfer
+    ///     is scaled with it, its swing and its input range in proportion (exact for the scale-free part of the 3/2
+    ///     law, a close approximation for the few percent a supply sags).
     /// </summary>
     public void SetSupply(double scale) {
         if (scale != supply && scale > 0) {
@@ -192,8 +194,8 @@ public sealed class LoopStage {
     }
 
     /// <summary>
-    ///     The nodal matrix for the current knobs (resistors, the trapezoidal capacitors' conductances 2C/T, the source's
-    ///     conductance at the input), its inverse, and the read-out rows.
+    ///     The nodal matrix for the current knobs (resistors, the trapezoidal capacitors' conductances 2C/T, the
+    ///     source's conductance at the input), its inverse, and the read-out rows.
     /// </summary>
     void Build() {
         Array.Clear(conductance);
@@ -202,7 +204,7 @@ public sealed class LoopStage {
         foreach (var e in elements) {
             if (e.Kind == ElementKind.Resistor) {
                 var on = e.Switch is not { } role || controls.IsOn(role);
-                var ohms = on ? e.Switch is null || e.Value > 0 ? e.Value : 0 : e.OffValue;
+                var ohms = !on ? e.OffValue : e.Switch is null || e.Value > 0 ? e.Value : 0;
                 if (e.Part != PotPart.None) {
                     var fraction = e.Pot.Fraction(controls.Rotation(e.Role));
                     ohms = (e.Part == PotPart.Upper ? 1 - fraction : fraction) * e.Pot.Ohms;
@@ -253,7 +255,9 @@ public sealed class LoopStage {
         }
     }
 
-    /// <summary>Gauss-Jordan with partial pivoting into <see cref="inverse" /> (the matrix is small; control thread).</summary>
+    /// <summary>
+    ///     Gauss-Jordan with partial pivoting into <see cref="inverse" /> (the matrix is small; control thread).
+    /// </summary>
     void Invert() {
         var n = nodes;
         Span<double> work = stackalloc double[n * 2 * n];
@@ -348,7 +352,9 @@ sealed class LoopTriode : PhaseInverter {
         }
     }
 
-    /// <summary>The current with the grid at <paramref name="grid" /> and the cathode at offset + I R: bisection.</summary>
+    /// <summary>
+    ///     The current with the grid at <paramref name="grid" /> and the cathode at offset + I R: bisection.
+    /// </summary>
     static double Current(Triode triode, double grid, double supply, double plate, double offset, double cathode) {
         var low = 0.0;
         var high = Math.Max(supply - offset, 0) / (plate + cathode);

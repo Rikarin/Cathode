@@ -7,12 +7,13 @@ namespace Cathode.Dsp.Amp.Models;
 ///     (220k from 413 V, 1.8k with 1 µF through 100 Ω), 20 nF into the voicing network (2.2M to ground; 2.2M ‖ 82 pF,
 ///     and 680k ‖ 2 nF except in Raw) and the 250k audio channel-3 gain (1 nF from its top to the wiper), 475k with
 ///     20 pF into V2a (100k from 394 V, 1.8k with 1 µF through 100 Ω), 20 nF and 475k into the V2b cold clipper (1M,
-///     39k, 100k plate with 1 nF to the supply), 20 nF with 330k to ground and 220k into V3a (220k from 435 V, 1.8k with
-///     1 µF through 100 Ω), the cathode follower V3b (100k) into channel 3's stack (500 pF, and 180 pF more in Modern, to
-///     the 250k linear treble; 47k; 20 nF to the 1M audio bass; 20 nF to the 25k linear middle's wiper), the presence
-///     shunt on the treble wiper (22k, 3 nF and the 100k linear presence pot) and the 1M audio master; 20 nF into a
-///     long-tail pair (82k / 91k from 435 V, 470 Ω, 10k + 4.7k tail), feedback 47k with 0.1 µF into the 4.7k except in
-///     Modern; four 6L6GC at 475 V with 1k screens, the rectifier switch (silicon or two 5U4) and Bold/Spongy.
+///     39k, 100k plate with 1 nF to the supply), 20 nF with 330k to ground and 220k into V3a (220k from 435 V, 1.8k
+///     with 1 µF through 100 Ω), the cathode follower V3b (100k) into channel 3's stack (500 pF, and 180 pF more in
+///     Modern, to the 250k linear treble; 47k; 20 nF to the 1M audio bass; 20 nF to the 25k linear middle's wiper), the
+///     presence shunt on the treble wiper (22k, 3 nF and the 100k linear presence pot) and the 1M audio master; 20 nF
+///     into a long-tail pair (82k / 91k from 435 V, 470 Ω, 10k + 4.7k tail), feedback 47k with 0.1 µF into the 4.7k
+///     except in Modern; four 6L6GC at 475 V with 1k screens, the rectifier switch (silicon or two 5U4) and
+///     Bold/Spongy.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -33,15 +34,15 @@ namespace Cathode.Dsp.Amp.Models;
 ///         with 180 pF added in Modern (RY7a), Modern takes the feedback out (RY7b) and moves the presence pot from the
 ///         feedback into the preamp shunt (RY9), and Raw drops the 680k ‖ 2 nF branch (RY6a; Raw and Vintage share the
 ///         other relays). As read from the relay contacts: in Raw and Vintage the 22k and 3 nF stay on the treble wiper
-///         and the presence pot sits in the feedback; here the presence pot is the preamp shunt's rheostat in every mode
-///         (Control 2) and the feedback's presence is fixed at noon (simplified, marked).
+///         and the presence pot sits in the feedback; here the presence pot is the preamp shunt's rheostat in every
+///         mode (Control 2) and the feedback's presence is fixed at noon (simplified, marked).
 ///     </para>
 ///     <para>
-///         Guesses, marked: the feedback tap (8 Ω); the 120 pF across each inverter plate resistor, the 75 pF between the
-///         plates and the master's 10 pF are left out; the effects loop and the Output/Solo controls are bypassed. Not
-///         printed: the output transformer (1.9k), the idle current (40 mA). Raw is on the Bright switch (the panel's
-///         three-way is Raw / Vintage / Modern; with Raw and Modern both on, Raw's voicing and Modern's stack, feedback
-///         and presence apply together).
+///         Guesses, marked: the feedback tap (8 Ω); the 120 pF across each inverter plate resistor, the 75 pF between
+///         the plates and the master's 10 pF are left out; the effects loop and the Output/Solo controls are bypassed.
+///         Not printed: the output transformer (1.9k), the idle current (40 mA). Raw is on the Bright switch (the
+///         panel's three-way is Raw / Vintage / Modern; with Raw and Modern both on, Raw's voicing and Modern's stack,
+///         feedback and presence apply together).
 ///     </para>
 /// </remarks>
 public static class DualRectifier3Channel {

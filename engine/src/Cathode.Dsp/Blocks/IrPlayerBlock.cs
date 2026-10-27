@@ -7,14 +7,14 @@ namespace Cathode.Dsp.Blocks;
 
 /// <summary>
 ///     Plays impulse responses that are not a cabinet: an acoustic body, a room, a microphone or speaker correction, or
-///     an effect captured as an IR. Longer IRs than the Cab block (up to <see cref="MaxIrLength" />), kept at the files'
-///     own gain, with a dry/wet mix and low and high cut (6 to 24 dB/oct) on the wet signal. Zero latency.
+///     an effect captured as an IR. Longer IRs than the Cab block (up to <see cref="MaxIrLength" />), kept at the
+///     files' own gain, with a dry/wet mix and low and high cut (6 to 24 dB/oct) on the wet signal. Zero latency.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         Two IR slots (<c>ir</c>, <c>ir2</c>), each with its own Length (cut with a short fade), Level and Pan. The
-///         Mode combines them: <b>Parallel</b> sums them (each panned with the balance law), <b>Stereo</b> plays IR 1 on
-///         the left and IR 2 on the right, and <b>Series</b> plays one after the other (their convolution, cut to
+///         Mode combines them: <b>Parallel</b> sums them (each panned with the balance law), <b>Stereo</b> plays IR 1
+///         on the left and IR 2 on the right, and <b>Series</b> plays one after the other (their convolution, cut to
 ///         <see cref="MaxIrLength" />). With one slot loaded, every mode plays that IR alone. A stereo file feeds left
 ///         and right separately.
 ///     </para>
@@ -22,8 +22,8 @@ namespace Cathode.Dsp.Blocks;
 ///         As in the Cab block, the slots are baked into one left and one right IR on the control thread (in
 ///         <see cref="IDspBlock.Prepare" /> and <see cref="Refresh" />) and crossfaded in by
 ///         <see cref="CabIrSwitcher" />, so the block convolves twice whatever the slots. Input Select feeds the IRs
-///         the stereo input, its sum, or one side. With the global cab modelling off (<see cref="BlockContext.CabsOff" />)
-///         the block passes audio through untouched, as the Cab does.
+///         the stereo input, its sum, or one side. With the global cab modelling off
+///         (<see cref="BlockContext.CabsOff" />) the block passes audio through untouched, as the Cab does.
 ///     </para>
 /// </remarks>
 public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh {
@@ -60,7 +60,9 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
     public const int InputLeft = 2;
     public const int InputRight = 3;
 
-    /// <summary>Longest IR kept, in samples at the engine rate (about 1.37 s at 48 kHz, as the Cab's FullRes).</summary>
+    /// <summary>
+    ///     Longest IR kept, in samples at the engine rate (about 1.37 s at 48 kHz, as the Cab's FullRes).
+    /// </summary>
     public const int MaxIrLength = CabBlock.MaxIrLength;
 
     /// <summary>A slot's Length at or above this keeps the whole IR.</summary>
@@ -106,7 +108,7 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
         "IR Player",
         "Cab",
         [
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
+            BlockParams.Mix(100f),
             ParamDescriptor.Float(
                 "lowcut",
                 "Low Cut",
@@ -125,8 +127,8 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
                 "Hz",
                 ParamTaper.Log
             ),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Choice("lowslope", "Low Cut Slope", CutFilter.Slopes, CutFilter.Slope12),
             ParamDescriptor.Choice("highslope", "High Cut Slope", CutFilter.Slopes, CutFilter.Slope12),
             ParamDescriptor.Choice("input", "Input Select", Inputs),
@@ -296,8 +298,8 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
     }
 
     /// <summary>
-    ///     <paramref name="ir" /> cut to the slot's Length with a short fade, in a scratch buffer (the second half of it
-    ///     with <paramref name="upper" />, for the second operand of a series convolution); or the IR itself, whole.
+    ///     <paramref name="ir" /> cut to the slot's Length with a short fade, in a scratch buffer (the second half of
+    ///     it with <paramref name="upper" />, for the second operand of a series convolution); or the IR itself, whole.
     /// </summary>
     ReadOnlySpan<float> Shaped(int slot, float[] ir, bool upper = false) {
         var lengthMs = SlotTarget(slot, Length);
@@ -388,13 +390,7 @@ public sealed class IrPlayerBlock() : DspBlock(Info), IAssetConsumer, IControlRe
 
         Play(io);
         if (changing) {
-            var step = 1f / io.Length;
-            for (var i = 0; i < io.Length; i++) {
-                var wet = off ? 1f - (i + 1) * step : (i + 1) * step;
-                io.Left[i] = bypassLeft[i] + (io.Left[i] - bypassLeft[i]) * wet;
-                io.Right[i] = bypassRight[i] + (io.Right[i] - bypassRight[i]) * wet;
-            }
-
+            CabBypass.Crossfade(io, bypassLeft.Span, bypassRight.Span, off);
             cabsOff = off;
         }
     }

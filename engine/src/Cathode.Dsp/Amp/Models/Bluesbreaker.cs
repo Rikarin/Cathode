@@ -3,11 +3,12 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Marshall 1962 Bluesbreaker reissue (2 × 12 tremolo combo), from Marshall's drawing "1962 STD Reissue Valve Tremolo
-///     Combo" (file 1962.DGM; issues 3, 1989, and 4, 1993: https://www.drtube.com/schematics/marshall/1962ri89.gif and
-///     1962ri93.gif): V1a (Channel II, 150k plate) and V1b (Channel I, 100k) on a shared 820 Ω with 330 µF, each 22 nF
-///     into its A1M volume with 100 pF across it; Channel I's wiper through 470k with 220 pF, Channel II's through 470k
-///     and, beside it, 100k into the tremolo's node and 470k on (see
+///     Marshall 1962 Bluesbreaker reissue (2 × 12 tremolo combo), from Marshall's drawing "1962 STD Reissue Valve
+///     Tremolo Combo" (file 1962.DGM; issues 3, 1989, and 4, 1993:
+///     https://www.drtube.com/schematics/marshall/1962ri89.gif and 1962ri93.gif): V1a (Channel II, 150k plate) and V1b
+///     (Channel I, 100k) on a shared 820 Ω with 330 µF, each 22 nF into its A1M volume with 100 pF across it; Channel
+///     I's wiper through 470k with 220 pF, Channel II's through 470k and, beside it, 100k into the tremolo's node and
+///     470k on (see
 ///     <see cref="MarshallVintageParts.BluesbreakerInput" />); V2a (100k, 1k unbypassed), the V2b cathode follower
 ///     (100k) on a 220 pF / 56k / 22 nF / 22 nF stack (B220K, A1M, B22K), no master; 22 nF into a 12AX7 long-tail pair
 ///     (1M, 470, 10k, 82k/100k, 47 pF, 0.1 µF out to 220k), two 5881 (6L6 on the 1989 issue) with 470 Ω 5 W screen
@@ -17,17 +18,16 @@ namespace Cathode.Dsp.Amp.Models;
 /// <remarks>
 ///     <para>
 ///         The tremolo is off (the library has no tremolo yet): its J174 FET, which shunts the Intensity pot's wiper to
-///         ground at the oscillator's rate, is taken as open, so the tremolo node carries 0.22 µF into the 220k Intensity
-///         and the 100k under it. Which state the FET rests in with the footswitch's oscillator stopped is not on the
-///         drawing (a guess).
+///         ground at the oscillator's rate, is taken as open, so the tremolo node carries 0.22 µF into the 220k
+///         Intensity and the 100k under it. Which state the FET rests in with the footswitch's oscillator stopped is
+///         not on the drawing (a guess).
 ///     </para>
 ///     <para>
 ///         The presence pot is drawn as the tail's shunt to ground with 0.1 µF from its wiper, and built so
-///         (<see cref="FeedbackDesign.PresenceIsShunt" />). The inverter's 47 pF and its grid-current network are left out (as on the
-///         JTM45, <see cref="JTM45" />). Not on the drawing (guesses): the rails (B+ 440 V, 330 V at the inverter, 300 V
-///         at
-///         V2 and 280 V at V1, as the JTM45 model), the 5881s' 35 mA and the output transformer's primary (784-389:
-///         3.4k plate to plate, as the JTM45 model). The 2 × 12 speaker load is the open-back preset.
+///         (<see cref="FeedbackDesign.PresenceIsShunt" />). The inverter's 47 pF and its grid-current network are left
+///         out (as on the JTM45, <see cref="JTM45" />). Not on the drawing (guesses): the rails (B+ 440 V, 330 V at the
+///         inverter, 300 V at V2 and 280 V at V1, as the JTM45 model), the 5881s' 35 mA and the output transformer's
+///         primary (784-389: 3.4k plate to plate, as the JTM45 model). The 2 × 12 speaker load is the open-back preset.
 ///     </para>
 /// </remarks>
 public static class Bluesbreaker {

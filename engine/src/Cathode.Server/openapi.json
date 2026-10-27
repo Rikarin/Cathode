@@ -4214,7 +4214,7 @@
             }
           }
         },
-        "description": "One slot: whether it has something to play and is heard, its onset within its own IR (the first sample within\n20 dB of the peak), the delay Auto Delay gives it and its own Delay, in ms, and the first 10 ms of its IR as mixed\n(cut and normalised, before level, pan and delay). It is heard at \u0060OnsetMs \u002B AutoDelayMs \u002B DelayMs\u0060."
+        "description": "One slot: whether it has something to play and is heard, its onset within its own IR (the first sample within\n20 dB of the peak), the delay Auto Delay gives it and its own Delay, in ms, and the first 10 ms of its IR as\nmixed (cut and normalised, before level, pan and delay). It is heard at \u0060OnsetMs \u002B AutoDelayMs \u002B DelayMs\u0060."
       },
       "ChannelRequest": {
         "required": [
@@ -4459,7 +4459,7 @@
             ]
           }
         },
-        "description": "One switch: the message it sends (a CC or note; value 64 or more is \u0022down\u0022), what a tap does, what holding it for\nhalf a second does instead, and whether its LED is driven (the same CC or note, 127 when its tap action is\nactive, 0 when not). It answers only while its \u0060View\u0060 is the active one, and a \u0060Link\u0060 (a layout id)\nswitches to that layout after its tap action."
+        "description": "One switch: the message it sends (a CC or note; value 64 or more is \u0022down\u0022), what a tap does, what holding it\nfor half a second does instead, and whether its LED is driven (the same CC or note, 127 when its tap action is\nactive, 0 when not). It answers only while its \u0060View\u0060 is the active one, and a \u0060Link\u0060 (a layout id)\nswitches to that layout after its tap action."
       },
       "FootswitchLayout": {
         "required": [
@@ -4630,7 +4630,7 @@
           },
           "cabModelingOff": {
             "type": "boolean",
-            "description": "Cab modeling off: every Cab and IR Player block passes audio through, for playing into a real speaker cabinet\nwithout changing the presets."
+            "description": "Cab modeling off: every Cab and IR Player block passes audio through, for playing into a real speaker\ncabinet without changing the presets."
           },
           "outputs": {
             "type": "array",
@@ -4726,7 +4726,7 @@
           },
           "presetSpillover": {
             "type": "boolean",
-            "description": "Preset-change spillover: on, the outgoing preset\u0027s delay and reverb tails ring out under the new one; off, it\nstops with the swap fade (a clean cut)."
+            "description": "Preset-change spillover: on, the outgoing preset\u0027s delay and reverb tails ring out under the new one; off,\nit stops with the swap fade (a clean cut)."
           },
           "confirmPresetChange": {
             "type": "boolean",
@@ -5201,7 +5201,7 @@
             ]
           }
         },
-        "description": "A block parameter. \u0060TypeLabels\u0060, where present, names the parameter per value of the block\u0027s \u0060type\u0060\nparameter (an amp model\u0027s own name for a generic control), empty where that type lacks the control: hide it there."
+        "description": "A block parameter. \u0060TypeLabels\u0060, where present, names the parameter per value of the block\u0027s \u0060type\u0060\nparameter (an amp model\u0027s own name for a generic control), empty where that type lacks the control: hide it\nthere."
       },
       "PerformControl": {
         "required": [
@@ -5280,7 +5280,7 @@
               "null",
               "boolean"
             ],
-            "description": "True for a preset of the factory bank, which ships with Cathode and cannot be overwritten, renamed or deleted\n(saving one stores a copy); null for the user\u0027s own."
+            "description": "True for a preset of the factory bank, which ships with Cathode and cannot be overwritten, renamed or\ndeleted (saving one stores a copy); null for the user\u0027s own."
           },
           "tempo": {
             "type": "number",
@@ -5421,7 +5421,7 @@
           },
           "bypassMode": {
             "type": "string",
-            "description": "What bypassing does: thru, mute, muteIn, muteFxIn, muteOut or muteFxOut (the \u0022in\u0022 modes let tails spill over,\nthe \u0022out\u0022 modes keep the block listening while bypassed)."
+            "description": "What bypassing does: thru, mute, muteIn, muteFxIn, muteOut or muteFxOut (the \u0022in\u0022 modes let tails spill\nover, the \u0022out\u0022 modes keep the block listening while bypassed)."
           },
           "global": {
             "type": [
@@ -5728,7 +5728,7 @@
             "items": {
               "$ref": "#/components/schemas/SceneMidiMessage"
             },
-            "description": "Up to int SceneMidiMessage.MaxPerScene MIDI messages sent through the rig\u0027s MIDI output whenever this\nscene is selected, or its preset loads on it: program changes and CCs for other gear."
+            "description": "Up to int SceneMidiMessage.MaxPerScene MIDI messages sent through the rig\u0027s MIDI output whenever\nthis scene is selected, or its preset loads on it: program changes and CCs for other gear."
           }
         },
         "description": "Which channel each block uses and whether it is bypassed. Blocks not listed use channel A, engaged."
@@ -6098,7 +6098,7 @@
             "default": 0.33333334
           }
         },
-        "description": "Learn a Tone Match: the Server listens to the rig\u0027s output for \u0060Seconds\u0060 while you play, compares it with the\n\u0060Reference\u0060 recording (a .wav asset) and stores the correction as the block\u0027s \u0060match\u0060 asset."
+        "description": "Learn a Tone Match: the Server listens to the rig\u0027s output for \u0060Seconds\u0060 while you play, compares it with\nthe\n\u0060Reference\u0060 recording (a .wav asset) and stores the correction as the block\u0027s \u0060match\u0060 asset."
       },
       "ValueRequest": {
         "required": [

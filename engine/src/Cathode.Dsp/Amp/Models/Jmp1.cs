@@ -6,50 +6,50 @@ namespace Cathode.Dsp.Amp.Models;
 ///     Marshall JMP-1 MIDI valve preamp, its Clean I/II and OD I/II channels with Bass Shift, into a generic 100 W EL34
 ///     power amp. The input (10k, 100 pF, 100 nF, 1M) feeds IC34, an M5201 switching op-amp whose sections share one
 ///     output: OD, non-inverting 1 + 82k ‖ 470 pF over 15k + 22 nF (Bass Shift: 68 nF + 220k in parallel); Clean, 1 +
-///     56k ‖ 100 pF over 27k + 33 nF (Clean II: 15k in parallel with the 27k). 1 µF into the Gain, two cascaded sections
-///     of a TC9176 digital attenuator with a TL072 follower between them (220 nF, 220k; 10 µF). Clean: 220 nF, 1k into
-///     VB1a (100k, 1k5 + 1k5 ‖ 2.2 µF, 680k grid leak), whose plate drives a voicing network (100k to a node that 47 nF
-///     and 100 nF split: 47 nF onto 6k8 to ground, 100 nF through 82k to that 6k8's top and through 82k on toward the
-///     grid; 220 pF + 220k ‖ 330k from the plate beside it; Bass Shift 22k to ground at the 100 nF), 680k ‖ 100 pF into
-///     VB1b (1M leak; 100k, 2k7 ‖ 2.2 µF), 47 nF, 680k over 82k. OD: a TL072 follower, 47 nF (68k), 5k1 into an inverting
-///     TL072 with 1M ‖ 22 pF, 5k6 and 220 nF onto a W005F bridge with a 1N4007 across it (three junctions each way to
-///     ground), 1M into VB2a (220k, 2k2 unbypassed) DC-coupled to the VB2b follower (100k), 47 nF, 330k over 680k, then
-///     OD I's 680k over 82k or OD II's voicing network (470 pF + 100k beside 33k, 22 nF, 22 nF, 100k, 36k, 3k9 ‖ 2k2, into
-///     220k over 330k), chosen by 4053 analogue switches. Both through IC18 (M5201 followers) into the active tone
-///     circuit: an inverting input stage (10k in, 10k ‖ 47 pF) and an inverting output stage (10k, 10k), each band filter
-///     driven from the input stage and returned through 2k7 or 6k8 to a TC9170 pot's wiper, whose ends go to the two
-///     stages' summing nodes (Bass: a 156 Hz Sallen-Key low-pass; Middle: a Sallen-Key band-pass of gain 2; Presence:
-///     4.7 nF networks round a difference stage and an inverter; Treble: a Sallen-Key high-pass); then 100 nF (100k),
-///     IC17 (OD: 1 + 47k ‖ 1 nF over 10k + 2.2 µF; Clean: 1 + 33k ‖ 100 pF over 15k + 10 µF), the Volume (a second
-///     TC9176, cascaded as the Gain), 10 µF, the output section's inverting mixer (two 33k + 33k paths into 47k, the
-///     effects-mix TC9170's halves shunting their midpoints), 10 µF, the 10k Output level pot, 10k into IC2a (1 + 10k ‖
-///     470 pF over 4k7), 10 µF and 470 Ω.
+///     56k ‖ 100 pF over 27k + 33 nF (Clean II: 15k in parallel with the 27k). 1 µF into the Gain, two cascaded
+///     sections of a TC9176 digital attenuator with a TL072 follower between them (220 nF, 220k; 10 µF). Clean: 220 nF,
+///     1k into VB1a (100k, 1k5 + 1k5 ‖ 2.2 µF, 680k grid leak), whose plate drives a voicing network (100k to a node
+///     that 47 nF and 100 nF split: 47 nF onto 6k8 to ground, 100 nF through 82k to that 6k8's top and through 82k on
+///     toward the grid; 220 pF + 220k ‖ 330k from the plate beside it; Bass Shift 22k to ground at the 100 nF), 680k ‖
+///     100 pF into VB1b (1M leak; 100k, 2k7 ‖ 2.2 µF), 47 nF, 680k over 82k. OD: a TL072 follower, 47 nF (68k), 5k1
+///     into an inverting TL072 with 1M ‖ 22 pF, 5k6 and 220 nF onto a W005F bridge with a 1N4007 across it (three
+///     junctions each way to ground), 1M into VB2a (220k, 2k2 unbypassed) DC-coupled to the VB2b follower (100k), 47
+///     nF, 330k over 680k, then OD I's 680k over 82k or OD II's voicing network (470 pF + 100k beside 33k, 22 nF, 22
+///     nF, 100k, 36k, 3k9 ‖ 2k2, into 220k over 330k), chosen by 4053 analogue switches. Both through IC18 (M5201
+///     followers) into the active tone circuit: an inverting input stage (10k in, 10k ‖ 47 pF) and an inverting output
+///     stage (10k, 10k), each band filter driven from the input stage and returned through 2k7 or 6k8 to a TC9170 pot's
+///     wiper, whose ends go to the two stages' summing nodes (Bass: a 156 Hz Sallen-Key low-pass; Middle: a Sallen-Key
+///     band-pass of gain 2; Presence: 4.7 nF networks round a difference stage and an inverter; Treble: a Sallen-Key
+///     high-pass); then 100 nF (100k), IC17 (OD: 1 + 47k ‖ 1 nF over 10k + 2.2 µF; Clean: 1 + 33k ‖ 100 pF over 15k +
+///     10 µF), the Volume (a second TC9176, cascaded as the Gain), 10 µF, the output section's inverting mixer (two 33k
+///     + 33k paths into 47k, the effects-mix TC9170's halves shunting their midpoints), 10 µF, the 10k Output level
+///     pot, 10k into IC2a (1 + 10k ‖ 470 pF over 4k7), 10 µF and 470 Ω.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         Sources: Marshall drawing JMP1-61-04 issue 10 (2001/02), six vector sheets on DrTube
-///         (drtube.com/schematics/marshall/jmp1-61-04.pdf): channel circuit (sheet 1), power supply (2), active tone (3),
-///         output (4), digital (5), front panel (6); every value above is read from them. The switching (which M5201
-///         section and 4053 channel each mode selects, and the JFETs' states) follows the drive lines' names on sheet 1
-///         (CL/OD, ODII, CLII, B_SHIFT, the BC184 inverters that pull the J174 gates low to switch them on); IC34a, IC18a
-///         and IC17a are taken as the OD sections, as IC18b is wired to the clean valve's output.
+///         (drtube.com/schematics/marshall/jmp1-61-04.pdf): channel circuit (sheet 1), power supply (2), active tone
+///         (3), output (4), digital (5), front panel (6); every value above is read from them. The switching (which
+///         M5201 section and 4053 channel each mode selects, and the JFETs' states) follows the drive lines' names on
+///         sheet 1 (CL/OD, ODII, CLII, B_SHIFT, the BC184 inverters that pull the J174 gates low to switch them on);
+///         IC34a, IC18a and IC17a are taken as the OD sections, as IC18b is wired to the clean valve's output.
 ///     </para>
 ///     <para>
 ///         Guessed: the digital pots' resistances (TC9176 and TC9170 taken as 10k: the drawing names the parts but not
-///         their values; each TC9176 section as a linear pot at the knob's position, so that the cascaded pair follows a
-///         square law, about −12 dB at the centre (two audio-taper sections would put the centre near −40 dB); the
+///         their values; each TC9176 section as a linear pot at the knob's position, so that the cascaded pair follows
+///         a square law, about −12 dB at the centre (two audio-taper sections would put the centre near −40 dB); the
 ///         TC9170 bands as linear pots, centre flat), the HT (230 V after the 47k dropper; the transformer's HT winding
-///         voltage is not given), the effects mix
-///         (its pot at the centre), the output level switch at +4 (the 10k / 2k7 pad out). Simplified: every op-amp but
-///         the OD channel's inverting stage (which swings to its ±15 V rails into the clamp) as a linear amplifier; the
-///         effects loop and speaker emulator outputs left out; the 4053s and JFETs as ideal switches.
+///         voltage is not given), the effects mix (its pot at the centre), the output level switch at +4 (the 10k / 2k7
+///         pad out). Simplified: every op-amp but the OD channel's inverting stage (which swings to its ±15 V rails
+///         into the clamp) as a linear amplifier; the effects loop and speaker emulator outputs left out; the 4053s and
+///         JFETs as ideal switches.
 ///     </para>
 ///     <para>
 ///         Power amp: the JMP-1 has none. This model feeds its line output into the JCM900 4100's documented 100 W
 ///         section (Marshall 4100-60-02 issue 11: four EL34, 82k / 100k long-tail pair, 100k of feedback; see
 ///         <see cref="JCM900" />), as a Marshall 9100 / 9200-style EL34 power amp would be. The preamp keeps its own
-    ///         supply (<see cref="PreampSupplyDesign.OwnSupply" />): VB1 and VB2 run at their nominal HT whatever the
-    ///         power amp's sag, and Preamp Sag does not reach them.
+///         supply (<see cref="PreampSupplyDesign.OwnSupply" />): VB1 and VB2 run at their nominal HT whatever the
+///         power amp's sag, and Preamp Sag does not reach them.
 ///     </para>
 ///     <para>
 ///         Panel: Switch 1 selects the OD channels, Switch 2 Clean II or OD II, Switch 3 Bass Shift; Gain, Bass, Middle
@@ -115,8 +115,8 @@ public static class Jmp1 {
     }
 
     /// <summary>
-    ///     From IC34's output: 1 µF into the Gain's first section, 220 nF (220k) into the TL072 follower, 10 µF into the
-    ///     second section; returns its wiper (CL_DRIVE).
+    ///     From IC34's output: 1 µF into the Gain's first section, 220 nF (220k) into the TL072 follower, 10 µF into
+    ///     the second section; returns its wiper (CL_DRIVE).
     /// </summary>
     static int GainControl(StageNetlist net, int from) {
         var (first, buffered, second) = (net.Node(), net.Node(), net.Node());
@@ -155,7 +155,8 @@ public static class Jmp1 {
     }
 
     /// <summary>
-    ///     VB1a from its grid: 100k, 1k5 + 1k5 ‖ 2.2 µF; the voicing network into VB1b's grid (1M leak). Out at that grid.
+    ///     VB1a from its grid: 100k, 1k5 + 1k5 ‖ 2.2 µF; the voicing network into VB1b's grid (1M leak). Out at that
+    ///     grid.
     /// </summary>
     static StageNetlist CleanFirst() {
         var net = new StageNetlist();
@@ -186,7 +187,9 @@ public static class Jmp1 {
         return net;
     }
 
-    /// <summary>VB1b from its grid: 100k, 2k7 ‖ 2.2 µF; 47 nF, 680k over 82k. Out at the divider (IC18b's input).</summary>
+    /// <summary>
+    ///     VB1b from its grid: 100k, 2k7 ‖ 2.2 µF; 47 nF, 680k over 82k. Out at the divider (IC18b's input).
+    /// </summary>
     static StageNetlist CleanSecond() {
         var net = new StageNetlist();
         var (rail, plate, cathode, coupled, output) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
@@ -203,9 +206,9 @@ public static class Jmp1 {
     }
 
     /// <summary>
-    ///     IC34a (1 + 82k ‖ 470 pF over 15k + 22 nF; Bass Shift adds 68 nF + 220k beside the 22 nF), the Gain, the IC19a
-    ///     follower, 47 nF (68k), 5k1 into IC19b (inverting, 1M ‖ 22 pF, ±15 V rails), 5k6 and 220 nF onto the bridge
-    ///     clamp, 1M to ground. Out at VB2a's grid.
+    ///     IC34a (1 + 82k ‖ 470 pF over 15k + 22 nF; Bass Shift adds 68 nF + 220k beside the 22 nF), the Gain, the
+    ///     IC19a follower, 47 nF (68k), 5k1 into IC19b (inverting, 1M ‖ 22 pF, ±15 V rails), 5k6 and 220 nF onto the
+    ///     bridge clamp, 1M to ground. Out at VB2a's grid.
     /// </summary>
     static StageNetlist OdInput() {
         var net = new StageNetlist();
@@ -238,7 +241,9 @@ public static class Jmp1 {
         return net;
     }
 
-    /// <summary>VB2a from its grid: 220k, 2k2 unbypassed. Out at the plate, which drives VB2b's grid directly.</summary>
+    /// <summary>
+    ///     VB2a from its grid: 220k, 2k2 unbypassed. Out at the plate, which drives VB2b's grid directly.
+    /// </summary>
     static StageNetlist OdTriode() {
         var net = new StageNetlist();
         var (rail, plate, cathode) = (net.Node(), net.Node(), net.Node());
@@ -293,8 +298,9 @@ public static class Jmp1 {
     }
 
     /// <summary>
-    ///     IC18 (a follower), 22 µF and 10k into the active tone circuit's input stage (IC22a, 10k ‖ 47 pF), its four band
-    ///     filters and TC9170 pots, the output stage (IC22b, 10k in, 10k feedback), 470 Ω. Out after the 470 Ω (ATO).
+    ///     IC18 (a follower), 22 µF and 10k into the active tone circuit's input stage (IC22a, 10k ‖ 47 pF), its four
+    ///     band filters and TC9170 pots, the output stage (IC22b, 10k in, 10k feedback), 470 Ω. Out after the 470 Ω
+    ///     (ATO).
     /// </summary>
     static StageNetlist ActiveTone() {
         var net = new StageNetlist();
@@ -386,10 +392,10 @@ public static class Jmp1 {
     }
 
     /// <summary>
-    ///     From ATO: 100 nF (100k) into IC17 (OD: 1 + 47k ‖ 1 nF over 10k + 2.2 µF; Clean: 1 + 33k ‖ 100 pF over 15k + 10
-    ///     µF), the Volume (two TC9176 sections with a TL072 follower between), 10 µF (40.9k to ground), the output mixer
-    ///     (inverting, 33k + 33k twice into 47k, the effects-mix pot's halves shunting the midpoints), 10 µF, the 10k Output
-    ///     level pot, 10k into IC2a (1 + 10k ‖ 470 pF over 4k7), 10 µF, 470 Ω, 1M. Out there.
+    ///     From ATO: 100 nF (100k) into IC17 (OD: 1 + 47k ‖ 1 nF over 10k + 2.2 µF; Clean: 1 + 33k ‖ 100 pF over 15k +
+    ///     10 µF), the Volume (two TC9176 sections with a TL072 follower between), 10 µF (40.9k to ground), the output
+    ///     mixer (inverting, 33k + 33k twice into 47k, the effects-mix pot's halves shunting the midpoints), 10 µF, the
+    ///     10k Output level pot, 10k into IC2a (1 + 10k ‖ 470 pF over 4k7), 10 µF, 470 Ω, 1M. Out there.
     /// </summary>
     static StageNetlist Output() {
         var net = new StageNetlist();

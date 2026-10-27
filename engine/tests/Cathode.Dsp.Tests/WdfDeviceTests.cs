@@ -4,7 +4,9 @@ using System.Globalization;
 
 namespace Cathode.Dsp.Tests;
 
-/// <summary>The nonlinear device models: Jacobians, presets against datasheet operating points, op-amp dynamics.</summary>
+/// <summary>
+///     The nonlinear device models: Jacobians, presets against datasheet operating points, op-amp dynamics.
+/// </summary>
 public class WdfDeviceTests(ITestOutputHelper output) {
     const double Rate = 192_000;
 
@@ -132,7 +134,8 @@ public class WdfDeviceTests(ITestOutputHelper output) {
         var current = new double[3];
         new Pentode(model).Evaluate([vg1, vg2, vp], current, new double[9], 3);
         output.WriteLine(
-            $"{tube}: plate {current[2] * 1e3:0.0} mA, screen {current[1] * 1e3:0.0} mA (datasheet plate {amps * 1e3:0} mA)"
+            $"{tube}: plate {current[2] * 1e3:0.0} mA, screen {current[1] * 1e3:0.0} mA (datasheet "
+            + $"plate {amps * 1e3:0} mA)"
         );
         Assert.InRange(current[2], 0.75 * amps, 1.25 * amps);
     }
@@ -250,7 +253,9 @@ public class WdfDeviceTests(ITestOutputHelper output) {
             _ => new Devices<Diode, Triode>(new(DiodeModel.Schottky), new(TriodeModel.Ecc82))
         };
 
-    /// <summary>Port voltages in each device's working range, avoiding the kinks (cut-off, zero plate voltage).</summary>
+    /// <summary>
+    ///     Port voltages in each device's working range, avoiding the kinks (cut-off, zero plate voltage).
+    /// </summary>
     static double Sample(string name, int port, Random random) {
         return name switch {
             "diode" or "clipper" => Uniform(-0.8, 0.8),

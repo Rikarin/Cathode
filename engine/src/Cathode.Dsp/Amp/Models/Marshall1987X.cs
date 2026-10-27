@@ -19,9 +19,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///         "tone-stack mod" some reissues are said to have is not on the drawing and not modelled.
 ///     </para>
 ///     <para>
-///         Not on the drawing (guesses): the nodes (460 V plates and screens, 375 V inverter, 300 V and 270 V preamp, as
-///         the 100 W models), the EL34s' 35 mA and the D2507's primary (3.4k plate to plate, as the Plexi model). The
-///         supply is drawn: four 1N4007 on a centre-tapped winding, 50 + 50 µF, a choke, 10k droppers.
+///         Not on the drawing (guesses): the nodes (460 V plates and screens, 375 V inverter, 300 V and 270 V preamp,
+///         as the 100 W models), the EL34s' 35 mA and the D2507's primary (3.4k plate to plate, as the Plexi model).
+///         The supply is drawn: four 1N4007 on a centre-tapped winding, 50 + 50 µF, a choke, 10k droppers.
 ///     </para>
 /// </remarks>
 public static class Marshall1987X {

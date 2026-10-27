@@ -85,7 +85,9 @@ public class SidechainAndLookAheadTests {
         Assert.Equal(quiet.AsSpan(4_800).ToArray(), open.AsSpan(4_800).ToArray());
     }
 
-    /// <summary>Processes <paramref name="main" />, offering <paramref name="side" /> as row <paramref name="row" />.</summary>
+    /// <summary>
+    ///     Processes <paramref name="main" />, offering <paramref name="side" /> as row <paramref name="row" />.
+    /// </summary>
     static float[] Run<T>(T block, float[] main, float[] side, int row)
         where T : IDspBlock, ISideInputBlock {
         var left = (float[])main.Clone();

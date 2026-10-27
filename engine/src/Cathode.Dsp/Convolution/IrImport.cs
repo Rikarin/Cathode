@@ -103,7 +103,9 @@ public static class IrImport {
         return onset == int.MaxValue ? 0 : onset;
     }
 
-    /// <summary>The value of the largest sample by magnitude, over every channel (its sign is the IR's polarity).</summary>
+    /// <summary>
+    ///     The value of the largest sample by magnitude, over every channel (its sign is the IR's polarity).
+    /// </summary>
     public static float MainPeak(IReadOnlyList<float[]> channels) {
         var peak = 0f;
         foreach (var channel in channels) {

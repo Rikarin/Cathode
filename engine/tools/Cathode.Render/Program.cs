@@ -14,7 +14,8 @@ if (!options.TryGetValue("graph", out var graphPath)
     || !options.TryGetValue("in", out var inputPath)
     || !options.TryGetValue("out", out var outputPath)) {
     Console.Error.WriteLine(
-        "Usage: cathode-render --graph <graph.json> --in <input.wav> --out <output.wav> [--block 64] [--format float32|pcm24|pcm16]"
+        "Usage: cathode-render --graph <graph.json> --in <input.wav> --out <output.wav> [--block 64] [--format "
+        + "float32|pcm24|pcm16]"
     );
     return 2;
 }

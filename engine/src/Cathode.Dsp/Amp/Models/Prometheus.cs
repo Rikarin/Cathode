@@ -20,22 +20,22 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         Guessed, then fitted to captures of the real amp (docs/07): every value below, which switch element does
 ///         what, and how many stages there are. The panel is the real amp's; the channel volume is folded into the
-///         master. The stages behind a 470k grid resistor carry the 12AX7's grid-plate capacitance (1.7 pF), whose Miller
-///         effect is much of a cascade's treble loss.
+///         master. The stages behind a 470k grid resistor carry the 12AX7's grid-plate capacitance (1.7 pF), whose
+///         Miller effect is much of a cascade's treble loss.
 ///     </para>
 ///     <list type="bullet">
 ///         <item>
-///             <b>Cut</b> (<see cref="PotRole.Control1" />): a 1M reverse-log pot, wired as a variable resistor in series
-///             with 47k, shunts the gain pot after its 10 nF coupling cap: turning Cut up lowers the shunt and raises
-///             the high-pass corner from about 30 Hz to 150 Hz, a variable low cut ahead of the clipping stages.
+///             <b>Cut</b> (<see cref="PotRole.Control1" />): a 1M reverse-log pot, wired as a variable resistor in
+///             series with 47k, shunts the gain pot after its 10 nF coupling cap: turning Cut up lowers the shunt and
+///             raises the high-pass corner from about 30 Hz to 150 Hz, a variable low cut ahead of the clipping stages.
 ///         </item>
 ///         <item>
 ///             <b>Modern</b> (<see cref="SwitchRole.Switch1" />): bypasses V2B's cathode (more gain) and couples the
 ///             cold clipper through a smaller cap (tighter).
 ///         </item>
 ///         <item>
-///             <b>Bite</b>: up (<see cref="SwitchRole.Switch2" />) bypasses V1B's cathode with a small cap, a boost from
-///             about 1.2 kHz that the later stages' treble losses turn into a high-mid bump; down
+///             <b>Bite</b>: up (<see cref="SwitchRole.Switch2" />) bypasses V1B's cathode with a small cap, a boost
+///             from about 1.2 kHz that the later stages' treble losses turn into a high-mid bump; down
 ///             (<see cref="SwitchRole.Switch3" />) with a larger one, a low-mid boost from about 400 Hz.
 ///         </item>
 ///     </list>
@@ -47,7 +47,9 @@ public static class Prometheus {
     /// <summary>A 12AX7's grid-plate capacitance.</summary>
     const double GridPlate = 1.7e-12;
 
-    /// <summary>The stack: Marshall topology with a 33k slope resistor and a 50k middle pot (assumed; flatter mids).</summary>
+    /// <summary>
+    ///     The stack: Marshall topology with a 33k slope resistor and a 50k middle pot (assumed; flatter mids).
+    /// </summary>
     static readonly ToneStackDesign Stack = new(
         "Prometheus",
         470e-12,
@@ -139,7 +141,9 @@ public static class Prometheus {
         return net;
     }
 
-    /// <summary>V2A, biased near cut-off by its unbypassed 10k cathode; Modern couples it through a smaller cap.</summary>
+    /// <summary>
+    ///     V2A, biased near cut-off by its unbypassed 10k cathode; Modern couples it through a smaller cap.
+    /// </summary>
     static StageNetlist ColdClipper() {
         var net = new StageNetlist();
         var leak = net.Node();
@@ -165,8 +169,8 @@ public static class Prometheus {
     }
 
     /// <summary>
-    ///     A 12AX7 with its plate resistor (and optional plate bypass) from the preamp rail, its cathode resistor and its
-    ///     grid-plate capacitance; the plate is the output. Returns the cathode.
+    ///     A 12AX7 with its plate resistor (and optional plate bypass) from the preamp rail, its cathode resistor and
+    ///     its grid-plate capacitance; the plate is the output. Returns the cathode.
     /// </summary>
     static int Triode(
         StageNetlist net,

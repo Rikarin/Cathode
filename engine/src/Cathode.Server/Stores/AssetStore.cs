@@ -9,10 +9,10 @@ using System.Text.Json;
 namespace Cathode.Server.Stores;
 
 /// <summary>
-///     Content-addressed store for impulse responses (.wav), multi-position cab IR packs (.cabgrid: a zip with a manifest)
-///     and amp captures (NAM .nam, AIDA-X .aidax/.json) in <c>&lt;data&gt;/assets</c>.
-///     Presets reference assets as <c>sha256:&lt;hex&gt;</c>, so the same file uploaded twice is stored once and a
-///     preset always gets exactly the file it was made with.
+///     Content-addressed store for impulse responses (.wav), multi-position cab IR packs (.cabgrid: a zip with a
+///     manifest) and amp captures (NAM .nam, AIDA-X .aidax/.json) in <c>&lt;data&gt;/assets</c>. Presets reference
+///     assets as <c>sha256:&lt;hex&gt;</c>, so the same file uploaded twice is stored once and a preset always gets
+///     exactly the file it was made with.
 /// </summary>
 public sealed partial class AssetStore {
     public const long MaxBytes = 64 * 1024 * 1024;
@@ -53,7 +53,10 @@ public sealed partial class AssetStore {
         }
     }
 
-    /// <summary>The index from the asset files present: each file's name is its reference, its extension its kind.</summary>
+    /// <summary>
+    ///     The index from the asset files present: each file's name is its reference, its extension its
+    ///     kind.
+    /// </summary>
     void Rebuild() {
         index.Clear();
         foreach (var file in new DirectoryInfo(folder).EnumerateFiles()) {
@@ -121,8 +124,8 @@ public sealed partial class AssetStore {
 
     /// <summary>
     ///     Adds an impulse response processed on import (<see cref="IrImport" />: trimmed or made minimum phase, its
-    ///     polarity corrected, a channel chosen, cut to a length); the processed file is what is stored and hashed. Other
-    ///     assets, and default settings, are stored as uploaded.
+    ///     polarity corrected, a channel chosen, cut to a length); the processed file is what is stored and hashed.
+    ///     Other assets, and default settings, are stored as uploaded.
     /// </summary>
     public async Task<AssetInfo> AddAsync(
         Stream content,
@@ -159,7 +162,8 @@ public sealed partial class AssetStore {
         var kind = KindOf(name)
             ?? throw new RigException(
                 415,
-                $"Unsupported asset '{name}': upload a .nam or .aidax model, a .wav impulse response or a .cabgrid IR pack."
+                $"Unsupported asset '{name}': upload a .nam or .aidax model, a .wav impulse response "
+                + "or a .cabgrid IR pack."
             );
 
         var temporary = Path.Combine(folder, $"upload-{Guid.NewGuid():n}.tmp");
@@ -222,7 +226,7 @@ public sealed partial class AssetStore {
 
             info = info with {
                 Name = change.Name?.Trim() ?? info.Name,
-                Color = change.Color is { } color ? color.Length == 0 ? null : color : info.Color,
+                Color = change.Color is { } color ? NullIfEmpty(color) : info.Color,
                 Favorite = change.Favorite ?? info.Favorite
             };
             index[reference] = info;
@@ -230,6 +234,9 @@ public sealed partial class AssetStore {
             return info;
         }
     }
+
+    /// <summary>A colour tag as stored: an empty one clears it.</summary>
+    static string? NullIfEmpty(string color) => color.Length == 0 ? null : color;
 
     public bool Delete(string reference) {
         lock (gate) {
@@ -243,7 +250,10 @@ public sealed partial class AssetStore {
         }
     }
 
-    /// <summary>An impulse response read from an upload; one that is not a WAV this reader decodes, or empty, is a 400.</summary>
+    /// <summary>
+    ///     An impulse response read from an upload; one that is not a WAV this reader decodes, or empty, is a
+    ///     400.
+    /// </summary>
     static AudioData ReadImpulse(Stream content, string name) {
         AudioData? audio = null;
         Checked(
@@ -318,7 +328,10 @@ public sealed partial class AssetStore {
     )]
     static partial void IndexDamaged(ILogger logger, string path, string error);
 
-    /// <summary>Written atomically (<see cref="AtomicRename.Write" />): rewritten on every upload, rename and delete.</summary>
+    /// <summary>
+    ///     Written atomically (<see cref="AtomicRename.Write" />): rewritten on every upload, rename and
+    ///     delete.
+    /// </summary>
     void SaveIndex() =>
         AtomicRename.Write(
             indexPath,

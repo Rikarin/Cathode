@@ -9,11 +9,13 @@ namespace Cathode.Dsp.Blocks;
 ///     three ways.
 ///     <list type="bullet">
 ///         <item>
-///             <b>Stereo</b>: each channel is split; each of the four bands (the left and right input's low and high) has
-///             its own level, and its own pan with the balance law (the far side is turned down). The pans default to hard
-///             left for the left input's bands and hard right for the right's, which leaves the image as it is.
+///             <b>Stereo</b>: each channel is split; each of the four bands (the left and right input's low and high)
+///             has its own level, and its own pan with the balance law (the far side is turned down). The pans default
+///             to hard left for the left input's bands and hard right for the right's, which leaves the image as it is.
 ///         </item>
-///         <item><b>Low Left / High Right</b>: the mono sum is split, the low band goes left and the high band right.</item>
+///         <item>
+///             <b>Low Left / High Right</b>: the mono sum is split, the low band goes left and the high band right.
+///         </item>
 ///     </list>
 /// </summary>
 public sealed class CrossoverBlock() : DspBlock(Info) {
@@ -42,17 +44,17 @@ public sealed class CrossoverBlock() : DspBlock(Info) {
         "Utility",
         [
             ParamDescriptor.Float("frequency", "Frequency", 40f, 16_000f, 1_000f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("lowLevelL", "Low Level L", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("lowLevelR", "Low Level R", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("highLevelL", "High Level L", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("highLevelR", "High Level R", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("lowPanL", "Low Pan L", -100f, 100f, -100f, "%"),
-            ParamDescriptor.Float("lowPanR", "Low Pan R", -100f, 100f, 100f, "%"),
-            ParamDescriptor.Float("highPanL", "High Pan L", -100f, 100f, -100f, "%"),
-            ParamDescriptor.Float("highPanR", "High Pan R", -100f, 100f, 100f, "%"),
+            BlockParams.Gain("lowLevelL", "Low Level L", 20f),
+            BlockParams.Gain("lowLevelR", "Low Level R", 20f),
+            BlockParams.Gain("highLevelL", "High Level L", 20f),
+            BlockParams.Gain("highLevelR", "High Level R", 20f),
+            BlockParams.Pan("lowPanL", "Low Pan L", -100f),
+            BlockParams.Pan("lowPanR", "Low Pan R", 100f),
+            BlockParams.Pan("highPanL", "High Pan L", -100f),
+            BlockParams.Pan("highPanR", "High Pan R", 100f),
             ParamDescriptor.Choice("mode", "Mode", ["Stereo", "Low Left / High Right"]),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
+            BlockParams.Level,
+            BlockParams.Balance
         ],
         maxInstances: 2,
         channels: 2

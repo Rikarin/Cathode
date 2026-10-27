@@ -3,34 +3,35 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Fender Princeton Reverb AA1164 (blackface, about 15 W): one channel. V1A (100k, 1.5k ‖ 25 µF, 34k stopper) into the
-///     Fender stack with its fixed 6.8k mid and the 1M volume, V1B, the 3.3M ‖ 10 pF reverb mix resistor into V3B's 470k
-///     grid leak (an 88 % loss the third stage makes up), V3B (100k, 1.5k ‖ 25 µF over the 47 Ω the feedback returns to),
-///     0.1 µF into a cathodyne phase inverter on half a 12AX7 (56k plate, 56k cathode, 1k bias), two 6V6GT in fixed bias
-///     with no grid stoppers or screen resistors, on a 5U4GB and a 20 µF can with no choke, 2.7k feedback from the
-///     speaker.
-///     No bright, middle, master or presence; the reverb is not modelled; the bias tremolo is
+///     Fender Princeton Reverb AA1164 (blackface, about 15 W): one channel. V1A (100k, 1.5k ‖ 25 µF, 34k stopper) into
+///     the Fender stack with its fixed 6.8k mid and the 1M volume, V1B, the 3.3M ‖ 10 pF reverb mix resistor into V3B's
+///     470k grid leak (an 88 % loss the third stage makes up), V3B (100k, 1.5k ‖ 25 µF over the 47 Ω the feedback
+///     returns to), 0.1 µF into a cathodyne phase inverter on half a 12AX7 (56k plate, 56k cathode, 1k bias), two 6V6GT
+///     in fixed bias with no grid stoppers or screen resistors, on a 5U4GB and a 20 µF can with no choke, 2.7k feedback
+///     from the speaker. No bright, middle, master or presence; the reverb is not modelled; the bias tremolo is
 ///     <see cref="Tremolo" />. Sources: Rob Robinette,
-///     "AA1164 Princeton Reverb" (robrobinette.com): three fully bypassed stages, the cathodyne's 56k/56k/1k, 0.1 µF in,
-///     the 3.3M/470k divider, 2.7k feedback, the 20/20/20/20 µF can; music-electronics-forum (2.7k into 47 Ω under the
-///     stage before the inverter); docs/06 §3.1.
+///     "AA1164 Princeton Reverb" (robrobinette.com): three fully bypassed stages, the cathodyne's 56k/56k/1k, 0.1 µF
+///     in, the 3.3M/470k divider, 2.7k feedback, the 20/20/20/20 µF can; music-electronics-forum (2.7k into 47 Ω under
+///     the stage before the inverter); docs/06 §3.1.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         The feedback returns to V3B's cathode, so the loop includes V3B. The power amp takes its feedback at the
 ///         inverter's input (inside its one Newton solve), so V3B's gain from cathode to plate (about 55 with its 47 Ω
-///         undecoupled, measured on this stage) is folded into the feedback's tap gain: 2.7k into 47 Ω, times 55, from the
-///         8 Ω tap. V3B's own 47 Ω degeneration stays in its stage.
+///         undecoupled, measured on this stage) is folded into the feedback's tap gain: 2.7k into 47 Ω, times 55, from
+///         the 8 Ω tap. V3B's own 47 Ω degeneration stays in its stage.
 ///     </para>
 ///     <para>
-///         Unverified: the output transformer (taken as the Deluxe's 6.6k : 8 Ω; Robinette names the Deluxe Reverb's as a
-///         drop-in), B+ (410 V), the supply nodes (320 V at the inverter, 250 V at the preamp, from Robinette's Stokes-mod
-///         page), the 6V6 idle current (22 mA), the resistor standing in for the missing choke (1k), the coupling cap
-///         after V1B (0.02 µF) and the reverb driver's grid leak (1M).
+///         Unverified: the output transformer (taken as the Deluxe's 6.6k : 8 Ω; Robinette names the Deluxe Reverb's as
+///         a drop-in), B+ (410 V), the supply nodes (320 V at the inverter, 250 V at the preamp, from Robinette's
+///         Stokes-mod page), the 6V6 idle current (22 mA), the resistor standing in for the missing choke (1k), the
+///         coupling cap after V1B (0.02 µF) and the reverb driver's grid leak (1M).
 ///     </para>
 /// </remarks>
 public static class PrincetonReverb {
-    /// <summary>V3B's gain from its cathode to its plate, which the feedback's tap gain carries (see the remarks).</summary>
+    /// <summary>
+    ///     V3B's gain from its cathode to its plate, which the feedback's tap gain carries (see the remarks).
+    /// </summary>
     const double MixerGain = 55;
 
     static readonly ToneStackDesign Stack = new(
@@ -46,12 +47,12 @@ public static class PrincetonReverb {
 
     /// <summary>
     ///     The bias tremolo, from the Fender drawing "Princeton Reverb-Amp AA1164" (045427,
-    ///     schematicheaven.net/fenderamps/princeton_reverb_aa1164_schem.pdf; the Princeton AA964's circuit): a 12AX7 half
-    ///     (220k from the "B" node, 410 V here, 3300 Ω with 25 µF) with
-    ///     0.02 µF from its plate to the Speed rheostat (3M reverse audio, 100k in series), 0.01 µF to a node with 1M to
-    ///     the cathode (the pedal's jack on it), 0.01 µF to the grid with 1M to ground; the plate through 1M (0.02 µF to
-    ///     ground after it) and 0.1 µF to the 250k linear Intensity pot, whose far end is the bias supply (25 µF and 27k),
-    ///     its wiper on the 6V6 grid leaks' return. The plate's load from that network at the rate is about 1.2M.
+    ///     schematicheaven.net/fenderamps/princeton_reverb_aa1164_schem.pdf; the Princeton AA964's circuit): a 12AX7
+    ///     half (220k from the "B" node, 410 V here, 3300 Ω with 25 µF) with 0.02 µF from its plate to the Speed
+    ///     rheostat (3M reverse audio, 100k in series), 0.01 µF to a node with 1M to the cathode (the pedal's jack on
+    ///     it), 0.01 µF to the grid with 1M to ground; the plate through 1M (0.02 µF to ground after it) and 0.1 µF to
+    ///     the 250k linear Intensity pot, whose far end is the bias supply (25 µF and 27k), its wiper on the 6V6 grid
+    ///     leaks' return. The plate's load from that network at the rate is about 1.2M.
     /// </summary>
     internal static BiasTremoloDesign Tremolo { get; } = new(
         new(
@@ -130,7 +131,9 @@ public static class PrincetonReverb {
         }
     };
 
-    /// <summary>V1B: 100k, 1.5k ‖ 25 µF, with its grid-plate capacitance (see <see cref="Ab763.GridPlate" />).</summary>
+    /// <summary>
+    ///     V1B: 100k, 1.5k ‖ 25 µF, with its grid-plate capacitance (see <see cref="Ab763.GridPlate" />).
+    /// </summary>
     static NetworkStageDesign SecondStage() {
         var net = new StageNetlist();
         var (plate, cathode, rail) = (net.Node(), net.Node(), net.Node());

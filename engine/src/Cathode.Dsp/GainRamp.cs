@@ -24,9 +24,8 @@ public static class GainRamp {
     }
 
     /// <summary>
-    ///     <c>dry + (wet - dry) * mix</c>, with mix moving linearly from <paramref name="from" /> to <paramref name="to" />
-    ///     across the block. <paramref name="wet" />
-    ///     receives the result.
+    ///     <c>dry + (wet - dry) * mix</c>, with mix moving linearly from <paramref name="from" /> to
+    ///     <paramref name="to" /> across the block. <paramref name="wet" /> receives the result.
     /// </summary>
     public static void Mix(ReadOnlySpan<float> dry, Span<float> wet, float from, float to) {
         var step = (to - from) / wet.Length;

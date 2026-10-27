@@ -14,8 +14,8 @@ namespace Cathode.Host;
 /// </summary>
 static class ServeCommand {
     /// <summary>
-    ///     The GC budget that keeps the host collection-free for hours (docs/adr/0001-process-model.md). NativeAOT reads
-    ///     it from the environment only, as bare hex, so whoever launches the host must set it.
+    ///     The GC budget that keeps the host collection-free for hours (docs/adr/0001-process-model.md). NativeAOT
+    ///     reads it from the environment only, as bare hex, so whoever launches the host must set it.
     /// </summary>
     public const string Gen0Budget = "10000000"; // 256 MB
 
@@ -113,8 +113,10 @@ static class ServeCommand {
 
                 Console.Error.WriteLine(
                     status == AudioDeviceStatus.Lost
-                        ? $"{DateTime.Now:HH:mm:ss.fff} error: the audio device was lost (unplugged, taken away or no longer calling back); exiting so the host is restarted"
-                        : $"{DateTime.Now:HH:mm:ss.fff} error: the audio device's sample rate, buffer size or default changed under the host; exiting so it is restarted with the new settings"
+                        ? $"{DateTime.Now:HH:mm:ss.fff} error: the audio device was lost (unplugged, taken away or no "
+                        + "longer calling back); exiting so the host is restarted"
+                        : $"{DateTime.Now:HH:mm:ss.fff} error: the audio device's sample rate, buffer size or default "
+                        + "changed under the host; exiting so it is restarted with the new settings"
                 );
                 // Long enough for a telemetry push (every 100 ms) to tell the Server why before the connection drops.
                 await Task.Delay(300, CancellationToken.None).ConfigureAwait(false);
@@ -133,13 +135,15 @@ static class ServeCommand {
     ) {
         if (Environment.GetEnvironmentVariable("DOTNET_GCgen0size") is null) {
             Console.Error.WriteLine(
-                $"warning: DOTNET_GCgen0size is not set; start the host with DOTNET_GCgen0size={Gen0Budget} so garbage collections cannot interrupt playing"
+                $"warning: DOTNET_GCgen0size is not set; start the host with DOTNET_GCgen0size={Gen0Budget} so garbage "
+                + "collections cannot interrupt playing"
             );
         }
 
         var info = service.Info;
         Console.WriteLine(
-            $"cathode-host {info.Version} serving on {socketPath} ({info.Backend}, {info.SampleRate / 1000:0.#} kHz, {info.BufferFrames} frames)"
+            $"cathode-host {info.Version} serving on {socketPath} ({info.Backend}, {info.SampleRate / 1000:0.#} kHz, "
+            + $"{info.BufferFrames} frames)"
         );
         await new EngineHostServer(
                 service,

@@ -30,7 +30,9 @@ public enum ClipperShape {
     /// </summary>
     Fet,
 
-    /// <summary>A leaky half-wave rectifier: tanh on the positive half, a fifth of it on the negative (octave-rich).</summary>
+    /// <summary>
+    ///     A leaky half-wave rectifier: tanh on the positive half, a fifth of it on the negative (octave-rich).
+    /// </summary>
     Rectifier,
 
     /// <summary>
@@ -39,7 +41,9 @@ public enum ClipperShape {
     /// </summary>
     Variable,
 
-    /// <summary>A high-voltage triode: 1.5 tanh(x / 1.5) on the positive half (more headroom), tanh on the negative.</summary>
+    /// <summary>
+    ///     A high-voltage triode: 1.5 tanh(x / 1.5) on the positive half (more headroom), tanh on the negative.
+    /// </summary>
     HvTube,
 
     /// <summary>A starved-plate triode: tanh on the positive half, a hard tanh(2 x) / 2 on the negative.</summary>
@@ -92,8 +96,8 @@ public struct AdaaClipper {
 
     /// <summary>
     ///     As <see cref="Process(ClipperShape, float, bool)" />, with the curve blended by <paramref name="hardness" />
-    ///     (−1..1): towards the soft <see cref="ClipperShape.Germanium" /> curve below 0, towards a hard clip above, the
-    ///     shape itself at 0. The blend is linear in the curves, so it is linear in their antiderivatives too.
+    ///     (−1..1): towards the soft <see cref="ClipperShape.Germanium" /> curve below 0, towards a hard clip above,
+    ///     the shape itself at 0. The blend is linear in the curves, so it is linear in their antiderivatives too.
     /// </summary>
     public float Process(ClipperShape shape, float input, float hardness, bool antialias) {
         if (hardness == 0f) {
@@ -136,7 +140,9 @@ public struct AdaaClipper {
             _ => Math.Tanh(x + Bias) - TanhBias
         };
 
-    /// <summary><see cref="Function" /> blended towards <paramref name="other" /> by <paramref name="weight" /> (0..1).</summary>
+    /// <summary>
+    ///     <see cref="Function" /> blended towards <paramref name="other" /> by <paramref name="weight" /> (0..1).
+    /// </summary>
     public static double Blend(ClipperShape shape, ClipperShape other, double weight, double x) =>
         (1 - weight) * Function(shape, x) + weight * Function(other, x);
 

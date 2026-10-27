@@ -23,4 +23,21 @@ public static class GraphTemplates {
                 new() { From = "volpan1", To = "out1" }
             ]
         };
+
+    /// <summary>Input -> NAM amp (normalised, the model at <paramref name="modelPath" />) -> Output.</summary>
+    public static GraphDefinition Nam(string modelPath) =>
+        new() {
+            Nodes = [
+                new() { Id = "in1", Type = NodeTypes.Input, Row = 0, Column = 0 },
+                new() {
+                    Id = "amp1",
+                    Type = "nam",
+                    Row = 0,
+                    Column = 1,
+                    Assets = { ["model"] = modelPath }
+                },
+                new() { Id = "out1", Type = NodeTypes.Output, Row = 0, Column = 2 }
+            ],
+            Cables = [new() { From = "in1", To = "amp1" }, new() { From = "amp1", To = "out1" }]
+        };
 }

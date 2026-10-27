@@ -14,7 +14,8 @@ namespace Cathode.Server.Tests;
 
 /// <summary>
 ///     Preset and scene features through the API (docs/08-blocks-parity.md, presets and scenes): Scene Ignore, scene
-///     recall settings, scene and channel tools, MIDI actions, modifier scope, spillover, telemetry and the list export.
+///     recall settings, scene and channel tools, MIDI actions, modifier scope, spillover, telemetry and the list
+///     export.
 /// </summary>
 public sealed class PresetSceneApiTests : IAsyncLifetime {
     readonly ServerFixture server = new();
@@ -514,7 +515,8 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         using var response = await call;
         if (!response.IsSuccessStatusCode) {
             Assert.Fail(
-                $"{response.RequestMessage?.RequestUri}: {(int)response.StatusCode} {await response.Content.ReadAsStringAsync(Token)}"
+                $"{response.RequestMessage?.RequestUri}: {(int)response.StatusCode} "
+                + $"{await response.Content.ReadAsStringAsync(Token)}"
             );
         }
     }
@@ -523,7 +525,8 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         using (response) {
             if (!response.IsSuccessStatusCode) {
                 Assert.Fail(
-                    $"{response.RequestMessage?.RequestUri}: {(int)response.StatusCode} {await response.Content.ReadAsStringAsync(Token)}"
+                    $"{response.RequestMessage?.RequestUri}: {(int)response.StatusCode} "
+                    + $"{await response.Content.ReadAsStringAsync(Token)}"
                 );
             }
 

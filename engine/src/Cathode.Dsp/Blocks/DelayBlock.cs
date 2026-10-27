@@ -31,8 +31,8 @@ namespace Cathode.Dsp.Blocks;
 ///     Reverse: a new chunk starts every Time (or on a new note with Trigger Restart); the head reading
 ///     <c>2p + 3</c> samples back at <c>p</c> samples into the chunk plays the previous Time backwards. When a chunk
 ///     starts, the outgoing head keeps playing for Crossfade × Time while the new one fades in, so the gains always sum
-///     to one. The repeats are fed back forward at Time, so each repeat is reversed too. The chunk is limited to a third
-///     of the line (the outgoing head reads up to three chunks back).
+///     to one. The repeats are fed back forward at Time, so each repeat is reversed too. The chunk is limited to a
+///     third of the line (the outgoing head reads up to three chunks back).
 /// </remarks>
 public sealed class DelayBlock() : DspBlock(Info) {
     public const int Type = 0;
@@ -237,13 +237,13 @@ public sealed class DelayBlock() : DspBlock(Info) {
             ParamDescriptor.Float("feedback", "Feedback", -100f, 100f, 30f, "%")
                 .RenamedOn(TypeCount, Dual, "Left Feedback")
                 .RenamedOn(TypeCount, MonoTape, "Head 1 Feedback"),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 25f, "%"),
+            BlockParams.Mix(25f),
             ParamDescriptor.Float("lowcut", "Low Cut", LowCutOff, 2_000f, LowCutOff, "Hz", ParamTaper.Log),
             ParamDescriptor.Float("highcut", "High Cut", 500f, HighCutOff, HighCutOff, "Hz", ParamTaper.Log),
             TimeLfo(ParamDescriptor.Float("lfo1Rate", "LFO 1 Rate", 0.05f, 10f, 0.5f, "Hz", ParamTaper.Log)),
             TimeLfo(ParamDescriptor.Float("lfo1Depth", "LFO 1 Depth", 0f, MaxDepthMs, 0f, "ms")),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Float("inputGain", "Input Gain", 0f, 100f, 100f, "%"),
             ParamDescriptor.Float("ratio", "L/R Time Ratio", 1f, 100f, 100f, "%")
                 .HiddenOn(TypeCount, Dual, MonoTape, Reverse),
@@ -324,12 +324,8 @@ public sealed class DelayBlock() : DspBlock(Info) {
                 string.Empty,
                 ParamTaper.Log
             ),
-            ParamDescriptor.Float("eq1Frequency", "EQ 1 Freq", 50f, 10_000f, 400f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("eq1Q", "EQ 1 Q", 0.1f, 10f, 0.7071f, string.Empty, ParamTaper.Log),
-            ParamDescriptor.Float("eq1Gain", "EQ 1 Gain", -12f, 12f, 0f, "dB"),
-            ParamDescriptor.Float("eq2Frequency", "EQ 2 Freq", 50f, 10_000f, 2_000f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("eq2Q", "EQ 2 Q", 0.1f, 10f, 0.7071f, string.Empty, ParamTaper.Log),
-            ParamDescriptor.Float("eq2Gain", "EQ 2 Gain", -12f, 12f, 0f, "dB"),
+            ..BlockParams.PeakingBand("eq1", "EQ 1", 50f, 10_000f, 400f, 0.7071f),
+            ..BlockParams.PeakingBand("eq2", "EQ 2", 50f, 10_000f, 2_000f, 0.7071f),
             TimeLfo(ParamDescriptor.Choice("depthRange", "LFO Depth Range", ["Low (×0.1)", "Normal", "High (×10)"], 1)),
             TimeLfo(ParamDescriptor.Choice("lfo1Type", "LFO 1 Type", Lfo.ShapeNames)),
             TimeLfo(ParamDescriptor.Choice("lfo1Tempo", "LFO 1 Tempo", TempoDivisions.Names)),
@@ -346,10 +342,7 @@ public sealed class DelayBlock() : DspBlock(Info) {
             ParamDescriptor.Float("lfo3Rate", "LFO 3 Rate", 0.05f, 10f, 1f, "Hz", ParamTaper.Log),
             ParamDescriptor.Choice("lfo3Tempo", "LFO 3 Tempo", TempoDivisions.Names),
             ParamDescriptor.Float("lfo3Depth", "LFO 3 Depth", 0f, 100f, 0f, "%"),
-            ParamDescriptor.Float("diffusionMix", "Diffusion Mix", 0f, 100f, 0f, "%"),
-            ParamDescriptor.Float("diffusionTime", "Diffusion Time", 1f, MaxDiffusionMs, 30f, "ms", ParamTaper.Log),
-            ParamDescriptor.Float("diffusionRate", "Diffusion LFO Rate", 0.05f, 5f, 0.4f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("diffusionDepth", "Diffusion LFO Depth", 0f, 100f, 0f, "%"),
+            ..BlockParams.Diffusion(MaxDiffusionMs),
             EffectsMix.Param,
             MixLaws.KillDryParam
         ],
@@ -407,8 +400,8 @@ public sealed class DelayBlock() : DspBlock(Info) {
     static ParamDescriptor TimeLfo(ParamDescriptor p) => p.HiddenOn(TypeCount, Reverse);
 
     /// <summary>
-    ///     The loop limiter: transparent up to full scale, then a tanh knee that never passes 2, so feedback above unity
-    ///     (Master Feedback past 100 %, Stack) saturates instead of running away.
+    ///     The loop limiter: transparent up to full scale, then a tanh knee that never passes 2, so feedback above
+    ///     unity (Master Feedback past 100 %, Stack) saturates instead of running away.
     /// </summary>
     public static float Limit(float x) {
         var magnitude = MathF.Abs(x);
@@ -437,7 +430,9 @@ public sealed class DelayBlock() : DspBlock(Info) {
         return incoming + (line.Read(2f * reverseOutgoing + 3f, loop) - incoming) * outgoing;
     }
 
-    /// <summary>The band-pass at the LFO's position, swept logarithmically from start (LFO -1) to stop (LFO +1).</summary>
+    /// <summary>
+    ///     The band-pass at the LFO's position, swept logarithmically from start (LFO -1) to stop (LFO +1).
+    /// </summary>
     SvfCoefficients SweepCoefficients(LfoShape shape, float start, float stop, float q, float phase, float sampleRate) {
         var position = 0.5f * (sweepLfo.Value(shape, phase) + 1f);
         var frequency = start * MathF.Pow(stop / start, position);
@@ -454,6 +449,17 @@ public sealed class DelayBlock() : DspBlock(Info) {
         right.Allocate(capacity);
         postRight.Allocate((int)(spec.SampleRate * MaxPostDelayMs / 1000) + 8);
         diffuser.Allocate(spec.SampleRate, MaxDiffusionMs);
+    }
+
+    protected override void Dispose(bool disposing) {
+        if (disposing) {
+            left.Dispose();
+            right.Dispose();
+            postRight.Dispose();
+            diffuser.Dispose();
+        }
+
+        base.Dispose(disposing);
     }
 
     protected override void OnReset() {
@@ -482,17 +488,6 @@ public sealed class DelayBlock() : DspBlock(Info) {
         rightSamples = TargetDelaySamples(TempoRight, Params.Current(TimeRight), 120);
         mix = Params.Current(Mix) / 100f;
         output.Reset(Params.Current(Level), Params.Current(Balance));
-    }
-
-    protected override void Dispose(bool disposing) {
-        if (disposing) {
-            left.Dispose();
-            right.Dispose();
-            postRight.Dispose();
-            diffuser.Dispose();
-        }
-
-        base.Dispose(disposing);
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
@@ -587,8 +582,8 @@ public sealed class DelayBlock() : DspBlock(Info) {
             type is Analog or Tape or MonoTape && !hold,
             hold ? 0f : drive,
             Quantum(type == VintageDigital ? VintageBits : 24 - bits),
-            // A boosting band or a resonant cut adds gain in the loop: with Hold's unity feedback or a high feedback the
-            // repeats would then grow without bound, so the limiter takes over whenever the loop could pass unity.
+            // A boosting band or a resonant cut adds gain in the loop: with Hold's unity feedback or a high feedback
+            // the repeats would then grow without bound, so the limiter takes over whenever the loop could pass unity.
             stack || loopGain * filter.MaxGain > 1
         );
 
@@ -757,7 +752,8 @@ public sealed class DelayBlock() : DspBlock(Info) {
                     }
 
                     if (type == Sweep) {
-                        // Coefficients move on a fixed internal hop, so the output does not depend on the host block size.
+                        // Coefficients move on a fixed internal hop, so the output does not depend on the host block
+                        // size.
                         if (sweepCounter == 0) {
                             sweepLeftCoefficients = SweepCoefficients(
                                 sweepShape,

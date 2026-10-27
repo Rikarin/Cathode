@@ -4,8 +4,8 @@ namespace Cathode.Dsp.Wdf;
 
 /// <summary>
 ///     The adapted ports of an R-type root whose netlist decides how many there are (the amp's general network stage):
-///     a source (a resistive voltage source) and any number of capacitors and inductors, held in arrays, discretised with
-///     the trapezoidal rule like <see cref="Capacitor" /> and <see cref="Inductor" />.
+///     a source (a resistive voltage source) and any number of capacitors and inductors, held in arrays, discretised
+///     with the trapezoidal rule like <see cref="Capacitor" /> and <see cref="Inductor" />.
 /// </summary>
 public struct NetworkPorts : IWdfPortList {
     /// <summary>The source: the previous stage's open-circuit voltage behind its output resistance.</summary>
@@ -38,8 +38,8 @@ public struct NetworkPorts : IWdfPortList {
         resistance[index] = sign[index] > 0 ? 0.5 / (value * sampleRate) : 2 * value * sampleRate;
 
     /// <summary>
-    ///     Starts reactive port <paramref name="index" /> at rest: a capacitor charged to <paramref name="value" /> volts,
-    ///     an inductor carrying <paramref name="value" /> amperes. Call after <see cref="Configure" />.
+    ///     Starts reactive port <paramref name="index" /> at rest: a capacitor charged to <paramref name="value" />
+    ///     volts, an inductor carrying <paramref name="value" /> amperes. Call after <see cref="Configure" />.
     /// </summary>
     public readonly void Precharge(int index, double value) =>
         state[index] = sign[index] > 0 ? value : value * resistance[index];

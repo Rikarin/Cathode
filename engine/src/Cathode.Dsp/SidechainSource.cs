@@ -16,7 +16,9 @@ namespace Cathode.Dsp;
 ///     through <see cref="OfferHardware" />; an unmapped one is silence, as on the hardware.
 /// </summary>
 public sealed class SidechainSource {
-    /// <summary>The first hardware input option (Input 1); the others follow in <see cref="HardwareInputs" /> order.</summary>
+    /// <summary>
+    ///     The first hardware input option (Input 1); the others follow in <see cref="HardwareInputs" /> order.
+    /// </summary>
     public const int FirstInput = 8;
 
     /// <summary>
@@ -46,7 +48,10 @@ public sealed class SidechainSource {
         length = 0;
     }
 
-    /// <summary>Keeps <paramref name="source" /> if it is the one <paramref name="selected" /> (the parameter's value) names.</summary>
+    /// <summary>
+    ///     Keeps <paramref name="source" /> if it is the one <paramref name="selected" /> (the parameter's value)
+    ///     names.
+    /// </summary>
     public void Offer(int row, in StereoBuffer source, int selected) {
         if (selected == 0 || selected != row + 2 || source.Length > left.Length) {
             return;

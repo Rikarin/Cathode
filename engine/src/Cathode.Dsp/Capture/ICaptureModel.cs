@@ -13,14 +13,17 @@ public interface ICaptureModel : IDisposable {
 
     /// <summary>
     ///     The rate the model was trained at (0 or less when the file does not say; 48 kHz is assumed then). The amp
-    ///     runs the model at this rate, resampling around it when the engine runs at another (<see cref="CaptureResampler" />).
+    ///     runs the model at this rate, resampling around it when the engine runs at another
+    ///     (<see cref="CaptureResampler" />).
     /// </summary>
     double ExpectedSampleRate { get; }
 
     /// <summary>Output loudness in dB, when the file records it; used to normalise models to a common level.</summary>
     double? Loudness { get; }
 
-    /// <summary>Control thread: allocate for blocks of up to <paramref name="maxFrames" />, clear the state and pre-warm.</summary>
+    /// <summary>
+    ///     Control thread: allocate for blocks of up to <paramref name="maxFrames" />, clear the state and pre-warm.
+    /// </summary>
     void Reset(double sampleRate, int maxFrames);
 
     /// <summary>Audio thread. <paramref name="input" /> and <paramref name="output" /> may be the same span.</summary>

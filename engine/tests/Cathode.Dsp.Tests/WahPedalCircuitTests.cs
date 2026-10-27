@@ -9,7 +9,8 @@ namespace Cathode.Dsp.Tests;
 ///     The five wahs that were filter voicings and are now circuits: Clyde, Colorsound and V845 as inductor circuits
 ///     (their operating point and response against the reference simulator are in <see cref="WahCircuitTests" />, which
 ///     runs every entry of <see cref="WahBlock.Circuits" />), Morley and Parapedal as inductor-less op-amp band-passes.
-///     Each sweeps its pedal's range, its centre and Q agree with what its parts give, and the Basic page still moves it.
+///     Each sweeps its pedal's range, its centre and Q agree with what its parts give, and the Basic page still moves
+///     it.
 /// </summary>
 public class WahPedalCircuitTests(ITestOutputHelper output) {
     const double Rate = 48_000;
@@ -37,9 +38,10 @@ public class WahPedalCircuitTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     Heel and toe through the block, against each pedal's documented character: the Clyde high and the most vocal,
-    ///     the Colorsound wide with a broad peak, the Morley the widest with the Q rising toward the toe (constant
-    ///     bandwidth), the V845 narrower and milder than the V846, the Parapedal low with one Q over the whole sweep.
+    ///     Heel and toe through the block, against each pedal's documented character: the Clyde high and the most
+    ///     vocal, the Colorsound wide with a broad peak, the Morley the widest with the Q rising toward the toe
+    ///     (constant bandwidth), the V845 narrower and milder than the V846, the Parapedal low with one Q over the
+    ///     whole sweep.
     /// </summary>
     [Theory]
     [InlineData(Clyde, 0f, 420, 490, 14, 24)]
@@ -68,9 +70,9 @@ public class WahPedalCircuitTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     The inductor circuits against their parts: at the toe the loop gain is nearly gone and the resonance sits near
-    ///     L1 with C3, 1 / 2π√(LC); toward the heel the loop gain pulls the frequency down and the Q up by the same factor
-    ///     √(1 + T₀) (see <see cref="WahVoicing" />), so the Q ratio follows the frequency ratio.
+    ///     The inductor circuits against their parts: at the toe the loop gain is nearly gone and the resonance sits
+    ///     near L1 with C3, 1 / 2π√(LC); toward the heel the loop gain pulls the frequency down and the Q up by the
+    ///     same factor √(1 + T₀) (see <see cref="WahVoicing" />), so the Q ratio follows the frequency ratio.
     /// </summary>
     [Theory]
     [InlineData(2)]
@@ -82,14 +84,17 @@ public class WahPedalCircuitTests(ITestOutputHelper output) {
         var toe = CircuitPeak(voicing, 1);
         var lc = 1 / (2 * Math.PI * Math.Sqrt(voicing.Inductance * voicing.Tuning));
         output.WriteLine(
-            $"{voicing.Name}: heel {heel.Frequency:0} Hz Q {heel.Q:0.0}, toe {toe.Frequency:0} Hz Q {toe.Q:0.0}; LC {lc:0} Hz"
+            $"{voicing.Name}: heel {heel.Frequency:0} Hz Q {heel.Q:0.0}, toe {toe.Frequency:0} Hz Q "
+            + $"{toe.Q:0.0}; LC {lc:0} Hz"
         );
         Assert.InRange(toe.Frequency / lc, 0.9, 1.0);
         var predicted = toe.Frequency / heel.Frequency;
         Assert.InRange(heel.Q / toe.Q / predicted, 0.7, 1.3);
     }
 
-    /// <summary>The op-amp circuits' simulated response against the closed forms of their band-pass from the parts.</summary>
+    /// <summary>
+    ///     The op-amp circuits' simulated response against the closed forms of their band-pass from the parts.
+    /// </summary>
     [Theory]
     [InlineData(0, 0.0)]
     [InlineData(0, 0.5)]
@@ -164,7 +169,9 @@ public class WahPedalCircuitTests(ITestOutputHelper output) {
         Assert.True(cut.Gain < flat.Gain / 2, $"{Analysis.ToDb(flat.Gain):0.0} -> {Analysis.ToDb(cut.Gain):0.0} dB");
     }
 
-    /// <summary>Drive pushes the op-amps to their rails, as it pushes the transistors of the inductor circuits.</summary>
+    /// <summary>
+    ///     Drive pushes the op-amps to their rails, as it pushes the transistors of the inductor circuits.
+    /// </summary>
     [Theory]
     [MemberData(nameof(Pedals))]
     public void Drive_distorts_each_pedal(int type) {
@@ -248,7 +255,9 @@ public class WahPedalCircuitTests(ITestOutputHelper output) {
         Assert.True(median < 1.3, $"{median:0.00} times the Cry Baby");
     }
 
-    /// <summary>Peak frequency, Q (from the -3 dB points either side) and gain at the peak, measured through the block.</summary>
+    /// <summary>
+    ///     Peak frequency, Q (from the -3 dB points either side) and gain at the peak, measured through the block.
+    /// </summary>
     static (double Frequency, double Q, double Gain) Peak(
         int type,
         float position,
@@ -292,7 +301,9 @@ public class WahPedalCircuitTests(ITestOutputHelper output) {
         return sum.Magnitude;
     }
 
-    /// <summary>The highest peak between 150 Hz and 6 kHz, refined, and its Q from the -3 dB points either side.</summary>
+    /// <summary>
+    ///     The highest peak between 150 Hz and 6 kHz, refined, and its Q from the -3 dB points either side.
+    /// </summary>
     static (double Frequency, double Q, double Gain) Resonance(Func<double, double> magnitude) {
         var peak = 150.0;
         var best = 0.0;

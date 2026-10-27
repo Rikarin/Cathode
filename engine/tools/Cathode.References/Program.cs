@@ -25,6 +25,13 @@ if (args.Length == 0 || args[0] is "-h" or "--help" or "help") {
     return args.Length == 0 ? 2 : 0;
 }
 
+// Ctrl+C cancels the downloads under way (each then reports FAILED); a second Ctrl+C ends the process.
+using var cancel = new CancellationTokenSource();
+Console.CancelKeyPress += (_, e) => {
+    e.Cancel = !cancel.IsCancellationRequested;
+    cancel.Cancel();
+};
+
 try {
     var options = new Options(
         args[1..],
@@ -38,7 +45,7 @@ try {
 
     return args[0] switch {
         "status" => Status(manifest, cache),
-        "fetch" => await Fetch(manifest, cache, options.Flag("force")),
+        "fetch" => await Fetch(manifest, cache, options.Flag("force"), cancel.Token),
         "hash" => Hash(options),
         "match" => Match(manifest, cache, options, manifestPath),
         "fit" => Fit(manifest, cache, options),
@@ -108,14 +115,19 @@ static int Status(ReferenceManifest manifest, ReferenceCache cache) {
     return 0;
 }
 
-static async Task<int> Fetch(ReferenceManifest manifest, ReferenceCache cache, bool force) {
+static async Task<int> Fetch(
+    ReferenceManifest manifest,
+    ReferenceCache cache,
+    bool force,
+    CancellationToken cancellationToken
+) {
 #pragma warning disable SK3541 // Fetch runs once per process, so this client already lives as long as the command.
     using var http = new HttpClient();
 #pragma warning restore SK3541
     http.DefaultRequestHeaders.UserAgent.ParseAdd("cathode-references/1");
     http.Timeout = TimeSpan.FromMinutes(2);
     Console.WriteLine($"Fetching redistributable references into {cache.Root}");
-    var failures = await new Fetcher(cache, http).FetchAllAsync(manifest.References, force);
+    var failures = await new Fetcher(cache, http).FetchAllAsync(manifest.References, force, cancellationToken);
     var local = manifest.References.Count(e => !Fetcher.MayFetch(e) && cache.StateOf(e) == ReferenceState.Missing);
     if (local > 0) {
         Console.WriteLine($"{local} local-only reference(s) are missing; `status` lists where to fetch them by hand.");
@@ -136,7 +148,8 @@ static int Match(ReferenceManifest manifest, ReferenceCache cache, Options optio
     var overrides = options.Assignments("set");
     var reports = new List<MatchReport>();
     Console.WriteLine(
-        $"{"reference",-36} {"circuit",-28} {"dBu",6} {"ESR",7} {"ESRpre",7} {"MRSTFT",7} {"harm dB",8} {"resp dB",8} {"pass",5}"
+        $"{"reference",-36} {"circuit",-28} {"dBu",6} {"ESR",7} {"ESRpre",7} {"MRSTFT",7} {"harm dB",8} "
+        + $"{"resp dB",8} {"pass",5}"
     );
     foreach (var entry in entries) {
         var settings = Settings(entry, type, overrides);
@@ -161,8 +174,10 @@ static int Match(ReferenceManifest manifest, ReferenceCache cache, Options optio
         var report = ReferenceMatcher.Match(entry, reference, settings, options.Number("input-dbu"));
         reports.Add(report);
         Console.WriteLine(
-            $"{entry.Id,-36} {Truncate(report.Circuit, 28),-28} {report.InputDbu,5:0.0}{(report.InputDbuFitted ? "*" : " ")} "
-            + $"{report.Esr,7:0.000} {report.EsrPreEmphasis,7:0.000} {report.Mrstft,7:0.000} {report.HarmonicDistanceDb,8:0.0} "
+            $"{entry.Id,-36} {Truncate(report.Circuit, 28),-28} "
+            + $"{report.InputDbu,5:0.0}{(report.InputDbuFitted ? "*" : " ")} "
+            + $"{report.Esr,7:0.000} {report.EsrPreEmphasis,7:0.000} {report.Mrstft,7:0.000} "
+            + $"{report.HarmonicDistanceDb,8:0.0} "
             + $"{report.ResponseRmsDb,8:0.0} {report.Pass switch { true => "yes", false => "NO", null => "-" },5}"
             + $"  ({watch.Elapsed.TotalSeconds:0}s)"
         );
@@ -245,7 +260,8 @@ static void PrintFit(
     IReadOnlyDictionary<string, double>? truth
 ) {
     Console.WriteLine(
-        $"{"tolerance",-12} {"nominal",8} {"min",8} {"max",8} {"fitted",8}{(truth is null ? string.Empty : $" {"truth",8}")}"
+        $"{"tolerance",-12} {"nominal",8} {"min",8} {"max",8} "
+        + $"{"fitted",8}{(truth is null ? string.Empty : $" {"truth",8}")}"
     );
     foreach (var t in tolerances) {
         Console.WriteLine(

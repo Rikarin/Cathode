@@ -1,3 +1,4 @@
+using Cathode.Dsp.Amp;
 using System.Runtime.CompilerServices;
 
 namespace Cathode.Dsp.Filters;
@@ -73,8 +74,6 @@ public readonly record struct SvfCoefficients(double A1, double A2, double A3, d
 
 /// <summary>State of one <see cref="SvfCoefficients" /> filter channel (two trapezoidal integrators).</summary>
 public struct SvfState {
-    const double DenormalThreshold = 1e-30;
-
     double ic1;
     double ic2;
 
@@ -103,12 +102,7 @@ public struct SvfState {
 
     /// <summary>Zeroes state that has decayed into the subnormal range, where arithmetic gets very slow.</summary>
     public void FlushDenormals() {
-        if (Math.Abs(ic1) < DenormalThreshold) {
-            ic1 = 0;
-        }
-
-        if (Math.Abs(ic2) < DenormalThreshold) {
-            ic2 = 0;
-        }
+        ic1 = Flush.Value(ic1);
+        ic2 = Flush.Value(ic2);
     }
 }

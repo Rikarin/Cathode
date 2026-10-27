@@ -71,9 +71,9 @@ public static class AC15 {
     };
 
     /// <summary>
-    ///     The EF86 channel: input resistor and grid leak, the pentode (suppressor on the cathode), its coupling caps and
-    ///     the Brilliance switch (on: the 250 pF stays in series; off: a short across it), the volume (Gain), its wiper
-    ///     through 220k into the mixing node with the other channel's 220k to ground.
+    ///     The EF86 channel: input resistor and grid leak, the pentode (suppressor on the cathode), its coupling caps
+    ///     and the Brilliance switch (on: the 250 pF stays in series; off: a short across it), the volume (Gain), its
+    ///     wiper through 220k into the mixing node with the other channel's 220k to ground.
     /// </summary>
     static NetworkStageDesign Ef86() {
         var net = new StageNetlist();

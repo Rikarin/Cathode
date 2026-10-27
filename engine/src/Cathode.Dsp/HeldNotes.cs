@@ -38,9 +38,11 @@ public readonly record struct HeldNotes(ulong Low, ulong High) {
         }
 
         var bit = 1UL << (note & 63);
-        return note < 64
-            ? this with { Low = held ? Low | bit : Low & ~bit }
-            : this with { High = held ? High | bit : High & ~bit };
+        if (note < 64) {
+            return this with { Low = held ? Low | bit : Low & ~bit };
+        }
+
+        return this with { High = held ? High | bit : High & ~bit };
     }
 
     static int Classes(ulong bits, int offset) {

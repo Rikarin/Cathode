@@ -10,7 +10,8 @@ public enum LfoShape {
     Triangle,
 
     /// <summary>
-    ///     A square with softened edges (tanh of a sine), so gain and delay modulation never click. Duty sets its width.
+    ///     A square with softened edges (tanh of a sine), so gain and delay modulation never click. Duty sets its
+    ///     width.
     /// </summary>
     Square,
     SawUp,
@@ -35,7 +36,9 @@ public enum LfoShape {
     Astable
 }
 
-/// <summary>Low-frequency oscillator with a phase in [0, 1). Allocation-free; one instance drives both channels.</summary>
+/// <summary>
+///     Low-frequency oscillator with a phase in [0, 1). Allocation-free; one instance drives both channels.
+/// </summary>
 public struct Lfo {
     /// <summary>Display names for <see cref="LfoShape" />, in order, for a block's LFO type parameter.</summary>
     public static readonly ImmutableArray<string> ShapeNames =
@@ -62,8 +65,8 @@ public struct Lfo {
 
     /// <summary>
     ///     Bipolar value in [-1, 1] at the current phase plus <paramref name="offset" /> (in cycles, e.g. 0.25 = 90°).
-    ///     <paramref name="duty" /> (0..1) is the symmetry of the triangle, square and trapezoid, and the curvature of the
-    ///     astable; the other shapes ignore it. At the default 0.5 every shape is symmetric.
+    ///     <paramref name="duty" /> (0..1) is the symmetry of the triangle, square and trapezoid, and the curvature of
+    ///     the astable; the other shapes ignore it. At the default 0.5 every shape is symmetric.
     /// </summary>
     public readonly float Value(LfoShape shape, double offset = 0, double duty = 0.5) {
         if (shape == LfoShape.Random) {
@@ -106,7 +109,9 @@ public struct Lfo {
         return p < duty ? 2 * p / duty - 1 : 1 - 2 * (p - duty) / (1 - duty);
     }
 
-    /// <summary>Maps the phase so the first half of a symmetric waveform takes <paramref name="duty" /> of the cycle.</summary>
+    /// <summary>
+    ///     Maps the phase so the first half of a symmetric waveform takes <paramref name="duty" /> of the cycle.
+    /// </summary>
     static double Skew(double p, double duty) {
         var d = Math.Clamp(duty, 0.02, 0.98);
         return p < d ? 0.5 * p / d : 0.5 + 0.5 * (p - d) / (1 - d);
@@ -120,7 +125,9 @@ public struct Lfo {
         return 2 * level - 1;
     }
 
-    /// <summary>A repeatable pseudo-random level in [-1, 1] for each cycle, so a reset replays the same sequence.</summary>
+    /// <summary>
+    ///     A repeatable pseudo-random level in [-1, 1] for each cycle, so a reset replays the same sequence.
+    /// </summary>
     static float Hold(long cycle) {
         var x = (ulong)cycle * 0x9E3779B97F4A7C15UL + 0x632BE59BD9B4E019UL;
         x ^= x >> 30;

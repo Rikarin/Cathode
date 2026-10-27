@@ -21,7 +21,9 @@ public enum LooperState {
     Overdubbing,
     Stopped,
 
-    /// <summary>Record was pressed with threshold recording on: the recording starts when the input crosses it.</summary>
+    /// <summary>
+    ///     Record was pressed with threshold recording on: the recording starts when the input crosses it.
+    /// </summary>
     Armed
 }
 
@@ -32,7 +34,9 @@ public enum LooperSecondPress {
     Stop
 }
 
-/// <summary>The looper's Config page (docs/08-blocks-parity.md §6.14). <see cref="Default" /> is the rig looper's.</summary>
+/// <summary>
+///     The looper's Config page (docs/08-blocks-parity.md §6.14). <see cref="Default" /> is the rig looper's.
+/// </summary>
 public readonly record struct LooperSettings {
     /// <summary>The longest recording in samples; 0 (or more than the capacity) uses the whole capacity.</summary>
     public int MaxSamples { get; init; }
@@ -48,7 +52,9 @@ public readonly record struct LooperSettings {
     /// <summary>Linear input level that starts an armed recording; 0 records at once.</summary>
     public float Threshold { get; init; }
 
-    /// <summary>The gain every overdub pass applies to what the loop held (1 keeps it, 0.5 halves it per pass).</summary>
+    /// <summary>
+    ///     The gain every overdub pass applies to what the loop held (1 keeps it, 0.5 halves it per pass).
+    /// </summary>
     public float OverdubLevel { get; init; }
 
     /// <summary>How long the performance after a recording closes is faded into the loop's start, in samples.</summary>
@@ -296,7 +302,13 @@ public sealed unsafe class Looper : IDisposable {
                 seamLength = 0;
             }
         } else {
-            var next = IsReversed ? index - 1 < start ? end - 1 : index - 1 : index + 1 >= end ? start : index + 1;
+            int next;
+            if (IsReversed) {
+                next = index - 1 < start ? end - 1 : index - 1;
+            } else {
+                next = index + 1 >= end ? start : index + 1;
+            }
+
             var frac = IsReversed ? 0f : (float)(Position - index);
             playLeft = Sample(baseLeft, layerLeft, index, next, frac);
             playRight = Sample(baseRight, layerRight, index, next, frac);
@@ -335,7 +347,9 @@ public sealed unsafe class Looper : IDisposable {
         }
     }
 
-    /// <summary>Control thread: the loop as it plays (base + layer), for export. Read it while stopped for a clean copy.</summary>
+    /// <summary>
+    ///     Control thread: the loop as it plays (base + layer), for export. Read it while stopped for a clean copy.
+    /// </summary>
     public (float[] Left, float[] Right) Snapshot() {
         var left = new float[Length];
         var right = new float[Length];
@@ -347,7 +361,9 @@ public sealed unsafe class Looper : IDisposable {
         return (left, right);
     }
 
-    /// <summary>Frees the loop memory once: a second call (a host disposed twice on shutdown) must not free it again.</summary>
+    /// <summary>
+    ///     Frees the loop memory once: a second call (a host disposed twice on shutdown) must not free it again.
+    /// </summary>
     public void Dispose() {
         if (Interlocked.Exchange(ref disposed, 1) != 0) {
             return;

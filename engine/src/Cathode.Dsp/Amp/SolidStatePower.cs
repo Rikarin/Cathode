@@ -62,14 +62,14 @@ public sealed record SolidStatePowerDesign(
 /// </summary>
 /// <remarks>
 ///     <para>
-///         The voltage amplifier is a one-pole integrator, y[n] = h y[n-1] + g (e[n] + e[n-1]) (trapezoidal), whose output
-///         saturates smoothly between the rails less the headroom (the op-amp macro-model's limiter, unity within about
-///         80 % of the swing). Each side of the output stage is a junction stack (Ebers-Moll's base-emitter diode,
-///         Shockley
-///         with series resistance: the emitter resistor) biased by the class-AB bias voltage, so the crossover region and
-///         the stage's current into the load are physical; the feedback reduces their distortion by the loop gain, as in
-///         the amp. The load is the nominal resistance: with the loop's gain the output impedance is a few milliohms, so
-///         the speaker's impedance curve barely moves the voltage (unlike a tube amp's).
+///         The voltage amplifier is a one-pole integrator, y[n] = h y[n-1] + g (e[n] + e[n-1]) (trapezoidal), whose
+///         output saturates smoothly between the rails less the headroom (the op-amp macro-model's limiter, unity
+///         within about 80 % of the swing). Each side of the output stage is a junction stack (Ebers-Moll's
+///         base-emitter diode, Shockley with series resistance: the emitter resistor) biased by the class-AB bias
+///         voltage, so the crossover region and the stage's current into the load are physical; the feedback reduces
+///         their distortion by the loop gain, as in the amp. The load is the nominal resistance: with the loop's gain
+///         the output impedance is a few milliohms, so the speaker's impedance curve barely moves the voltage (unlike a
+///         tube amp's).
 ///     </para>
 ///     <para>
 ///         The rails are reservoir caps charged from the idle voltage through the rail resistance and drained by each
@@ -142,12 +142,14 @@ public sealed class SolidStatePowerAmp {
         gain = k * Design.OpenLoopGain / (1 + k);
     }
 
-    /// <summary>The knobs that reach a solid-state power amp: sag (0.5 stock) scales the rails' source resistance.</summary>
+    /// <summary>
+    ///     The knobs that reach a solid-state power amp: sag (0.5 stock) scales the rails' source resistance.
+    /// </summary>
     public void Configure(in PowerControls controls) => sagScale = Math.Pow(4, 2 * controls.Sag - 1);
 
     /// <summary>
-    ///     The settings that reach it: the mains (the rails follow the variac) and the reservoirs (the B+ time constant).
-    ///     The tube settings do nothing here.
+    ///     The settings that reach it: the mains (the rails follow the variac) and the reservoirs (the B+ time
+    ///     constant). The tube settings do nothing here.
     /// </summary>
     public void Apply(in PowerSettings settings) {
         variac = settings.Variac;
@@ -187,7 +189,7 @@ public sealed class SolidStatePowerAmp {
         for (; n < MaxIterations; n++) {
             var error = drive - (fed0 + b0 * v);
             var internalOutput = hold * y + gain * (error + previousError);
-            var vd = centre + Limit(internalOutput - centre, half, out var limiterSlope);
+            var vd = centre + OpAmp.Limit(internalOutput - centre, half, out var limiterSlope);
             var dvd = -limiterSlope * gain * b0;
             port[0] = vd + bias - v;
             junction.Evaluate(port, current, slope, 1);
@@ -203,8 +205,8 @@ public sealed class SolidStatePowerAmp {
                 hi = v;
             }
 
-            // Newton, inside the bracket; past a dozen iterations (cycling across the limiter's or the crossover's knee,
-            // one bracket end never moving) plain bisection, which closes the bracket within the iteration limit.
+            // Newton, inside the bracket; past a dozen iterations (cycling across the limiter's or the crossover's
+            // knee, one bracket end never moving) plain bisection, which closes the bracket within the iteration limit.
             var next = v - residual / derivative;
             if (!(next > lo && next < hi) || n >= 12) {
                 next = 0.5 * (lo + hi);
@@ -236,7 +238,7 @@ public sealed class SolidStatePowerAmp {
         // integrator's state is held a little beyond it, so that it comes off the rail at once (as in the op-amp).
         var e = drive - feedback.Process(v);
         var settled = hold * y + gain * (e + previousError);
-        var driven = centre + Limit(settled - centre, half, out _);
+        var driven = centre + OpAmp.Limit(settled - centre, half, out _);
         y = Math.Clamp(settled, centre - 1.25 * half, centre + 1.25 * half);
         previousError = e;
         previousOutput = output;
@@ -260,22 +262,5 @@ public sealed class SolidStatePowerAmp {
         feedback.FlushDenormals();
         y = Flush.Value(y);
         previousError = Flush.Value(previousError);
-    }
-
-    /// <summary>The smooth limiter L s(x / L), s(x) = x / (1 + x⁸)^(1/8), and its slope (as the op-amp macro-model's).</summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    static double Limit(double x, double limit, out double slope) {
-        var u = x / limit;
-        if (!(Math.Abs(u) < 1e30)) {
-            slope = 0;
-            return double.IsNaN(u) ? u : Math.CopySign(limit, u);
-        }
-
-        var u2 = u * u;
-        var u4 = u2 * u2;
-        var p = 1 + u4 * u4;
-        var root = Math.Sqrt(Math.Sqrt(Math.Sqrt(p)));
-        slope = 1 / (root * p);
-        return x / root;
     }
 }

@@ -5,15 +5,16 @@ namespace Cathode.Dsp.Blocks;
 public static partial class DriveCircuits {
     /// <summary>
     ///     Drive round 4, group D1: overdrives after the Fractal Blocks Guide's list (pp. 37–38), appended after every
-    ///     earlier circuit (presets store the type by index). Values come from the pedals' published schematics and traces;
-    ///     where none was found the circuit follows the pedal's published description, and docs/09 (stream D1) lists what
-    ///     was guessed.
+    ///     earlier circuit (presets store the type by index). Values come from the pedals' published schematics and
+    ///     traces; where none was found the circuit follows the pedal's published description, and docs/09 (stream D1)
+    ///     lists what was guessed.
     /// </summary>
     static DriveCircuit[] Round4Overdrives() => [
         FullDrive(),
         new(
             "OD-One Overdrive",
-            "Boss OD-1: op-amp with asymmetric 1 + 2 silicon diodes across its feedback, fixed output low-pass (no tone "
+            "Boss OD-1: op-amp with asymmetric 1 + 2 silicon diodes across its feedback, fixed "
+            + "output low-pass (no tone "
             + "knob; Tone 10 is the pedal)"
         ) {
             Stages = [
@@ -62,7 +63,8 @@ public static partial class DriveCircuits {
         },
         new(
             "Sonic Drive",
-            "Ibanez SD9M / Maxon SD-9: a TS gain stage driven into its rails, then silicon diodes to ground, TS tone stage"
+            "Ibanez SD9M / Maxon SD-9: a TS gain stage driven into its rails, then silicon diodes to "
+            + "ground, TS tone stage"
         ) {
             Stages = [
                 new(StageKind.OpAmp) {
@@ -81,7 +83,8 @@ public static partial class DriveCircuits {
         Eternity(),
         new(
             "Jam Ray",
-            "Vemuram Jan Ray: Timmy-style op-amp stage with silicon diodes across its feedback, full bass, active treble "
+            "Vemuram Jan Ray: Timmy-style op-amp stage with silicon diodes across its feedback, full "
+            + "bass, active treble "
             + "recovery stage"
         ) {
             Stages = [
@@ -148,9 +151,9 @@ public static partial class DriveCircuits {
     /// <summary>
     ///     The Full-Drive 2: JRC4558 with silicon diodes across its feedback, passive treble cut. Its three-way switch:
     ///     Flat-Mids (the circuit as listed: 2.2k + 220 nF to ground, a 330 Hz bass corner), Comp-Cut (two diodes in
-    ///     series each way: less compression, more output) and Vintage (the TS's 4.7k + 47 nF, 720 Hz: the mid hump). The
-    ///     Boost footswitch adds up to 20 dB of clean boost ahead of the clipping amp. The switch positions' values and the
-    ///     boost's range are guessed from Fulltone's descriptions.
+    ///     series each way: less compression, more output) and Vintage (the TS's 4.7k + 47 nF, 720 Hz: the mid hump).
+    ///     The Boost footswitch adds up to 20 dB of clean boost ahead of the clipping amp. The switch positions' values
+    ///     and the boost's range are guessed from Fulltone's descriptions.
     /// </summary>
     static DriveCircuit FullDrive() {
         var stage = new DriveStage(StageKind.OpAmp) {
@@ -188,9 +191,9 @@ public static partial class DriveCircuits {
     }
 
     /// <summary>
-    ///     The Eternity: a TS-style gain stage with a fuller bass corner into silicon diodes to ground, passive treble cut
-    ///     (Glass). Glow adds a silicon pair across the gain stage's feedback, for the smoother, more compressed voice
-    ///     Lovepedal describes (the Glow network is guessed: no verified schematic of it).
+    ///     The Eternity: a TS-style gain stage with a fuller bass corner into silicon diodes to ground, passive treble
+    ///     cut (Glass). Glow adds a silicon pair across the gain stage's feedback, for the smoother, more compressed
+    ///     voice Lovepedal describes (the Glow network is guessed: no verified schematic of it).
     /// </summary>
     static DriveCircuit Eternity() {
         var stage = new DriveStage(StageKind.OpAmp) {

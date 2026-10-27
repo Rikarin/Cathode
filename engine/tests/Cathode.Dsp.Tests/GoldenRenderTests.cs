@@ -39,7 +39,10 @@ public class GoldenRenderTests {
         Assert.True(
             Analysis.NullResidualDb(golden.Channels[0], left) < ResidualDb
             && Analysis.NullResidualDb(golden.Channels[1], right) < ResidualDb,
-            $"{typeId} no longer matches its golden render (left {Analysis.NullResidualDb(golden.Channels[0], left):0.0} dB, right {Analysis.NullResidualDb(golden.Channels[1], right):0.0} dB). If the change is intended, regenerate with CATHODE_UPDATE_GOLDEN=1."
+            $"{typeId} no longer matches its golden render (left "
+            + $"{Analysis.NullResidualDb(golden.Channels[0], left):0.0} dB, right "
+            + $"{Analysis.NullResidualDb(golden.Channels[1], right):0.0} dB). If the change is intended, regenerate "
+            + "with CATHODE_UPDATE_GOLDEN=1."
         );
     }
 

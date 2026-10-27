@@ -9,19 +9,21 @@ namespace Cathode.Dsp.Blocks;
 ///     <list type="bullet">
 ///         <item>Tremolo: gain from 1 down to 1 − depth at the LFO's trough.</item>
 ///         <item>
-///             Panner: places the mono sum with a constant-power law, scaled so the centre position is unity on each side;
-///             Pan Center shifts the middle of the swing. Its Width goes to 200 %: past 100 % the swing overshoots the
-///             sides and dwells there.
+///             Panner: places the mono sum with a constant-power law, scaled so the centre position is unity on each
+///             side; Pan Center shifts the middle of the swing. Its Width goes to 200 %: past 100 % the swing
+///             overshoots the sides and dwells there.
 ///         </item>
-///         <item>Bias Trem: the tremolo gain ahead of a gentle tanh stage, so loud notes saturate as a biased tube would.</item>
+///         <item>
+///             Bias Trem: the tremolo gain ahead of a gentle tanh stage, so loud notes saturate as a biased tube would.
+///         </item>
 ///         <item>
 ///             Harmonic Trem: a split at the crossover frequency, low and high bands modulated in antiphase, as in the
 ///             brown-panel amps' circuit. The 6 dB/oct split is a complementary one-pole, and with no depth the bands
 ///             sum back exactly; 12 and 24 dB/oct are Linkwitz–Riley splits, which sum to an allpass (flat in level).
 ///         </item>
 ///         <item>
-///             Optical Trem: the LFO lights a lamp read by a photocell that brightens in 5 ms and darkens in 35 ms, which
-///             gives the familiar lopsided pulse.
+///             Optical Trem: the LFO lights a lamp read by a photocell that brightens in 5 ms and darkens in 35 ms,
+///             which gives the familiar lopsided pulse.
 ///         </item>
 ///     </list>
 ///     The right channel's LFO is offset by LFO Phase (tremolo types only), and Tempo locks the rate to the rig tempo.
@@ -83,8 +85,8 @@ public sealed class TremoloBlock() : DspBlock(Info), IEngageAware {
                 TypeLabels = ["Depth", "Width", "Depth", "Depth", "Depth"]
             },
             ParamDescriptor.Choice("shape", "LFO Type", Lfo.ShapeNames),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Choice("tempo", "Tempo", TempoDivisions.Names),
             ParamDescriptor.Float("duty", "LFO Duty", 0f, 100f, 50f, "%"),
             ParamDescriptor.Float("phase", "LFO Phase", 0f, 180f, 0f, "°"),
@@ -105,7 +107,9 @@ public sealed class TremoloBlock() : DspBlock(Info), IEngageAware {
         ]
     );
 
-    /// <summary>Start Phase: engaging the block starts the LFO at this phase, so the first pulse lands where it should.</summary>
+    /// <summary>
+    ///     Start Phase: engaging the block starts the LFO at this phase, so the first pulse lands where it should.
+    /// </summary>
     public void Engage() => lfo.Reset(Params.GetTarget(StartPhase) / 360.0);
 
     /// <summary>1 at the LFO's peak, 1 − depth at its trough.</summary>
@@ -237,7 +241,9 @@ public sealed class TremoloBlock() : DspBlock(Info), IEngageAware {
         output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 
-    /// <summary>A second-order Linkwitz–Riley split from TPT one-poles: low-pass squared and high-pass squared.</summary>
+    /// <summary>
+    ///     A second-order Linkwitz–Riley split from TPT one-poles: low-pass squared and high-pass squared.
+    /// </summary>
     struct SecondOrderSplit {
         float low1;
         float low2;

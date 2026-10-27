@@ -10,7 +10,9 @@ public sealed class GlobalSettings {
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
-    /// <summary>preset (each preset's tempo), global (one tempo for everything) or midiClock (follow MIDI clock).</summary>
+    /// <summary>
+    ///     preset (each preset's tempo), global (one tempo for everything) or midiClock (follow MIDI clock).
+    /// </summary>
     public string TempoMode { get; set; } = "preset";
 
     /// <summary>The tempo in global mode.</summary>
@@ -30,8 +32,8 @@ public sealed class GlobalSettings {
     public float NoiseGateOffset { get; set; }
 
     /// <summary>
-    ///     Cab modeling off: every Cab and IR Player block passes audio through, for playing into a real speaker cabinet
-    ///     without changing the presets.
+    ///     Cab modeling off: every Cab and IR Player block passes audio through, for playing into a real speaker
+    ///     cabinet without changing the presets.
     /// </summary>
     public bool CabModelingOff { get; set; }
 
@@ -80,7 +82,9 @@ public sealed class GlobalSettings {
     /// </summary>
     public bool SceneRevert { get; set; }
 
-    /// <summary>The scene a preset starts on when it loads: −1 for As Saved (the scene it was saved on), or 0-7.</summary>
+    /// <summary>
+    ///     The scene a preset starts on when it loads: −1 for As Saved (the scene it was saved on), or 0-7.
+    /// </summary>
     public int DefaultScene { get; set; } = -1;
 
     /// <summary>The preset loaded when the server starts, by id; null starts with an empty preset.</summary>
@@ -90,8 +94,8 @@ public sealed class GlobalSettings {
     public bool IgnoreRedundantPc { get; set; }
 
     /// <summary>
-    ///     Preset-change spillover: on, the outgoing preset's delay and reverb tails ring out under the new one; off, it
-    ///     stops with the swap fade (a clean cut).
+    ///     Preset-change spillover: on, the outgoing preset's delay and reverb tails ring out under the new one; off,
+    ///     it stops with the swap fade (a clean cut).
     /// </summary>
     public bool PresetSpillover { get; set; } = true;
 
@@ -150,8 +154,8 @@ public sealed record MidiMapping(
 public sealed record FootswitchLayout(string Id, string Name, List<Footswitch> Switches, List<string>? Views = null);
 
 /// <summary>
-///     One switch: the message it sends (a CC or note; value 64 or more is "down"), what a tap does, what holding it for
-///     half a second does instead, and whether its LED is driven (the same CC or note, 127 when its tap action is
+///     One switch: the message it sends (a CC or note; value 64 or more is "down"), what a tap does, what holding it
+///     for half a second does instead, and whether its LED is driven (the same CC or note, 127 when its tap action is
 ///     active, 0 when not). It answers only while its <c>View</c> is the active one, and a <c>Link</c> (a layout id)
 ///     switches to that layout after its tap action.
 /// </summary>

@@ -4,56 +4,51 @@ namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
 ///     Fender Hot Rod Deluxe III (40 W, 1 × 12), from Fender's service drawing 0079604000 rev B (15 June 2010, the
-///     "Hot Rod Deluxe/DeVille III" combined schematic, Deluxe values): V1A (100k, 1.5k ‖ 47 µF) feeding both the Normal
-///     channel's 0.022 µF and 270k into the 250k Volume and the Drive channel's 560 pF and 240k into the 250k Drive pot;
-///     a relay picks a wiper into V1B (10k stopper, 56k to ground; 100k, 1.5k ‖ 47 µF), the Fender stack on V1B's plate
-///     (250 pF, 130k slope, 0.1 µF bass, 0.022 µF mid; treble 250k linear, bass 250k 15 % audio, mid 25k linear; 220k from
-///     the
-///     treble pot's bottom to ground), 100k into V2A (100k, 1.5k). On the Normal channel V2A's 0.047 µF and 130k go
-///     straight to the effects loop; on the Drive channel they go through 100k into V2B (100k, 1.5k unbypassed), its 100k
-///     and 0.047 µF into the 100k Master (1 nF across it) and 47k to the effects loop. After the loop, 47k
-///     and 220k into the 12AX7 long-tail pair (82k/100k, 470 Ω, 6.8k tail; 0.022 µF and 1M in), two 6L6GC in fixed bias
-///     (30 mA each) at 431 V on a silicon bridge, 47k feedback from the 4 Ω tap into 4.7k with the 25k presence pot and
-///     0.1 µF.
+///     "Hot Rod Deluxe/DeVille III" combined schematic, Deluxe values): V1A (100k, 1.5k ‖ 47 µF) feeding both the
+///     Normal channel's 0.022 µF and 270k into the 250k Volume and the Drive channel's 560 pF and 240k into the 250k
+///     Drive pot; a relay picks a wiper into V1B (10k stopper, 56k to ground; 100k, 1.5k ‖ 47 µF), the Fender stack on
+///     V1B's plate (250 pF, 130k slope, 0.1 µF bass, 0.022 µF mid; treble 250k linear, bass 250k 15 % audio, mid 25k
+///     linear; 220k from the treble pot's bottom to ground), 100k into V2A (100k, 1.5k). On the Normal channel V2A's
+///     0.047 µF and 130k go straight to the effects loop; on the Drive channel they go through 100k into V2B (100k,
+///     1.5k unbypassed), its 100k and 0.047 µF into the 100k Master (1 nF across it) and 47k to the effects loop. After
+///     the loop, 47k and 220k into the 12AX7 long-tail pair (82k/100k, 470 Ω, 6.8k tail; 0.022 µF and 1M in), two 6L6GC
+///     in fixed bias (30 mA each) at 431 V on a silicon bridge, 47k feedback from the 4 Ω tap into 4.7k with the 25k
+///     presence pot and 0.1 µF.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         Panel: Drive (the Drive channel's gain, on the Gain knob), Volume (the Normal channel's), Bass, Middle,
-///         Treble, Master (Drive channel only, as on the amp), Presence; <b>Normal Ch</b> selects the Normal channel (the
-///         Drive channel is the default, so that Gain and Master act on it); <b>Bright</b> is the Normal channel's bright
-///         switch (it bypasses V2A's cathode with 0.068 µF, a treble boost; the relay disconnects it on the Drive
-///         channel);
-///         <b>More Drive</b> (Drive channel only) switches J111s that bypass V2A's cathode with 1 µF and V2B's with 22 µF
-///         (the
-///         drawing: "More Drive adds 12.7 dB of gain to the Drive mode"). On the Drive channel a relay grounds V2A's grid
-///         through 250 pF.
+///         Treble, Master (Drive channel only, as on the amp), Presence; <b>Normal Ch</b> selects the Normal channel
+///         (the Drive channel is the default, so that Gain and Master act on it); <b>Bright</b> is the Normal channel's
+///         bright switch (it bypasses V2A's cathode with 0.068 µF, a treble boost; the relay disconnects it on the
+///         Drive channel);
+///         <b>More Drive</b> (Drive channel only) switches J111s that bypass V2A's cathode with 1 µF and V2B's with 22
+///         µF (the drawing: "More Drive adds 12.7 dB of gain to the Drive mode"). On the Drive channel a relay grounds
+///         V2A's grid through 250 pF.
 ///     </para>
 ///     <para>
 ///         Source: "Service diagram, combined (schematic) Hot Rod Deluxe/DeVille III", drawing 0079604000 rev B,
-///         sheets 1–2 (thetubestore.com/lib/thetubestore/schematics/Fender/Fender-Hotrod-Deluxe-III-Schematic-Rev-B.pdf):
-///         every value above, the supply (431 V B+ on 47 µF, a choke to 430 V on 22 µF, 4.7k to 392 V for the inverter,
-///         10k to 345 V for the preamp), the Deluxe's 0.005 µF … 560 pF and 1000 pF variants, the 4 Ω feedback tap, the
-///         bias
-///         (60 mV across 1 Ω for both tubes). The test points (1 kHz, 4 mV in, Drive mode, controls at noon: 180 mV at
-///         V1A's plate, 13 mV at V1B's grid, 1.0 V at V2B's grid, 23.6 V at its plate, 1.45 V into the loop) check the
-///         gain
-///         staging (<c>FenderUsAmpTests</c>). The output transformer (4.25k : 4/8 Ω) is from the replacement listings of
-///         Fender part 005-0438 (amplifiedparts.com); the original 1996 Hot Rod Deluxe (drawing 050397) has the same
-///         topology.
+///         sheets 1–2
+///         (thetubestore.com/lib/thetubestore/schematics/Fender/Fender-Hotrod-Deluxe-III-Schematic-Rev-B.pdf): every
+///         value above, the supply (431 V B+ on 47 µF, a choke to 430 V on 22 µF, 4.7k to 392 V for the inverter, 10k
+///         to 345 V for the preamp), the Deluxe's 0.005 µF … 560 pF and 1000 pF variants, the 4 Ω feedback tap, the
+///         bias (60 mV across 1 Ω for both tubes). The test points (1 kHz, 4 mV in, Drive mode, controls at noon: 180
+///         mV at V1A's plate, 13 mV at V1B's grid, 1.0 V at V2B's grid, 23.6 V at its plate, 1.45 V into the loop)
+///         check the gain staging (<c>FenderUsAmpTests</c>). The output transformer (4.25k : 4/8 Ω) is from the
+///         replacement listings of Fender part 005-0438 (amplifiedparts.com); the original 1996 Hot Rod Deluxe (drawing
+///         050397) has the same topology.
 ///     </para>
 ///     <para>
 ///         The pots' tapers are from Fender's part numbers: the Volume, Drive and Bass "250k15A" (15 % at half
-///         rotation), the Master "100k30A" (30 %), the Treble and Middle "B" (linear); the Presence's "25k30C" is taken as
-///         linear. Simplified: the effects loop's op-amps (a 47k / 2.7k divider into a TL072 follower, then a
-///         non-inverting
-///         TL072 stage of gain 19.9 and 47k out) are a gain of about 1.06 and are a wire here, so the return network
-///         (0.47 µF, 47k) hangs on the send, which carries its 49.7k divider: about 0.5 dB apart. The reverb (at 0: its
-///         pot's
-///         wiper grounds the 470k mixing resistor, which is kept) and the reverb send's 470 pF / 1M load are left out, as
-///         are
-///         the 47 pF across the inverter's plates and the two 15 V zeners (1N5245B) that clamp the Drive channel's output
-///         at about ±16 V, which only the Master near full on More Drive reaches (a diode clipper beside V2B doubled that
-///         stage's cost). The J111's on-resistance (30 Ω) is the datasheet maximum.
+///         rotation), the Master "100k30A" (30 %), the Treble and Middle "B" (linear); the Presence's "25k30C" is taken
+///         as linear. Simplified: the effects loop's op-amps (a 47k / 2.7k divider into a TL072 follower, then a
+///         non-inverting TL072 stage of gain 19.9 and 47k out) are a gain of about 1.06 and are a wire here, so the
+///         return network (0.47 µF, 47k) hangs on the send, which carries its 49.7k divider: about 0.5 dB apart. The
+///         reverb (at 0: its pot's wiper grounds the 470k mixing resistor, which is kept) and the reverb send's 470 pF
+///         / 1M load are left out, as are the 47 pF across the inverter's plates and the two 15 V zeners (1N5245B) that
+///         clamp the Drive channel's output at about ±16 V, which only the Master near full on More Drive reaches (a
+///         diode clipper beside V2B doubled that stage's cost). The J111's on-resistance (30 Ω) is the datasheet
+///         maximum.
 ///     </para>
 /// </remarks>
 public static class HotRodDeluxe {
@@ -118,9 +113,9 @@ public static class HotRodDeluxe {
     };
 
     /// <summary>
-    ///     V1A with both channels' networks on its plate: 0.022 µF and 270k into the Volume, 560 pF and 240k into the Drive
-    ///     pot; the relay (<see cref="SwitchRole.Switch1" />: on is the Normal channel) takes one wiper to the output, which
-    ///     has the 56k to ground.
+    ///     V1A with both channels' networks on its plate: 0.022 µF and 270k into the Volume, 560 pF and 240k into the
+    ///     Drive pot; the relay (<see cref="SwitchRole.Switch1" />: on is the Normal channel) takes one wiper to the
+    ///     output, which has the 56k to ground.
     /// </summary>
     static NetworkStageDesign InputStage() {
         var net = new StageNetlist();
@@ -149,7 +144,9 @@ public static class HotRodDeluxe {
         return new("V1A", net, 34e3);
     }
 
-    /// <summary>V1B (10k stopper, 100k, 1.5k ‖ 47 µF) and the stack on its plate; the output is the treble wiper.</summary>
+    /// <summary>
+    ///     V1B (10k stopper, 100k, 1.5k ‖ 47 µF) and the stack on its plate; the output is the treble wiper.
+    /// </summary>
     static NetworkStageDesign StackStage() {
         var net = new StageNetlist();
         var (plate, cathode, rail) = (net.Node(), net.Node(), net.Node());
@@ -174,9 +171,9 @@ public static class HotRodDeluxe {
     }
 
     /// <summary>
-    ///     V2A behind its 100k: 250 pF from the grid to ground on the Drive channel; 1.5k with 0.068 µF over 100k, which the
-    ///     bright switch grounds on the Normal channel only, and 1 µF over 100k, which the More Drive JFET grounds on the
-    ///     Drive channel only. The output is the plate.
+    ///     V2A behind its 100k: 250 pF from the grid to ground on the Drive channel; 1.5k with 0.068 µF over 100k,
+    ///     which the bright switch grounds on the Normal channel only, and 1 µF over 100k, which the More Drive JFET
+    ///     grounds on the Drive channel only. The output is the plate.
     /// </summary>
     static NetworkStageDesign ThirdStage() {
         var net = new StageNetlist();
@@ -205,7 +202,9 @@ public static class HotRodDeluxe {
         return new("V2A", net);
     }
 
-    /// <summary>The Normal channel after V2A: 0.047 µF, 1M to ground, 130k to the loop and on to the inverter.</summary>
+    /// <summary>
+    ///     The Normal channel after V2A: 0.047 µF, 1M to ground, 130k to the loop and on to the inverter.
+    /// </summary>
     static NetworkStageDesign NormalOutput() {
         var net = new StageNetlist();
         var (coupled, output) = (net.Node(), net.Node());
@@ -217,9 +216,9 @@ public static class HotRodDeluxe {
     }
 
     /// <summary>
-    ///     The Drive channel after V2A: 0.047 µF, 1M, 100k into V2B's 220k grid leak; V2B (100k, 1.5k, 22 µF that More Drive
-    ///     grounds), 100k and 0.047 µF into the Master (1 nF across it), its wiper through 47k to the loop and on to the
-    ///     inverter.
+    ///     The Drive channel after V2A: 0.047 µF, 1M, 100k into V2B's 220k grid leak; V2B (100k, 1.5k, 22 µF that More
+    ///     Drive grounds), 100k and 0.047 µF into the Master (1 nF across it), its wiper through 47k to the loop and on
+    ///     to the inverter.
     /// </summary>
     static NetworkStageDesign DriveStage() {
         var net = new StageNetlist();
@@ -250,9 +249,10 @@ public static class HotRodDeluxe {
     }
 
     /// <summary>
-    ///     From the loop's send (<paramref name="send" />: its 49.7k divider to ground) through the loop, taken as a wire
-    ///     (see the type's remarks), its return's 0.47 µF and 47k, and 220k to the mixing node, which has the reverb's 470k
-    ///     (its pot at 0) and 47 pF to ground; returns the mixing node, which drives the inverter's 0.022 µF.
+    ///     From the loop's send (<paramref name="send" />: its 49.7k divider to ground) through the loop, taken as a
+    ///     wire (see the type's remarks), its return's 0.47 µF and 47k, and 220k to the mixing node, which has the
+    ///     reverb's 470k (its pot at 0) and 47 pF to ground; returns the mixing node, which drives the inverter's 0.022
+    ///     µF.
     /// </summary>
     static int Loop(StageNetlist net, int send) {
         net.Resistor(send, StageNetlist.Ground, SendLoad);

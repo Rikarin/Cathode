@@ -10,13 +10,13 @@ namespace Cathode.Dsp.Blocks;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Classic: the sweep spans Depth octaves either side of Center, kept within Min and Max Frequency. The VCR Type
-///         is the element that sets the stages' frequency from the LFO: Exponential sweeps evenly in octaves (the
+///         Classic: the sweep spans Depth octaves either side of Center, kept within Min and Max Frequency. The VCR
+///         Type is the element that sets the stages' frequency from the LFO: Exponential sweeps evenly in octaves (the
 ///         default), Linear evenly in hertz, JFET follows a square law (slow at the bottom, fast at the top) and
 ///         Photocell an exponential law on a light level that brightens and darkens with the cell's own attack and
-///         release, which lags and lopsides the sweep like an optical phaser. VCR Bias shifts the LFO's position
-///         and Exponent bends it. The LFO can be quantised and smoothed (<see cref="LfoConditioner" />); duty skews it
-///         (the astable shape's curvature). Feedback is taken after the last stage or the middle one.
+///         release, which lags and lopsides the sweep like an optical phaser. VCR Bias shifts the LFO's position and
+///         Exponent bends it. The LFO can be quantised and smoothed (<see cref="LfoConditioner" />); duty skews it (the
+///         astable shape's curvature). Feedback is taken after the last stage or the middle one.
 ///     </para>
 ///     <para>
 ///         Barberpole: two chains of second-order allpasses (Filter Q) sweep the whole range on a sawtooth, half a
@@ -100,10 +100,10 @@ public sealed class PhaserBlock() : DspBlock(Info), IEngageAware {
             ParamDescriptor.Float("center", "Manual", 100f, 4_000f, 800f, "Hz", ParamTaper.Log),
             ParamDescriptor.Choice("stages", "Order", ["2", "4", "6", "8", "10", "12"], 1),
             ParamDescriptor.Float("feedback", "Feedback", -95f, 95f, 0f, "%"),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 50f, "%"),
+            BlockParams.Mix(50f),
             ParamDescriptor.Float("spread", "LFO Phase", 0f, 180f, 90f, "°"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Choice("tempo", "Tempo", TempoDivisions.Names),
             ParamDescriptor.Choice("lfoType", "LFO Type", Lfo.ShapeNames) with { TypeLabels = ClassicOnly("LFO Type") },
             ParamDescriptor.Float("lfoDuty", "LFO Duty", 0f, 100f, 50f, "%") with {
@@ -173,7 +173,9 @@ public sealed class PhaserBlock() : DspBlock(Info), IEngageAware {
             _ => low * MathF.Pow(high / low, position)
         };
 
-    /// <summary>LFO Bypass Reset: engaging the block restarts the sweep from the top, so every engage sounds alike.</summary>
+    /// <summary>
+    ///     LFO Bypass Reset: engaging the block restarts the sweep from the top, so every engage sounds alike.
+    /// </summary>
     public void Engage() {
         if (Params.GetTarget(LfoReset) >= 0.5f) {
             lfo.Reset();

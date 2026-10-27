@@ -1,8 +1,8 @@
 namespace Cathode.Dsp.Reverb;
 
 /// <summary>
-///     Many circular delay lines of different lengths in one native buffer (one object for a whole tank, so a preset load
-///     allocates little). Reads, writes and the allpass match <see cref="ReverbLine" />.
+///     Many circular delay lines of different lengths in one native buffer (one object for a whole tank, so a preset
+///     load allocates little). Reads, writes and the allpass match <see cref="ReverbLine" />.
 /// </summary>
 sealed class LinePool(int count) : IDisposable {
     const float DenormalThreshold = 1e-20f;
@@ -35,7 +35,9 @@ sealed class LinePool(int count) : IDisposable {
 
     public void Dispose() => buffer.Dispose();
 
-    /// <summary>The value written <paramref name="delay" /> samples ago on <paramref name="line" /> (1 = the latest).</summary>
+    /// <summary>
+    ///     The value written <paramref name="delay" /> samples ago on <paramref name="line" /> (1 = the latest).
+    /// </summary>
     public float Tap(int line, int delay) {
         ref readonly var l = ref lines[line];
         var index = l.Write - delay;
@@ -59,14 +61,18 @@ sealed class LinePool(int count) : IDisposable {
         }
     }
 
-    /// <summary>A plain delay of <paramref name="delay" /> samples: returns the old value, then writes the new one.</summary>
+    /// <summary>
+    ///     A plain delay of <paramref name="delay" /> samples: returns the old value, then writes the new one.
+    /// </summary>
     public float Delay(int line, float value, int delay) {
         var output = Tap(line, delay);
         Write(line, value);
         return output;
     }
 
-    /// <summary>A Schroeder allpass of fractional length <paramref name="delay" />; taps read its internal node.</summary>
+    /// <summary>
+    ///     A Schroeder allpass of fractional length <paramref name="delay" />; taps read its internal node.
+    /// </summary>
     public float Allpass(int line, float value, float delay, float gain) {
         var delayed = Read(line, delay);
         var node = value + gain * delayed;

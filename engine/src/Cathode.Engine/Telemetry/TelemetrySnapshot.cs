@@ -1,6 +1,8 @@
 namespace Cathode.Engine.Telemetry;
 
-/// <summary>A copy of a <see cref="TelemetryRegion" />. Reusable: <see cref="TelemetryRegion.TryRead" /> overwrites it.</summary>
+/// <summary>
+///     A copy of a <see cref="TelemetryRegion" />. Reusable: <see cref="TelemetryRegion.TryRead" /> overwrites it.
+/// </summary>
 public sealed class TelemetrySnapshot {
     public long Callbacks { get; set; }
 

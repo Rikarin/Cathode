@@ -4,37 +4,37 @@ namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
 ///     Marshall JCM2000 DSL100 (Dual Super Lead), both channels with their modes, Tone Shift and Deep. The input (1M,
-///     68k) into V1B (220k, 1k8 ‖ 4.7 µF, 100 pF plate to cathode), 22 nF (1M to ground) to the front panel, where relay
-///     RL1 feeds one channel's network and grounds the other's input. Classic Gain: Clean, 220 pF + 82k beside 100k into
-///     a 150k bridge, its foot on 1M and on 47 nF + 10k to ground, 100k from the bridge's top onto the 1M audio Gain;
-///     Crunch, 4.7 nF and 470k ‖ 470 pF onto the Gain, 1 nF from its top to its wiper, the 47 nF's 10k on 1M; 100 pF from
-///     the Gain's top to its wiper in both; the wiper's 470k into V2B's grid. Ultra Gain: 4.7 nF, then 470k ‖ (2.2 nF +
-///     47k) onto the 1M audio Gain, 470 pF from its top to its wiper; Lead 1 grounds the junction of 150k from its top and
-///     470 pF from its wiper, Lead 2 lifts it (the two then bridge the pot, 10M at their junction) and fully bypasses
-///     V1A's cathode; the wiper drives V1A (100k, 1k8, 1 µF + 10k to ground, or 1 µF in Lead 2; 470 pF from the plate to
-///     the
-///     rail), 4.7 nF (1M to ground), 10k, 1k with 470 pF to ground and 470k into V2B's grid (2M2 to ground), where the
-///     channels mix. V2B (100k, 4k7 unbypassed), 22 nF, 470k into V2A (470k leak; 100k, 2k2 unbypassed), 22 nF, 220k,
-///     100k into V3B's grid (47k and 47k + 2k2 to ground: the reverb return's mixer), V3B (100k, 1k unbypassed),
-///     DC-coupled to the V3A follower (100k), whose cathode drives the tone stack directly (470 pF, 33k, 22 nF, 22 nF;
-///     200k linear treble, 1M audio bass, 22k linear middle with the middle cap on its wiper); Tone Shift puts 470 pF in
-///     series with the treble cap, 68k in series with the slope resistor and 22 nF in series with the middle cap. The
-///     treble wiper's 470k feeds both channels' 1M audio Volumes; relay RL2 takes the playing channel's wiper, through the
-///     reverb send's 2M2 + 680k, to the inverter: 22 nF, 1M, 470 Ω and 10k tail over 4k7, 82k / 100k with 47 pF across,
-///     22 nF out, 220k leaks, 5k6 stoppers, four EL34 with 1k screens; the 5k linear Presence with 100 nF and the Deep
-///     switch's gyrator (a 10 µF / 270 Ω / 330 Ω RC4558 simulated inductor) on the feedback node through 47 µF.
+///     68k) into V1B (220k, 1k8 ‖ 4.7 µF, 100 pF plate to cathode), 22 nF (1M to ground) to the front panel, where
+///     relay RL1 feeds one channel's network and grounds the other's input. Classic Gain: Clean, 220 pF + 82k beside
+///     100k into a 150k bridge, its foot on 1M and on 47 nF + 10k to ground, 100k from the bridge's top onto the 1M
+///     audio Gain; Crunch, 4.7 nF and 470k ‖ 470 pF onto the Gain, 1 nF from its top to its wiper, the 47 nF's 10k on
+///     1M; 100 pF from the Gain's top to its wiper in both; the wiper's 470k into V2B's grid. Ultra Gain: 4.7 nF, then
+///     470k ‖ (2.2 nF + 47k) onto the 1M audio Gain, 470 pF from its top to its wiper; Lead 1 grounds the junction of
+///     150k from its top and 470 pF from its wiper, Lead 2 lifts it (the two then bridge the pot, 10M at their
+///     junction) and fully bypasses V1A's cathode; the wiper drives V1A (100k, 1k8, 1 µF + 10k to ground, or 1 µF in
+///     Lead 2; 470 pF from the plate to the rail), 4.7 nF (1M to ground), 10k, 1k with 470 pF to ground and 470k into
+///     V2B's grid (2M2 to ground), where the channels mix. V2B (100k, 4k7 unbypassed), 22 nF, 470k into V2A (470k leak;
+///     100k, 2k2 unbypassed), 22 nF, 220k, 100k into V3B's grid (47k and 47k + 2k2 to ground: the reverb return's
+///     mixer), V3B (100k, 1k unbypassed), DC-coupled to the V3A follower (100k), whose cathode drives the tone stack
+///     directly (470 pF, 33k, 22 nF, 22 nF; 200k linear treble, 1M audio bass, 22k linear middle with the middle cap on
+///     its wiper); Tone Shift puts 470 pF in series with the treble cap, 68k in series with the slope resistor and 22
+///     nF in series with the middle cap. The treble wiper's 470k feeds both channels' 1M audio Volumes; relay RL2 takes
+///     the playing channel's wiper, through the reverb send's 2M2 + 680k, to the inverter: 22 nF, 1M, 470 Ω and 10k
+///     tail over 4k7, 82k / 100k with 47 pF across, 22 nF out, 220k leaks, 5k6 stoppers, four EL34 with 1k screens; the
+///     5k linear Presence with 100 nF and the Deep switch's gyrator (a 10 µF / 270 Ω / 330 Ω RC4558 simulated inductor)
+///     on the feedback node through 47 µF.
 /// </summary>
 /// <remarks>
 ///     <para>
 ///         Sources: Marshall drawings JCM2-60-02 issue 9 (DSL100 main board, 2003, "for parts list purposes only") and
 ///         JCM2-61-00 issue 5 (front panel, 2001), vector PDFs on DrTube (drtube.com/marshall-jcm2000-dsl); the boards'
 ///         wiring is traced from the connector cross-references printed on both sheets (main CON2 to front CON1, the
-///         input; CON3 to CON2, V1B's output to the channel networks; CON6 to CON3, the Classic Gain wiper; CON4 to CON5,
-///         the Ultra Gain wiper to V1A; CON5 to CON6, Lead 2's cathode switch; CON9 to CON11, V3A's cathode to the stack;
-///         CON11 to CON7, the volumes to the inverter; CON13 to CON12, the presence and Deep network), which JCM2-60-00
-///         issue 1 (1997) confirms; the wiring drawing JCM2-68-02 was not needed. Every value above is read from them; on
-///         issue 9 the 1997 sheet's channel-mixing LDR1 and LDR2 are fitted as 470k resistors (R79, R80), and LDR3 mutes
-///         the Ultra path at R26/R25 in the Classic channel.
+///         input; CON3 to CON2, V1B's output to the channel networks; CON6 to CON3, the Classic Gain wiper; CON4 to
+///         CON5, the Ultra Gain wiper to V1A; CON5 to CON6, Lead 2's cathode switch; CON9 to CON11, V3A's cathode to
+///         the stack; CON11 to CON7, the volumes to the inverter; CON13 to CON12, the presence and Deep network), which
+///         JCM2-60-00 issue 1 (1997) confirms; the wiring drawing JCM2-68-02 was not needed. Every value above is read
+///         from them; on issue 9 the 1997 sheet's channel-mixing LDR1 and LDR2 are fitted as 470k resistors (R79, R80),
+///         and LDR3 mutes the Ultra path at R26/R25 in the Classic channel.
 ///     </para>
 ///     <para>
 ///         Inferred: RL1 energised selects the Classic Gain channel (its contacts feed one network and ground the
@@ -44,15 +44,14 @@ namespace Cathode.Dsp.Amp.Models;
 ///         cathode bypass (the switch's two sections are drawn in the Lead 1 position, the bridge section's contact
 ///         read as the one the arm touches; the other reading gave Lead 2 3 dB less gain than Lead 1), Tone Shift the
 ///         series parts. Guessed: the rails (none printed: 470 V B+, 440 V for the inverter
-///         through its 4k7, 340 / 320 / 300 V for V3, V2 and V1), the idle current (35 mA a tube), the output transformer
-///         (1.7k), the feedback resistor and tap (47k from the 16 Ω tap: the resistor is on the speaker-jack wiring, not
-///         drawn). Simplified: the stack's foot (an elevated node on 1k, 22 µF and 220 nF, so that the DC-coupled follower
-///         puts no DC across the pots) as ground, with 22 µF coupling the follower to the stack; the reverb at zero (its
-///         return's driver as ground behind the 47k + 2k2; the send's 2M2 + 680k as a load); the switching-mute JFETs
-///         (TR1,
-///         TR3) off; LDR3 as open in the Ultra channel and the Ultra path's 470k as grounded in the Classic one; the
-///         Classic network's grounded wiper, in the Ultra channel, as 470k to ground; the Deep switch's gyrator as the
-///         library's depth control (Depth, labelled Deep).
+///         through its 4k7, 340 / 320 / 300 V for V3, V2 and V1), the idle current (35 mA a tube), the output
+///         transformer (1.7k), the feedback resistor and tap (47k from the 16 Ω tap: the resistor is on the
+///         speaker-jack wiring, not drawn). Simplified: the stack's foot (an elevated node on 1k, 22 µF and 220 nF, so
+///         that the DC-coupled follower puts no DC across the pots) as ground, with 22 µF coupling the follower to the
+///         stack; the reverb at zero (its return's driver as ground behind the 47k + 2k2; the send's 2M2 + 680k as a
+///         load); the switching-mute JFETs (TR1, TR3) off; LDR3 as open in the Ultra channel and the Ultra path's 470k
+///         as grounded in the Classic one; the Classic network's grounded wiper, in the Ultra channel, as 470k to
+///         ground; the Deep switch's gyrator as the library's depth control (Depth, labelled Deep).
 ///     </para>
 ///     <para>
 ///         Panel: Switch 1 selects the Ultra Gain channel, Switch 2 its mode (Classic: Crunch; Ultra: Lead 2), Switch 3
@@ -119,8 +118,8 @@ public static class Dsl100 {
     };
 
     /// <summary>
-    ///     After the input's 68k (1M before it): V1B (220k, 1k8 ‖ 4.7 µF, 100 pF plate to cathode), 22 nF and 1M to ground,
-    ///     a node of the front panel's input line that the source drives; returns that node.
+    ///     After the input's 68k (1M before it): V1B (220k, 1k8 ‖ 4.7 µF, 100 pF plate to cathode), 22 nF and 1M to
+    ///     ground, a node of the front panel's input line that the source drives; returns that node.
     /// </summary>
     static int InputStage(StageNetlist net) {
         var (rail, plate, cathode, line) = (net.Node(), net.Node(), net.Node(), net.Node());
@@ -182,9 +181,9 @@ public static class Dsl100 {
     }
 
     /// <summary>
-    ///     V1B and the Ultra Gain network: 4.7 nF, then 470k ‖ (2.2 nF + 47k) onto the 1M audio Gain with 470 pF from its
-    ///     top to its wiper; 150k from the top and 470 pF from the wiper meet on 10M to ground, the junction grounded in
-    ///     Lead 1 (switch 2 off) and lifted in Lead 2. Out at the wiper, V1A's grid (10M to ground).
+    ///     V1B and the Ultra Gain network: 4.7 nF, then 470k ‖ (2.2 nF + 47k) onto the 1M audio Gain with 470 pF from
+    ///     its top to its wiper; 150k from the top and 470 pF from the wiper meet on 10M to ground, the junction
+    ///     grounded in Lead 1 (switch 2 off) and lifted in Lead 2. Out at the wiper, V1A's grid (10M to ground).
     /// </summary>
     static StageNetlist UltraInput() {
         var net = new StageNetlist();
@@ -208,8 +207,8 @@ public static class Dsl100 {
 
     /// <summary>
     ///     V1A from its grid: 100k plate, 470 pF from the plate to the rail, 1k8 with 1 µF + 10k to ground (the 10k
-    ///     shorted in Lead 2); 4.7 nF (1M to ground), 10k, 1k (470 pF to ground), 470k into V2B's grid (2M2 to ground), the
-    ///     idle Classic network's 470k to ground there. Out at V2B's grid.
+    ///     shorted in Lead 2); 4.7 nF (1M to ground), 10k, 1k (470 pF to ground), 470k into V2B's grid (2M2 to ground),
+    ///     the idle Classic network's 470k to ground there. Out at V2B's grid.
     /// </summary>
     static StageNetlist UltraStage() {
         var net = new StageNetlist();
@@ -235,7 +234,9 @@ public static class Dsl100 {
         return net;
     }
 
-    /// <summary>V2B from its grid: 100k, 4k7 unbypassed; 22 nF and 470k into V2A's grid (470k leak). Out at that grid.</summary>
+    /// <summary>
+    ///     V2B from its grid: 100k, 4k7 unbypassed; 22 nF and 470k into V2A's grid (470k leak). Out at that grid.
+    /// </summary>
     static StageNetlist SecondStage() {
         var net = new StageNetlist();
         var (rail, plate, cathode, coupled, grid) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
@@ -251,8 +252,8 @@ public static class Dsl100 {
     }
 
     /// <summary>
-    ///     V2A from its grid: 100k, 2k2 unbypassed; 22 nF, 220k, 100k into V3B's grid, which 47k and the reverb return's
-    ///     47k + 2k2 hold to ground. Out at that grid.
+    ///     V2A from its grid: 100k, 2k2 unbypassed; 22 nF, 220k, 100k into V3B's grid, which 47k and the reverb
+    ///     return's 47k + 2k2 hold to ground. Out at that grid.
     /// </summary>
     static StageNetlist ThirdStage() {
         var net = new StageNetlist();
@@ -284,9 +285,9 @@ public static class Dsl100 {
     }
 
     /// <summary>
-    ///     The V3A follower (100k), 22 µF into the tone stack (Tone Shift on switch 3), the treble wiper's 470k onto both
-    ///     channels' 1M audio Volumes, the playing channel's wiper (switch 1: Ultra) to the output, which the reverb send's
-    ///     2M2 + 680k and 10M load. Out there.
+    ///     The V3A follower (100k), 22 µF into the tone stack (Tone Shift on switch 3), the treble wiper's 470k onto
+    ///     both channels' 1M audio Volumes, the playing channel's wiper (switch 1: Ultra) to the output, which the
+    ///     reverb send's 2M2 + 680k and 10M load. Out there.
     /// </summary>
     static StageNetlist Stack() {
         var net = new StageNetlist();

@@ -1,3 +1,5 @@
+using Cathode.Dsp.Convolution;
+
 namespace Cathode.Dsp.Cabinets;
 
 /// <summary>
@@ -12,18 +14,10 @@ public sealed class NativeFft : IDisposable {
     public int Size { get; }
 
     public NativeFft(int size) {
-        if (size < 2 || (size & (size - 1)) != 0) {
-            throw new ArgumentOutOfRangeException(nameof(size), size, "FFT size must be a power of two >= 2.");
-        }
-
-        Size = size;
+        Size = Fft.CheckSize(size);
         cos = new(size / 2);
         sin = new(size / 2);
-        for (var i = 0; i < size / 2; i++) {
-            var angle = -2.0 * Math.PI * i / size;
-            cos[i] = (float)Math.Cos(angle);
-            sin[i] = (float)Math.Sin(angle);
-        }
+        Fft.Twiddles(cos.Span, sin.Span, size);
     }
 
     public void Forward(Span<float> re, Span<float> im) => Transform(re, im, false);
@@ -35,6 +29,36 @@ public sealed class NativeFft : IDisposable {
         for (var i = 0; i < Size; i++) {
             re[i] *= scale;
             im[i] *= scale;
+        }
+    }
+
+    /// <summary>
+    ///     <c>re[0..N/2]</c> holds a natural-log magnitude; leaves the minimum-phase spectrum with that magnitude in
+    ///     <c>re</c>/<c>im</c>, bins 0 … N/2 (through the real cepstrum).
+    /// </summary>
+    public void MinimumPhase(Span<float> re, Span<float> im) {
+        var n = Size;
+        var half = n / 2;
+        for (var k = 1; k < half; k++) {
+            re[n - k] = re[k];
+        }
+
+        im.Clear();
+        Inverse(re, im);
+
+        // Fold the anticausal half of the real cepstrum onto the causal half.
+        for (var i = 1; i < half; i++) {
+            re[i] *= 2f;
+            re[n - i] = 0f;
+        }
+
+        im.Clear();
+        Forward(re, im);
+        for (var k = 0; k <= half; k++) {
+            var magnitude = MathF.Exp(re[k]);
+            var phase = im[k];
+            re[k] = magnitude * MathF.Cos(phase);
+            im[k] = magnitude * MathF.Sin(phase);
         }
     }
 
@@ -65,26 +89,6 @@ public sealed class NativeFft : IDisposable {
             j |= bit;
         }
 
-        var cos = this.cos.Span;
-        var sin = this.sin.Span;
-        var sign = inverse ? -1f : 1f;
-        for (var length = 2; length <= n; length <<= 1) {
-            var half = length >> 1;
-            var stride = n / length;
-            for (var start = 0; start < n; start += length) {
-                for (var k = 0; k < half; k++) {
-                    var wr = cos[k * stride];
-                    var wi = sign * sin[k * stride];
-                    var a = start + k;
-                    var b = a + half;
-                    var tr = re[b] * wr - im[b] * wi;
-                    var ti = re[b] * wi + im[b] * wr;
-                    re[b] = re[a] - tr;
-                    im[b] = im[a] - ti;
-                    re[a] += tr;
-                    im[a] += ti;
-                }
-            }
-        }
+        Fft.Butterflies(cos.Span, sin.Span, re, im, n, inverse);
     }
 }

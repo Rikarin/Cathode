@@ -3,8 +3,8 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Tests.Circuits;
 
 /// <summary>
-///     A nonlinear stage built twice, as a wave digital filter and as a <see cref="ReferenceCircuit" /> with the same node
-///     numbering (the reference's source node comes last), so that operating points carry over node by node.
+///     A nonlinear stage built twice, as a wave digital filter and as a <see cref="ReferenceCircuit" /> with the same
+///     node numbering (the reference's source node comes last), so that operating points carry over node by node.
 /// </summary>
 interface ITestStage {
     /// <summary>Node whose voltage is the stage's output (AC coupled into its load).</summary>
@@ -102,8 +102,8 @@ sealed class CommonEmitterStage : ITestStage {
 }
 
 /// <summary>
-///     A common-cathode triode stage: 300 V supply, 100k plate resistor, 1.5k cathode resistor bypassed by 22 µF, 1M grid
-///     leak, 22 nF in and out, 1M load (the next grid), driven from 1 kΩ.
+///     A common-cathode triode stage: 300 V supply, 100k plate resistor, 1.5k cathode resistor bypassed by 22 µF, 1M
+///     grid leak, 22 nF in and out, 1M load (the next grid), driven from 1 kΩ.
 /// </summary>
 sealed class CommonCathodeStage : ITestStage {
     const double Supply = 300;

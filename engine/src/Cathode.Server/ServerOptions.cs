@@ -13,8 +13,8 @@ public sealed class ServerOptions {
     public string? Token { get; set; }
 
     /// <summary>
-    ///     The editor's web build to serve at the root (a headless rig's packaged <c>editor</c> folder), or null to serve
-    ///     only the API, as the desktop app's sidecar does.
+    ///     The editor's web build to serve at the root (a headless rig's packaged <c>editor</c> folder), or null to
+    ///     serve only the API, as the desktop app's sidecar does.
     /// </summary>
     public string? EditorDirectory { get; set; }
 
@@ -22,7 +22,9 @@ public sealed class ServerOptions {
 }
 
 public sealed class EngineOptions {
-    /// <summary><c>ipc</c> (production: a separate cathode-host process) or <c>inprocess</c> (tests, no audio).</summary>
+    /// <summary>
+    ///     <c>ipc</c> (production: a separate cathode-host process) or <c>inprocess</c> (tests, no audio).
+    /// </summary>
     public string Mode { get; set; } = "ipc";
 
     /// <summary>The host's Unix domain socket, when <see cref="Mode" /> is <c>ipc</c>.</summary>

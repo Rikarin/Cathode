@@ -38,8 +38,8 @@ public readonly record struct BjtModel(
     public static BjtModel BC108 { get; } = new(BjtPolarity.Npn, 7.049e-15, 381.7, 2.359);
 
     /// <summary>
-    ///     AC128, germanium PNP of the Fuzz Face and Tone Bender (Is 2 µA, βF 90, βR 5, n 1.1: about 0.18 V base-emitter
-    ///     at 1 mA, with the leakage of a germanium junction).
+    ///     AC128, germanium PNP of the Fuzz Face and Tone Bender (Is 2 µA, βF 90, βR 5, n 1.1: about 0.18 V
+    ///     base-emitter at 1 mA, with the leakage of a germanium junction).
     /// </summary>
     public static BjtModel AC128 { get; } = new(BjtPolarity.Pnp, 2e-6, 90, 5, 1.1);
 
@@ -56,8 +56,8 @@ public readonly record struct BjtModel(
 /// <summary>
 ///     An Ebers-Moll bipolar transistor as a two-port <see cref="INonlinearDevice" />: port 0 is base-emitter, port 1
 ///     base-collector, both with the base at the plus node (declare them with
-///     <see cref="WdfNetlist.Transistor(int, int, int)" />). The port currents are then i₀ = I_E (in at the base, out at
-///     the emitter) and i₁ = -I_C, which add up to the base current.
+///     <see cref="WdfNetlist.Transistor(int, int, int)" />). The port currents are then i₀ = I_E (in at the base, out
+///     at the emitter) and i₁ = -I_C, which add up to the base current.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -88,7 +88,8 @@ public struct Bjt(BjtModel model) : INonlinearDevice {
         Span<double> jacobian,
         int stride
     ) {
-        // In NPN orientation: a PNP's currents are the negated NPN currents at negated voltages, its Jacobian unchanged.
+        // In NPN orientation: a PNP's currents are the negated NPN currents at negated voltages, its Jacobian
+        // unchanged.
         var ef = DeviceMath.LimitedExp(sign * voltages[0] / vt, out var df);
         var er = DeviceMath.LimitedExp(sign * voltages[1] / vt, out var dr);
         var transport = saturationCurrent * (ef - er);

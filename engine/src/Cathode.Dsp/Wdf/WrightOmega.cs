@@ -3,8 +3,8 @@ using System.Runtime.CompilerServices;
 namespace Cathode.Dsp.Wdf;
 
 /// <summary>
-///     The Wright omega function ω(x), the solution of ω + ln ω = x (equivalently W(e^x) with Lambert's W). It turns the
-///     implicit equation of a diode behind a resistor into a closed form.
+///     The Wright omega function ω(x), the solution of ω + ln ω = x (equivalently W(e^x) with Lambert's W). It turns
+///     the implicit equation of a diode behind a resistor into a closed form.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -13,9 +13,9 @@ namespace Cathode.Dsp.Wdf;
 ///         once at start-up and stored in monomial form in t ∈ [-1, 1]. Below <see cref="UniformHigh" /> the segments
 ///         are uniform in x (half a unit wide), where ω still bends like e^x; above it they are a quarter of an octave
 ///         wide, indexed straight from the exponent and the top two mantissa bits of x, because ω(x) ≈ x - ln x is
-///         nearly linear there and only its logarithmic part needs fitting. Outside the table the asymptotic series take
-///         over: ω = E (1 - E) + O(E³) with E = e^x for x below -24, and ω = x - L + L / x + O(L² / x²) with L = ln x
-///         above 2^24.
+///         nearly linear there and only its logarithmic part needs fitting. Outside the table the asymptotic series
+///         take over: ω = E (1 - E) + O(E³) with E = e^x for x below -24, and ω = x - L + L / x + O(L² / x²) with L =
+///         ln x above 2^24.
 ///     </para>
 ///     <para>
 ///         The result is within 1e-11 relative of the exact value everywhere, with no logarithm or division in the
@@ -91,8 +91,8 @@ public static class WrightOmega {
 
     /// <summary>
     ///     Iterates to double precision: a rough start, then Fritsch's third-order iteration (Lawrence, Corless and
-    ///     Jeffrey, "Algorithm 917: complex double-precision evaluation of the Wright ω function", ACM TOMS 38(3), 2012).
-    ///     Reference use and table fitting only.
+    ///     Jeffrey, "Algorithm 917: complex double-precision evaluation of the Wright ω function", ACM TOMS 38(3),
+    ///     2012). Reference use and table fitting only.
     /// </summary>
     public static double Precise(double x) {
         if (double.IsNaN(x) || x > 1e300) {
@@ -141,7 +141,9 @@ public static class WrightOmega {
         return y * (1 + r * (q - 0.5 * r) / (z * (q - r)));
     }
 
-    /// <summary>Chebyshev interpolation of every segment at the eight Chebyshev nodes, converted to monomials in t.</summary>
+    /// <summary>
+    ///     Chebyshev interpolation of every segment at the eight Chebyshev nodes, converted to monomials in t.
+    /// </summary>
     static double[] Fit() {
         var coefficients = new double[(UniformSegments + OctaveSegments) * Stride];
         Span<double> chebyshev = stackalloc double[Stride];

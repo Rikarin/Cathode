@@ -3,11 +3,11 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Fender Princeton AA964 (blackface, no reverb, about 12 W, 1 × 10): V1A (100k, 1.5k ‖ 25 µF, 34k at the jack) with
-///     the fixed-mid Fender stack on its plate (no coupling cap) and the 1M volume on the treble wiper, V1B (100k,
+///     Fender Princeton AA964 (blackface, no reverb, about 12 W, 1 × 10): V1A (100k, 1.5k ‖ 25 µF, 34k at the jack)
+///     with the fixed-mid Fender stack on its plate (no coupling cap) and the 1M volume on the treble wiper, V1B (100k,
 ///     1.5k ‖ 25 µF over the 47 Ω the feedback returns to), 0.022 µF into a cathodyne on half a 12AX7 (56k plate, 56k
-///     cathode, 1k bias, its 1M grid leak to the bias junction), two 6V6GT in fixed bias with no grid stoppers or screen
-///     resistors, at 420 V on a GZ34, 2.7k feedback from the speaker. Panel: Volume, Treble, Bass, and the bias
+///     cathode, 1k bias, its 1M grid leak to the bias junction), two 6V6GT in fixed bias with no grid stoppers or
+///     screen resistors, at 420 V on a GZ34, 2.7k feedback from the speaker. Panel: Volume, Treble, Bass, and the bias
 ///     tremolo's Speed and Intensity (<see cref="Tremolo" />).
 /// </summary>
 /// <remarks>
@@ -15,18 +15,17 @@ namespace Cathode.Dsp.Amp.Models;
 ///         Source: the Fender drawing "Princeton Amp AA964" (schematicheaven.net/fenderamps/princeton_aa964_schem.pdf,
 ///         code
 ///         L-FD, drawing 045419): every value above, the stack (250 pF, 100k, 0.1 µF, 0.047 µF, the bass pot's bottom
-///         through 6.8k to ground; treble and bass 250k audio, volume 1M audio), the supply (420 V on 20 µF, 1k to 415 V
-///         for the screens, 18k and 18k to 290 V for the preamp and the cathodyne), the voltages (V1 plates 190 V,
+///         through 6.8k to ground; treble and bass 250k audio, volume 1M audio), the supply (420 V on 20 µF, 1k to 415
+///         V for the screens, 18k and 18k to 290 V for the preamp and the cathodyne), the voltages (V1 plates 190 V,
 ///         cathodes 1.5 V, the cathodyne's cathode 65 V), the −34 V bias.
 ///     </para>
 ///     <para>
-///         The feedback returns to V1B's cathode, so its gain from cathode to plate (about 55 over the 47 Ω, as measured
-///         on
-///         the Princeton Reverb's identical V3B) is folded into the feedback's tap gain (see
+///         The feedback returns to V1B's cathode, so its gain from cathode to plate (about 55 over the 47 Ω, as
+///         measured on the Princeton Reverb's identical V3B) is folded into the feedback's tap gain (see
 ///         <see cref="PrincetonReverb" />).
-///         Unverified: the output transformer (125A10B, taken as the Deluxe's 6.6k : 8 Ω as for the Princeton Reverb), the
-///         6V6 idle current (22 mA), the supply's source resistance; the 10" speaker is the 1 × 12 preset, as on the
-///         Princeton Reverb.
+///         Unverified: the output transformer (125A10B, taken as the Deluxe's 6.6k : 8 Ω as for the Princeton Reverb),
+///         the 6V6 idle current (22 mA), the supply's source resistance; the 10" speaker is the 1 × 12 preset, as on
+///         the Princeton Reverb.
 ///     </para>
 /// </remarks>
 public static class PrincetonAA964 {
@@ -35,10 +34,11 @@ public static class PrincetonAA964 {
 
     /// <summary>
     ///     The bias tremolo, from the drawing: a 12AX7 half (220k from the 415 V node, 3300 Ω with 25 µF) with
-    ///     0.02 µF from its plate to the Speed rheostat (3M reverse audio, 100k in series), 0.01 µF to a node with 1M to
-    ///     the cathode (the pedal's jack on it), 0.01 µF to the grid with 1M to ground; the plate through 1M (0.02 µF to
-    ///     ground after it) and 0.1 µF to the 250k linear Intensity pot, whose far end is the bias supply (25 µF and 27k),
-    ///     its wiper on the 6V6 grid leaks' return. The plate's load from that network at the rate is about 1.2M.
+    ///     0.02 µF from its plate to the Speed rheostat (3M reverse audio, 100k in series), 0.01 µF to a node with 1M
+    ///     to the cathode (the pedal's jack on it), 0.01 µF to the grid with 1M to ground; the plate through 1M (0.02
+    ///     µF to ground after it) and 0.1 µF to the 250k linear Intensity pot, whose far end is the bias supply (25 µF
+    ///     and 27k), its wiper on the 6V6 grid leaks' return. The plate's load from that network at the rate is about
+    ///     1.2M.
     /// </summary>
     internal static BiasTremoloDesign Tremolo { get; } = new(
         new(
@@ -118,8 +118,8 @@ public static class PrincetonAA964 {
 
     /// <summary>
     ///     V1B: 100k, 1.5k ‖ 25 µF above the 47 Ω feedback resistor, with its grid-plate capacitance; 0.022 µF into the
-    ///     cathodyne's 1M grid leak, which returns to its bias junction (following the grid at about 0.93: about 14M; 10M
-    ///     here).
+    ///     cathodyne's 1M grid leak, which returns to its bias junction (following the grid at about 0.93: about 14M;
+    ///     10M here).
     /// </summary>
     static NetworkStageDesign SecondStage() {
         var net = new StageNetlist();

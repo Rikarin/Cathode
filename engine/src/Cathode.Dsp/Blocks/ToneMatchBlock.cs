@@ -31,8 +31,8 @@ public sealed class ToneMatchBlock() : DspBlock(Info), IAssetConsumer {
         "EQ",
         [
             ParamDescriptor.Float("mix", "Amount", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%")
+            BlockParams.Level,
+            BlockParams.Balance
         ],
         maxInstances: 1
     );

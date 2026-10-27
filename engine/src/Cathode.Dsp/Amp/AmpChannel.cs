@@ -6,7 +6,9 @@ namespace Cathode.Dsp.Amp;
 ///     The channel's own expert settings (the rest are <see cref="PreampSettings" /> and <see cref="PowerSettings" />).
 /// </summary>
 /// <param name="LowCut">An input high-pass corner in hertz (first order, before the first stage); 0 for none.</param>
-/// <param name="PreampSag">How much of the power supply's sag reaches the preamp: 1 stock, 0 a stiff preamp supply.</param>
+/// <param name="PreampSag">
+///     How much of the power supply's sag reaches the preamp: 1 stock, 0 a stiff preamp supply.
+/// </param>
 /// <param name="PowerAmp">False to leave the power amp out: the output is then the phase inverter's input.</param>
 /// <param name="StackLocation">Where the tone stack's stage runs in the chain (<see cref="StackLocation" />).</param>
 /// <param name="Overdrive">
@@ -87,12 +89,14 @@ public sealed class AmpChannel {
     public SolidStatePowerAmp? SolidState { get; }
 
     /// <summary>
-    ///     Whether the model has a tremolo of its own (a bias tremolo in its power amp or one on a preamp stage), which the
-    ///     Circuit Amp's tremolo parameters then drive.
+    ///     Whether the model has a tremolo of its own (a bias tremolo in its power amp or one on a preamp stage), which
+    ///     the Circuit Amp's tremolo parameters then drive.
     /// </summary>
     public bool HasTremolo { get; }
 
-    /// <summary>Whether the power amp is modelled (the Power Amp Modeling switch); otherwise the output is the preamp's.</summary>
+    /// <summary>
+    ///     Whether the power amp is modelled (the Power Amp Modeling switch); otherwise the output is the preamp's.
+    /// </summary>
     public bool PowerAmpEnabled => channelSettings.PowerAmp;
 
     /// <summary>
@@ -190,19 +194,22 @@ public sealed class AmpChannel {
         return nodes;
     }
 
-    /// <summary>Whether the channel has a tone stack it can move (<see cref="ChannelSettings.StackLocation" />).</summary>
+    /// <summary>
+    ///     Whether the channel has a tone stack it can move (<see cref="ChannelSettings.StackLocation" />).
+    /// </summary>
     public bool HasMovableStack => stackStage >= 0;
 
     /// <summary>
-    ///     Whether a stage of <paramref name="design" /> is a tone stack: a stack stage, a network with stack caps, or a
-    ///     switch between two single passive such networks (no triode, pentode or op-amp: the JC-120's stack with and
+    ///     Whether a stage of <paramref name="design" /> is a tone stack: a stack stage, a network with stack caps, or
+    ///     a switch between two single passive such networks (no triode, pentode or op-amp: the JC-120's stack with and
     ///     without its distortion diodes; a switched channel whose network holds its gain stage stays put).
     /// </summary>
     public static bool IsStack(AmpStageDesign design) =>
         design is ToneStackStageDesign
         || (design is NetworkStageDesign network
             && network.Netlist.Elements.Any(static e => e.CapacitorRole == CapacitorRole.Stack))
-        || (design is ChannelSwitchStageDesign { Off: [var off], On: [var on] } && IsPassiveStack(off)
+        || (design is ChannelSwitchStageDesign { Off: [var off], On: [var on] }
+            && IsPassiveStack(off)
             && IsPassiveStack(on));
 
     static bool IsPassiveStack(AmpStageDesign design) =>
@@ -285,49 +292,26 @@ public sealed class AmpChannel {
     ///     setting, the state left to slew: the rest levels the reordering and the overdrive work about follow, and the
     ///     next <see cref="Configure" /> hands on the new output resistances.
     /// </summary>
-    void Retune() {
+    void Retune() => Settle(false);
+
+    /// <summary>
+    ///     Every stage brought to its operating point in signal order, by <see cref="AmpStage.Reset" /> when
+    ///     <paramref name="reset" /> is set and by <see cref="AmpStage.Retune" /> otherwise: each stage's rest output
+    ///     feeds the next, a reordered channel's stages keep the operating points they have in the circuit's order, and
+    ///     the power amp sees the last stage's output resistance.
+    /// </summary>
+    void Settle(bool reset) {
         var rest = 0.0;
         var resistance = 0.0;
         foreach (var stage in stages) {
             stage.SetSourceResistance(resistance);
             stage.SetSupplies(supplies);
-            stage.Retune(rest);
-            rest = stage.RestOutput;
-            resistance = stage.OutputResistance;
-        }
-
-        for (var i = 0; i < stages.Length; i++) {
-            restInputs[i] = i == 0 ? 0 : stages[i - 1].RestOutput;
-        }
-
-        if (reordered) {
-            for (var k = 0; k < order.Length; k++) {
-                var arriving = k == 0 ? 0 : stages[order[k - 1]].RestOutput;
-                offsets[k] = restInputs[order[k]] - arriving;
-                if (k > 0) {
-                    stages[order[k]].SetSourceResistance(stages[order[k - 1]].OutputResistance);
-                }
+            if (reset) {
+                stage.Reset(rest);
+            } else {
+                stage.Retune(rest);
             }
 
-            resistance = stages[order[^1]].OutputResistance;
-        }
-
-        if (stages.Length > 0) {
-            Power.SetSourceResistance(resistance);
-        }
-    }
-
-    /// <summary>Every stage at its operating point, in signal order (each stage's rest output feeds the next).</summary>
-    public void Reset() {
-        Power.Reset();
-        SolidState?.Reset();
-        var rest = 0.0;
-        var resistance = 0.0;
-        UpdateSupplies();
-        foreach (var stage in stages) {
-            stage.SetSourceResistance(resistance);
-            stage.SetSupplies(supplies);
-            stage.Reset(rest);
             rest = stage.RestOutput;
             resistance = stage.OutputResistance;
         }
@@ -352,11 +336,22 @@ public sealed class AmpChannel {
         if (stages.Length > 0) {
             Power.SetSourceResistance(resistance);
         }
+    }
 
+    /// <summary>
+    ///     Every stage at its operating point, in signal order (each stage's rest output feeds the next).
+    /// </summary>
+    public void Reset() {
+        Power.Reset();
+        SolidState?.Reset();
+        UpdateSupplies();
+        Settle(true);
         lowCut.Reset();
     }
 
-    /// <summary>The running order for <paramref name="location" />: the stack's stage moved, the rest in their order.</summary>
+    /// <summary>
+    ///     The running order for <paramref name="location" />: the stack's stage moved, the rest in their order.
+    /// </summary>
     void Reorder(StackLocation location) {
         for (var i = 0; i < order.Length; i++) {
             order[i] = i;
@@ -368,11 +363,10 @@ public sealed class AmpChannel {
         }
 
         var firstGain = Array.FindIndex(stages, static s => s.IsGainStage);
+        var past = firstGain < stackStage ? 1 : 0; // the stack's stage leaves a gap before it
         var target = location switch {
             StackLocation.Pre => 0,
-            StackLocation.Mid => firstGain < 0 || firstGain == stackStage
-                ? 0
-                : firstGain + (firstGain < stackStage ? 1 : 0),
+            StackLocation.Mid => firstGain < 0 || firstGain == stackStage ? 0 : firstGain + past,
             _ => order.Length - 1
         };
         // Remove the stack's stage and insert it at the target position.

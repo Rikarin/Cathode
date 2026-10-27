@@ -301,7 +301,9 @@ public class DriveRound4DistortionTests(ITestOutputHelper output) {
         return Analysis.ToDb(magnitudes[64] / magnitudes[32]);
     }
 
-    /// <summary>Energy around <paramref name="hz" /> (±5 %) in the second half of <paramref name="signal" />, in dB.</summary>
+    /// <summary>
+    ///     Energy around <paramref name="hz" /> (±5 %) in the second half of <paramref name="signal" />, in dB.
+    /// </summary>
     static double Band(float[] signal, double hz) {
         var magnitudes = Fft.Magnitudes(signal.AsSpan(signal.Length - 16_384));
         double energy = 0;

@@ -6,7 +6,9 @@ namespace Cathode.Dsp.Tests;
 public class PitchTrackerTests(ITestOutputHelper output) {
     const double Rate = 48_000;
 
-    /// <summary>Guitar-like: a weak fundamental under a strong second harmonic, and harmonics falling off as 1/k.</summary>
+    /// <summary>
+    ///     Guitar-like: a weak fundamental under a strong second harmonic, and harmonics falling off as 1/k.
+    /// </summary>
     public static float[] HarmonicTone(double frequency, int length, float amplitude = 0.3f) {
         var tone = new float[length];
         for (var k = 1; k * frequency < 12_000; k++) {

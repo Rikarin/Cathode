@@ -3,19 +3,19 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Mesa/Boogie Subway Blues (20 W, 2 × EL84). V1a: the input through 1.5M ‖ 20 pF ‖ 120 pF, 1M ‖ 250 pF to ground at
-///     the grid, 100k plate from 168 V, 1.6k with 3.3 µF; on its plate the Mark-style stack (250 pF to the 250k audio
-///     treble, 750 pF more with Fat; 150k slope; 0.1 µF to the 250k audio bass, 47 nF to the 25k linear middle), the 1M
-///     audio volume on the treble wiper (120 pF from its top to the wiper) straight into V1b's grid (5 nF and 330k from
-///     grid to cathode; 100k, 1.6k with 1 µF); 47 nF and 220k into V2a (20 pF and 470k at the grid; 100k, 1.6k with
-///     15 µF); 47 nF, the reverb send's load, 680k into the reverb pot (100k linear, at zero), 16k into 180 pF and
-///     5.6k + 2.7k to ground, 10 nF into the emitter follower Q1 (MPSA63) and the effects loop; 1 µF with 22k to ground,
-///     20 nF and 470 Ω into V2b (47k at the grid; 100k, 1.6k with 1 µF); 100k, 47 nF, 10k and 33k into 15k + 22k, 20 nF
-///     into the inverter: a long-tail pair (68k and 120k plates from 334 V, a 15k tail to -15 V), with the feedback from
-///     the 8 Ω tap through 56k ‖ (33k + 5 nF) into its second grid (1.6k to ground); 47 nF, 330k to the -15 V bias
-///     supply through 33k, 220k into each EL84's grid with 2.2M to ground (-11 V); two EL84 at 395 V with 330 V screens
-///     through 470 Ω; silicon rectifier, 15 µF (two 30 µF stacked), 5.5k to the screen node (334 V, 30 µF), 63k to the
-///     preamp node (168 V, 30 µF).
+///     Mesa/Boogie Subway Blues (20 W, 2 × EL84). V1a: the input through 1.5M ‖ 20 pF ‖ 120 pF, 1M ‖ 250 pF to ground
+///     at the grid, 100k plate from 168 V, 1.6k with 3.3 µF; on its plate the Mark-style stack (250 pF to the 250k
+///     audio treble, 750 pF more with Fat; 150k slope; 0.1 µF to the 250k audio bass, 47 nF to the 25k linear middle),
+///     the 1M audio volume on the treble wiper (120 pF from its top to the wiper) straight into V1b's grid (5 nF and
+///     330k from grid to cathode; 100k, 1.6k with 1 µF); 47 nF and 220k into V2a (20 pF and 470k at the grid; 100k,
+///     1.6k with 15 µF); 47 nF, the reverb send's load, 680k into the reverb pot (100k linear, at zero), 16k into 180
+///     pF and 5.6k + 2.7k to ground, 10 nF into the emitter follower Q1 (MPSA63) and the effects loop; 1 µF with 22k to
+///     ground, 20 nF and 470 Ω into V2b (47k at the grid; 100k, 1.6k with 1 µF); 100k, 47 nF, 10k and 33k into 15k +
+///     22k, 20 nF into the inverter: a long-tail pair (68k and 120k plates from 334 V, a 15k tail to -15 V), with the
+///     feedback from the 8 Ω tap through 56k ‖ (33k + 5 nF) into its second grid (1.6k to ground); 47 nF, 330k to the
+///     -15 V bias supply through 33k, 220k into each EL84's grid with 2.2M to ground (-11 V); two EL84 at 395 V with
+///     330 V screens through 470 Ω; silicon rectifier, 15 µF (two 30 µF stacked), 5.5k to the screen node (334 V, 30
+///     µF), 63k to the preamp node (168 V, 30 µF).
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -33,11 +33,11 @@ namespace Cathode.Dsp.Amp.Models;
 ///         out; the handwritten 1k screen resistors (beside the printed 470 Ω) not used. The inverter's tail returns to
 ///         -15 V with its grids at ground; the block's long-tail pair returns to ground with its grids on a bias
 ///         resistor, so here a 15k tail, a 1.2k bias resistor and 350 V on the plates give the same currents (about
-///         1.1 mA) and plate-to-cathode voltages (a reading of the circuit, not printed). The feedback enters the second
-///         grid, here the tail's foot (the same difference); the 33k + 5 nF across the 56k is the network's fixed shelf
-///         (more feedback above 360 Hz, a 0.37 ratio). Guessed: the output transformer (8k, a typical primary for two
-///         EL84), the EL84s' idle current (30 mA at -11 V), the bias network as a 290k leak (330k ‖ 2.42M) behind the
-///         220k series resistors.
+///         1.1 mA) and plate-to-cathode voltages (a reading of the circuit, not printed). The feedback enters the
+///         second grid, here the tail's foot (the same difference); the 33k + 5 nF across the 56k is the network's
+///         fixed shelf (more feedback above 360 Hz, a 0.37 ratio). Guessed: the output transformer (8k, a typical
+///         primary for two EL84), the EL84s' idle current (30 mA at -11 V), the bias network as a 290k leak (330k ‖
+///         2.42M) behind the 220k series resistors.
 ///     </para>
 /// </remarks>
 public static class SubwayBlues {
@@ -162,8 +162,8 @@ public static class SubwayBlues {
 
     /// <summary>
     ///     47 nF from V2a; the reverb send (3.3M ‖ (1.6M + 250 pF) into V4b's 1M); 680k into the reverb pot (100k to
-    ///     ground at zero); 16k into 180 pF and 8.3k to ground; 10 nF to Q1's base (its bias network, bootstrapped, as an
-    ///     open circuit beside 10 MΩ).
+    ///     ground at zero); 16k into 180 pF and 8.3k to ground; 10 nF to Q1's base (its bias network, bootstrapped, as
+    ///     an open circuit beside 10 MΩ).
     /// </summary>
     static StageNetlist ReverbMix() {
         var net = new StageNetlist();
@@ -186,8 +186,8 @@ public static class SubwayBlues {
     }
 
     /// <summary>
-    ///     From Q1's emitter: 1 µF with 22k to ground, 20 nF and 470 Ω into V2b (47k at the grid; 100k, 1.6k with 1 µF);
-    ///     100k, 47 nF, 10k and 33k into 15k + 22k to ground.
+    ///     From Q1's emitter: 1 µF with 22k to ground, 20 nF and 470 Ω into V2b (47k at the grid; 100k, 1.6k with 1
+    ///     µF); 100k, 47 nF, 10k and 33k into 15k + 22k to ground.
     /// </summary>
     static StageNetlist LoopReturn() {
         var net = new StageNetlist();

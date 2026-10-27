@@ -309,7 +309,9 @@ public readonly struct CabAcoustics {
         return 10 * Math.Log10(numerator / denominator);
     }
 
-    /// <summary>The smooth envelope of a rigid piston's directivity <c>2 J1(x) / x</c>, in dB: −3 dB at x = 1.62.</summary>
+    /// <summary>
+    ///     The smooth envelope of a rigid piston's directivity <c>2 J1(x) / x</c>, in dB: −3 dB at x = 1.62.
+    /// </summary>
     public static double PistonDb(double x) => 20 * Math.Log10(PistonGain(x));
 
     /// <summary><see cref="PistonDb" /> as a gain.</summary>
@@ -318,7 +320,9 @@ public readonly struct CabAcoustics {
         return 1 / Math.Sqrt(1 + u * u * u);
     }
 
-    /// <summary>The power the ceiling, side and back walls reflect at <paramref name="hz" />, before diffusion.</summary>
+    /// <summary>
+    ///     The power the ceiling, side and back walls reflect at <paramref name="hz" />, before diffusion.
+    /// </summary>
     double WallPower(double hz, double omega, double k, double effective) {
         var (ceiling, sideWall, backWall, damping, level) = Walls();
         var lowCut = room.LowDamping > 0 ? HighPass(hz, room.LowDamping).Magnitude : 1;
@@ -354,7 +358,9 @@ public readonly struct CabAcoustics {
     /// </summary>
     double Offset(double side) => room.MicOffset == 0 ? side : Math.Sqrt(side * side + Square(room.MicOffset));
 
-    /// <summary>The side wall's image, 2 × the wall's distance across, plus the room mic's own offset away from it.</summary>
+    /// <summary>
+    ///     The side wall's image, 2 × the wall's distance across, plus the room mic's own offset away from it.
+    /// </summary>
     double SideImage(double sideWall) =>
         room.MicOffset == 0 ? 2 * sideWall : Math.Max(0.01, 2 * sideWall + room.MicOffset);
 
@@ -365,7 +371,9 @@ public readonly struct CabAcoustics {
     /// <summary>A first-order high-pass <c>j f / (fc + j f)</c>.</summary>
     static Complex HighPass(double hz, double corner) => new Complex(0, hz) / new Complex(corner, hz);
 
-    /// <summary>The coherent share of a reflection whose arrival is spread by <paramref name="spread" /> seconds.</summary>
+    /// <summary>
+    ///     The coherent share of a reflection whose arrival is spread by <paramref name="spread" /> seconds.
+    /// </summary>
     static double Coherence(double omega, double spread) => spread <= 0 ? 1 : Math.Exp(-0.5 * Square(omega * spread));
 
     /// <summary>First-order HF absorption of a reflecting surface.</summary>
@@ -395,9 +403,9 @@ public readonly struct CabAcoustics {
     }
 
     /// <summary>
-    ///     A speaker (or its image) <paramref name="side" /> metres to the side of the mic and <paramref name="front" />
-    ///     in front of it: spread relative to the direct sound, its directivity towards the mic, the mic's pattern
-    ///     and the extra path delay.
+    ///     A speaker (or its image) <paramref name="side" /> metres to the side of the mic and
+    ///     <paramref name="front" /> in front of it: spread relative to the direct sound, its directivity towards the
+    ///     mic, the mic's pattern and the extra path delay.
     /// </summary>
     Complex Source(double omega, double k, double effective, double side, double front) {
         var distance = Math.Sqrt(side * side + front * front);

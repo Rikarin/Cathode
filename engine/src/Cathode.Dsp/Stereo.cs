@@ -17,8 +17,9 @@ public static class Stereo {
         };
 
     /// <summary>
-    ///     Places the left input at <paramref name="panLeft" /> and the right at <paramref name="panRight" /> (−1..1, each
-    ///     with the balance law: the far side is turned down). −1 and 1 leave a pair untouched; both at 0 make it mono.
+    ///     Places the left input at <paramref name="panLeft" /> and the right at <paramref name="panRight" /> (−1..1,
+    ///     each with the balance law: the far side is turned down). −1 and 1 leave a pair untouched; both at 0 make it
+    ///     mono.
     /// </summary>
     public static void Pan(in StereoBuffer io, float panLeft, float panRight) {
         if (panLeft == -1f && panRight == 1f) {

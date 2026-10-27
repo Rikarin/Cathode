@@ -5,13 +5,13 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-///     Wah. The first three types are filter approximations: a resonant band-pass swept exponentially over the voicing's
-///     range by the pedal position, with some low-pass "body" mixed in as in the inductor circuit. Every other type models
-///     a pedal at component level: the inductor wahs as their circuit (a <see cref="WahCircuit" /> per channel, voiced by
-///     one of <see cref="Circuits" />, the pedal turning its pot), the inductor-less Morley and Parapedal as their op-amp
-///     band-pass (an <see cref="ActiveWahCircuit" />, voiced by one of <see cref="ActiveCircuits" />). Either way the
-///     filter follows the smoothed position every <see cref="SubBlock" /> samples, so an expression pedal or modifier can
-///     drive it smoothly.
+///     Wah. The first three types are filter approximations: a resonant band-pass swept exponentially over the
+///     voicing's range by the pedal position, with some low-pass "body" mixed in as in the inductor circuit. Every
+///     other type models a pedal at component level: the inductor wahs as their circuit (a <see cref="WahCircuit" />
+///     per channel, voiced by one of <see cref="Circuits" />, the pedal turning its pot), the inductor-less Morley and
+///     Parapedal as their op-amp band-pass (an <see cref="ActiveWahCircuit" />, voiced by one of
+///     <see cref="ActiveCircuits" />). Either way the filter follows the smoothed position every
+///     <see cref="SubBlock" /> samples, so an expression pedal or modifier can drive it smoothly.
 /// </summary>
 /// <remarks>
 ///     <list type="bullet">
@@ -56,7 +56,8 @@ public sealed class WahBlock() : DspBlock(Info) {
 
     /// <summary>
     ///     The first type added as a component-level circuit (the Cry Baby; the V846 follows). The five types before it
-    ///     from Clyde on were filter voicings first and are circuits now, in place, so <see cref="IsCircuit" /> is the test.
+    ///     from Clyde on were filter voicings first and are circuits now, in place, so <see cref="IsCircuit" /> is the
+    ///     test.
     /// </summary>
     public const int FirstCircuit = 8;
 
@@ -67,7 +68,9 @@ public sealed class WahBlock() : DspBlock(Info) {
     const float PeakGain = 2f;
     const float Body = 0.15f;
 
-    /// <summary>Volts at the circuit's input for a full-scale sample: a hot pickup, enough to push the transistors.</summary>
+    /// <summary>
+    ///     Volts at the circuit's input for a full-scale sample: a hot pickup, enough to push the transistors.
+    /// </summary>
     const double InputVolts = 1;
 
     /// <summary>Heel-down frequency, toe-down frequency and Q per filter voicing (types 0 to 2).</summary>
@@ -85,8 +88,8 @@ public sealed class WahBlock() : DspBlock(Info) {
 
     /// <summary>
     ///     What each type is, in type order (presets store the index): a filter voicing, an inductor circuit
-    ///     (<see cref="Circuits" />) or an inductor-less one (<see cref="ActiveCircuits" />), and its index in that list.
-    ///     Clyde to Parapedal were filter voicings until they became circuits in place.
+    ///     (<see cref="Circuits" />) or an inductor-less one (<see cref="ActiveCircuits" />), and its index in that
+    ///     list. Clyde to Parapedal were filter voicings until they became circuits in place.
     /// </summary>
     static readonly (Kind Kind, int Index)[] Types = [
         (Kind.Filter, 0), // Classic
@@ -155,9 +158,9 @@ public sealed class WahBlock() : DspBlock(Info) {
             OutputDb = -15
         },
         // Sola Sound Colorsound wah, the original inductor version: the Thomas Organ circuit with BC10x transistors. No
-        // traced values to hand, so guessed to its character, wide and smooth: a smaller tuning capacitor (8.2 nF) and a
-        // 470 mH inductor lift the toe, a 220 Ω emitter resistor gives more loop gain (a deeper heel) and a 27k across
-        // the inductor keeps the peak broad.
+        // traced values to hand, so guessed to its character, wide and smooth: a smaller tuning capacitor (8.2 nF) and
+        // a 470 mH inductor lift the toe, a 220 Ω emitter resistor gives more loop gain (a deeper heel) and a 27k
+        // across the inductor keeps the peak broad.
         new("Colorsound", "Sola Sound Colorsound wah") {
             Supply = 9,
             Emitter1 = 220,
@@ -230,9 +233,9 @@ public sealed class WahBlock() : DspBlock(Info) {
                 Smoothing: ParamSmoothing.Linear,
                 SmoothingMs: 10f
             ),
-            ParamDescriptor.Float("mix", "Mix", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("level", "Level", Decibels.SilenceDb, 20f, 0f, "dB"),
-            ParamDescriptor.Float("balance", "Balance", -100f, 100f, 0f, "%"),
+            BlockParams.Mix(100f),
+            BlockParams.Level,
+            BlockParams.Balance,
             ParamDescriptor.Float("resonance", "Resonance Q", 0.25f, 4f, 1f, "x", ParamTaper.Log),
             ParamDescriptor.Float("qTracking", "Q Tracking", 0f, 100f, 0f, "%"),
             ParamDescriptor.Choice("taper", "Control Taper", ["Linear", "Log", "Reverse Log"]),
@@ -271,12 +274,15 @@ public sealed class WahBlock() : DspBlock(Info) {
     public static int TypeCount => Types.Length;
 
     /// <summary>
-    ///     DC operating points the inductor circuits have solved since Prepare (for tests and diagnostics): each voicing's
-    ///     once, at Prepare, and none on a type change.
+    ///     DC operating points the inductor circuits have solved since Prepare (for tests and diagnostics): each
+    ///     voicing's once, at Prepare, and none on a type change.
     /// </summary>
-    public long OperatingPointSolves => (circuitLeft?.OperatingPointSolves ?? 0) + (circuitRight?.OperatingPointSolves ?? 0);
+    public long OperatingPointSolves =>
+        (circuitLeft?.OperatingPointSolves ?? 0) + (circuitRight?.OperatingPointSolves ?? 0);
 
-    /// <summary>Whether <paramref name="type" /> is modelled at component level (an inductor or inductor-less circuit).</summary>
+    /// <summary>
+    ///     Whether <paramref name="type" /> is modelled at component level (an inductor or inductor-less circuit).
+    /// </summary>
     public static bool IsCircuit(int type) => Types[type].Kind != Kind.Filter;
 
     /// <summary>The inductor circuit of <paramref name="type" />, or null.</summary>
@@ -300,10 +306,14 @@ public sealed class WahBlock() : DspBlock(Info) {
         return low * MathF.Pow(high / low, Math.Clamp(position, 0f, 100f) / 100f);
     }
 
-    /// <summary>The inductance left by Inductor Bias <paramref name="bias" /> (0..1), as a fraction of the unbiased.</summary>
+    /// <summary>
+    ///     The inductance left by Inductor Bias <paramref name="bias" /> (0..1), as a fraction of the unbiased.
+    /// </summary>
     public static float BiasedInductance(float bias) => 1f - MaxBiasDrop * Math.Clamp(bias, 0f, 1f);
 
-    /// <summary>The pedal position (0..100 %) through the Control Taper: linear, or bunched toward heel or toe.</summary>
+    /// <summary>
+    ///     The pedal position (0..100 %) through the Control Taper: linear, or bunched toward heel or toe.
+    /// </summary>
     public static float Tapered(int taper, float position) {
         var p = Math.Clamp(position, 0f, 100f) / 100f;
         return 100f
@@ -339,7 +349,9 @@ public sealed class WahBlock() : DspBlock(Info) {
         return x * (1 - mix) + wet * mix;
     }
 
-    /// <summary>One sample of an inductor-less circuit: its inverting band-pass's output, polarity restored and trimmed.</summary>
+    /// <summary>
+    ///     One sample of an inductor-less circuit: its inverting band-pass's output, polarity restored and trimmed.
+    /// </summary>
     static float Voice(float x, ActiveWahCircuit circuit, float trim, float drive, float mix) {
         var wet = (float)(-trim * circuit.Tick(x * InputVolts * drive));
         return x * (1 - mix) + wet * mix;
@@ -454,9 +466,9 @@ public sealed class WahBlock() : DspBlock(Info) {
     }
 
     /// <summary>
-    ///     How far Min and Max Frequency move a circuit's resonance at pedal position <paramref name="toe" /> (0 … 1): Min
-    ///     at the heel, Max at the toe, geometrically between. The circuit takes it as its inductor, scaled by one over
-    ///     its square (the resonance goes as one over root L).
+    ///     How far Min and Max Frequency move a circuit's resonance at pedal position <paramref name="toe" /> (0 … 1):
+    ///     Min at the heel, Max at the toe, geometrically between. The circuit takes it as its inductor, scaled by one
+    ///     over its square (the resonance goes as one over root L).
     /// </summary>
     public static double SweepScale(double minScale, double maxScale, double toe) =>
         minScale == maxScale ? minScale : Math.Pow(minScale, 1 - toe) * Math.Pow(maxScale, toe);

@@ -2,11 +2,11 @@ namespace Cathode.Dsp.Cabinets;
 
 /// <summary>
 ///     The Cab block's mic preamp, one channel: a waveshaper per <see cref="Types" /> entry
-///     (<see cref="MicPreampTypes" />) driven by Drive, with Saturation biasing it for even harmonics (the DC that leaves
-///     is blocked), followed by a fixed one-pole treble roll-off that gives each type its tone. The tape and Vintage
-///     types put an emphasis shelf before the curve and its exact inverse after it; the Exciter sends only its high band
-///     through the curve. The small-signal gain is unity whatever the Drive, so Drive changes the colour, not the level.
-///     Not oversampled: at high Drive it aliases a little, as a mic preamp seldom clips hard.
+///     (<see cref="MicPreampTypes" />) driven by Drive, with Saturation biasing it for even harmonics (the DC that
+///     leaves is blocked), followed by a fixed one-pole treble roll-off that gives each type its tone. The tape and
+///     Vintage types put an emphasis shelf before the curve and its exact inverse after it; the Exciter sends only its
+///     high band through the curve. The small-signal gain is unity whatever the Drive, so Drive changes the colour, not
+///     the level. Not oversampled: at high Drive it aliases a little, as a mic preamp seldom clips hard.
 /// </summary>
 public struct MicPreamp {
     /// <summary>Type <c>None</c>: the preamp is bypassed.</summary>
@@ -49,7 +49,8 @@ public struct MicPreamp {
 
     /// <summary>
     ///     Shapes <paramref name="samples" /> in place, Drive and Saturation moving linearly from
-    ///     <paramref name="fromDriveDb" />/<paramref name="fromSaturation" /> (0 … 1) to the new values across the span.
+    ///     <paramref name="fromDriveDb" />/<paramref name="fromSaturation" /> (0 … 1) to the new values across the
+    ///     span.
     /// </summary>
     public void Process(
         int type,
