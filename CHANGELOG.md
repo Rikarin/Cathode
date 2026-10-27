@@ -15,6 +15,8 @@ the format upgrades older presets as it reads them.
 - **Perform page and footswitch overrides** (#107): controls are renamed and reordered, and a preset's switch
   override has its own hold action and label.
 - **Tone Match amount and smoothing** (#109) are chosen in its panel.
+- **Amp Oversampling** (#88): a Circuit Amp's Advanced page can run the whole circuit at 4x (High) for 7–11 dB less
+  aliasing on the high-gain models, at about twice the CPU. Standard stays the default and sounds as before.
 
 ### Changed
 
@@ -35,6 +37,16 @@ the format upgrades older presets as it reads them.
   `GET /block-presets/{id}`, `GET /banks/{id}`, `PUT /presets/{id}` and `PUT /live/banks/{id}/slots/{slot}`.
 - **Desktop settings** (#131) are written atomically, owner-only, with the network and remote tokens encrypted at
   rest where the system offers it.
+- **Tube models match their datasheets** (#86): the 12AX7, 12AT7 and EL34 reproduce their published operating
+  points, which re-voices every amp a little (most by well under 1 dB; Liverpool, Subway Blues and Silver Jubilee
+  by 2–3 dB at low gain). The factory presets are re-levelled.
+- **Tone stacks** (#87) load the stage before them with their real, knob-dependent output resistance.
+- **Tiny Terror, Chieftain and Hot Cat** (#96): their Tone and Brilliance sit on the Presence knob under their own
+  names and turn the right way (clockwise brighter). Saved presets are converted and sound the same.
+- **JTM45** (#95) is rated 30 W on a 6.6k primary, as the KT66 originals were.
+- **Undo** follows knob gestures (#72): one drag is one step however long it lasts, and the next drag is another.
+- **Concurrent editors** (#75): `/global` carries a revision, and a knob change made before another preset loaded
+  is dropped instead of landing on the new preset.
 
 ### Fixed
 
@@ -51,6 +63,9 @@ the format upgrades older presets as it reads them.
 - **IR Player:** clearing its last IR fades the wet signal out instead of cutting it (#144).
 - **Tuner:** detection keeps its window in a ring buffer instead of shifting it for every sample (#145).
 - **Meters** resolve their theme colours once per theme change, not on every frame (#150).
+- **Hot Cat 30:** its Master turns the drive channel down to silence instead of by about 1 dB (#94).
+- **Mark IIC+ and Mark IV:** the power stage has Mesa's 470 Ω screens, 2.2k stoppers, 0.1 µF coupling caps and the
+  inverter's 470 Ω / 22k tail (#102).
 
 ### Internal
 
@@ -65,6 +80,12 @@ the format upgrades older presets as it reads them.
   code. The in-process engine mode is gone: run `cathode-host --serve --null-audio` and point the Server at it.
 - **Docs:** the architecture's audio backends (#130) and API table (#112), and the Formant block's five vowels
   (#147), describe what is built.
+- **Amp tests:** reference-circuit chain comparisons for the Mark IIC+, Mark IV, Lone Star, Prometheus (#106),
+  1987X, DR504, 18 W, Major, Plexi, JCM800 and Laney (#99); solver verification for inductor ports, sources in
+  adaptors, limiters, AC ripple, rate changes, tube slopes and DenseLu (#89). The Hiwatt preamp, the Marshall
+  two-channel input and the AB763 fixed-mid stack are shared instead of copied (#98, #91).
+- **Capture matches run nightly** (#81) against the fetched GPL references; a missing one fails.
+- **The headless systemd units run sandboxed** (#137).
 - **Skala's baseline is burnt down** (#161): from 4,321 accepted findings to 134, all of them duplicated-block
   groups between data (amp schematics, presets, catalogues) or code kept apart on purpose, each kind named in
   `skala.jsonc`. The rest were fixed, or their rule was switched off in `.editorconfig` with the reason it does not
