@@ -586,7 +586,7 @@
         "tags": [
           "Live"
         ],
-        "summary": "Sets parameters (undoable; a run of changes to the same knob is one step). With load, the change was made on that load of a preset (LiveState.load) and is refused with 412 once another is loaded.",
+        "summary": "Sets parameters (undoable). With gesture (a client-made id for one drag of a knob, up to 64 characters), the changes of one gesture are one undo step and the next gesture is another; without, a run of changes to the same knob is one step until a 2 s pause. With load, the change was made on that load of a preset (LiveState.load) and is refused with 412 once another is loaded.",
         "operationId": "SetParams",
         "parameters": [
           {
@@ -610,6 +610,13 @@
             "schema": {
               "type": "integer",
               "format": "int64"
+            }
+          },
+          {
+            "name": "gesture",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -1346,6 +1353,7 @@
         "tags": [
           "Live"
         ],
+        "summary": "Renames a scene or sets its level, controllers or MIDI. Level and controller changes coalesce into one undo step per gesture (a client-made id, as for SetParams) or, without one, until a 2 s pause.",
         "operationId": "UpdateScene",
         "parameters": [
           {
@@ -1355,6 +1363,13 @@
             "schema": {
               "type": "integer",
               "format": "int32"
+            }
+          },
+          {
+            "name": "gesture",
+            "in": "query",
+            "schema": {
+              "type": "string"
             }
           }
         ],
@@ -1505,6 +1520,15 @@
         ],
         "summary": "Controller settings by rig parameter id (lfo1Rate, adsr2Attack, envGain, seq3, ...).",
         "operationId": "SetControllers",
+        "parameters": [
+          {
+            "name": "gesture",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {

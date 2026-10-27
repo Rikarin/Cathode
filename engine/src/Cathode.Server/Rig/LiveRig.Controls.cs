@@ -128,12 +128,20 @@ public sealed partial class LiveRig {
         }
     }
 
-    /// <summary>Controller settings (LFO, ADSR, envelope, sequencer, pitch range) stored with the preset.</summary>
-    public Task<LiveState> SetControllersAsync(IReadOnlyDictionary<string, float> values, long? expected) =>
+    /// <summary>
+    ///     Controller settings (LFO, ADSR, envelope, sequencer, pitch range) stored with the preset; changes coalesce
+    ///     as knob changes do, by <paramref name="gesture" /> when the client names one (see
+    ///     <see cref="SetParamsAsync" />).
+    /// </summary>
+    public Task<LiveState> SetControllersAsync(
+        IReadOnlyDictionary<string, float> values,
+        long? expected,
+        string? gesture = null
+    ) =>
         Locked(() => {
                 Check(expected);
                 var sanitized = SanitizeControllers(values);
-                PushUndo($"controllers:{string.Join(',', values.Keys.Order())}");
+                PushUndo($"controllers:{string.Join(',', values.Keys.Order())}", gesture);
                 var sent = new List<ParamValue>();
                 foreach (var (id, value) in sanitized) {
                     preset.Controllers[id] = value;

@@ -29,6 +29,13 @@ public sealed partial class LiveRig {
         }
     }
 
+    /// <summary>A gesture id is the client's own token: anything short.</summary>
+    static void CheckGesture(string? gesture) {
+        if (gesture is { Length: 0 or > MaxGestureLength }) {
+            throw new RigException(400, $"A gesture id is 1 to {MaxGestureLength} characters.");
+        }
+    }
+
     void CheckCell(int row, int column) {
         if (row < 0 || row >= preset.Rows || column < 0 || column >= preset.Columns) {
             throw new RigException(400, $"Cell ({row},{column}) is outside the {preset.Rows}x{preset.Columns} grid.");

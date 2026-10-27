@@ -386,6 +386,30 @@ describe('LiveStore knob drags (the optimistic path)', () => {
     expect(shown(live)).toBe(3);
   });
 
+  it('names the gesture of each value and never merges two gestures into one request', async () => {
+    const { live, open, settle } = await holding();
+    const query = (call: Call) => (call.init as { params?: { query?: unknown } } | undefined)?.params?.query;
+    live.setParam('amp1', 'A', 'gain', 2, 'g1');
+    live.setParam('amp1', 'A', 'gain', 3, 'g1'); // queued behind the PATCH in flight
+    live.setParam('amp1', 'A', 'gain', 4, 'g1');
+    live.setParam('amp1', 'A', 'gain', 5, 'g2'); // the knob was released and grabbed again
+    live.setParam('amp1', 'A', 'gain', 6, 'g2');
+    expect(query(oldest(open(params$)))).toEqual({ channel: 'A', load: 1, gesture: 'g1' });
+
+    oldest(open(params$)).resolve(state(2, 'Preset', { blocks: [amp] }));
+    await settle();
+    const first = oldest(open(params$));
+    expect(first.init?.body).toEqual({ gain: 4 }); // the end of the first drag, in its own step
+    expect(query(first)).toMatchObject({ gesture: 'g1' });
+
+    first.resolve(state(3, 'Preset', { blocks: [amp] }));
+    await settle();
+    const second = oldest(open(params$));
+    expect(second.init?.body).toEqual({ gain: 6 });
+    expect(query(second)).toMatchObject({ gesture: 'g2' });
+    expect(shown(live)).toBe(6);
+  });
+
   it('sends drags on different blocks or channels side by side', async () => {
     const { live, open } = await holding();
     live.setParam('amp1', 'A', 'gain', 2);

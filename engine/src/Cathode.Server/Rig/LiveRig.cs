@@ -60,6 +60,9 @@ public sealed partial class LiveRig(
             )
     ];
 
+    /// <summary>The longest gesture id a parameter change may carry (<see cref="SetParamsAsync" />).</summary>
+    public const int MaxGestureLength = 64;
+
     /// <summary>The active scene, for listeners that must not wait for the lock (footswitch LEDs).</summary>
     public int ActiveScene => Volatile.Read(ref activeScene);
 
@@ -375,14 +378,18 @@ public sealed partial class LiveRig(
     ///     Sets parameters on <paramref name="channel" /> (default: the channel the active scene uses). With
     ///     <paramref name="loaded" />, the values were set on that load of a preset (<see cref="LiveState.Load" />) and
     ///     are refused (412) once another preset has replaced it: a knob's last PATCH still on the wire when a program
-    ///     change loads another preset must not land on the new preset's block with the same id.
+    ///     change loads another preset must not land on the new preset's block with the same id. With
+    ///     <paramref name="gesture" /> (an id the client makes for one drag of a knob, from the first move to the
+    ///     release), the values of one gesture are one undo step however long it lasts, and the next gesture is a new
+    ///     step even a moment later; without, a run of changes to the same parameters is one step until a pause.
     /// </summary>
     public Task<LiveState> SetParamsAsync(
         string id,
         string? channel,
         IReadOnlyDictionary<string, float> values,
         long? expected,
-        long? loaded = null
+        long? loaded = null,
+        string? gesture = null
     ) =>
         Locked(async () => {
                 Check(expected);
@@ -400,7 +407,14 @@ public sealed partial class LiveRig(
                     CheckSource(block, wanted);
                 }
 
-                PushUndo($"params:{id}:{target}:{string.Join(',', values.Keys.Order())}");
+                // In a gesture the parameters set may vary (an XY pad); without one, each set of them is its own run.
+                PushUndo(
+                    gesture is null
+                        ? $"params:{id}:{target}:{string.Join(',', values.Keys.Order())}"
+                        : $"params:{id}:{target}",
+                    gesture
+                );
+
                 var stored = block.Channel(target);
                 var sent = new List<ParamValue>();
                 var typeChanged = ChangesType(descriptor, values, stored);
@@ -600,7 +614,16 @@ public sealed partial class LiveRig(
             }
         );
 
-    public Task<LiveState> UpdateSceneAsync(int scene, SceneUpdateRequest request, long? expected) =>
+    /// <summary>
+    ///     Updates a scene. Level and controller changes coalesce as knob changes do, by <paramref name="gesture" />
+    ///     when the client names one (see <see cref="SetParamsAsync" />).
+    /// </summary>
+    public Task<LiveState> UpdateSceneAsync(
+        int scene,
+        SceneUpdateRequest request,
+        long? expected,
+        string? gesture = null
+    ) =>
         Locked(() => {
                 Check(expected);
                 CheckScene(scene);
@@ -608,7 +631,7 @@ public sealed partial class LiveRig(
                     CheckSceneMidi(messages);
                 }
 
-                PushUndo(SceneUndoKey(scene, request));
+                PushUndo(SceneUndoKey(scene, request), gesture);
                 var target = preset.Scenes[scene];
                 if (request.Name is { } name) {
                     target.Name = name.Trim();
@@ -843,9 +866,18 @@ public sealed partial class LiveRig(
 
     /// <summary>
     ///     Records an undo point unless this edit continues the previous one (e.g. a knob being dragged); the preset
-    ///     is serialised only when a point is recorded.
+    ///     is serialised only when a point is recorded. A <paramref name="key" /> edit (one that may coalesce) made
+    ///     with a <paramref name="gesture" /> continues exactly the edits of that gesture, whatever the time between
+    ///     them (<see cref="UndoHistory" />); the gesture is checked before anything changes.
     /// </summary>
-    void PushUndo(string? key) => history.Record(key, Capture);
+    void PushUndo(string? key, string? gesture = null) {
+        CheckGesture(gesture);
+        if (key is not null && gesture is not null) {
+            history.Record($"{key}|gesture:{gesture}", Capture, gesture: true);
+        } else {
+            history.Record(key, Capture);
+        }
+    }
 
     UndoSnapshot Capture() =>
         new(JsonSerializer.SerializeToUtf8Bytes(preset, ContractsJsonContext.Default.Preset), activeScene);

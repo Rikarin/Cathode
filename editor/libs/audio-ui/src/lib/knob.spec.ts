@@ -13,12 +13,14 @@ import { CthKnob } from './knob';
       [defaultValue]="0"
       [modulated]="modulated()"
       [(value)]="value"
+      (committed)="commits.push($event)"
     />
   `
 })
 class Host {
   readonly value = signal(0);
   readonly modulated = signal<number | undefined>(undefined);
+  readonly commits: number[] = [];
 }
 
 describe('CthKnob', () => {
@@ -55,6 +57,37 @@ describe('CthKnob', () => {
     fixture.detectChanges();
     expect(host.value()).toBe(12);
     expect(dial.getAttribute('aria-valuetext')).toBe('+12.0 dB');
+  });
+
+  it('commits once at the end of each interaction: a drag, a key, the wheel coming to rest', () => {
+    vi.useFakeTimers();
+    try {
+      const { host, dial } = render();
+      dial.setPointerCapture = () => undefined;
+      dial.releasePointerCapture = () => undefined;
+
+      dial.dispatchEvent(new PointerEvent('pointerdown', { button: 0, clientY: 100, pointerId: 1 }));
+      dial.dispatchEvent(new PointerEvent('pointermove', { clientY: 90, pointerId: 1 }));
+      dial.dispatchEvent(new PointerEvent('pointermove', { clientY: 80, pointerId: 1 }));
+      expect(host.commits).toHaveLength(0); // still dragging
+      dial.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1 }));
+      expect(host.commits).toEqual([host.value()]);
+
+      dial.dispatchEvent(new WheelEvent('wheel', { deltaY: -1, cancelable: true }));
+      dial.dispatchEvent(new WheelEvent('wheel', { deltaY: -1, cancelable: true }));
+      expect(host.commits).toHaveLength(1); // the wheel is still turning
+      vi.advanceTimersByTime(1_000);
+      expect(host.commits).toHaveLength(2);
+      expect(host.commits[1]).toBe(host.value());
+
+      // A drag that starts while the wheel steps are fresh commits them first.
+      dial.dispatchEvent(new WheelEvent('wheel', { deltaY: -1, cancelable: true }));
+      const wheeled = host.value();
+      dial.dispatchEvent(new PointerEvent('pointerdown', { button: 0, clientY: 100, pointerId: 1 }));
+      expect(host.commits).toEqual([expect.any(Number), expect.any(Number), wheeled]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('takes a typed value with its unit and clamps it', () => {

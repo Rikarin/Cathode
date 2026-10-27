@@ -34,8 +34,8 @@ static class ControlsApi {
             .WithSummary("Replaces every modifier of the working copy.");
         live.MapPatch(
                 "/controllers",
-                async (Dictionary<string, float> values, LiveRig rig, HttpContext http) =>
-                    Respond(http, await rig.SetControllersAsync(values, Expected(http)))
+                async (Dictionary<string, float> values, string? gesture, LiveRig rig, HttpContext http) =>
+                    Respond(http, await rig.SetControllersAsync(values, Expected(http), gesture))
             )
             .WithName("SetControllers")
             .WithSummary("Controller settings by rig parameter id (lfo1Rate, adsr2Attack, envGain, seq3, ...).");

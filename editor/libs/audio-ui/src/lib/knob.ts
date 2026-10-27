@@ -171,6 +171,8 @@ export class CthKnob {
   private readonly editor = viewChild<ElementRef<HTMLInputElement>>('editor');
   private dragStart: { y: number; normal: number } | null = null;
   private settle: ReturnType<typeof setTimeout> | undefined;
+  /** Wheel steps not yet committed: they are, once the wheel rests or another interaction starts. */
+  private wheeling = false;
 
   constructor() {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.settle));
@@ -196,7 +198,10 @@ export class CthKnob {
    */
   readonly modulated = input<number | null | undefined>(undefined);
 
-  /** Emitted when an interaction ends (drag release, typed value, key, reset): a good moment for an undo point. */
+  /**
+   * Emitted when an interaction ends (drag release, typed value, key, reset, the wheel coming to rest): a good moment
+   * for an undo point. Every change of `value` the user makes is followed by one before the next interaction starts.
+   */
   readonly committed = output<number>();
 
   /** Linear or circular dragging; the app's preference unless set here. */
@@ -258,6 +263,7 @@ export class CthKnob {
       return;
     }
 
+    this.commitWheel();
     this.dial().nativeElement.setPointerCapture(event.pointerId);
     this.dial().nativeElement.focus();
     this.dragStart = { y: event.clientY, normal: this.normal() };
@@ -295,6 +301,7 @@ export class CthKnob {
   }
 
   protected key(event: KeyboardEvent): void {
+    this.commitWheel();
     const fine = event.shiftKey ? 0.001 : 0.01;
     const steps: Record<string, number> = {
       ArrowUp: fine,
@@ -330,6 +337,7 @@ export class CthKnob {
     event.preventDefault();
     const direction = wheel === 'reverse' ? -1 : 1;
     this.setNormal(this.normal() - direction * Math.sign(event.deltaY) * (event.shiftKey ? 0.002 : 0.01));
+    this.wheeling = true;
     this.stepped();
   }
 
@@ -338,6 +346,7 @@ export class CthKnob {
       return;
     }
 
+    this.commitWheel();
     this.typing.set(true);
     queueMicrotask(() => this.editor()?.nativeElement.select());
   }
@@ -365,7 +374,17 @@ export class CthKnob {
 
     clearTimeout(this.settle);
     this.editing.set(true);
-    this.settle = setTimeout(() => this.editing.set(false), SettleMs);
+    this.settle = setTimeout(() => {
+      this.editing.set(false);
+      this.commitWheel();
+    }, SettleMs);
+  }
+
+  private commitWheel(): void {
+    if (this.wheeling) {
+      this.wheeling = false;
+      this.committed.emit(this.value());
+    }
   }
 
   /** Circular mode: the knob points where the pointer is, seen from its centre. */

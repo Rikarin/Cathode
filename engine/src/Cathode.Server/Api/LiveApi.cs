@@ -82,15 +82,18 @@ static class LiveApi {
                     string id,
                     string? channel,
                     long? load,
+                    string? gesture,
                     Dictionary<string, float> values,
                     LiveRig rig,
                     HttpContext http
-                ) => Respond(http, await rig.SetParamsAsync(id, channel, values, Expected(http), load))
+                ) => Respond(http, await rig.SetParamsAsync(id, channel, values, Expected(http), load, gesture))
             )
             .WithName("SetParams")
             .WithSummary(
-                "Sets parameters (undoable; a run of changes to the same knob is one step). With load, the change was "
-                + "made on that load of a preset (LiveState.load) and is refused with 412 once another is loaded."
+                "Sets parameters (undoable). With gesture (a client-made id for one drag of a knob, up to 64 "
+                + "characters), the changes of one gesture are one undo step and the next gesture is another; without, "
+                + "a run of changes to the same knob is one step until a 2 s pause. With load, the change was made on "
+                + "that load of a preset (LiveState.load) and is refused with 412 once another is loaded."
             );
         live.MapPut(
                 "/blocks/{id}/bypass",
@@ -174,10 +177,14 @@ static class LiveApi {
         MapScenes(live);
         live.MapPatch(
                 "/scenes/{scene:int}",
-                async (int scene, SceneUpdateRequest request, LiveRig rig, HttpContext http) =>
-                    Respond(http, await rig.UpdateSceneAsync(scene, request, Expected(http)))
+                async (int scene, SceneUpdateRequest request, string? gesture, LiveRig rig, HttpContext http) =>
+                    Respond(http, await rig.UpdateSceneAsync(scene, request, Expected(http), gesture))
             )
-            .WithName("UpdateScene");
+            .WithName("UpdateScene")
+            .WithSummary(
+                "Renames a scene or sets its level, controllers or MIDI. Level and controller changes coalesce into "
+                + "one undo step per gesture (a client-made id, as for SetParams) or, without one, until a 2 s pause."
+            );
         return live;
     }
 

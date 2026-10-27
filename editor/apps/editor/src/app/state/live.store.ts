@@ -25,6 +25,8 @@ interface PendingParams {
    * sent, they are dropped, and the Server refuses them (412) if that happens while they are on the wire.
    */
   load: number | undefined;
+  /** The knob gesture the values belong to (see {@link KnobGesture}): one gesture is one undo step on the Server. */
+  gesture: string | undefined;
 }
 
 type MutationResult = Promise<{ data?: LiveState; error?: unknown; response: Response }>;
@@ -56,7 +58,8 @@ export class LiveStore {
    */
   private resync = false;
   private readonly inFlight = new Set<string>();
-  private readonly pending = new Map<string, PendingParams>();
+  /** Values waiting to be sent, per block and channel, oldest first: a batch per preset load and gesture. */
+  private readonly pending = new Map<string, PendingParams[]>();
 
   readonly state = signal<LiveState | null>(null);
   readonly preset = computed(() => this.state()?.preset ?? null);
@@ -112,14 +115,24 @@ export class LiveStore {
     return this.refreshing;
   }
 
-  setParam(blockId: string, channel: ChannelName, param: string, value: number): void {
+  /**
+   * Sets a parameter, optimistically. `gesture` names the knob gesture the value belongs to ({@link KnobGesture}): the
+   * Server makes one undo step of a gesture however long it lasts, and a new one for the next even a moment later.
+   * Values of different gestures are never merged into one request, so a drag's last value stays in its own step.
+   */
+  setParam(blockId: string, channel: ChannelName, param: string, value: number, gesture?: string): void {
     this.overrides.update(map => new Map(map).set(`${blockId}/${channel}/${param}`, value));
     const key = `${blockId}/${channel}`;
     const load = this.state()?.load;
-    const queued = this.pending.get(key);
-    const pending = queued && queued.load === load ? queued : { channel, values: {}, load };
-    pending.values[param] = value;
-    this.pending.set(key, pending);
+    const queue = this.pending.get(key) ?? [];
+    let batch = queue.at(-1);
+    if (!batch || batch.load !== load || batch.gesture !== gesture) {
+      batch = { channel, values: {}, load, gesture };
+      queue.push(batch);
+    }
+
+    batch.values[param] = value;
+    this.pending.set(key, queue);
     void this.flush(blockId, key);
   }
 
@@ -166,13 +179,21 @@ export class LiveStore {
       p => p.modifiers,
       (c, headers) => c.PUT('/api/v1/live/modifiers', { body: modifiers, headers })
     );
-  setControllers = (values: Record<string, number>) =>
-    this.mutate(c => c.PATCH('/api/v1/live/controllers', { body: values }));
+  /** Sets controller settings; `gesture` as for {@link setParam}. */
+  setControllers = (values: Record<string, number>, gesture?: string) =>
+    this.mutate(c =>
+      c.PATCH('/api/v1/live/controllers', { params: { query: gesture === undefined ? {} : { gesture } }, body: values })
+    );
   setTempo = (bpm: number) => this.mutate(c => c.PUT('/api/v1/live/tempo', { body: { bpm } }));
-  updateScene = (scene: number, change: { level?: number; controllers?: number[]; midi?: SceneMidiMessage[] }) =>
+  /** Sets a scene's level, controllers or MIDI; `gesture` (for a knob's level or controller) as for {@link setParam}. */
+  updateScene = (
+    scene: number,
+    change: { level?: number; controllers?: number[]; midi?: SceneMidiMessage[] },
+    gesture?: string
+  ) =>
     this.mutate(c =>
       c.PATCH('/api/v1/live/scenes/{scene}', {
-        params: { path: { scene } },
+        params: { path: { scene }, query: gesture === undefined ? {} : { gesture } },
         body: {
           name: null,
           level: change.level ?? null,
@@ -407,27 +428,47 @@ export class LiveStore {
     }
   }
 
+  /** Sends the batches waiting for a block and channel one at a time, then shows the stored values again. */
   private async flush(blockId: string, key: string): Promise<void> {
     if (this.inFlight.has(key)) {
       return; // sent when the request in flight returns
     }
 
-    const batch = this.pending.get(key);
-    if (!batch) {
-      return;
-    }
-
-    this.pending.delete(key);
-    if (batch.load !== this.state()?.load) {
-      // Another preset was loaded (a program change, another editor) before these were sent: they belong to the old
-      // one, and its block ids may name different blocks in the new one.
-      this.overrides.update(map => new Map([...map].filter(([name]) => !name.startsWith(`${key}/`))));
-      return;
-    }
-
     this.inFlight.add(key);
     try {
-      const query = batch.load === undefined ? { channel: batch.channel } : { channel: batch.channel, load: batch.load };
+      for (let batch = this.next(key); batch; batch = this.next(key)) {
+        // A batch from before another preset was loaded (a program change, another editor) belongs to the old one,
+        // and its block ids may name different blocks in the new one: it is dropped.
+        if (batch.load === this.state()?.load) {
+          await this.send(blockId, batch);
+        }
+      }
+    } finally {
+      this.inFlight.delete(key);
+    }
+
+    // Everything for this block and channel is confirmed or dropped: drop its overrides so the stored values show.
+    this.overrides.update(map => new Map([...map].filter(([name]) => !name.startsWith(`${key}/`))));
+  }
+
+  /** Takes the oldest batch waiting for a block and channel. */
+  private next(key: string): PendingParams | undefined {
+    const queue = this.pending.get(key);
+    const batch = queue?.shift();
+    if (queue?.length === 0) {
+      this.pending.delete(key);
+    }
+
+    return batch;
+  }
+
+  private async send(blockId: string, batch: PendingParams): Promise<void> {
+    try {
+      const query = {
+        channel: batch.channel,
+        ...(batch.load === undefined ? {} : { load: batch.load }),
+        ...(batch.gesture === undefined ? {} : { gesture: batch.gesture })
+      };
       this.apply(
         unwrap(
           await this.connection.client.PATCH('/api/v1/live/blocks/{id}/params', {
@@ -444,16 +485,6 @@ export class LiveStore {
       } else {
         this.notify.error(error);
       }
-    } finally {
-      this.inFlight.delete(key);
     }
-
-    if (this.pending.has(key)) {
-      await this.flush(blockId, key);
-      return;
-    }
-
-    // Everything for this block and channel is confirmed: drop its overrides so the stored values show.
-    this.overrides.update(map => new Map([...map].filter(([name]) => !name.startsWith(`${key}/`))));
   }
 }

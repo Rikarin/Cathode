@@ -25,6 +25,7 @@ import { XuiInputImports } from '@xui/input';
 import { XuiSelectImports } from '@xui/select';
 import { EventStream } from '../core/events';
 import { CatalogStore } from '../state/catalog.store';
+import { KnobGesture } from '../state/knob-gesture';
 import { LiveStore } from '../state/live.store';
 import type { ResolvedControl } from './perform';
 
@@ -153,7 +154,8 @@ export const PerformDragType = 'application/x-cathode-perform';
             [color]="accent()"
             [value]="value()"
             [modulated]="modulated()"
-            (valueChange)="set($event)"
+            (valueChange)="set($event, gesture.current())"
+            (committed)="gesture.end()"
           />
         }
       }
@@ -166,6 +168,8 @@ export class PerformControl {
   private readonly live = inject(LiveStore);
   private readonly catalog = inject(CatalogStore);
   private readonly events = inject(EventStream);
+  /** The knob's gesture: one drag is one undo step, and the next drag another (the knob's `committed` ends it). */
+  protected readonly gesture = new KnobGesture();
 
   readonly control = input.required<ResolvedControl>();
   /** First or last on the page: it cannot move earlier, or later. */
@@ -234,10 +238,10 @@ export class PerformControl {
     }
   }
 
-  protected set(value: number): void {
+  protected set(value: number, gesture?: string): void {
     const { block, param } = this.control();
     if (block && param) {
-      this.live.setParam(block.id, this.live.channelOf(block.id), param.id, value);
+      this.live.setParam(block.id, this.live.channelOf(block.id), param.id, value, gesture);
     }
   }
 }

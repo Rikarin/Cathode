@@ -346,7 +346,7 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
-    /** Sets parameters (undoable; a run of changes to the same knob is one step). With load, the change was made on that load of a preset (LiveState.load) and is refused with 412 once another is loaded. */
+    /** Sets parameters (undoable). With gesture (a client-made id for one drag of a knob, up to 64 characters), the changes of one gesture are one undo step and the next gesture is another; without, a run of changes to the same knob is one step until a 2 s pause. With load, the change was made on that load of a preset (LiveState.load) and is refused with 412 once another is loaded. */
     patch: operations['SetParams'];
     trace?: never;
   };
@@ -647,6 +647,7 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
+    /** Renames a scene or sets its level, controllers or MIDI. Level and controller changes coalesce into one undo step per gesture (a client-made id, as for SetParams) or, without one, until a 2 s pause. */
     patch: operations['UpdateScene'];
     trace?: never;
   };
@@ -3160,6 +3161,7 @@ export interface operations {
       query?: {
         channel?: string;
         load?: number;
+        gesture?: string;
       };
       header?: never;
       path: {
@@ -3655,7 +3657,9 @@ export interface operations {
   };
   UpdateScene: {
     parameters: {
-      query?: never;
+      query?: {
+        gesture?: string;
+      };
       header?: never;
       path: {
         scene: number;
@@ -3757,7 +3761,9 @@ export interface operations {
   };
   SetControllers: {
     parameters: {
-      query?: never;
+      query?: {
+        gesture?: string;
+      };
       header?: never;
       path?: never;
       cookie?: never;
