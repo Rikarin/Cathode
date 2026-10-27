@@ -171,7 +171,7 @@ Reference measurements must be **ours**, made on amps we have access to.
 ## 11. Hardware-in-the-loop and listening (T4)
 
 - **Rig:** one machine per OS with 2–3 interfaces: an RME (reference), a Focusrite (common) and a cheap class-compliant interface (worst case). The output is looped back to the input.
-- **Latency test:** the built-in `POST /system/audio/latency-test` plays an impulse or MLS, cross-correlates, and reports the round trip. Cross-check it with Oblique RTL Utility. Record the results per release in a latency table.
+- **Latency test:** the app's latency test (the desktop app's audio setup; `GET /system/latency` reports the same device, buffer and graph latency) plays an impulse or MLS, cross-correlates, and reports the round trip. Cross-check it with Oblique RTL Utility. Record the results per release in a latency table.
 - **Soak:** 60 min at the smallest stable buffer with a reference high-gain preset and scene changes every 2 s. The pass criterion is **0 xruns**.
 - **Robustness:** device unplug and replug, sample-rate change, sleep and wake. The engine recovers with no crash and no stuck notes.
 - **Listening:** blind ABX of new models against reference recordings, plus a "tone didn't change" check of factory presets against the previous release.
