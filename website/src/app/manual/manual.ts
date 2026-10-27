@@ -205,7 +205,10 @@ export function knobPages(block: ManualBlock): KnobPage[] {
 
   return pageNames
     .map(page => {
-      const params = block.params.filter(param => (param.page ?? '') === page);
+      // A parameter hidden on every type (kept only so old presets load) has no knob.
+      const params = block.params.filter(
+        param => (param.page ?? '') === page && (!param.typeLabels || param.typeLabels.some(Boolean))
+      );
       return { name: page, knobs: collapse(block, params) };
     })
     .filter(page => page.knobs.length > 0);

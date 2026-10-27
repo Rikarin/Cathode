@@ -24466,7 +24466,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         default: 0,
         page: 'Scale',
         options: ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'],
-        typeLabels: ['', '', 'Tonic', '', '', '', '', '', '']
+        typeLabels: ['', '', '', '', '', '', '', '', '']
       },
       {
         id: 'customNote1',

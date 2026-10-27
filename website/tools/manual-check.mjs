@@ -50,7 +50,12 @@ registerHooks({
 
 const { chapters: mdFiles } = writeIndex();
 const { BLOCK_DOCS, CHAPTERS } = await import(pathToFileURL(join(manual, 'content.generated.ts')).href);
-const { ENGINE_BLOCKS } = await import(pathToFileURL(join(manual, 'engine-params.generated.ts')).href);
+const { ENGINE_BLOCKS: ALL_BLOCKS } = await import(pathToFileURL(join(manual, 'engine-params.generated.ts')).href);
+// A parameter hidden on every type (kept only so old presets load) has no knob in the manual, as in knobPages.
+const ENGINE_BLOCKS = ALL_BLOCKS.map(block => ({
+  ...block,
+  params: block.params.filter(param => !param.typeLabels || param.typeLabels.some(Boolean))
+}));
 const { describeOption, describeParam, patternOf } = await import(pathToFileURL(join(manual, 'describe.ts')).href);
 
 const placeholder = text => !text.replace(/<!--[\s\S]*?-->/g, '').trim();

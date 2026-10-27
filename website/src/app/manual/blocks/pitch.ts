@@ -64,7 +64,6 @@ Many knobs only apply to some types; the editor hides the ones the current type 
     glide: `Diatonic and Custom Shifter: when the harmony interval changes from one note to the next, the voice slides to it over this time instead of jumping. A little (20–50 ms) smooths the harmony; a lot gives a deliberate portamento.`,
     learn: `Diatonic: while on, the key follows the note you are playing, so play the root of your song's key and the harmonies lock to it. When you turn it off, that key stays until you move the Key knob.`,
     customNotes: `For Scale Custom: how many of the Note knobs make up the scale (4 to 8).`,
-    customTonic: `For Scale Custom: names the notes of your custom scale in the Pitch panel, so you can see them in a particular key. It does not change the sound; the scale is always built on **Key**.`,
     'customNote#': `For Scale Custom: one note of your scale, as a degree above the key's root (1 is the root, b3 a minor third, 5 a fifth and so on). The root is always part of the scale, and repeated notes are dropped.`,
 
     whammyStart: `Whammy: the shift with **Pedal** at 0 %, in semitones. Usually 0 (no shift) so the heel-down position is your normal sound.`,

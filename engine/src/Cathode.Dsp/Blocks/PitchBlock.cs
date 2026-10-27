@@ -203,7 +203,7 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
     public const int CustomNoteCount = Learn + 1;
     public const int CustomTonic = CustomNoteCount + 1;
 
-    /// <summary>The custom scale's first note (semitones above the tonic); notes 2 to 8 follow.</summary>
+    /// <summary>The custom scale's first note (semitones above Key); notes 2 to 8 follow.</summary>
     public const int CustomNote1 = CustomTonic + 1;
 
     /// <summary>The most notes a custom scale has.</summary>
@@ -547,9 +547,9 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
             ParamDescriptor.Choice("customNotes", "Number of Notes", ["4", "5", "6", "7", "8"], 3) with {
                 TypeLabels = For("Number of Notes", PitchType.Diatonic)
             },
-            ParamDescriptor.Choice("customTonic", "Tonic", Scales.Keys) with {
-                TypeLabels = For("Tonic", PitchType.Diatonic)
-            },
+            // Tonic only named the custom scale's notes, which are always built on Key; it stays so presets that stored
+            // it still load, hidden on every type.
+            ParamDescriptor.Choice("customTonic", "Tonic", Scales.Keys) with { TypeLabels = For("Tonic") },
             ..Enumerable.Range(0, MaxCustomNotes)
                 .Select(static n => ParamDescriptor.Choice(
                         $"customNote{n + 1}",

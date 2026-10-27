@@ -83,13 +83,13 @@ export class PitchPanel {
 
   protected readonly custom = computed(() => this.value('type') === CustomShifterType);
   private readonly key = computed(() => this.value('key'));
-  protected readonly tonic = computed(() => NoteNames[Math.round(this.value('customTonic'))] ?? 'C');
+  protected readonly tonic = computed(() => NoteNames[Math.round(this.key())] ?? 'C');
 
-  /** The Diatonic type's custom scale, named in its Tonic, when Scale is Custom. */
+  /** The Diatonic type's custom scale, named in its Key (the scale's root), when Scale is Custom. */
   protected readonly customScale = computed(() =>
     this.value('type') === DiatonicType && Math.round(this.value('scale')) === CustomScale
       ? customScaleNotes(
-          Math.round(this.value('customTonic')),
+          Math.round(this.key()),
           4 + Math.round(this.value('customNotes')),
           Array.from({ length: 8 }, (_, n) => this.value(`customNote${n + 1}`))
         )
