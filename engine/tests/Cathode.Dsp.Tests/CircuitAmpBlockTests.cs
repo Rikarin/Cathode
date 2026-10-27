@@ -1,6 +1,7 @@
 using Cathode.Dsp.Amp;
 using Cathode.Dsp.Amp.Models;
 using Cathode.Dsp.Blocks;
+using Cathode.Dsp.Resampling;
 using Cathode.Dsp.Wdf;
 using Cathode.Testing;
 
@@ -59,11 +60,11 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
             + $"{power.PreampVoltage:0.0} V, grid bias {power.GridBias:0.00} V, cathode {power.CathodeVoltage:0.00} V, "
             + $"{plate * 1e3:0.0} mA plate + {screen * 1e3:0.00} mA screen per tube, {dissipation:0.0} W of {rating} W"
         );
-        // Vox-style class-A amps idle their EL84s past the rating: the AC30's drawing has 10 V across 50 Ω for four
+        // Vox-style class-A amps idle their EL84s past the rating: the AC30's drawing has 10 V across 50 Î© for four
         // (AmpBooks: about 17 W of plate dissipation each), the DC-30 runs as hot. An amp biased cold by design (the
         // 5150's fixed bias: 11-14 mA a tube) idles well under half its rating.
         // So do the class-A EL34 pairs on a resistor each: the Chieftain's and the Hot Cat's drawings both measure 24 V
-        // across 270 Ω (89 mA a tube, about 31 W of plate dissipation at 390 V).
+        // across 270 Î© (89 mA a tube, about 31 W of plate dissipation at 390 V).
         var hot = design.CathodeBias && design.Tube == PentodeModel.EL84 ? 1.45
             : design.CathodeBias && design.Tube == PentodeModel.EL34 ? 1.5
             : 0.9;
@@ -108,6 +109,73 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
 
         Assert.True(Analysis.AllFinite(rendered));
         Assert.True(Analysis.ToDb(Analysis.Peak(rendered)) < 6, $"{Analysis.ToDb(Analysis.Peak(rendered)):0.0} dBFS");
+    }
+
+    /// <summary>
+    ///     Signal to in-band (under 20 kHz) aliases of a 2 kHz, 0.3 V sine at gain 8 on the models that alias most
+    ///     (docs/06 §3.4): Standard oversampling may not fall below today's floor, and High (4 x) buys at least 6 dB
+    ///     more. Measured 23.8 / 33.0 (SLO-100), 19.7 / 26.3 (5150), 24.8 / 34.7 (Dual Rectifier), 20.9 / 27.7 dB
+    ///     (5150III).
+    /// </summary>
+    [Theory]
+    [InlineData("SLO-100", 20.5)]
+    [InlineData("5150", 17.0)]
+    [InlineData("Dual Rectifier", 23.0)]
+    [InlineData("5150III", 18.0)]
+    public void High_oversampling_lowers_the_aliasing_of_the_high_gain_models(string name, double floor) {
+        const int Length = 32_768;
+        const int Settle = 12_000;
+        var type = AmpDesign.All.ToList().FindIndex(a => a.Name == name);
+        var bin = (int)Math.Round(2_000.0 * Length / Rate) | 1; // odd: no alias lands on a harmonic
+        var sine = new float[Settle + Length];
+        for (var i = 0; i < sine.Length; i++) {
+            sine[i] = (float)(0.3 * Math.Sin(2 * Math.PI * bin * i / Length));
+        }
+
+        double Measure(float oversampling) {
+            using var block = Create(
+                type,
+                (CircuitAmpBlock.Gain, 8f),
+                (CircuitAmpBlock.Master, 5f),
+                (CircuitAmpBlock.OversamplingSetting, oversampling)
+            );
+            var magnitudes = Fft.Magnitudes(BlockRender.Mono(block, sine, 64).AsSpan(Settle, Length));
+            double harmonic = 0, total = 0;
+            for (var k = 1; k <= 20_000 * Length / (int)Rate; k++) {
+                var energy = magnitudes[k] * magnitudes[k];
+                total += energy;
+                harmonic += k % bin == 0 ? energy : 0;
+            }
+
+            return 10 * Math.Log10(harmonic / (total - harmonic));
+        }
+
+        var (standard, high) = (Measure(0), Measure(1));
+        output.WriteLine($"{name}: signal to aliases {standard:0.0} dB standard, {high:0.0} dB high");
+        Assert.True(standard >= floor, $"{standard:0.0} dB standard (floor {floor} dB)");
+        Assert.True(high >= standard + 6, $"{high:0.0} dB high against {standard:0.0} dB standard");
+    }
+
+    [Fact]
+    public void Latency_follows_the_oversampling_setting() {
+        static CircuitAmpBlock Linear(float oversampling) {
+            var block = new CircuitAmpBlock { OversamplingPhase = OversamplingPhase.Linear };
+            block.Params.SetTarget(CircuitAmpBlock.OversamplingSetting, oversampling);
+            block.Prepare(new(Rate, 64));
+            return block;
+        }
+
+        using var standard = Linear(0);
+        using var high = Linear(1);
+        Assert.Equal(2, standard.Oversampling);
+        Assert.Equal(4, high.Oversampling);
+        Assert.True(CircuitAmpBlock.Info.Params[CircuitAmpBlock.OversamplingSetting].Recompile);
+        output.WriteLine($"linear phase: latency {standard.LatencySamples} / {high.LatencySamples} samples");
+        Assert.True(standard.LatencySamples > 0);
+        Assert.True(high.LatencySamples > standard.LatencySamples);
+        var rendered = BlockRender.Mono(high, Chord(48_000, 0.25f), 64);
+        Assert.True(Analysis.AllFinite(rendered));
+        Assert.True(Analysis.Rms(rendered.AsSpan(24_000)) > 1e-3);
     }
 
     /// <summary>

@@ -15,7 +15,7 @@ public sealed partial class CircuitAmpBlock {
     /// <summary>The choice that leaves a model's own part (tube, speaker, supply, ...) in place.</summary>
     const string Stock = "Stock";
 
-    static readonly string[] KeptOnTypeChange = ["type", "level", "balance", "inputsel"];
+    static readonly string[] KeptOnTypeChange = ["type", "level", "balance", "inputsel", "oversampling"];
 
     public static BlockDescriptor Info { get; } = Describe(
         Labelled(
@@ -131,7 +131,8 @@ public sealed partial class CircuitAmpBlock {
                 ParamDescriptor.Choice("mvloc", "Master Location", [Stock, "Post PI"]),
                 ParamDescriptor.Choice("outmode", "Output Mode", ["FRFR", "SS Power Amp + Cab"]),
                 Expert(Scale("screenfreq", "Screen Freq")),
-                Expert(ParamDescriptor.Float("screenq", "Screen Q", 0f, 5f, 0f))
+                Expert(ParamDescriptor.Float("screenq", "Screen Q", 0f, 5f, 0f)),
+                ParamDescriptor.Choice("oversampling", "Oversampling", ["Standard", "High"]) with { Recompile = true }
             ]
         )
     );
@@ -187,7 +188,8 @@ public sealed partial class CircuitAmpBlock {
                     [
                         "brightcap", "prebias", "prehard", "stackfreq", "t2plate", "cfcomp", "cfharm", "prebiasx",
                         "pibiasx", "pthard", "ptbiasx", "ptbiastime", "ptrecovery", "masterbiasx",
-                        "screenfreq", "screenq", "xfmrmatch", "xfmrlf", "xfmrhf", "xfmrdrive", "btc", "katc"
+                        "screenfreq", "screenq", "xfmrmatch", "xfmrlf", "xfmrhf", "xfmrdrive", "btc", "katc",
+                        "oversampling"
                     ]
                 )
             ]

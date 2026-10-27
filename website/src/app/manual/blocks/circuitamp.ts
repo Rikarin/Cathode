@@ -476,7 +476,12 @@ Speaker Thump and Speaker Compression, since the real speaker does those itself.
 fast the screen voltage follows the power tubes' current: a lower corner (bigger cap) holds the screens steadier.`,
 
     screenq: `0 feeds the screen node through a resistor, as on most amps. Above 0 the feed becomes a choke, with this Q
-at its resonance, as on choke-filtered supplies: the screen voltage can bounce a little after a hard hit.`
+at its resonance, as on choke-filtered supplies: the screen voltage can bounce a little after a hard hit.`,
+
+    oversampling: `Advanced page: how many times the sample rate the whole circuit runs at. **Standard** is 2x (1x at 64 kHz
+and up). **High** doubles it: 7 to 14 dB less aliasing on the cranked high-gain models (the inharmonic grit on high
+single notes with the gain up), for about twice the CPU of the amp. The cleaner models gain little from it. Changing it
+rebuilds the signal path and changes the block's latency, so set it while you are not playing. A type change keeps it.`
   },
 
   options: {
@@ -688,6 +693,10 @@ at its resonance, as on choke-filtered supplies: the screen voltage can bounce a
     outmode: {
       FRFR: 'For a Cab block into headphones, monitors or full-range speakers.',
       'SS Power Amp + Cab': 'For a solid-state power amp into a real guitar cab: the speaker stages are switched off.'
+    },
+    oversampling: {
+      Standard: '2x the sample rate (1x at 64 kHz and up), at the usual cost.',
+      High: '4x the sample rate (2x at 64 kHz and up): less aliasing, about twice the CPU.'
     }
   },
 

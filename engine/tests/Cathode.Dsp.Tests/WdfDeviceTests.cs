@@ -94,7 +94,7 @@ public class WdfDeviceTests(ITestOutputHelper output) {
     }
 
     [Theory]
-    [InlineData("12AX7", -2.0, 250.0, 1.2e-3)] // datasheet 1.2 mA; Koren's fit gives about 1.0 mA
+    [InlineData("12AX7", -2.0, 250.0, 1.2e-3)] // datasheet 1.2 mA; the refit gives 1.25 mA (Koren's 0.95)
     [InlineData("12AT7", -2.0, 250.0, 10e-3)]
     [InlineData("12AU7", -8.5, 250.0, 10.5e-3)]
     public void Triode_presets_land_near_the_datasheet_operating_point(
@@ -179,6 +179,71 @@ public class WdfDeviceTests(ITestOutputHelper output) {
         Assert.InRange(gm, 0.65 * transconductance, 1.35 * transconductance);
         Assert.InRange(rp, 0.65 * plateResistance, 1.35 * plateResistance);
         Assert.InRange(gm * rp, 0.8 * transconductance * plateResistance, 1.2 * transconductance * plateResistance);
+    }
+
+    /// <summary>
+    ///     The presets refitted to their datasheets (issue #86) pinned there: current, transconductance and plate
+    ///     resistance at each tabulated class-A point, within what the fit reaches (Tubes.cs records the residues).
+    ///     The 12AX7 at RCA's two points, the 12AT7 at its 250 V point.
+    /// </summary>
+    [Theory]
+    [InlineData("12AX7", -2.0, 250.0, 1.2e-3, 1.6e-3, 62.5e3, 0.05, 0.2, 0.2)]
+    [InlineData("12AX7", -1.0, 100.0, 0.5e-3, 1.25e-3, 80e3, 0.05, 0.2, 0.2)]
+    [InlineData("12AT7", -2.0, 250.0, 10e-3, 5.5e-3, 10.9e3, 0.02, 0.02, 0.1)]
+    public void Refitted_triodes_reproduce_their_datasheet_points(
+        string tube,
+        double vgk,
+        double vpk,
+        double amps,
+        double transconductance,
+        double plateResistance,
+        double currentTolerance,
+        double slopeTolerance,
+        double resistanceTolerance
+    ) {
+        var model = tube == "12AX7" ? TriodeModel.Ecc83 : TriodeModel.Ecc81;
+        var current = new double[2];
+        var jacobian = new double[4];
+        new Triode(model).Evaluate([vgk, vpk], current, jacobian, 2);
+        var (gm, rp) = (jacobian[2], 1 / jacobian[3]);
+        output.WriteLine(
+            $"{tube} {vpk} V, {vgk} V: {current[1] * 1e3:0.000} mA, {gm * 1e3:0.00} mS, {rp / 1e3:0.0}k (datasheet "
+            + $"{amps * 1e3:0.0} mA, {transconductance * 1e3:0.00} mS, {plateResistance / 1e3:0.0}k)"
+        );
+        Assert.InRange(current[1], (1 - currentTolerance) * amps, (1 + currentTolerance) * amps);
+        Assert.InRange(gm, (1 - slopeTolerance) * transconductance, (1 + slopeTolerance) * transconductance);
+        Assert.InRange(rp, (1 - resistanceTolerance) * plateResistance, (1 + resistanceTolerance) * plateResistance);
+    }
+
+    /// <summary>
+    ///     The 12AX7's textbook stage (100k plate, 1.5k cathode, from 250 V; RCA's and Blencowe's load-line examples)
+    ///     idles near 1 mA with 1.3-1.7 V on its cathode, as measured amps do (issue #86: Koren's fit gave 0.80 mA and
+    ///     1.20 V).
+    /// </summary>
+    [Fact]
+    public void The_12ax7_textbook_stage_idles_where_amps_measure() {
+        var (amps, plate, cathode) = Amp.OperatingPoint.CommonCathode(TriodeModel.Ecc83, 0, 250, 100e3, 1.5e3);
+        output.WriteLine(
+            $"12AX7, 100k / 1.5k from 250 V: {amps * 1e3:0.000} mA, plate {plate:0.0} V, cathode {cathode:0.000} V"
+        );
+        Assert.InRange(cathode, 1.3, 1.7);
+        Assert.InRange(amps, 0.85e-3, 1.1e-3);
+    }
+
+    /// <summary>
+    ///     The EL34's screen current at Mullard's class-A point (250 V plate and screen, -13.5 V: 100 mA plate, 14.9 mA
+    ///     screen), which feeds the screen node's sag and a cathode-biased pair's bias (issue #86: Koren's K_g2 gave
+    ///     4.8 mA).
+    /// </summary>
+    [Fact]
+    public void El34_screen_current_matches_mullard() {
+        var current = new double[3];
+        new Pentode(PentodeModel.EL34).Evaluate([-13.5, 250, 250], current, new double[9], 3);
+        output.WriteLine(
+            $"EL34 250/250 V, -13.5 V: plate {current[2] * 1e3:0.0} mA, screen {current[1] * 1e3:0.00} mA"
+        );
+        Assert.InRange(current[1], 0.98 * 14.9e-3, 1.02 * 14.9e-3);
+        Assert.InRange(current[2], 0.95 * 100e-3, 1.05 * 100e-3);
     }
 
     /// <summary>

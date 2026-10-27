@@ -55,6 +55,6 @@ public static class SuperLead100 {
             new(25, 50e-6, 200, 50e-6, 10e3, 32e-6),
             InverterInput: null
         ),
-        -6
+        -6.5 // the 12AX7 refitted to its datasheet: with Master Bias Excursion at 0, 6.3 dBFS at -6
     ) { Panel = MarshallParts.TwoChannelPanel };
 }

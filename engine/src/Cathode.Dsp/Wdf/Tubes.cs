@@ -15,7 +15,9 @@ namespace Cathode.Dsp.Wdf;
 /// <param name="GridSharpness">Grid-current knee C_g, in 1 / V.</param>
 /// <param name="GridExponent">Grid-current exponent ξ.</param>
 /// <remarks>
-///     The presets are Koren's published fits. The grid law uses Dempwolf's 12AX7 fit for all of them (without his
+///     The presets are Koren's published fits, except where a note says otherwise: the 12AX7 and the 12AT7 are refitted
+///     to their datasheet points (Koren's ran the 12AX7 cold and the 12AT7 hot), and the 12AY7, 5751 and 6EU7 were
+///     fitted here from the start. The grid law uses Dempwolf's 12AX7 fit for all of them (without his
 ///     constant offset current, so that no current flows at deep cut-off): about 10 µA at 0 V grid-cathode, rising
 ///     steeply beyond, which is what makes a stage block and bias-shift when driven hard.
 /// </remarks>
@@ -29,11 +31,28 @@ public readonly record struct TriodeModel(
     double GridSharpness = 13.9,
     double GridExponent = 1.354
 ) {
-    /// <summary>ECC83 / 12AX7: μ 100, the high-gain preamp triode (about 1.0 mA at 250 V, -2 V).</summary>
-    public static TriodeModel Ecc83 { get; } = new(100, 1.4, 1_060, 600, 300);
+    /// <summary>
+    ///     ECC83 / 12AX7: μ 100, the high-gain preamp triode. Koren's fit (K_g1 1060, K_p 600, K_vb 300) with K_p
+    ///     and K_vb refitted, Ex 1.4 and μ kept, by least squares on log errors to RCA's two tabulated class-A points
+    ///     (100 V, -1 V: 0.5 mA, 1.25 mS, 80k; 250 V, -2 V: 1.2 mA, 1.6 mS, 62.5k). It gives 0.48 mA, 1.06 mS, 91k
+    ///     and 1.25 mA, 1.88 mS, 52k (Koren's: 0.10 mA, 0.59 mS, 141k and 0.95 mA, 1.67 mS, 54k: five times low at
+    ///     100 V, so every stage idled cold). Its zero-bias curve is Koren's own (K_vb does not act at V_gk = 0); K_vb
+    ///     only spreads the negative-grid curves at low plate voltages, as the datasheet's points need. A 100k / 1.5k
+    ///     stage from 250 V now sits at 162 V, 1.32 V, 0.88 mA (was 170 V, 1.20 V, 0.80 mA); in the Scout's 470k /
+    ///     4.7k stage from 257 V (drawn at 120 V with its 6EU7, the same tube on another base) it sits at 120 V (was
+    ///     136 V). Ex 1.0 fits all six numbers to 5 % (as the 6EU7's chart does), but straightens the zero-bias curve
+    ///     away from the 3/2 law that the large-signal swing follows; it was not taken.
+    /// </summary>
+    public static TriodeModel Ecc83 { get; } = new(100, 1.4, 1_060, 743, 15_140);
 
-    /// <summary>ECC81 / 12AT7: μ 60, higher current (reverb drivers, phase inverters).</summary>
-    public static TriodeModel Ecc81 { get; } = new(60, 1.35, 460, 300, 300);
+    /// <summary>
+    ///     ECC81 / 12AT7: μ 60, higher current (reverb drivers, phase inverters). Koren's fit (K_g1 460, K_p 300) with
+    ///     K_g1 and K_p refitted to the datasheet point 250 V, 200 Ω cathode (-2 V): 10 mA, 5.5 mS, r_p 10.9k. It gives
+    ///     10.0 mA, 5.5 mS, 10.2k (Koren's: 12.8 mA, 7.2 mS, 7.9k). At the second point (100 V, 0 V: 3.7 mA, 4.0 mS,
+    ///     15k) it still runs hot, 6.7 mA, 5.3 mS, 11k (Koren's 8.7 mA): only a much steeper law (Ex 2) reaches both
+    ///     points, and that pulls μ to 44.
+    /// </summary>
+    public static TriodeModel Ecc81 { get; } = new(60, 1.35, 597, 278.3, 300);
 
     /// <summary>
     ///     ECC82 / 12AU7: μ 21.5, low gain and low plate resistance (cathode followers, phase inverters).
@@ -94,7 +113,8 @@ public readonly record struct TriodeModel(
 /// <param name="GridSharpness">Control-grid current knee.</param>
 /// <param name="GridExponent">Control-grid current exponent.</param>
 /// <remarks>
-///     EL34 and 6L6GC are Koren's fits. EL84 is fitted here with Koren's equations to the datasheet's class-A point
+///     EL34 and 6L6GC are Koren's fits; the EL34's screen-current scale K_g2 is refitted (below). EL84 is fitted
+///     here with Koren's equations to the datasheet's class-A point
 ///     (250 V plate and screen, -7.3 V grid: 48 mA plate, 5.5 mA screen) with μ 19, Ex 1.35, Kp 200, Kvb 20. In Koren's
 ///     model the screen current does not depend on the plate voltage, so it misses the screen-current rise when the
 ///     plate swings below the screen.
@@ -110,8 +130,13 @@ public readonly record struct PentodeModel(
     double GridSharpness = 13.9,
     double GridExponent = 1.354
 ) {
-    /// <summary>EL34 / 6CA7 power pentode (Marshall, Hiwatt).</summary>
-    public static PentodeModel EL34 { get; } = new(11, 1.35, 650, 4_200, 60, 24);
+    /// <summary>
+    ///     EL34 / 6CA7 power pentode (Marshall, Hiwatt). Koren's fit with K_g2 refitted from 4200 to Mullard's class-A
+    ///     point (250 V plate and screen, -13.5 V: 100 mA plate, 14.9 mA screen): Koren's screen current there was 4.8
+    ///     mA, a third of it, which under-modelled the screen node's sag and the cathode bias of cathode-biased pairs.
+    ///     The plate current (97 mA there) is Koren's.
+    /// </summary>
+    public static PentodeModel EL34 { get; } = new(11, 1.35, 650, 1_348, 60, 24);
 
     /// <summary>6L6GC beam tetrode (Fender).</summary>
     public static PentodeModel SixL6GC { get; } = new(8.7, 1.35, 1_460, 4_500, 48, 12);

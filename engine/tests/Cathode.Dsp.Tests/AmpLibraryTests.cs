@@ -190,6 +190,124 @@ public partial class AmpStageTests {
         Assert.True(db < -90, $"{db:0.0} dB");
     }
 
+    /// <summary>
+    ///     Every catalogue tone-stack stage's output resistance (the next stage's Thévenin source) against the same
+    ///     stage written as a general network (driver, stack, load pot and bright cap as one netlist), whose
+    ///     linearisation is NetworkStage's own nodal solve, at the stage's operating point in its amp: across the
+    ///     knobs, with the bright switch on and off, and with the stack's caps scaled.
+    /// </summary>
+    [Fact]
+    public void Tone_stack_stage_output_resistance_is_the_linearised_circuit() {
+        AmpControls[] knobs = [
+            new(0.5, 0.5, 0.5, 0.5, 0.5, false), new(1, 0.5, 0.5, 1, 1, true), new(1, 1, 0, 0, 1, false),
+            new(0.2, 0, 1, 0.3, 0.2, true), new(0.8, 0.3, 0.7, 0.9, 0.3, true)
+        ];
+        var settings = new PreampSettings(StackFrequency: 1.4, BrightCap: 1.5);
+        var stages = 0;
+        foreach (var amp in AmpDesign.All) {
+            var channel = new AmpChannel(amp, Rate);
+            for (var i = 0; i < channel.Stages.Count; i++) {
+                if (channel.Stages[i] is not ToneStackStage { Design: var design }) {
+                    continue;
+                }
+
+                var rest = i == 0 ? 0 : channel.Stages[i - 1].RestOutput;
+                var source = i == 0 ? 0 : channel.Stages[i - 1].OutputResistance;
+                var last = 0.0;
+                stages++;
+                foreach (var controls in knobs) {
+                    foreach (var scaled in new[] { false, true }) {
+                        var applied = scaled ? settings : PreampSettings.Stock;
+                        var stage = new ToneStackStage(design, Rate);
+                        var network = ToneStackNetworkDesign(design, controls, applied).Create(Rate);
+                        foreach (var s in new AmpStage[] { stage, network }) {
+                            s.SetSourceResistance(source);
+                            s.Apply(applied);
+                            s.Update(controls);
+                            s.Reset(rest);
+                        }
+
+                        // The network's operating point includes a grid conducting at rest (the Prometheus' follower
+                        // sits 50 mV positive), which the stack stage's leaves out: 0.1 % at most.
+                        if (controls == knobs[^1] && !scaled) {
+                            last = stage.OutputResistance;
+                        }
+
+                        Assert.Equal(network.OutputResistance, stage.OutputResistance, 2e-3 * network.OutputResistance);
+                    }
+                }
+
+                var noon = new ToneStackStage(design, Rate);
+                noon.SetSourceResistance(source);
+                noon.Update(knobs[0]);
+                noon.Reset(rest);
+                output.WriteLine($"{amp.Name} {design.Name}: {noon.OutputResistance / 1e3:0.00}k at noon");
+                noon.Update(knobs[^1]); // turning the knobs of a running stage moves it too
+                Assert.Equal(last, noon.OutputResistance, 1e-9 * last);
+            }
+        }
+
+        Assert.True(stages >= 10, $"{stages} tone stack stages");
+    }
+
+    /// <summary>
+    ///     A <see cref="ToneStackStageDesign" /> at fixed knobs as a <see cref="NetworkStageDesign" />: the pots as
+    ///     plain resistors, the expert settings' cap and cathode scaling folded into the values.
+    /// </summary>
+    static NetworkStageDesign ToneStackNetworkDesign(
+        ToneStackStageDesign d,
+        AmpControls controls,
+        PreampSettings settings
+    ) {
+        const double Floor = 1e-3;
+        var follower = d.Driver == StackDriver.CathodeFollower;
+        var net = new StageNetlist();
+        var grid = net.Input;
+        if (d.GridLeak > 0) {
+            net.Resistor(grid, StageNetlist.Ground, d.GridLeak);
+        }
+
+        var (cathode, supply) = (net.Node(), net.Node());
+        net.Supply(supply, d.Supply);
+        net.Resistor(cathode, StageNetlist.Ground, d.CathodeResistor * (follower ? settings.FollowerBias : 1));
+        int driven;
+        if (follower) {
+            driven = cathode;
+            net.Triode(supply, grid, cathode, d.Tube);
+        } else {
+            driven = net.Node();
+            net.Resistor(supply, driven, d.PlateResistor);
+            if (d.CathodeBypass > 0) {
+                net.Capacitor(cathode, StageNetlist.Ground, d.CathodeBypass);
+            }
+
+            net.Triode(driven, grid, cathode, d.Tube);
+        }
+
+        var s = d.Stack;
+        var (top, bottom, slope, middle, output, wiper) =
+            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var t = s.Treble.Fraction(controls.Treble);
+        net.Capacitor(driven, top, s.TrebleCap / settings.StackFrequency);
+        net.Resistor(driven, slope, s.SlopeResistor);
+        net.Capacitor(slope, bottom, s.BassCap / settings.StackFrequency);
+        net.Capacitor(slope, middle, s.MiddleCap / settings.StackFrequency);
+        net.Resistor(top, output, Math.Max((1 - t) * s.Treble.Ohms, Floor));
+        net.Resistor(output, bottom, Math.Max(t * s.Treble.Ohms, Floor));
+        net.Resistor(bottom, middle, Math.Max(s.Bass.Fraction(controls.Bass) * s.Bass.Ohms, Floor));
+        net.Resistor(middle, StageNetlist.Ground, Math.Max(s.Middle.Fraction(controls.Middle) * s.Middle.Ohms, Floor));
+        var a = d.Load.Fraction(d.LoadRole is { } role ? controls.Rotation(role) : 1);
+        net.Resistor(output, wiper, Math.Max((1 - a) * d.Load.Ohms, Floor));
+        net.Resistor(wiper, StageNetlist.Ground, Math.Max(a * d.Load.Ohms, Floor));
+        if (controls.IsOn(d.BrightSwitch) && d.BrightCap > 0) {
+            var scale = d.LoadRole == PotRole.Master ? 1 : settings.BrightCap;
+            net.Capacitor(output, wiper, d.BrightCap * scale);
+        }
+
+        net.Output = wiper;
+        return new(d.Name, net, d.InputResistance);
+    }
+
     [Theory]
     [MemberData(nameof(NetworkSettings))]
     public void Passive_networks_match_the_reference_response(string name, double knob, double treble, bool switched) {
@@ -403,11 +521,12 @@ public partial class AmpStageTests {
     public void Power_amp_variants_match_the_reference_in_the_time_domain(string name) {
         var stiff = new PowerSupplyDesign(1e-3, 1, 1e-3, 1, 1e3, 1, 0);
         var plexi = Plexi.Design.Power with { PowerSupply = stiff };
-        // The inverter-input cases keep the 820 Ω bias the generic Plexi had when they were written: at their 7 V of
-        // drive a Marshall's 470 Ω puts the idle grid into grid current as well, which the pair's table leaves out (see
-        // Long_tail_pair_table_matches_the_reference_dc_sweep), and these cases are about the input network.
+        // The inverter-input cases bias the pair with 1k (the generic Plexi had 820 Ω when they were written): at their
+        // 7 V of drive a Marshall's 470 Ω puts the idle grid into grid current as well, which the pair's table leaves
+        // out (see Long_tail_pair_table_matches_the_reference_dc_sweep), and these cases are about the input network.
+        // With the 12AX7 refitted to its datasheet the pair draws more current, and 820 Ω got there too (-30 dB).
         var inputFixture = plexi with {
-            PhaseInverter = new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 10e3, 820),
+            PhaseInverter = new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 10e3, 1e3),
             InverterInput = new(22e-9, 1e6)
         };
         var sixV6 = AC30.Design.Power with {

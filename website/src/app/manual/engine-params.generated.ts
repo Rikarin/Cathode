@@ -16284,6 +16284,16 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Screen Q',
           'Screen Q'
         ]
+      },
+      {
+        id: 'oversampling',
+        name: 'Oversampling',
+        kind: 'choice',
+        min: 0,
+        max: 1,
+        default: 0,
+        page: 'Advanced',
+        options: ['Standard', 'High']
       }
     ]
   },

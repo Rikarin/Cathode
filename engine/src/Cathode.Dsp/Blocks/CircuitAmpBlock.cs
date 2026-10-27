@@ -18,7 +18,9 @@ namespace Cathode.Dsp.Blocks;
 ///     <para>
 ///         Everything runs at twice the sample rate (at rates of 64 kHz and up, at the sample rate): every stage,
 ///         linear ones included, sits between nonlinear ones, so splitting rates would cost more in resampling than it
-///         saves. The power amp's phase inverter, feedback and grid networks are folded into one scalar Newton solve
+///         saves. <b>Oversampling</b> High doubles that (4 x, 2 x from 64 kHz) for 7-14 dB less aliasing on the
+///         cranked high-gain models, at about twice the CPU; it changes the latency, so it recompiles. The power amp's
+///         phase inverter, feedback and grid networks are folded into one scalar Newton solve
 ///         (see <see cref="PowerAmp" />).
 ///     </para>
 ///     <para>
@@ -318,6 +320,12 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
     public const int ScreenFrequency = 109;
     public const int ScreenQ = 110;
 
+    /// <summary>
+    ///     Oversampling: Standard (2 x, 1 x from 64 kHz) or High (twice that). Changes the latency, so it recompiles;
+    ///     read when the block is prepared.
+    /// </summary>
+    public const int OversamplingSetting = 111;
+
     // Values of Speaker, Master Location and Output Mode.
     public const int SpeakerAuto = 6;
     public const int MasterPostInverter = 1;
@@ -378,6 +386,7 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
     readonly AmpChannel?[] channels = new AmpChannel?[AmpDesign.All.Count]; // built on first use (control thread)
     readonly Lock building = new();
     readonly Oversampler2x oversampler = new(1);
+    readonly Oversampler4x oversampler4 = new(1);
     readonly AmpBoost boost = new();
     readonly AmpEqualizer equalizer = new();
     readonly float[] eqGains = new float[GraphicEqualizer.MaxBands];
@@ -439,7 +448,12 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
     /// <summary>The oversampler's filters (the global setting); set before <see cref="IDspBlock.Prepare" />.</summary>
     public OversamplingPhase OversamplingPhase { get; set; }
 
-    public override int LatencySamples => Oversampling == 2 ? oversampler.LatencySamples : 0;
+    public override int LatencySamples =>
+        Oversampling switch {
+            4 => oversampler4.LatencySamples,
+            2 => oversampler.LatencySamples,
+            _ => 0
+        };
 
     static CircuitAmpBlock() {
         // Every tube table a setting can ask for, built here (control thread), so that changing one on the audio
@@ -501,7 +515,11 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
             highTreble.Reset();
         }
 
-        var inner = Oversampling == 2 ? oversampler.Up(samples) : samples;
+        var inner = Oversampling switch {
+            4 => oversampler4.Up(samples),
+            2 => oversampler.Up(samples),
+            _ => samples
+        };
         var (volts, jack) = ProcessInput(inner, trim, Params.Advance(InputDynamics, length) / 100f, location);
         var channel = Channel;
         var scale = channel.PowerAmpEnabled ? outputScale : preampScale;
@@ -555,7 +573,9 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
             innerRate
         );
 
-        if (Oversampling == 2) {
+        if (Oversampling == 4) {
+            oversampler4.Down(samples);
+        } else if (Oversampling == 2) {
             oversampler.Down(samples);
         }
     }
@@ -801,10 +821,16 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
     }
 
     protected override void OnPrepare(in ProcessSpec spec) {
-        Oversampling = spec.SampleRate < 64_000 ? 2 : 1;
+        var high = Params.GetTarget(OversamplingSetting) >= 0.5f;
+        Oversampling = (spec.SampleRate < 64_000 ? 2 : 1) * (high ? 2 : 1);
         oversampler.Resize(spec.MaxBlockSize);
+        oversampler4.Resize(Oversampling == 4 ? spec.MaxBlockSize : 1);
         if (oversampler.Phase != OversamplingPhase) {
             oversampler.SetPhase(OversamplingPhase);
+        }
+
+        if (oversampler4.Phase != OversamplingPhase) {
+            oversampler4.SetPhase(OversamplingPhase);
         }
 
         lock (building) {
@@ -824,6 +850,7 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
 
     protected override void OnReset() {
         oversampler.Reset();
+        oversampler4.Reset();
         boost.Reset();
         inputFilter.Reset();
         dynamics.Reset();
@@ -862,7 +889,9 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
             phase = (phase + length) % SubBlock;
         }
 
-        if (Oversampling == 2) {
+        if (Oversampling == 4) {
+            oversampler4.FlushDenormals();
+        } else if (Oversampling == 2) {
             oversampler.FlushDenormals();
         }
 

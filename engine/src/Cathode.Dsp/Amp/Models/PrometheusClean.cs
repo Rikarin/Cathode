@@ -36,7 +36,7 @@ public static class PrometheusClean {
             new CouplingStageDesign("Master", 22e-9, new(1e6, PotTaper.Audio), PotRole.Master)
         ],
         Prometheus.Design.Power,
-        -3
+        -3.5 // the volume's wiper at full up drives V2A through 32k (the stack's linearised output), not 100k
     ) { Panel = AmpPanel.Standard with { Gain = "Volume", Cut = null, Bright = "Brilliant" } };
 
     /// <summary>
