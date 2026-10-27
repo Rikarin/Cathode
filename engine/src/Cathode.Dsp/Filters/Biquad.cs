@@ -1,3 +1,4 @@
+using Cathode.Dsp.Amp;
 using System.Runtime.CompilerServices;
 
 namespace Cathode.Dsp.Filters;
@@ -131,8 +132,6 @@ public readonly record struct BiquadCoefficients(double B0, double B1, double B2
 
 /// <summary>Transposed direct form II biquad state for one channel.</summary>
 public struct BiquadState {
-    const double DenormalThreshold = 1e-30;
-
     double z1;
     double z2;
 
@@ -159,12 +158,7 @@ public struct BiquadState {
 
     /// <summary>Zeroes state that has decayed into the subnormal range, where arithmetic gets very slow.</summary>
     public void FlushDenormals() {
-        if (Math.Abs(z1) < DenormalThreshold) {
-            z1 = 0;
-        }
-
-        if (Math.Abs(z2) < DenormalThreshold) {
-            z2 = 0;
-        }
+        z1 = Flush.Value(z1);
+        z2 = Flush.Value(z2);
     }
 }
