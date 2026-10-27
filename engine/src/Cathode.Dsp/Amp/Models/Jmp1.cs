@@ -47,7 +47,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         Power amp: the JMP-1 has none. This model feeds its line output into the JCM900 4100's documented 100 W
 ///         section (Marshall 4100-60-02 issue 11: four EL34, 82k / 100k long-tail pair, 100k of feedback; see
-///         <see cref="JCM900" />), as a Marshall 9100 / 9200-style EL34 power amp would be.
+///         <see cref="JCM900" />), as a Marshall 9100 / 9200-style EL34 power amp would be. The preamp keeps its own
+    ///         supply (<see cref="PreampSupplyDesign.OwnSupply" />): VB1 and VB2 run at their nominal HT whatever the
+    ///         power amp's sag, and Preamp Sag does not reach them.
 ///     </para>
 ///     <para>
 ///         Panel: Switch 1 selects the OD channels, Switch 2 Clean II or OD II, Switch 3 Bass Shift; Gain, Bass, Middle
@@ -95,7 +97,9 @@ public static class Jmp1 {
             Switch1 = "OD",
             Switch2 = "Clean II / OD II",
             Switch3 = "Bass Shift"
-        }
+        },
+        // A rack unit with its own transformer and 230 V HT (sheet 2): the power amp's sag never reaches its valves.
+        PreampSupply = PreampSupplyDesign.OwnSupply
     };
 
     /// <summary>

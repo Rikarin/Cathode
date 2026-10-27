@@ -644,7 +644,8 @@ cites its drawings and marks what is read, inferred or guessed:
   stage's summing nodes; flat at the centre, each band +4 to +9 dB at full), IC17, the Volume, the output mixer and
   driver. Every op-amp but the OD's inverting stage is a linear amplifier. Its line output drives the JCM900 4100's
   documented EL34 power amp (4100-60-02); presence and depth hidden, Control 1 the Output level, Control 2 the preamp's
-  Presence band.
+  Presence band. The preamp keeps its own supply (`PreampSupplyDesign.OwnSupply`, as the TriAxis): the 4100 power
+  amp's sag never reaches VB1/VB2, and Preamp Sag does not act on it.
 - **AFD100** (`MarshallAfd100.cs`, added after M1), from the main-board drawing AFD100-60-02 iss 1 (10-6-10, vector):
   V5 (both triodes of an ECC83 in parallel, 51k, 1k33 bypassed), the 1M Gain with 470k ‖ 2.2 nF ahead of it and a 1 nF
   bright cap, V6A (10k), V6B (10k with 10k + 100 nF), V7A, the V7B follower straight into a 2203-style stack (250k
