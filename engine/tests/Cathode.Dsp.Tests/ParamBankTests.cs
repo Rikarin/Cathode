@@ -21,6 +21,24 @@ public class ParamBankTests {
     }
 
     [Fact]
+    public void Modulated_choices_and_switches_land_on_the_nearest_option() {
+        var bank = new ParamBank([.. Descriptors, ParamDescriptor.Switch("on", "On")]);
+        bank.Prepare(48_000);
+
+        bank.Modulate(1, 1.6f, 64);
+        Assert.Equal(2, bank.GetTarget(1));
+        Assert.Equal(2, bank.Advance(1, 64));
+        bank.Modulate(1, 0.4f, 64);
+        Assert.Equal(0, (int)bank.Advance(1, 64));
+
+        // A pedal past the half-way point engages the switch (it used to need exactly 100 %).
+        bank.Modulate(2, 0.7f, 64);
+        Assert.Equal(1, (int)bank.Advance(2, 64));
+        bank.Modulate(2, 0.3f, 64);
+        Assert.Equal(0, (int)bank.Advance(2, 64));
+    }
+
+    [Fact]
     public void Linear_ramp_reaches_target_after_exactly_the_smoothing_time() {
         var bank = new ParamBank(Descriptors);
         bank.Prepare(48_000); // 1 ms = 48 samples

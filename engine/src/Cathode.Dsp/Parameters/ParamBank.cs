@@ -91,11 +91,11 @@ public sealed class ParamBank {
     ///     Audio thread, before the block's <see cref="BeginBlock" />: a modifier sets the value, ramping to it exactly
     ///     across the next <paramref name="frames" /> instead of through the parameter's own smoother, so fast
     ///     modulation is interpolated rather than smeared. It also becomes the target, as a modified knob is owned by its
-    ///     modifier.
+    ///     modifier. Like <see cref="SetTarget" /> it sanitises the value, so a modulated choice or switch lands on the
+    ///     nearest option (a switch engages at 0.5) rather than on the truncation every block reads with <c>(int)</c>.
     /// </summary>
     public void Modulate(int index, float value, int frames) {
-        var descriptor = descriptors[index];
-        value = Math.Clamp(value, descriptor.Min, descriptor.Max);
+        value = descriptors[index].Sanitize(value);
         Volatile.Write(ref target[index], value);
         seenTarget[index] = value;
         if (frames <= 0 || rampSamples[index] == 0) {
