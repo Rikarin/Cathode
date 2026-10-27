@@ -2,7 +2,17 @@ import type { ParameterInfo } from '@cathode/api-client';
 import { labelledParams } from './type-labels';
 
 function param(id: string, name: string, typeLabels?: string[]): ParameterInfo {
-  return { id, name, kind: 'float', min: 0, max: 10, default: 5, unit: '', taper: 'linear', typeLabels };
+  return {
+    id,
+    name,
+    kind: 'float',
+    min: 0,
+    max: 10,
+    default: 5,
+    unit: '',
+    taper: 'linear',
+    ...(typeLabels ? { typeLabels } : {})
+  };
 }
 
 describe('labelledParams', () => {

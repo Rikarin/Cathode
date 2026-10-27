@@ -16,10 +16,10 @@ describe('response', () => {
   });
 
   it('decodes 16-bit PCM and float WAV files', () => {
-    expect(decodeWav(wav(1, 16, [0.5, -0.25])).channels[0][0]).toBeCloseTo(0.5, 4);
+    expect(decodeWav(wav(1, 16, [0.5, -0.25])).channels[0]?.[0]).toBeCloseTo(0.5, 4);
     const float = decodeWav(wav(3, 32, [0.125, -1]));
     expect(float.sampleRate).toBe(48_000);
-    expect(Array.from(float.channels[0])).toEqual([0.125, -1]);
+    expect(Array.from(float.channels[0] ?? [])).toEqual([0.125, -1]);
     expect(() => decodeWav(new ArrayBuffer(16))).toThrow('Not a WAV file');
   });
 
@@ -37,7 +37,11 @@ function wav(format: number, bits: number, samples: number[]): ArrayBuffer {
   const bytes = bits / 8;
   const buffer = new ArrayBuffer(44 + samples.length * bytes);
   const view = new DataView(buffer);
-  const text = (at: number, s: string) => [...s].forEach((c, i) => view.setUint8(at + i, c.charCodeAt(0)));
+  const text = (at: number, s: string) => {
+    for (let i = 0; i < s.length; i++) {
+      view.setUint8(at + i, s.charCodeAt(i));
+    }
+  };
   text(0, 'RIFF');
   view.setUint32(4, 36 + samples.length * bytes, true);
   text(8, 'WAVE');

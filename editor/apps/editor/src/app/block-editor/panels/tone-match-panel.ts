@@ -37,7 +37,13 @@ import { AssetPicker } from './asset-picker';
             (valueChange)="$event && duration.set($event)"
           />
         </label>
-        <button xuiButton data-testid="learn-tone-match" [disabled]="!reference() || listening()" (click)="learn()">
+        <button
+          type="button"
+          xuiButton
+          data-testid="learn-tone-match"
+          [disabled]="!reference() || listening()"
+          (click)="learn()"
+        >
           {{ listening() ? 'Listening… play now' : 'Learn' }}
         </button>
         <span class="text-foreground-muted text-xs" data-testid="match-state">{{ matchName() }}</span>

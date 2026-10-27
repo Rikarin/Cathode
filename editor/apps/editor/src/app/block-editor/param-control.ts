@@ -84,23 +84,27 @@ import { UiStore } from '../state/ui.store';
         </div>
         <ng-template #menu>
           <xui-menu>
-            <button xuiMenuItem icon="matTuneRound" (click)="editing.set(true)">
+            <button type="button" xuiMenuItem icon="matTuneRound" (click)="editing.set(true)">
               {{ modifier() ? 'Edit modifier…' : 'Add modifier…' }}
             </button>
-            <button xuiMenuItem icon="matSettingsInputComponentRound" (click)="learn()">Learn MIDI controller</button>
+            <button type="button" xuiMenuItem icon="matSettingsInputComponentRound" (click)="learn()">
+              Learn MIDI controller
+            </button>
             @if (modifier()) {
-              <button xuiMenuItem icon="matLinkOffRound" color="error" (click)="removeModifier()">
+              <button type="button" xuiMenuItem icon="matLinkOffRound" color="error" (click)="removeModifier()">
                 Remove modifier
               </button>
             }
             <xui-menu-divider />
-            <button xuiMenuItem icon="matDashboardCustomizeRound" (click)="addToPerform('preset')">
+            <button type="button" xuiMenuItem icon="matDashboardCustomizeRound" (click)="addToPerform('preset')">
               Add to the preset's Perform page
             </button>
-            <button xuiMenuItem icon="matDashboardCustomizeRound" (click)="addToPerform('global')">
+            <button type="button" xuiMenuItem icon="matDashboardCustomizeRound" (click)="addToPerform('global')">
               Add to the global Perform page
             </button>
-            <button xuiMenuItem icon="matDynamicFeedRound" (click)="batchSet()">Set in other presets…</button>
+            <button type="button" xuiMenuItem icon="matDynamicFeedRound" (click)="batchSet()">
+              Set in other presets…
+            </button>
           </xui-menu>
         </ng-template>
         <cth-modifier-dialog [block]="block().id" [param]="param()" [(open)]="editing" />
@@ -155,13 +159,13 @@ import { UiStore } from '../state/ui.store';
     <!-- A switch or choice: what applies to any setting (modifiers and MIDI learn drive continuous values). -->
     <ng-template #settingMenu>
       <xui-menu>
-        <button xuiMenuItem icon="matDashboardCustomizeRound" (click)="addToPerform('preset')">
+        <button type="button" xuiMenuItem icon="matDashboardCustomizeRound" (click)="addToPerform('preset')">
           Add to the preset's Perform page
         </button>
-        <button xuiMenuItem icon="matDashboardCustomizeRound" (click)="addToPerform('global')">
+        <button type="button" xuiMenuItem icon="matDashboardCustomizeRound" (click)="addToPerform('global')">
           Add to the global Perform page
         </button>
-        <button xuiMenuItem icon="matDynamicFeedRound" (click)="batchSet()">Set in other presets…</button>
+        <button type="button" xuiMenuItem icon="matDynamicFeedRound" (click)="batchSet()">Set in other presets…</button>
       </xui-menu>
     </ng-template>
   `
@@ -281,7 +285,7 @@ export function freeExternal(
   ];
   const used = new Set([
     ...modifiers.map(m => m.source),
-    ...actions.filter(a => a?.action === 'external').map(a => `ext${a!.value ?? 1}`)
+    ...actions.flatMap(a => (a?.action === 'external' ? [`ext${a.value ?? 1}`] : []))
   ]);
   return [1, 2, 3, 4, 5, 6, 7, 8].find(i => !used.has(`ext${i}`)) ?? null;
 }

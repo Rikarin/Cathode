@@ -81,8 +81,7 @@ export function monoHints(
     const sources: PresetBlock[] = [];
     const seen = new Set<string>();
     const stack = [...(feeding.get(block.id) ?? [])];
-    while (stack.length > 0) {
-      const id = stack.pop()!;
+    for (let id = stack.pop(); id !== undefined; id = stack.pop()) {
       const upstream = byId.get(id);
       if (!upstream || seen.has(id)) {
         continue;

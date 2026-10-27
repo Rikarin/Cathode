@@ -19,7 +19,7 @@ describe('the block picker', () => {
   it('groups known categories in signal-chain order, then new ones alphabetically', () => {
     const groups = groupBlocks(types, '', none);
     expect(groups.map(g => g.category)).toEqual(['Drive', 'Delay', 'Reverb', 'Atmosphere', 'Spectral']);
-    expect(groups[1].items.map(i => i.type.name)).toEqual(['Delay', 'Multitap Delay']);
+    expect(groups[1]?.items.map(i => i.type.name)).toEqual(['Delay', 'Multitap Delay']);
     expect(groups.flatMap(g => g.items).map(i => i.index)).toEqual([0, 1, 2, 3, 4, 5]);
   });
 
@@ -29,7 +29,7 @@ describe('the block picker', () => {
       'multidelay'
     ]);
     expect(groupBlocks(types, 'tap del', none).flatMap(g => g.items.map(i => i.type.typeId))).toEqual(['multidelay']);
-    expect(groupBlocks(types, 'spectral', none)[0].items[0].type.typeId).toBe('vocoder');
+    expect(groupBlocks(types, 'spectral', none)[0]?.items[0]?.type.typeId).toBe('vocoder');
     expect(groupBlocks(types, 'nothing', none)).toEqual([]);
   });
 

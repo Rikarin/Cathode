@@ -1,12 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import {
-  BuiltInTypes,
-  BypassModes,
-  type ChannelName,
-  ChannelNames,
-  OutputTypes,
-  type ParameterInfo
-} from '@cathode/api-client';
+import { BuiltInTypes, BypassModes, ChannelNames, OutputTypes, type ParameterInfo } from '@cathode/api-client';
 import { CthBlockTile, blockAccent } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
 import {
@@ -118,7 +111,14 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
           <div class="-my-1 flex items-center gap-2">
             <h2 class="sr-only">{{ title() }}</h2>
             <span class="text-foreground-muted min-w-0 flex-1 truncate text-xs">{{ block.id }}</span>
-            <button xuiButton variant="ghost" size="sm" aria-label="Block actions" [xuiMenuTriggerFor]="blockMenu">
+            <button
+              type="button"
+              xuiButton
+              variant="ghost"
+              size="sm"
+              aria-label="Block actions"
+              [xuiMenuTriggerFor]="blockMenu"
+            >
               <ng-icon xui name="matMoreHorizRound" size="sm" />
             </button>
           </div>
@@ -152,11 +152,17 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
             </label>
             <ng-template #engageMenu>
               <xui-menu>
-                <button xuiMenuItem icon="matTuneRound" (click)="editingEngage.set(true)">
+                <button type="button" xuiMenuItem icon="matTuneRound" (click)="editingEngage.set(true)">
                   {{ engageModifier() ? 'Edit engage modifier…' : 'Engage from a modifier…' }}
                 </button>
                 @if (engageModifier()) {
-                  <button xuiMenuItem icon="matLinkOffRound" color="error" (click)="removeEngageModifier()">
+                  <button
+                    type="button"
+                    xuiMenuItem
+                    icon="matLinkOffRound"
+                    color="error"
+                    (click)="removeEngageModifier()"
+                  >
                     Remove engage modifier
                   </button>
                 }
@@ -267,7 +273,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
 
           <ng-template #blockMenu>
             <xui-menu>
-              <button xuiMenuItem icon="matSaveRound" (click)="ui.saveBlockOpen.set(true)">
+              <button type="button" xuiMenuItem icon="matSaveRound" (click)="ui.saveBlockOpen.set(true)">
                 Save to the Block Library…
               </button>
               <xui-menu-divider />
@@ -276,6 +282,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
                 @for (channel of channels; track channel.value) {
                   @if (channel.value !== live.channelOf(block.id)) {
                     <button
+                      type="button"
                       xuiMenuItem
                       icon="matContentCopyRound"
                       (click)="live.copyChannel(block.id, live.channelOf(block.id), channel.value)"
@@ -288,6 +295,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
                 @for (channel of channels; track channel.value) {
                   @if (channel.value !== live.channelOf(block.id)) {
                     <button
+                      type="button"
                       xuiMenuItem
                       icon="matSwapHorizRound"
                       (click)="live.swapChannels(block.id, live.channelOf(block.id), channel.value)"
@@ -298,6 +306,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
                 }
                 <xui-menu-divider />
                 <button
+                  type="button"
                   xuiMenuItem
                   icon="matRestartAltRound"
                   (click)="live.resetChannel(block.id, live.channelOf(block.id))"
@@ -305,18 +314,25 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
                   Reset channel {{ live.channelOf(block.id) }}
                 </button>
               }
-              <button xuiMenuItem icon="matRestartAltRound" color="error" (click)="live.resetBlock(block.id)">
+              <button
+                type="button"
+                xuiMenuItem
+                icon="matRestartAltRound"
+                color="error"
+                (click)="live.resetBlock(block.id)"
+              >
                 Reset block (all channels)
               </button>
               <xui-menu-divider />
               @if (isIo()) {
                 <!-- The grid's Input and Output cannot be global. -->
               } @else if (block.global) {
-                <button xuiMenuItem icon="matLinkOffRound" (click)="live.unlinkGlobal(block.id)">
+                <button type="button" xuiMenuItem icon="matLinkOffRound" (click)="live.unlinkGlobal(block.id)">
                   Unlink from global
                 </button>
               } @else {
                 <button
+                  type="button"
                   xuiMenuItem
                   icon="matPublicRound"
                   (click)="live.makeGlobal(block.id, title() + ' (' + block.id + ')')"
@@ -324,7 +340,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
                   Make global
                 </button>
                 @for (shared of sameTypeGlobals(); track shared.id) {
-                  <button xuiMenuItem icon="matLinkRound" (click)="live.useGlobal(block.id, shared.id)">
+                  <button type="button" xuiMenuItem icon="matLinkRound" (click)="live.useGlobal(block.id, shared.id)">
                     Use “{{ shared.name }}”
                   </button>
                 }
@@ -443,7 +459,7 @@ export class BlockEditor {
 
   private readonly globals = inject(GlobalStore);
 
-  protected readonly channels = ChannelNames.map(c => ({ label: c, value: c as ChannelName }));
+  protected readonly channels = ChannelNames.map(c => ({ label: c, value: c }));
   /** The pseudo-parameter a modifier drives to engage the block: engaged at 0.5 and above (ModNames.EngageParam). */
   protected readonly engageParam: ParameterInfo = {
     id: 'engage',
@@ -517,7 +533,10 @@ export class BlockEditor {
     }
   }
 
-  protected readonly info = computed(() => (this.block() ? this.catalog.info(this.block()!.type) : undefined));
+  protected readonly info = computed(() => {
+    const block = this.block();
+    return block ? this.catalog.info(block.type) : undefined;
+  });
   protected readonly title = computed(() => this.info()?.name ?? this.block()?.type ?? '');
   protected readonly typeParam = computed(() => this.info()?.params.find(p => p.id === 'type') ?? null);
   /** The selected type (model) of the block, which names and hides per-model controls. */

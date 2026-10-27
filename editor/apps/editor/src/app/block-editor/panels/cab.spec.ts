@@ -116,8 +116,8 @@ describe('Cab panel helpers', () => {
     expect(mics.map(m => m.slot)).toEqual([0, 2, 3]);
     expect(mics.map(m => m.name)).toEqual(['SM57', 'My 4x12', 'SM57']);
     expect(mics[1]).toEqual({ slot: 2, name: 'My 4x12', position: 50, distance: 2, angle: 0, muted: true });
-    expect(mics[0].muted).toBe(false);
-    expect(coneMics(values({ m3source: Source.pack }), Mics, () => undefined)[2].name).toBe('No pack');
+    expect(mics[0]?.muted).toBe(false);
+    expect(coneMics(values({ m3source: Source.pack }), Mics, () => undefined)[2]?.name).toBe('No pack');
   });
 
   describe('editing a muted slot', () => {

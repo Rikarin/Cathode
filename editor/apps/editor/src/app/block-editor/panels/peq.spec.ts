@@ -48,7 +48,11 @@ describe('peqGainFor', () => {
 
   it('finds the gain that puts the whole curve where a handle is dropped, over the other bands', () => {
     const bands = eq();
-    const gain = peqGainFor(bands, 2, 600, 3)!;
+    const gain = peqGainFor(bands, 2, 600, 3);
+    if (gain === null) {
+      throw new Error('No gain found');
+    }
+
     const moved = bands.map(b => (b.band === 2 ? { ...b, frequency: 600, gain } : b));
     expect(peqTotalDb(moved, 600)).toBeCloseTo(3, 3);
     expect(gain).toBeLessThan(3); // band 3's boost already lifts the curve at 600 Hz
@@ -56,7 +60,11 @@ describe('peqGainFor', () => {
 
   it('counts a shelf as half its gain at its frequency', () => {
     const bands = eq();
-    const gain = peqGainFor(bands, 1, 80, 6)!;
+    const gain = peqGainFor(bands, 1, 80, 6);
+    if (gain === null) {
+      throw new Error('No gain found');
+    }
+
     const moved = bands.map(b => (b.band === 1 ? { ...b, gain } : b));
     expect(peqTotalDb(moved, 80)).toBeCloseTo(6, 3);
   });

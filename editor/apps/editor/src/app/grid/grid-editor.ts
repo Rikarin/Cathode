@@ -170,6 +170,7 @@ export function dropAction(
         <div role="row" [attr.aria-rowindex]="line.row + 1">
           @for (cell of line.cells; track cell.key) {
             <div
+              #cellElement
               role="gridcell"
               [attr.aria-colindex]="cell.column + 1"
               class="outline-focus data-[wire=candidate]:outline-primary data-[wire=target]:outline-primary absolute rounded-lg outline-offset-4 data-focused:group-focus-visible/grid:outline-2 data-[wire=candidate]:outline-2 data-[wire=candidate]:outline-dashed data-[wire=target]:outline-2"
@@ -184,7 +185,7 @@ export function dropAction(
               [style.width.px]="width"
               [style.height.px]="height"
               [xuiContextMenuTriggerFor]="cell.block ? blockMenu : emptyMenu"
-              (pointerdown)="pick(cell); touches.down($event, $any($event.currentTarget))"
+              (pointerdown)="pick(cell); touches.down($event, cellElement)"
               (dblclick)="openPalette()"
               (dragover)="dragOver($event, cell)"
               (drop)="drop($event, cell)"
@@ -322,6 +323,7 @@ export function dropAction(
         @if (focusedBlock(); as block) {
           @if (!isIo(block) && block.type !== 'shunt') {
             <button
+              type="button"
               xuiMenuItem
               icon="matPowerSettingsNewRound"
               (click)="live.setBypass(block.id, !live.isBypassed(block.id))"
@@ -333,6 +335,7 @@ export function dropAction(
             <xui-menu-divider title="Channel" />
             @for (channel of channelNames.slice(0, channelCount(block)); track channel) {
               <button
+                type="button"
                 xuiMenuItem
                 [selected]="live.channelOf(block.id) === channel"
                 (click)="live.setChannel(block.id, channel)"
@@ -343,68 +346,82 @@ export function dropAction(
           }
           @if (!isIo(block) && block.type !== 'shunt') {
             <xui-menu-divider title="All scenes" />
-            <button xuiMenuItem (click)="ui.allScenes({ bypassed: false }, block)">
+            <button type="button" xuiMenuItem (click)="ui.allScenes({ bypassed: false }, block)">
               Engage in all scenes<span menuItemLabel>⇧Space</span>
             </button>
-            <button xuiMenuItem (click)="ui.allScenes({ bypassed: true }, block)">
+            <button type="button" xuiMenuItem (click)="ui.allScenes({ bypassed: true }, block)">
               Bypass in all scenes<span menuItemLabel>⇧⌘Space</span>
             </button>
           }
           @if (hasChannels(block)) {
-            <button xuiMenuItem [xuiMenuTriggerFor]="allChannels" [xuiMenuTriggerData]="{ block }">
+            <button type="button" xuiMenuItem [xuiMenuTriggerFor]="allChannels" [xuiMenuTriggerData]="{ block }">
               Channel in all scenes
             </button>
           }
           <xui-menu-divider />
           @if (!isIo(block) && block.type !== 'shunt') {
-            <button xuiMenuItem icon="matContentCutRound" (click)="cut(block)">Cut<span menuItemLabel>⌘X</span></button>
-            <button xuiMenuItem icon="matContentCopyRound" (click)="copy(block)">
+            <button type="button" xuiMenuItem icon="matContentCutRound" (click)="cut(block)">
+              Cut<span menuItemLabel>⌘X</span>
+            </button>
+            <button type="button" xuiMenuItem icon="matContentCopyRound" (click)="copy(block)">
               Copy<span menuItemLabel>⌘C</span>
             </button>
           }
           @if (pasteAction(block) !== null) {
-            <button xuiMenuItem icon="matContentPasteRound" (click)="paste()">
+            <button type="button" xuiMenuItem icon="matContentPasteRound" (click)="paste()">
               {{ pasteAction(block) === 'settings' ? 'Paste settings (all channels)' : 'Paste' }}
               <span menuItemLabel>⌘V</span>
             </button>
           }
           @if (!isIo(block)) {
-            <button xuiMenuItem icon="matFindReplaceRound" (click)="openPalette(true)">
+            <button type="button" xuiMenuItem icon="matFindReplaceRound" (click)="openPalette(true)">
               Replace with…<span menuItemLabel>Q</span>
             </button>
           }
           @if (hasOutlet(block)) {
-            <button xuiMenuItem icon="matCableRound" (click)="startCable()">
+            <button type="button" xuiMenuItem icon="matCableRound" (click)="startCable()">
               Cable to…<span menuItemLabel>K</span>
             </button>
           }
-          <button xuiMenuItem icon="matLinkOffRound" (click)="live.disconnect(block.id)">
+          <button type="button" xuiMenuItem icon="matLinkOffRound" (click)="live.disconnect(block.id)">
             Disconnect all cables<span menuItemLabel>⌘D</span>
           </button>
           @if (!isIo(block) && block.type !== 'shunt') {
-            <button xuiMenuItem icon="matSaveRound" (click)="ui.saveBlockOpen.set(true)">
+            <button type="button" xuiMenuItem icon="matSaveRound" (click)="ui.saveBlockOpen.set(true)">
               Save to the Library…<span menuItemLabel>⌘B</span>
             </button>
             @if (block.global) {
-              <button xuiMenuItem icon="matLinkOffRound" (click)="live.unlinkGlobal(block.id)">
+              <button type="button" xuiMenuItem icon="matLinkOffRound" (click)="live.unlinkGlobal(block.id)">
                 Unlink from global
               </button>
             } @else {
-              <button xuiMenuItem icon="matPublicRound" (click)="ui.makeGlobal(block)">
+              <button type="button" xuiMenuItem icon="matPublicRound" (click)="ui.makeGlobal(block)">
                 Make global<span menuItemLabel>G</span>
               </button>
             }
             @if (globalsOf(block).length > 0) {
-              <button xuiMenuItem icon="matLinkRound" [xuiMenuTriggerFor]="linkGlobal" [xuiMenuTriggerData]="{ block }">
+              <button
+                type="button"
+                xuiMenuItem
+                icon="matLinkRound"
+                [xuiMenuTriggerFor]="linkGlobal"
+                [xuiMenuTriggerData]="{ block }"
+              >
                 Link to global
               </button>
             }
           }
-          <button xuiMenuItem icon="matSwapVertRound" [xuiMenuTriggerFor]="moveLines" [xuiMenuTriggerData]="{ block }">
+          <button
+            type="button"
+            xuiMenuItem
+            icon="matSwapVertRound"
+            [xuiMenuTriggerFor]="moveLines"
+            [xuiMenuTriggerData]="{ block }"
+          >
             Move row or column
           </button>
           <xui-menu-divider />
-          <button xuiMenuItem icon="matDeleteRound" color="error" (click)="live.removeBlock(block.id)">
+          <button type="button" xuiMenuItem icon="matDeleteRound" color="error" (click)="live.removeBlock(block.id)">
             Remove<span menuItemLabel>⌫</span>
           </button>
         }
@@ -415,6 +432,7 @@ export function dropAction(
       <xui-menu>
         @for (shared of globalsOf(block); track shared.id) {
           <button
+            type="button"
             xuiMenuItem
             [selected]="block.global === shared.id"
             [disabled]="block.global === shared.id"
@@ -429,20 +447,31 @@ export function dropAction(
     <ng-template #allChannels let-block="block">
       <xui-menu>
         @for (channel of channelNames.slice(0, channelCount(block)); track channel) {
-          <button xuiMenuItem (click)="ui.allScenes({ channel }, block)">Channel {{ channel }}</button>
+          <button type="button" xuiMenuItem (click)="ui.allScenes({ channel }, block)">Channel {{ channel }}</button>
         }
       </xui-menu>
     </ng-template>
 
     <ng-template #moveLines let-block="block">
       <xui-menu>
-        <button xuiMenuItem [disabled]="block.row === 0" (click)="moveLine('row', block.row, block.row - 1)">
+        <button
+          type="button"
+          xuiMenuItem
+          [disabled]="block.row === 0"
+          (click)="moveLine('row', block.row, block.row - 1)"
+        >
           Row up
         </button>
-        <button xuiMenuItem [disabled]="block.row === rows() - 1" (click)="moveLine('row', block.row, block.row + 1)">
+        <button
+          type="button"
+          xuiMenuItem
+          [disabled]="block.row === rows() - 1"
+          (click)="moveLine('row', block.row, block.row + 1)"
+        >
           Row down
         </button>
         <button
+          type="button"
           xuiMenuItem
           [disabled]="block.column === 0"
           (click)="moveLine('column', block.column, block.column - 1)"
@@ -450,6 +479,7 @@ export function dropAction(
           Column left
         </button>
         <button
+          type="button"
           xuiMenuItem
           [disabled]="block.column === columns() - 1"
           (click)="moveLine('column', block.column, block.column + 1)"
@@ -461,16 +491,26 @@ export function dropAction(
 
     <ng-template #emptyMenu>
       <xui-menu>
-        <button xuiMenuItem icon="matAddRound" (click)="openPalette()">Add block…<span menuItemLabel>↵</span></button>
-        <button xuiMenuItem icon="matCableRound" (click)="addShunt()">Add shunt<span menuItemLabel>⌘U</span></button>
-        <button xuiMenuItem icon="matContentPasteRound" [disabled]="!clipboard()" (click)="paste()">
+        <button type="button" xuiMenuItem icon="matAddRound" (click)="openPalette()">
+          Add block…<span menuItemLabel>↵</span>
+        </button>
+        <button type="button" xuiMenuItem icon="matCableRound" (click)="addShunt()">
+          Add shunt<span menuItemLabel>⌘U</span>
+        </button>
+        <button type="button" xuiMenuItem icon="matContentPasteRound" [disabled]="!clipboard()" (click)="paste()">
           Paste<span menuItemLabel>⌘V</span>
         </button>
         <xui-menu-divider />
-        <button xuiMenuItem [disabled]="focus().row === 0" (click)="moveLine('row', focus().row, focus().row - 1)">
+        <button
+          type="button"
+          xuiMenuItem
+          [disabled]="focus().row === 0"
+          (click)="moveLine('row', focus().row, focus().row - 1)"
+        >
           Move row up
         </button>
         <button
+          type="button"
           xuiMenuItem
           [disabled]="focus().row === rows() - 1"
           (click)="moveLine('row', focus().row, focus().row + 1)"
@@ -483,7 +523,7 @@ export function dropAction(
     <cth-block-picker
       [types]="catalog.placeable()"
       [isFull]="atLimit"
-      [title]="replacing() ? 'Replace ' + title(replacing()!) + ' with' : 'Add a block'"
+      [title]="pickerTitle()"
       [(open)]="paletteOpen"
       (picked)="place($event)"
     />
@@ -492,10 +532,10 @@ export function dropAction(
 export class GridEditor {
   protected readonly live = inject(LiveStore);
   private readonly events = inject(EventStream);
-  private readonly meters = new Map<string, ReadonlyArray<() => number>>();
+  private readonly meters = new Map<string, readonly (() => number)[]>();
 
   /** A block tile's meter source: its output peak from the latest telemetry frame. One array per block, kept. */
-  protected meterSources(id: string): ReadonlyArray<() => number> {
+  protected meterSources(id: string): readonly (() => number)[] {
     let sources = this.meters.get(id);
     if (!sources) {
       sources = [() => this.events.blockMeter(id, 'peak') ?? 0];
@@ -518,6 +558,10 @@ export class GridEditor {
   protected readonly paletteOpen = signal(false);
   /** The block the palette replaces, or null when it adds one. */
   protected readonly replacing = signal<PresetBlock | null>(null);
+  protected readonly pickerTitle = computed(() => {
+    const block = this.replacing();
+    return block ? `Replace ${this.title(block)} with` : 'Add a block';
+  });
   protected readonly selectedCable = signal<string | null>(null);
   protected readonly clipboard = signal<CopiedBlock | null>(null);
   protected readonly wire = signal<string | null>(null);
@@ -620,7 +664,11 @@ export class GridEditor {
 
   constructor() {
     const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
-    const observer = new ResizeObserver(([entry]) => this.available.set(entry.contentRect.width));
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) {
+        this.available.set(entry.contentRect.width);
+      }
+    });
     afterNextRender(() => observer.observe(host));
     const withBlock = (action: (block: PresetBlock) => void) => () => {
       const block = this.focusedBlock();
@@ -760,7 +808,7 @@ export class GridEditor {
     }
 
     const at = cables.findIndex(c => c.key === this.selectedCable());
-    this.selectedCable.set(cables[(at + 1) % cables.length].key);
+    this.selectedCable.set(cables[(at + 1) % cables.length]?.key ?? null);
   }
 
   /** Points the keyboard cable at the focused cell: drawn to it when it is a block the cable can reach. */
@@ -875,8 +923,9 @@ export class GridEditor {
       ArrowRight: [0, 1]
     };
     const command = event.metaKey || event.ctrlKey;
-    if (event.key in moves && !command) {
-      const [dr, dc] = moves[event.key];
+    const move = command ? undefined : moves[event.key];
+    if (move) {
+      const [dr, dc] = move;
       const next = {
         row: Math.max(0, Math.min(this.rows() - 1, row + dr)),
         column: Math.max(0, Math.min(this.columns() - 1, column + dc))
@@ -914,15 +963,19 @@ export class GridEditor {
   }
 
   protected dragOver(event: DragEvent, cell: GridCell): void {
-    const types = event.dataTransfer?.types ?? [];
-    if (types.includes('Files')) {
+    const transfer = event.dataTransfer;
+    if (!transfer) {
+      return;
+    }
+
+    if (transfer.types.includes('Files')) {
       event.preventDefault();
-      event.dataTransfer!.dropEffect = 'copy';
-    } else if (types.includes(BlockMime)) {
+      transfer.dropEffect = 'copy';
+    } else if (transfer.types.includes(BlockMime)) {
       // The dragged id cannot be read before the drop: any cell accepts it, and drop() decides what it does.
       event.preventDefault();
       const onBlock = cell.block !== null && cell.block.type !== BuiltInTypes.shunt;
-      event.dataTransfer!.dropEffect =
+      transfer.dropEffect =
         onBlock && !(event.metaKey || event.ctrlKey) ? 'link' : event.altKey || onBlock ? 'copy' : 'move';
     }
   }
@@ -946,8 +999,8 @@ export class GridEditor {
       await this.placeCopy({ type: block.type, channels: block.channels, assets: block.assets }, cell.row, cell.column);
     } else if (action === 'move') {
       await this.live.moveBlock(block.id, cell.row, cell.column);
-    } else {
-      await this.live.dropBlock(block.id, cell.block!.id, action);
+    } else if (cell.block) {
+      await this.live.dropBlock(block.id, cell.block.id, action); // swap and replace need a block to land on
     }
   }
 

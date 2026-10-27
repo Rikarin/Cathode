@@ -36,32 +36,34 @@ import { resonancePercent, sweepFrequency, sweepPosition } from './cab-resonance
         <label class="flex items-center gap-3 text-sm">
           <span class="text-foreground-muted w-20 text-xs">Frequency</span>
           <input
+            #positionField
             class="flex-1"
             type="range"
             min="0"
             max="1000"
             aria-label="Test tone frequency"
             [value]="position()"
-            (input)="sweep(+$any($event.target).value / 1000)"
+            (input)="sweep(+positionField.value / 1000)"
           />
           <span class="w-16 text-right tabular-nums" data-testid="tone-frequency">{{ frequency().toFixed(0) }} Hz</span>
         </label>
         <label class="flex items-center gap-3 text-sm">
           <span class="text-foreground-muted w-20 text-xs">Level</span>
           <input
+            #levelField
             class="flex-1"
             type="range"
             min="-48"
             max="-6"
             aria-label="Test tone level"
             [value]="level()"
-            (input)="setLevel(+$any($event.target).value)"
+            (input)="setLevel(+levelField.value)"
           />
           <span class="w-16 text-right tabular-nums">{{ level() }} dB</span>
         </label>
         <p class="text-foreground-muted text-xs">
-          Load resonance {{ percent().toFixed(0) }} % (the speaker load resonates at {{ baseHz().toFixed(0) }} Hz at
-          100 %).
+          Load resonance {{ percent().toFixed(0) }} % (the speaker load resonates at {{ baseHz().toFixed(0) }} Hz at 100
+          %).
         </p>
         <div class="flex gap-2">
           <button xuiButton size="sm" type="button" data-testid="apply-resonance" (click)="apply()">
