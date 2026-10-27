@@ -25,6 +25,10 @@ public sealed class CompiledGraph : IDisposable {
     public const double BypassFadeMs = 10;
 
     readonly GraphOp[] ops;
+
+    /// <summary>The engine's retired-graph list: the graph retired before this one (CathodeEngine.Retire).</summary>
+    internal CompiledGraph? NextRetired;
+
     readonly IDspBlock[] blocks;
     readonly string[] slotIds;
     readonly Dictionary<string, int> slotById;

@@ -235,6 +235,7 @@ public sealed class EngineHostService : IDisposable {
             var graph = compiler.Compile(request.Graph, Engine.Spec, request.Generation);
             Engine.Publish(graph);
             latest = graph;
+            DisposeRetired(); // not only on telemetry ticks, which a burst of preset changes outpaces
             return new() {
                 Type = IpcTypes.Ok,
                 Id = request.Id,
@@ -530,10 +531,14 @@ public sealed class EngineHostService : IDisposable {
         return IpcMessage.Ok(request.Id);
     }
 
-    HostTelemetry CollectTelemetry(HostTelemetry target) {
+    void DisposeRetired() {
         while (Engine.CollectRetired() is { } retired) {
             retired.Dispose();
         }
+    }
+
+    HostTelemetry CollectTelemetry(HostTelemetry target) {
+        DisposeRetired();
 
         RefreshBlocks(); // picks up targets that modifiers moved on the audio thread
 

@@ -17,8 +17,8 @@ namespace Cathode.Engine;
 /// <remarks>
 ///     <para>
 ///         Graph hand-over is RCU-style: <see cref="Publish" /> stores a pending graph and the audio thread swaps it in at
-///         the next callback boundary. Nothing is disposed on the audio thread: replaced graphs go to a small queue that
-///         <see cref="CollectRetired" /> drains.
+///         the next callback boundary. Nothing is disposed on the audio thread: replaced graphs go to an unbounded,
+///         allocation-free list (linked through the graphs themselves) that <see cref="CollectRetired" /> drains.
 ///     </para>
 ///     <para>
 ///         Swaps are gapless with <b>spillover</b> (docs/02-architecture.md §5.5): the new graph fades in over
@@ -46,13 +46,14 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     /// </summary>
     const double TailQuietMs = 4_100;
 
-    const int RetiredSlots = 4;
     const double TapWindowSeconds = 2.5;
     const int TapHistory = 4;
     const int Outputs = NodeTypes.OutputCount;
 
     readonly SpscRing<EngineCommand> commands;
-    readonly CompiledGraph?[] retiredGraphs = new CompiledGraph?[RetiredSlots];
+    readonly Lock collectLock = new();
+    CompiledGraph? retired; // pushed by the audio thread, newest first
+    CompiledGraph? collected; // taken by the control side, handed out one at a time
     readonly Spillover[] spills;
     readonly float swapStep;
     readonly long tailCap;
@@ -241,13 +242,16 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     ///     null; the caller disposes what it gets.
     /// </summary>
     public CompiledGraph? CollectRetired() {
-        for (var i = 0; i < RetiredSlots; i++) {
-            if (Interlocked.Exchange(ref retiredGraphs[i], null) is { } graph) {
-                return graph;
+        lock (collectLock) {
+            collected ??= Interlocked.Exchange(ref retired, null);
+            var graph = collected;
+            if (graph is not null) {
+                collected = graph.NextRetired;
+                graph.NextRetired = null;
             }
-        }
 
-        return null;
+            return graph;
+        }
     }
 
     /// <summary>Control side, after the audio has stopped: frees the engine's buffers and any graphs it still holds.</summary>
@@ -640,17 +644,20 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         return gain;
     }
 
-    /// <summary>Audio thread: hand a graph to the control side; if every slot is still full it is left to the GC.</summary>
+    /// <summary>
+    ///     Audio thread: hand a graph to the control side. A lock-free push onto a list linked through the graphs, so it
+    ///     never allocates and never drops one however many swaps come between two <see cref="CollectRetired" /> sweeps.
+    /// </summary>
     void Retire(CompiledGraph? graph) {
         if (graph is null) {
             return;
         }
 
-        for (var i = 0; i < RetiredSlots; i++) {
-            if (Interlocked.CompareExchange(ref retiredGraphs[i], graph, null) is null) {
-                return;
-            }
-        }
+        CompiledGraph? head;
+        do {
+            head = Volatile.Read(ref retired);
+            graph.NextRetired = head;
+        } while (Interlocked.CompareExchange(ref retired, graph, head) != head);
     }
 
     void UpdateMeters(float input, float left, float right) {

@@ -194,6 +194,34 @@ public class CathodeEngineTests {
     }
 
     [Fact]
+    public void Every_graph_retired_between_two_sweeps_is_handed_back() {
+        // Before the fix the hand-back had four slots and dropped the fifth graph to the GC, which never ran its blocks'
+        // Dispose. Spillover off: each replaced graph fades out over 20 ms and retires, so every swap retires one.
+        var engine = new CathodeEngine(Spec);
+        engine.Rig.SetTarget(RigControls.Descriptor.IndexOf("spillover"), 0f);
+        var graphs = new List<CompiledGraph>();
+        for (var generation = 1; generation <= 12; generation++) {
+            var graph = Compiler.Compile(VolumeGraph(0), Spec, generation);
+            graphs.Add(graph);
+            engine.Publish(graph);
+            OfflineRenderer.Render(engine, new float[1_920], new float[1_920], 64); // past the swap fade
+        }
+
+        var retired = new List<CompiledGraph>();
+        while (engine.CollectRetired() is { } graph) {
+            retired.Add(graph);
+        }
+
+        Assert.Equal(graphs[..^1].ToHashSet(), retired.ToHashSet());
+        Assert.Equal(11, retired.Count);
+        foreach (var graph in retired) {
+            graph.Dispose();
+        }
+
+        engine.Dispose();
+    }
+
+    [Fact]
     public void A_preset_change_lets_the_old_delay_tail_ring_out_without_a_click() {
         var engine = new CathodeEngine(Spec);
         engine.Publish(Compiler.Compile(DelayGraph(), Spec, 1));
