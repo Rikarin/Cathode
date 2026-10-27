@@ -636,7 +636,7 @@ public sealed partial class LiveRig(
                     CheckSceneMidi(messages);
                 }
 
-                PushUndo(null);
+                PushUndo(SceneUndoKey(scene, request));
                 var target = preset.Scenes[scene];
                 if (request.Name is { } name) {
                     target.Name = name.Trim();
@@ -661,6 +661,15 @@ public sealed partial class LiveRig(
                 return Task.FromResult(Changed("sceneUpdated", scene: scene));
             }
         );
+
+    /// <summary>
+    ///     The undo key of a scene edit: a dragged Scene Level or scene-controller knob continues one undo step, like a
+    ///     block knob; a rename or a MIDI change is a step of its own.
+    /// </summary>
+    static string? SceneUndoKey(int scene, SceneUpdateRequest request) =>
+        request is { Name: null, Midi: null } && (request.Level is not null || request.Controllers is not null)
+            ? $"scene:{scene}:{(request.Level is null ? "" : "level")},{(request.Controllers is null ? "" : "controllers")}"
+            : null;
 
     /// <summary>
     ///     Everything the global settings put into the engine: tempo (global mode), metronome, Manual A-D, the outputs'

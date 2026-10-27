@@ -4,9 +4,11 @@ using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
 using Cathode.Server.Engine;
 using Cathode.Server.Midi;
+using Cathode.Server.Realtime;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
+using System.Net.WebSockets;
 
 namespace Cathode.Server.Tests;
 
@@ -53,6 +55,26 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         await ServerFixture.Eventually(() => server.Graph?.Modifiers.Count == 1);
         Assert.Equal(BypassKind.MuteFxIn, server.Graph!.BypassModeOf(server.Graph.SlotOf("delay1")));
         Assert.Equal(ModSource.Lfo1, server.Graph.Modifiers[0].Source);
+    }
+
+    [Fact]
+    public async Task A_dragged_scene_level_or_scene_controller_is_one_undo_step() {
+        await Patch("/api/v1/live/scenes/0", new SceneUpdateRequest("Verse"));
+        for (var level = -1f; level >= -10f; level -= 1f) {
+            await Patch("/api/v1/live/scenes/0", new SceneUpdateRequest(Level: level));
+        }
+
+        for (var value = 0.1f; value <= 0.5f; value += 0.1f) {
+            await Patch("/api/v1/live/scenes/0", new SceneUpdateRequest(Controllers: [value, 0, 0, 0]));
+        }
+
+        var controllersUndone = await Read(await client.PostAsync("/api/v1/live/undo", null, Token));
+        var levelUndone = await Read(await client.PostAsync("/api/v1/live/undo", null, Token));
+
+        Assert.Equal(-10f, controllersUndone.Preset.Scenes[0].Level);
+        Assert.Equal(0f, controllersUndone.Preset.Scenes[0].Controllers[0]);
+        Assert.Equal(0f, levelUndone.Preset.Scenes[0].Level);
+        Assert.Equal("Verse", levelUndone.Preset.Scenes[0].Name); // the rename is a step of its own
     }
 
     [Fact]
@@ -195,6 +217,54 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         Assert.Equal(HttpStatusCode.BadRequest, window.StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, off.StatusCode);
         Assert.False(server.Services.GetRequiredService<EngineConnection>().RtaEnabled);
+    }
+
+    [Fact]
+    public async Task The_tuner_scope_and_rta_run_while_any_client_has_them_on() {
+        var engine = server.Services.GetRequiredService<EngineConnection>();
+        var analysis = server.Services.GetRequiredService<AnalysisSubscriptions>();
+        async Task Set(string who, bool on) {
+            using var tuner = await client.PutAsJsonAsync($"/api/v1/tuner?client={who}", new BypassRequest(!on), Token);
+            using var scope = await client.PutAsJsonAsync($"/api/v1/scope?client={who}", new ScopeRequest(on), Token);
+            using var rta = await client.PutAsJsonAsync($"/api/v1/rta?client={who}", new RtaRequest(on), Token);
+            Assert.Equal(HttpStatusCode.NoContent, tuner.StatusCode);
+            Assert.Equal(HttpStatusCode.NoContent, scope.StatusCode);
+            Assert.Equal(HttpStatusCode.NoContent, rta.StatusCode);
+        }
+
+        await Set("desktop", true);
+        await Set("tablet", true);
+        await Set("desktop", false); // the desktop closes its dialog; the tablet still uses it
+        Assert.True(analysis.TunerOn);
+        Assert.True(engine.ScopeEnabled);
+        Assert.True(engine.RtaEnabled);
+
+        await Set("tablet", false);
+        Assert.False(analysis.TunerOn);
+        Assert.False(engine.ScopeEnabled);
+        Assert.False(engine.RtaEnabled);
+
+        // A caller that does not say who it is turns them off for everyone, as before.
+        await Set("tablet", true);
+        using var off = await client.PutAsJsonAsync("/api/v1/scope", new ScopeRequest(false), Token);
+        Assert.False(engine.ScopeEnabled);
+    }
+
+    [Fact]
+    public async Task What_a_client_left_on_is_released_with_its_last_socket() {
+        var engine = server.Services.GetRequiredService<EngineConnection>();
+        var url = new Uri(server.Server.BaseAddress, "ws?client=tablet");
+        using var first = await server.Server.CreateWebSocketClient().ConnectAsync(url, Token);
+        using var second = await server.Server.CreateWebSocketClient().ConnectAsync(url, Token);
+        using var on = await client.PutAsJsonAsync("/api/v1/scope?client=tablet", new ScopeRequest(true), Token);
+        Assert.True(engine.ScopeEnabled);
+
+        await first.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", Token);
+        await Task.Delay(200, Token);
+        Assert.True(engine.ScopeEnabled); // a reconnect overlapping the old socket keeps it
+
+        await second.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", Token);
+        await ServerFixture.Eventually(() => !engine.ScopeEnabled);
     }
 
     [Fact]

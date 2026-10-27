@@ -121,8 +121,17 @@
         "tags": [
           "cathode-server"
         ],
-        "summary": "Turns the tuner on (bypassed = false) or off.",
+        "summary": "Turns the tuner on (bypassed = false) or off for a client (the id it also opens /ws?client= with): it runs while any client has it on. Without a client, off turns it off for everyone.",
         "operationId": "SetTuner",
+        "parameters": [
+          {
+            "name": "client",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -145,8 +154,17 @@
         "tags": [
           "cathode-server"
         ],
-        "summary": "Starts or stops scope frames (the engine\u0027s output waveform) on the WebSocket.",
+        "summary": "Starts or stops scope frames (the engine\u0027s output waveform) on the WebSocket for a client (the id it also opens /ws?client= with): they flow while any client has the scope on. Without a client, off stops them for everyone.",
         "operationId": "SetScope",
+        "parameters": [
+          {
+            "name": "client",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -169,8 +187,17 @@
         "tags": [
           "cathode-server"
         ],
-        "summary": "Starts or stops RTA frames on the WebSocket (the output\u0027s spectrum, or the RTA block\u0027s while a preset has one) and sets the bands, decay and window.",
+        "summary": "Starts or stops RTA frames on the WebSocket (the output\u0027s spectrum, or the RTA block\u0027s while a preset has one) for a client (the id it also opens /ws?client= with), and sets the bands, decay and window. They flow while any client has the RTA on; without a client, off stops them for everyone.",
         "operationId": "SetRta",
+        "parameters": [
+          {
+            "name": "client",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {

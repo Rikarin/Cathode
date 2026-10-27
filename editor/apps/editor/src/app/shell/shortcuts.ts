@@ -71,6 +71,8 @@ export const Shortcuts: readonly Shortcut[] = [
   { id: 'paste', group: 'Grid', label: 'Paste (onto a same-type block: its settings)', key: 'v', mod: true },
   { id: 'disconnect', group: 'Grid', label: 'Disconnect all cables', key: 'd', mod: true },
   { id: 'shunt', group: 'Grid', label: 'Insert a shunt', key: 'u', mod: true },
+  { id: 'cable', group: 'Grid', label: 'Cable from the block (then the arrows and ↵; Esc cancels)', key: 'k' },
+  { id: 'selectCable', group: 'Grid', label: 'Select the next cable of the block', key: 'k', shift: true },
   { id: 'remove', group: 'Grid', label: 'Remove the block or cable', key: 'Delete' },
   { id: 'removeBackspace', group: 'Grid', label: 'Remove (alias)', key: 'Backspace' },
   { id: 'undo', group: 'Edit', label: 'Undo', key: 'z', mod: true },
@@ -122,6 +124,44 @@ export function isTyping(target: EventTarget | null): boolean {
 
   const input = element.closest('input') as HTMLInputElement | null;
   return input !== null && !['checkbox', 'radio', 'button', 'range', 'submit'].includes(input.type);
+}
+
+/** Controls that act on keys themselves: Space presses a button, toggles a switch or a checkbox, picks a radio. */
+const Controls = [
+  'button',
+  'a[href]',
+  'summary',
+  'input',
+  'select',
+  '[role=button]',
+  '[role=switch]',
+  '[role=checkbox]',
+  '[role=radio]',
+  '[role=slider]',
+  '[role=spinbutton]',
+  '[role=option]',
+  '[role=menuitem]',
+  '[role=menuitemcheckbox]',
+  '[role=menuitemradio]',
+  '[role=tab]',
+  '[role=combobox]',
+  '[role=listbox]',
+  '[role=treeitem]'
+].join(', ');
+
+/** Whether an event comes from a focused control (or something inside one), which takes bare keys itself. */
+export function isOnControl(target: EventTarget | null): boolean {
+  const element = target as HTMLElement | null;
+  return !!element?.closest && element.closest(Controls) !== null;
+}
+
+/**
+ * Whether a shortcut is a bare key (Space, a letter, Delete; with or without ⇧) that a focused control would lose:
+ * those stay out of the way on buttons, switches, checkboxes, sliders and the like. ⌘ shortcuts and the function keys
+ * work everywhere, and so does everything on the grid, which is not such a control.
+ */
+export function yieldsToControl(shortcut: Shortcut): boolean {
+  return !shortcut.mod && !/^F\d+$/.test(shortcut.key ?? '');
 }
 
 /** The shortcut an event presses, if any: modifiers must match exactly (⌥ is ignored, it shows Block Info). */
@@ -183,6 +223,10 @@ export class ShortcutService {
     }
 
     const shortcut = findShortcut(event);
+    if (shortcut && yieldsToControl(shortcut) && isOnControl(event.target)) {
+      return false; // Space on a focused button presses it; it does not bypass the selected block
+    }
+
     const handler = shortcut && this.handlers.get(shortcut.id);
     if (!handler) {
       if (event.metaKey && event.key.toLowerCase() === 'a') {

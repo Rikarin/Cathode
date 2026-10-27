@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { type SceneMidiMessage } from '@cathode/api-client';
 import { CthKnob } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
@@ -12,6 +12,7 @@ import { XuiSliderImports } from '@xui/slider';
 import { XuiTableImports } from '@xui/table';
 import { XuiTextImports } from '@xui/text';
 import { RigControl } from '../controls/rig-knob';
+import { Coalescer } from '../core/coalescer';
 import { ConnectionService } from '../core/connection';
 import { Notify } from '../core/notify';
 import { GlobalStore } from '../state/global.store';
@@ -57,8 +58,8 @@ export function scopeName(channel: string | null | undefined): string {
             [min]="-60"
             [max]="12"
             [defaultValue]="0"
-            [value]="scene()?.level ?? 0"
-            (valueChange)="live.updateScene(live.activeScene(), { level: $event })"
+            [value]="sceneLevel()"
+            (valueChange)="setSceneLevel($event)"
           />
           @for (value of sceneControllers(); track $index) {
             <cth-knob
@@ -279,8 +280,11 @@ export class ControllersPage {
   private readonly globals = inject(GlobalStore);
   private readonly connection = inject(ConnectionService);
   private readonly notify = inject(Notify);
-  /** Values sent but not yet confirmed, so a dragged knob does not jump back. */
-  private readonly pending = signal<Record<string, number>>({});
+  /**
+   * The knobs here are sent through one coalescer: one request in flight per control, the latest value next, and the
+   * values sent but not yet confirmed shown meanwhile, so a dragged knob neither floods the rig nor jumps back.
+   */
+  private readonly sending = new Coalescer<number | number[]>((key, value) => this.send(key, value));
 
   protected readonly manualNames = ['A', 'B', 'C', 'D'];
   protected readonly modifiers = computed(() => this.live.preset()?.modifiers ?? []);
@@ -302,27 +306,41 @@ export class ControllersPage {
     { title: 'Pitch follower', ids: ['pitchLow', 'pitchHigh'], labels: ['Low', 'High'] }
   ];
   protected readonly scene = computed(() => this.live.preset()?.scenes[this.live.activeScene()]);
-  protected readonly sceneControllers = computed(() => this.scene()?.controllers ?? [0, 0, 0, 0]);
+  protected readonly sceneLevel = computed(
+    () =>
+      (this.sending.pending(`scene:${this.live.activeScene()}:level`) as number | undefined) ?? this.scene()?.level ?? 0
+  );
+  protected readonly sceneControllers = computed(
+    () =>
+      (this.sending.pending(`scene:${this.live.activeScene()}:controllers`) as number[] | undefined) ??
+      this.scene()?.controllers ?? [0, 0, 0, 0]
+  );
   protected readonly sceneMidi = computed<readonly SceneMidiMessage[]>(() => this.scene()?.midi ?? []);
-  protected readonly manual = computed(() => this.globals.settings()?.manual ?? [0, 0, 0, 0]);
+  protected readonly manual = computed(() =>
+    (this.globals.settings()?.manual ?? [0, 0, 0, 0]).map(
+      (value, i) => (this.sending.pending(`manual:${i}`) as number | undefined) ?? value
+    )
+  );
   protected readonly stages = computed(() =>
     Array.from({ length: Math.round(this.stored('seqStages') ?? 8) }, (_, i) => i + 1)
   );
 
   protected stored(id: string): number | undefined {
-    return this.pending()[id] ?? this.live.preset()?.controllers[id];
+    return (this.sending.pending(`controller:${id}`) as number | undefined) ?? this.live.preset()?.controllers[id];
   }
 
-  protected async set(id: string, value: number): Promise<void> {
-    this.pending.update(p => ({ ...p, [id]: value }));
-    await this.live.setControllers({ [id]: value });
-    this.pending.update(({ [id]: _, ...rest }) => rest);
+  protected set(id: string, value: number): Promise<void> {
+    return this.sending.set(`controller:${id}`, value);
   }
 
-  protected setSceneController(index: number, value: number): void {
+  protected setSceneLevel(level: number): Promise<void> {
+    return this.sending.set(`scene:${this.live.activeScene()}:level`, level);
+  }
+
+  protected setSceneController(index: number, value: number): Promise<void> {
     const controllers = [...this.sceneControllers()];
     controllers[index] = value;
-    void this.live.updateScene(this.live.activeScene(), { controllers });
+    return this.sending.set(`scene:${this.live.activeScene()}:controllers`, controllers);
   }
 
   protected clamp(raw: string, min: number, max: number): number {
@@ -345,14 +363,32 @@ export class ControllersPage {
     void this.live.updateScene(this.live.activeScene(), { midi });
   }
 
-  protected async setManual(index: number, value: number): Promise<void> {
-    await this.notify.run(async () => {
-      await this.connection.client.PUT('/api/v1/live/manual/{index}', {
-        params: { path: { index } },
-        body: { value }
+  protected setManual(index: number, value: number): Promise<void> {
+    return this.sending.set(`manual:${index}`, value);
+  }
+
+  /** Sends one coalesced value: `controller:<id>`, `scene:<n>:level`, `scene:<n>:controllers` or `manual:<n>`. */
+  private async send(key: string, value: number | number[]): Promise<void> {
+    const [kind, id, field] = key.split(':');
+    if (kind === 'controller') {
+      await this.live.setControllers({ [id]: value as number });
+    } else if (kind === 'scene') {
+      await this.live.updateScene(
+        Number(id),
+        field === 'level' ? { level: value as number } : { controllers: value as number[] }
+      );
+    } else {
+      const index = Number(id);
+      await this.notify.run(async () => {
+        await this.connection.client.PUT('/api/v1/live/manual/{index}', {
+          params: { path: { index } },
+          body: { value: value as number }
+        });
+        this.globals.settings.update(s =>
+          s ? { ...s, manual: s.manual.map((v, i) => (i === index ? (value as number) : v)) } : s
+        );
       });
-      this.globals.settings.update(s => (s ? { ...s, manual: s.manual.map((v, i) => (i === index ? value : v)) } : s));
-    });
+    }
   }
 
   /** Scopes modifier <code>index</code> to one channel, or (<code>all</code>) to every channel of its block. */
