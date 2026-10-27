@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  model,
+  signal,
+  untracked
+} from '@angular/core';
 import { ModifierCurves, ModifierSources, type ParameterInfo, type PresetModifier } from '@cathode/api-client';
 import { CthKnob, formatValue } from '@cathode/audio-ui';
 import { XuiButtonImports } from '@xui/button';
@@ -190,9 +200,11 @@ export class ModifierDialog {
   });
 
   constructor() {
+    // Seeded when the dialog opens, and only then: every state the store adopts is a fresh object, so tracking
+    // existing() would throw the draft away on any rig event (a MIDI CC, another editor) while it is being edited.
     effect(() => {
       if (this.open()) {
-        this.draft.set(structuredClone(this.existing() ?? this.blank()));
+        untracked(() => this.draft.set(structuredClone(this.existing() ?? this.blank())));
       }
     });
   }
