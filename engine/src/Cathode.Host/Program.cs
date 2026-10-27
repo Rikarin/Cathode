@@ -66,5 +66,7 @@ int Usage() {
            --version
          """
     );
-    return options.Command is null ? 0 : 2;
+    // Plain usage (no arguments, or --help) succeeds; arguments that name no command are an error, so a caller such as
+    // the desktop app never mistakes an unrecognised command for one that ran.
+    return args.Length == 0 || options.Command == "help" ? 0 : 2;
 }
