@@ -119,7 +119,8 @@ export function dropAction(
 /**
  * The 6 x 14 grid (docs/02-architecture.md §7.3): CSS-positioned cells with an SVG cable layer. Keyboard: arrows move
  * the focus and Enter opens the block palette on an empty cell; the block commands (cut, copy, paste, delete,
- * disconnect, shunt, replace) are app-wide shortcuts that act on the focused cell (shell/shortcuts.ts). Drag a block
+ * disconnect, shunt, replace) are app-wide shortcuts that act on the focused cell (shell/shortcuts.ts), those that
+ * change the grid only while the grid has the focus. Drag a block
  * to move it (⌥ copies), onto another to swap them (⌘ replaces); drag from a block's outlet to a block in the next
  * column to cable them. Library files dropped on a cell are imported and recalled there.
  */
@@ -581,15 +582,22 @@ export class GridEditor {
         action(block);
       }
     };
+    // The commands that change the grid act only while it has the focus: the focused cell is the grid's own state,
+    // and Delete on a knob or the block page's background must not remove the block the grid last focused.
+    const onGrid = (action: () => void) => () => {
+      if (this.surface().nativeElement.contains(document.activeElement)) {
+        action();
+      }
+    };
     const unregister = inject(ShortcutService).register({
       addBlock: () => this.openPalette(true),
-      cut: withBlock(block => this.cut(block)),
+      cut: onGrid(withBlock(block => this.cut(block))),
       copy: withBlock(block => this.copy(block)),
-      paste: () => void this.paste(),
-      disconnect: withBlock(block => void this.live.disconnect(block.id)),
-      shunt: () => this.addShunt(),
-      remove: () => this.remove(),
-      removeBackspace: () => this.remove()
+      paste: onGrid(() => void this.paste()),
+      disconnect: onGrid(withBlock(block => void this.live.disconnect(block.id))),
+      shunt: onGrid(() => this.addShunt()),
+      remove: onGrid(() => this.remove()),
+      removeBackspace: onGrid(() => this.remove())
     });
     inject(DestroyRef).onDestroy(() => {
       observer.disconnect();
