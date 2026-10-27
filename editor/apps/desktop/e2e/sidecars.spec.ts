@@ -75,9 +75,12 @@ test('launching it again brings the running app forward instead of starting a se
     ({ app }) => new Promise<boolean>(done => app.once('second-instance', () => done(true)))
   );
 
+  // Linux CI has no setuid sandbox helper, so Electron needs --no-sandbox there, as Playwright passes to the first app.
+  const sandbox = process.platform === 'linux' ? ['--no-sandbox'] : [];
   // In Node, the electron package exports the path of its binary, which its typings (the Electron API) do not describe.
   // eslint-disable-next-line @typescript-eslint/no-require-imports -- require() is how that path is read
-  const second = spawn(require('electron') as string, [resolve(__dirname, '../../../dist/apps/desktop/main.js')], {
+  const binary = require('electron') as string;
+  const second = spawn(binary, [...sandbox, resolve(__dirname, '../../../dist/apps/desktop/main.js')], {
     env: { ...process.env, CATHODE_USER_DATA: userData },
     stdio: 'ignore'
   });
