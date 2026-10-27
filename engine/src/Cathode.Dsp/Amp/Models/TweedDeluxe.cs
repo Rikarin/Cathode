@@ -34,9 +34,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///         V2A's grid in series with 0.005 µF to ground (up is brighter); the power tubes' cathode bypass (25 µF); the
 ///         supply's droppers (10k to the screen node, 18k to the preamp), its source resistance and caps (16 µF each).
 ///         The cathodyne's 1M grid leak returns to its bias junction, which follows the grid at about 0.93: V2A's
-///         coupling cap feeds the 10M it amounts to. The design's idle current is stated with the screens at B+ (as
-///         every model's is); 47 mA there gives about 35 mA per tube with the screens on their 280 V node, near
-///         Robinette's 38 mA.
+///         coupling cap feeds the 10M it amounts to. The power tubes' bias is the drawing's shared 250 Ω (with
+///         its 25 µF, a 6.3 ms bias-shift time constant), which sets the idle current as in the amp; the design's
+///         38 mA (Robinette's) is only its label.
 ///     </para>
 /// </remarks>
 public static class TweedDeluxe {
@@ -66,7 +66,7 @@ public static class TweedDeluxe {
                 1,
                 370,
                 1,
-                0.047,
+                0.038,
                 true,
                 25e-6,
                 15,
@@ -80,7 +80,8 @@ public static class TweedDeluxe {
                 false,
                 new(8e3),
                 SpeakerDesign.OpenBack1x12,
-                new(150, 16e-6, 10e3, 16e-6, 18e3, 16e-6, 2.5e-3, RectifierModel.FiveY3)
+                new(150, 16e-6, 10e3, 16e-6, 18e3, 16e-6, 2.5e-3, RectifierModel.FiveY3),
+                CathodeResistor: 250
             ),
             -9
         ) {
