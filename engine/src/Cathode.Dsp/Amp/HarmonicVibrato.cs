@@ -319,7 +319,7 @@ public sealed record HarmonicVibratoStageDesign(
 ///     the shared cathode (each half on its own, held still), the splitter's grid as a node (an AC ground here, so the
 ///     two grid lines do not load each other through it), and each plate's load beyond its Thévenin cut.
 /// </remarks>
-public sealed class HarmonicVibratoStage : AmpStage {
+public sealed class HarmonicVibratoStage : PairedAmpStage {
     const double SmoothingTime = 0.03;
 
     readonly VibratoOscillatorDesign lfo;
@@ -369,7 +369,7 @@ public sealed class HarmonicVibratoStage : AmpStage {
         AmpStage bass,
         AmpStage treble,
         double sampleRate
-    ) {
+    ) : base(bass, treble) {
         Design = design;
         lfo = design.Lfo;
         this.bass = bass;
@@ -382,34 +382,13 @@ public sealed class HarmonicVibratoStage : AmpStage {
         Mix();
     }
 
-    public override void SetSampleRate(double sampleRate) {
+    protected override void OnSampleRate(double sampleRate) {
         this.sampleRate = sampleRate;
-        bass.SetSampleRate(sampleRate);
-        treble.SetSampleRate(sampleRate);
         Step();
     }
 
-    public override void SetSourceResistance(double ohms) {
-        bass.SetSourceResistance(ohms);
-        treble.SetSourceResistance(ohms);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override void SetSupply(double scale) {
-        bass.SetSupply(scale);
-        treble.SetSupply(scale);
-    }
-
-    public override void Update(in AmpControls controls) {
-        bass.Update(controls);
-        treble.Update(controls);
+    protected override void OnUpdate(in AmpControls controls) =>
         Configure(controls.TremoloRate, controls.TremoloDepth, controls.IsOn(Design.Pedal));
-    }
-
-    public override void Apply(in PreampSettings settings) {
-        bass.Apply(settings);
-        treble.Apply(settings);
-    }
 
     public override void Retune(double restInput) {
         bass.Retune(restInput);

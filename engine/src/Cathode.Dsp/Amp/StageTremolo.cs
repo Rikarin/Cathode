@@ -418,7 +418,7 @@ public sealed record GridDriveTremoloDesign(
 }
 
 /// <summary>The runtime of a <see cref="GridDriveTremoloDesign" />.</summary>
-public sealed class GridDriveTremoloStage : AmpStage {
+public sealed class GridDriveTremoloStage : PairedAmpStage {
     readonly AmpStage plain;
     readonly AmpStage modulated;
     readonly IRailModulation rails;
@@ -462,7 +462,7 @@ public sealed class GridDriveTremoloStage : AmpStage {
         AmpStage plain,
         AmpStage modulated,
         double sampleRate
-    ) {
+    ) : base(plain, modulated) {
         Design = design;
         this.plain = plain;
         this.modulated = modulated;
@@ -472,27 +472,12 @@ public sealed class GridDriveTremoloStage : AmpStage {
         Step();
     }
 
-    public override void SetSampleRate(double sampleRate) {
+    protected override void OnSampleRate(double sampleRate) {
         this.sampleRate = sampleRate;
-        plain.SetSampleRate(sampleRate);
-        modulated.SetSampleRate(sampleRate);
         Step();
     }
 
-    public override void SetSourceResistance(double ohms) {
-        plain.SetSourceResistance(ohms);
-        modulated.SetSourceResistance(ohms);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override void SetSupply(double scale) {
-        plain.SetSupply(scale);
-        modulated.SetSupply(scale);
-    }
-
-    public override void Update(in AmpControls controls) {
-        plain.Update(controls);
-        modulated.Update(controls);
+    protected override void OnUpdate(in AmpControls controls) {
         depth = Math.Clamp(controls.TremoloDepth, 0, 1);
         var position = table.Position(controls.TremoloRate);
         if (controls.TremoloRate != rate) {
@@ -509,11 +494,6 @@ public sealed class GridDriveTremoloStage : AmpStage {
             modulated.Reset(restInput);
             direction = 1;
         }
-    }
-
-    public override void Apply(in PreampSettings settings) {
-        plain.Apply(settings);
-        modulated.Apply(settings);
     }
 
     public override void Retune(double restInput) {
