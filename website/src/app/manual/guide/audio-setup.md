@@ -14,11 +14,11 @@ Cathode opens **one device for both input and output**. Use one interface for bo
 
 ### What Cathode uses on each system
 
-| System  | Audio                                                                      | MIDI                 | Notes                                                                                                                                                                                                    |
-| ------- | -------------------------------------------------------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| macOS   | CoreAudio                                                                  | CoreMIDI             | Any class-compliant or driver-installed interface. Cathode sets the device's sample rate and buffer size itself.                                                                                         |
-| Windows | WASAPI                                                                     | Windows MIDI (WinMM) | Opens the interface in exclusive mode when the device allows it (lowest latency, other apps go quiet), otherwise in shared mode. There is no ASIO support yet. Early: tested on shared-mode output only. |
-| Linux   | ALSA (directly, no sound server needed) or JACK, including PipeWire's JACK | ALSA sequencer       | Early: tested in containers, not yet on a real interface.                                                                                                                                                |
+| System  | Audio                                                                      | MIDI                 | Notes                                                                                                                                                                                                                                                                                                                                      |
+| ------- | -------------------------------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| macOS   | CoreAudio                                                                  | CoreMIDI             | Any class-compliant or driver-installed interface. Cathode sets the device's sample rate and buffer size itself.                                                                                                                                                                                                                           |
+| Windows | WASAPI or ASIO                                                             | Windows MIDI (WinMM) | WASAPI opens the interface in exclusive mode when the device allows it (lowest latency, other apps go quiet), otherwise in shared mode. An installed ASIO driver is listed as a device of its own (see [ASIO on Windows](#asio-on-windows)). Early: WASAPI is tested on shared-mode output only, ASIO only with Steinberg's sample driver. |
+| Linux   | ALSA (directly, no sound server needed) or JACK, including PipeWire's JACK | ALSA sequencer       | Early: tested in containers, not yet on a real interface.                                                                                                                                                                                                                                                                                  |
 
 If no device is chosen, or the chosen one cannot be opened, the engine runs on the **null backend**: everything works, but nothing is heard.
 
@@ -56,6 +56,15 @@ Below it, **Latency** breaks the delay down: **Device input** and **Device outpu
 4. Click **Apply and restart engine**. The button is only active when something has changed.
 
 Only the engine restarts; your preset stays loaded. Changes to the channel routing below also need **Apply and restart engine**.
+
+### ASIO on Windows
+
+Many interfaces come with an ASIO driver, which usually reaches lower latency than WASAPI. Cathode lists each installed ASIO driver in **Device** next to the interface's WASAPI entry, with "(ASIO)" after its name unless the name already says ASIO. Pick that entry to use the driver.
+
+- The ASIO driver sets what the interface can do: the sample rates it offers, and the buffer sizes, which some drivers fix in their own control panel. Cathode picks the nearest buffer the driver allows, and the **Engine** figures show what it got.
+- A program can have only one ASIO driver open, and many drivers serve one program at a time: close other audio software using the same driver first.
+- If you change the driver's settings in its control panel while Cathode runs, the engine restarts on the new settings by itself.
+- A driver whose interface is unplugged is left out of the list.
 
 ## Sample rate
 

@@ -19,11 +19,11 @@ It is free and open source (GPL-3.0-or-later). It borrows its ideas from the Fra
 
 ### How ready each platform is
 
-| Platform                                    | Audio and MIDI                                                | Status                                                                |
-| ------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------- |
-| macOS (Apple Silicon)                       | CoreAudio and CoreMIDI                                        | Ready                                                                 |
-| Windows 10 and 11 (x64)                     | WASAPI and Windows MIDI                                       | Early: tested on shared-mode output only. No ASIO driver support yet. |
-| Linux (x64 desktop, x64 and ARM64 headless) | ALSA or JACK (including PipeWire's JACK), ALSA sequencer MIDI | Early: tested in containers, not yet on a real interface.             |
+| Platform                                    | Audio and MIDI                                                | Status                                                                                      |
+| ------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| macOS (Apple Silicon)                       | CoreAudio and CoreMIDI                                        | Ready                                                                                       |
+| Windows 10 and 11 (x64)                     | WASAPI or ASIO, and Windows MIDI                              | Early: WASAPI tested on shared-mode output only; ASIO not yet tested with a real interface. |
+| Linux (x64 desktop, x64 and ARM64 headless) | ALSA or JACK (including PipeWire's JACK), ALSA sequencer MIDI | Early: tested in containers, not yet on a real interface.                                   |
 
 If Cathode cannot open an audio device, it runs on a silent "null" backend. You can still build and edit presets, but you will not hear them.
 

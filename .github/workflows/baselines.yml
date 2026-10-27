@@ -22,7 +22,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: engine/artifacts/deps
-          key: native-deps-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt') }}
+          key: native-deps-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt', 'engine/native/cth_audio/CMakeLists.txt') }}
       - name: Build native shim
         shell: bash
         run: ./native/build.sh

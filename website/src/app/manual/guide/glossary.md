@@ -10,7 +10,7 @@ The words used in this manual and in amp and effects talk, in alphabetical order
 
 **ALSA.** The Linux kernel's sound system. Cathode can use it directly, without a sound server.
 
-**ASIO.** A low-latency audio driver standard on Windows. Cathode does not support it yet; it uses WASAPI.
+**ASIO.** A low-latency audio driver standard on Windows, supplied by the interface maker. Cathode lists each installed ASIO driver as a device of its own, next to WASAPI.
 
 **Attack, Release.** How fast something reacts when a signal rises (attack) and when it falls (release). Used by gates, compressors, envelope followers and modifiers.
 

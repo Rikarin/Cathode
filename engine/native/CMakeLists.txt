@@ -24,5 +24,7 @@ function(cth_output_to_artifacts target)
   endforeach()
 endfunction()
 
+enable_testing()
+
 add_subdirectory(cth_audio)
 add_subdirectory(cth_nam)

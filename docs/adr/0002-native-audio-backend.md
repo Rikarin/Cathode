@@ -1,6 +1,6 @@
 # ADR-0002: Native audio shim with a planar C ABI (spike S1, macOS and Linux)
 
-- **Status:** accepted for macOS. Windows has a WASAPI backend (see [Windows](#windows-wasapi)); ASIO still needs its spike. Linux (ALSA, with JACK as a second backend) is implemented and container-tested (see [Linux](#linux-backend)), and still needs a hardware run.
+- **Status:** accepted for macOS. Windows has a WASAPI backend (see [Windows](#windows-wasapi)) and an ASIO backend for `asio:` uids (see [ASIO](#windows-asio)), the latter so far run only against the SDK's sample driver. Linux (ALSA, with JACK as a second backend) is implemented and container-tested (see [Linux](#linux-backend)), and still needs a hardware run.
 - **Date:** 2026-10-23
 - **Spikes:** S1 (native audio shim) and S5 (FTZ/DAZ), from [04-implementation-plan.md](../04-implementation-plan.md#phase-0-feasibility-spikes-34-weeks--answer-the--items-before-committing)
 
@@ -54,6 +54,20 @@ Managed side: `Cathode.Audio.Native` (`LibraryImport` bindings, `NativeAudioSess
 
 Verified on Windows 11 x64 over Remote Desktop, whose only endpoint is "Remote Audio" (shared mode only, 10 ms periods, no input): 100 callbacks/s at 480 frames and 48 kHz as expected, 0 overloads, the NativeAOT host at ≤ 2 % of budget, `--self-test` and `--serve` working. Exclusive mode, duplex and the latency test still need a machine with a local interface.
 
+## Windows (ASIO)
+
+`cth_audio_asio.cpp` serves uids `asio:<driver key>`, the key being the driver's subkey under `HKLM\SOFTWARE\ASIO` (`HKCU\SOFTWARE\ASIO` is read too, for per-user registrations). It is C++ because the driver interface (`IASIO`) is a C++ COM interface; it needs only the headers of Steinberg's ASIO SDK 2.3.4, used under the SDK's **GPLv3** option ([THIRD-PARTY-NOTICES.md](../../THIRD-PARTY-NOTICES.md)) and fetched, pinned by URL and SHA-256, by `native/build.sh` into `engine/artifacts/deps` like NeuralAmpModelerCore. The WASAPI file keeps the public functions and hands `asio:` streams over, so `cth_audio_backend` reads `asio` while one is open.
+
+- **Enumeration:** the drivers follow the WASAPI endpoints in the device list. Each is loaded in turn for its channel counts, rate and channel names (ASIO names its channels, so the input map shows them); one that does not load (its interface unplugged) is left out. The name is the key's `Description`, with " (ASIO)" appended unless it says ASIO, to tell it from the same interface's WASAPI endpoint.
+- **One driver per process:** ASIO allows one loaded driver, so the backend holds at most one. A second open fails with a message naming the open driver, and enumeration while a stream is open lists the open driver as opened and the others as last seen, without loading them.
+- **Driver thread:** every call into a driver runs on one thread per driver, a single-threaded COM apartment with a message pump, because drivers are apartment-threaded and some post window messages to themselves; the control functions marshal onto it and wait. The driver's own thread calls `bufferSwitch` (or `bufferSwitchTimeInfo`). The callbacks carry no user pointer, so the open stream is a global, which the one-driver rule makes sound.
+- **Negotiation:** the requested rate if the driver can do it (`canSampleRate`, else the open fails), else the driver's current rate. The buffer is the request rounded up to the driver's granularity within its range (powers of two when it says -1), its preferred size for a request of 0 or a fixed size, and the preferred size again if `createBuffers` refuses the first choice.
+- **Channels** follow the other backends: the first `input_channels` inputs and every output, up to 64 each.
+- **Samples:** Int16LSB, Int24LSB (packed), Int32LSB, Float32LSB, Float64LSB and Int32LSB16/18/20/24 are converted to and from planar float (`cth_asio_util.c`, unit-tested by `ctest`). A driver using another type (big-endian, DSD) fails to open with the type's name. Each half-buffer goes to the process function in chunks of at most 4096 frames; `ASIOOutputReady` follows when the driver supports it. FTZ is set on whichever thread calls back.
+- **Health:** `kAsioResetRequest`, `kAsioResyncRequest`, `kAsioBufferSizeChange` and `sampleRateDidChange` raise CHANGED, so the host restarts and reopens the driver as it now is (the specification asks hosts to defer the reset, as the callback must return into the driver first). `kAsioOverload` counts an overload. Latencies are the driver's (`getLatencies`, which by the specification include the buffer), re-read after `kAsioLatenciesChanged`. A driver that stops calling back is caught by the managed 2 s backstop.
+
+Verified on Windows 11 x64 against the SDK's own sample driver (`driver/asiosample`, built from the SDK and loaded through a test harness that stands in for the registry; no real ASIO driver was installed): enumeration with channel names, open at its rate and fixed 256-frame buffer, the second-open refusal, callbacks with FTZ on, stop and restart, a reset request raising CHANGED, an unsupported rate and an unknown driver failing cleanly, and reopening after close. A real interface's driver still needs a run.
+
 ## Linux backend
 
 The target is a headless box in the rig (a Raspberry Pi 5 or a mini PC, x64 or ARM64) running the Host and Server as systemd services, so the primary Linux backend talks to ALSA directly and needs no sound server. JACK is a second backend for desktops (jackd, or PipeWire's JACK).
@@ -73,6 +87,7 @@ The target is a headless box in the rig (a Raspberry Pi 5 or a mini PC, x64 or A
 
 A device can go away under a running stream (unplugged, disabled, an exclusive stream taken over), or another application can change its rate or buffer size, which on macOS are device-global. The stream then either stops calling back or runs at settings the engine was not built for (`ProcessSpec`, cab and NAM block sizes, every rate-dependent coefficient). `cth_audio_status` reports it: `CTH_STREAM_OK`, `CTH_STREAM_CHANGED` or `CTH_STREAM_LOST`, raised by the backend and never lowered.
 
+- **ASIO:** the driver's reset, resync and buffer-size requests and its sample-rate notification raise CHANGED (see [ASIO](#windows-asio)).
 - **WASAPI:** an `IMMNotificationClient` raises LOST when either endpoint is removed or leaves the active state, CHANGED when a shared-mode endpoint's engine format changes or, for a stream opened with a NULL uid, the default render (or capture) endpoint changes. The audio thread raises LOST on `AUDCLNT_E_DEVICE_INVALIDATED` (or resources invalidated, or the audio service stopping) from the render and capture calls, and after 2 s without a device event.
 - **CoreAudio:** listeners on `kAudioDevicePropertyNominalSampleRate` and `kAudioDevicePropertyBufferFrameSize` raise CHANGED when the value differs from the one the stream opened with, `kAudioDevicePropertyDeviceIsAlive` raises LOST, and for a NULL uid `kAudioHardwarePropertyDefaultOutputDevice` raises CHANGED. All listeners are blocks on the stream's own serial queue, drained before close frees the stream.
 - **ALSA:** `-ENODEV` from a transfer or a restart raises LOST. **JACK:** the server's shutdown callback raises LOST.
@@ -84,6 +99,6 @@ A device can go away under a running stream (unplugged, disabled, an exclusive s
 
 - A **physical** loopback measurement on a real interface (ProFX or better), to compare its reported latency with what is measured.
 - **S2:** callback timing under REST and GC load. This is the process-split decision, ADR-0001.
-- Windows: exclusive mode, duplex and a loopback latency measurement on a local interface; **ASIO** (needs the Steinberg SDK, under GPLv3).
+- Windows: exclusive mode, duplex and a loopback latency measurement on a local interface; the ASIO backend with a real interface's driver (and the same loopback measurement through it).
 - Linux on real hardware: a loopback round trip and a 30 min soak on a USB interface (Pi 5 and x64), with `SCHED_FIFO` granted. Check that 2 or 3 periods hold at 64 frames, and the MIDI path with a USB foot controller.
 - macOS pairs (aggregate devices) need a run on a Mac: built-in speakers with the built-in microphone, and a USB pair. The editor's device picker does not offer pairs yet; they are set with `--device` / `CATHODE_DEVICE`. Reopening in process after a device change, instead of the restart above, if the restart proves too slow.

@@ -70,7 +70,7 @@ What you feel is the round trip: interface converters, two buffers, and any late
 - Lower the **Buffer** to 64 or 32, as far as it runs without dropouts.
 - Check the **Latency** report in Audio setup. **Preset** latency names the blocks that add delay. **Global ▸ Oversampling ▸ Linear phase** adds about 2 ms; **Minimum phase** adds none.
 - Measure the real round trip with **Measure latency…** (see [Measuring the real latency](/manual/audio-setup#measuring-the-real-latency)). A large figure at small buffers comes from the interface's driver and USB path; a different interface is the only cure.
-- On Windows there is no ASIO support yet, and shared mode adds latency.
+- On Windows, pick the interface's ASIO driver if it has one (see [ASIO on Windows](/manual/audio-setup#asio-on-windows)); WASAPI's shared mode adds latency.
 
 ## Clipping
 

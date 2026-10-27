@@ -246,7 +246,7 @@ export const PLATFORMS = [
     name: 'Windows',
     package: 'Cathode-<version>-win-x64.exe',
     for: 'Windows 10 and 11',
-    audio: 'WASAPI and WinMM MIDI; ASIO planned',
+    audio: 'WASAPI, ASIO and WinMM MIDI',
     status: 'early' as const,
     note: 'Not signed yet: SmartScreen asks you to confirm. Audio is new: tested on shared-mode output so far.'
   }

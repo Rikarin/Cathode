@@ -55,7 +55,7 @@ Each release lists `SHA256SUMS` to check the downloads against.
 |---|---|
 | macOS | ✅ CoreAudio and CoreMIDI |
 | Linux | ◐ ALSA (direct, no sound server) and JACK or PipeWire, with ALSA sequencer MIDI, early: tested in containers, not yet on a real interface |
-| Windows | ◐ WASAPI and WinMM MIDI, early: tested on shared-mode output only (exclusive mode and inputs still need a real interface); ASIO planned |
+| Windows | ◐ WASAPI, ASIO and WinMM MIDI, early: WASAPI tested on shared-mode output only (exclusive mode and inputs still need a real interface), ASIO only against Steinberg's sample driver |
 
 Without a working audio driver, Cathode runs on a silent "null" backend: you can build and edit presets, but you will
 not hear them.
@@ -90,7 +90,9 @@ The installer starts Cathode at every boot and prints the address to open and an
 ## Licence and trademarks
 
 Cathode is free software: you can redistribute it and modify it under the terms of the GNU General Public License,
-version 3 or (at your option) any later version. See [LICENSE](LICENSE).
+version 3 or (at your option) any later version. See [LICENSE](LICENSE). The third-party code built into its native
+libraries, and the licence each is used under (the Windows ASIO backend uses Steinberg's ASIO SDK under GPLv3), is
+listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 Cathode is not affiliated with or endorsed by Fractal Audio Systems. Axe-Fx is their trademark. Amplifier, speaker and
 microphone names belong to their owners and are used only to say which equipment a model is based on.
