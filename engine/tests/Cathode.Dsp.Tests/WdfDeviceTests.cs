@@ -140,6 +140,87 @@ public class WdfDeviceTests(ITestOutputHelper output) {
         Assert.InRange(current[2], 0.75 * amps, 1.25 * amps);
     }
 
+    /// <summary>
+    ///     The slopes at the tabulated class-A points (RCA, GE and Tung-Sol data): transconductance, plate resistance
+    ///     and their product μ, from the device's Jacobian. A Koren fit pins μ and the current; the slopes show
+    ///     whether the curvature is right too. The 12AT7 is the loosest (Koren's fit: 12.8 mA, 7.2 mS, 7.9k against
+    ///     10 mA, 5.5 mS, 10.9k).
+    /// </summary>
+    [Theory]
+    [InlineData("12AX7", -2.0, 250.0, 1.6e-3, 62.5e3)]
+    [InlineData("12AT7", -2.0, 250.0, 5.5e-3, 10.9e3)]
+    [InlineData("12AU7", -8.5, 250.0, 2.2e-3, 7.7e3)]
+    [InlineData("12AY7", -4.0, 250.0, 1.75e-3, 25e3)]
+    [InlineData("5751", -3.0, 250.0, 1.2e-3, 58e3)]
+    [InlineData("6EU7", -2.0, 250.0, 1.6e-3, 62.5e3)]
+    public void Triode_presets_have_the_datasheet_slopes(
+        string tube,
+        double vgk,
+        double vpk,
+        double transconductance,
+        double plateResistance
+    ) {
+        var model = tube switch {
+            "12AX7" => TriodeModel.Ecc83,
+            "12AT7" => TriodeModel.Ecc81,
+            "12AU7" => TriodeModel.Ecc82,
+            "12AY7" => TriodeModel.TwelveAY7,
+            "5751" => TriodeModel.FiveSevenFiveOne,
+            _ => TriodeModel.SixEU7
+        };
+        var jacobian = new double[4];
+        new Triode(model).Evaluate([vgk, vpk], new double[2], jacobian, 2);
+        var (gm, rp) = (jacobian[2], 1 / jacobian[3]);
+        output.WriteLine(
+            $"{tube}: gm {gm * 1e3:0.00} mS, rp {rp / 1e3:0.0}k, μ {gm * rp:0.0} (datasheet "
+            + $"{transconductance * 1e3:0.00} mS, {plateResistance / 1e3:0.0}k, "
+            + $"μ {transconductance * plateResistance:0})"
+        );
+        Assert.InRange(gm, 0.65 * transconductance, 1.35 * transconductance);
+        Assert.InRange(rp, 0.65 * plateResistance, 1.35 * plateResistance);
+        Assert.InRange(gm * rp, 0.8 * transconductance * plateResistance, 1.2 * transconductance * plateResistance);
+    }
+
+    /// <summary>
+    ///     The power tubes the operating-point test above leaves out, at their tabulated class-A points with plate and
+    ///     screen at 250 V: plate current and transconductance.
+    /// </summary>
+    [Theory]
+    [InlineData("EL34", -12.2, 100e-3, 11e-3)]
+    [InlineData("6L6GC", -14.0, 72e-3, 6e-3)]
+    [InlineData("EL84", -7.3, 48e-3, 11.3e-3)]
+    [InlineData("6V6GT", -12.5, 45e-3, 4.1e-3)]
+    [InlineData("KT66", -15.0, 85e-3, 7e-3)]
+    [InlineData("KT88", -15.0, 140e-3, 11.5e-3)]
+    [InlineData("6550", -14.0, 140e-3, 11e-3)]
+    [InlineData("6AQ5", -12.5, 45e-3, 4.1e-3)]
+    public void Pentode_presets_have_the_datasheet_current_and_slope(
+        string tube,
+        double vg1,
+        double amps,
+        double transconductance
+    ) {
+        var model = tube switch {
+            "EL34" => PentodeModel.EL34,
+            "6L6GC" => PentodeModel.SixL6GC,
+            "EL84" => PentodeModel.EL84,
+            "6V6GT" => PentodeModel.SixV6GT,
+            "KT66" => PentodeModel.KT66,
+            "KT88" => PentodeModel.KT88,
+            "6550" => PentodeModel.SixtyFiveFifty,
+            _ => PentodeModel.SixAQ5
+        };
+        var current = new double[3];
+        var jacobian = new double[9];
+        new Pentode(model).Evaluate([vg1, 250, 250], current, jacobian, 3);
+        output.WriteLine(
+            $"{tube}: {current[2] * 1e3:0.0} mA, gm {jacobian[6] * 1e3:0.00} mS (datasheet {amps * 1e3:0} mA, "
+            + $"{transconductance * 1e3:0.0} mS)"
+        );
+        Assert.InRange(current[2], 0.75 * amps, 1.25 * amps);
+        Assert.InRange(jacobian[6], 0.75 * transconductance, 1.25 * transconductance);
+    }
+
     [Theory]
     [InlineData("2N3904", 0.60, 0.72)]
     [InlineData("BC108", 0.58, 0.70)]
