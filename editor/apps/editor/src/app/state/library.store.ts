@@ -1,5 +1,6 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import {
+  ApiError,
   type AssetInfo,
   type AssetUsage,
   type Bank,
@@ -139,8 +140,16 @@ export class LibraryStore {
 
   /** Whether the library holds a preset with this id: false for a new one that has never been saved. */
   async isStored(id: string): Promise<boolean> {
-    const { response } = await this.connection.client.GET('/api/v1/presets/{id}', { params: { path: { id } } });
-    return response.status !== 404;
+    try {
+      await this.connection.client.GET('/api/v1/presets/{id}', { params: { path: { id } } });
+      return true;
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        return false;
+      }
+
+      throw error;
+    }
   }
 
   /** Where a stored preset is used (see {@link presetUses}), read fresh from the Server; undefined if that failed. */
