@@ -171,7 +171,7 @@ built from the documented features and fitted to captures.
 |---|---|---|---|---|---|
 | Ampeg SVT (1970, 6550) | ✅ Done (channel one; power-amp nodes and OT assumed) | SVT | — (no free capture found) | Direct-out captures with settings, Ultra Lo, each Mid Freq | 8x10 closed |
 | Ampeg B-15-N Portaflex (1968) | ✅ Done (channel one) | Portaflex B-15N | — | Direct-out captures, Ultra Lo / Hi | 1x15 closed |
-| Roland JC-120 (1984 board) | ✅ Done (effect channel, effects off; solid state) | JC-120 | — | Direct-out captures, volume sweep | 2x12 open |
+| Roland JC-120 (1984 board) | ✅ Done (effect channel, chorus and reverb off, with its Distortion knob and diode clipper on Switch 1; solid state) | JC-120 | — | Direct-out captures, volume sweep, Distortion sweep | 2x12 open |
 | Fender Bassman 100 / 135 (bass) | ✅ Done (the 135, from CBS drawing 014283 with the 100's drawing 010303 for the small print: Bass and Normal channels, Deep, Bright, Master, 12AT7 LTP, 4 × 6L6GC ultralinear; the OT and its screen taps assumed; the 100 is the same preamp with pentode screens) | Bassman 135 | — (no free capture found) | Direct-out captures with settings | 4x12 / 2x15 |
 | Marshall Valvestate 8080 / 8100 | ✅ Done (Marshall drawings PC0689 issue 5 and PC0689P issue 9, vector PDFs at schematicheaven `marshallamps/valvestate80_80w_8080_8100_8412.pdf`; both channels, solid-state power amp; its current feedback not modelled; the preamp-tube parameters act on the boost channel's ECC83) | Valvestate 8080 | — | Captures | 1x12 / 4x12 closed |
 

@@ -4,8 +4,10 @@ namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
 ///     Roland JC-120 Jazz Chorus (1984 board, 2 × 60 W, solid state), the amp path of its effect channel with the effects
-///     off: the High input's 33k into IC2b (non-inverting, 100k / 39k, 3.6×), IC2a (47k over 1k + 10 µF + 50k with the
-///     distortion at its minimum, 1.9×), a Fender-type tone stack (150 pF, 100k slope, 82 nF bass, 47 nF mid; treble
+///     off: the High input's 33k into IC2b (non-inverting, 100k / 39k, 3.6×), IC2a (47k over 1k + 10 µF + the
+///     Distortion pot's 50k, 1.9× with the distortion off), with the distortion on (<see cref="SwitchRole.Switch1" />)
+///     the Distortion pot (<see cref="PotRole.Control2" />, to 48×) and the antiparallel diodes after the two 3.9k, a
+///     Fender-type tone stack (150 pF, 100k slope, 82 nF bass, 47 nF mid; treble
 ///     250k linear, bass 250k audio, middle 10k linear, with a 1k between the bass and middle pots), 100k into the 1M
 ///     linear volume with the Hi-Treble pot (1M linear in series with 470 pF from the treble wiper to the volume wiper),
 ///     IC3a (270k / 22k, 13×), the 33k / 270k pad and the IC3b follower (an ideal buffer here), the IC1a mixer (47k
@@ -24,9 +26,15 @@ namespace Cathode.Dsp.Amp.Models;
 ///         stage gains reproduce.
 ///     </para>
 ///     <para>
-///         Not modelled: the chorus and vibrato (the Chorus block), the reverb (its return is silent), the distortion
-///         (its knob at minimum and its diode clippers switched out; the factory voltages are measured that way), the
-///         input clamp diodes, the mute FET, the second power amp (with the chorus off both carry the same signal), the
+///         The distortion: off (the default, and how the factory voltages are measured), the pot's whole 50k sits in
+///         IC2a's ground leg and the diodes are out of circuit, so the Distortion knob does nothing; on, the knob turns
+///         the 50k down (a linear track assumed: the drawing gives only its value) and a silicon pair (4148 type)
+///         clamps the node after the two 3.9k to about ±0.6 V before the stack. The switch stands for the footswitch's
+///         FET switching, as two channels of the same stages.
+///     </para>
+///     <para>
+///         Not modelled: the chorus and vibrato (the Chorus block), the reverb (its return is silent), the input clamp
+///         diodes, the mute FET, the second power amp (with the chorus off both carry the same signal), the
 ///         normal channel (Bright switch, no Hi-Treble). Guessed: the power amp's open-loop gain (80 dB) and
 ///         gain-bandwidth (2 MHz), the rails' source resistance (4 Ω, from the idle and loaded rail voltages at about
 ///         1.2 A of mean draw), the idle current (30 mA) and the output stage's two junctions a side.
@@ -43,7 +51,15 @@ public static class JazzChorus120 {
 
     public static AmpDesign Design { get; } = new(
         "JC-120",
-        [InputStage(), DriveStage(), ToneStage(), GainStage(), PadStage(), new BufferStageDesign("IC3b"), MixStage()],
+        [
+            InputStage(),
+            new ChannelSwitchStageDesign("IC2a", SwitchRole.Switch1, [DriveStage(false)], [DriveStage(true)]),
+            new ChannelSwitchStageDesign("Tone", SwitchRole.Switch1, [ToneStage(false)], [ToneStage(true)]),
+            GainStage(),
+            PadStage(),
+            new BufferStageDesign("IC3b"),
+            MixStage()
+        ],
         AmpDesign.SolidStateTubePlaceholder,
         -3
     ) {
@@ -74,6 +90,8 @@ public static class JazzChorus120 {
             Master = null,
             Bright = null,
             Control1 = "Hi Treble",
+            Control2 = "Distortion",
+            Switch1 = "Distortion",
             HasTubes = false
         }
     };
@@ -98,10 +116,11 @@ public static class JazzChorus120 {
     }
 
     /// <summary>
-    ///     0.082 µF and 1M into IC2a, its 47k ‖ 100 pF feedback over 1k, 10 µF and the distortion pot's 50k (at its
-    ///     minimum).
+    ///     0.082 µF and 1M into IC2a, its 47k ‖ 100 pF feedback over 1k, 10 µF and the distortion pot's 50k: all of it in
+    ///     circuit with the distortion off (1.9×), and with it on (<paramref name="distortion" />) a rheostat on
+    ///     <see cref="PotRole.Control2" /> that turning up takes out, to 48× at 10.
     /// </summary>
-    static NetworkStageDesign DriveStage() {
+    static NetworkStageDesign DriveStage(bool distortion) {
         var net = new StageNetlist();
         var (plus, minus, leg, pot, output) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
         net.Capacitor(net.Input, plus, 0.082e-6);
@@ -110,24 +129,34 @@ public static class JazzChorus120 {
         net.Capacitor(output, minus, 100e-12);
         net.Resistor(minus, leg, 1e3);
         net.Capacitor(leg, pot, 10e-6);
-        net.Resistor(pot, StageNetlist.Ground, 50e3);
+        if (distortion) {
+            net.Rheostat(pot, StageNetlist.Ground, new(50e3, PotTaper.Linear), PotRole.Control2, falling: true);
+        } else {
+            net.Resistor(pot, StageNetlist.Ground, 50e3);
+        }
+
         net.OpAmp(plus, minus, output, M5218, Rails);
         net.Output = output;
         return new("IC2a", net);
     }
 
     /// <summary>
-    ///     0.082 µF out of IC2a (270k to ground), the distortion's two 3.9k (its diodes switched out), 0.01 µF + 1.5M to
+    ///     0.082 µF out of IC2a (270k to ground), the distortion's two 3.9k with, when it is on
+    ///     (<paramref name="distortion" />), its antiparallel silicon diodes to ground after them, 0.01 µF + 1.5M to
     ///     ground, the tone stack, 100k into the volume, the Hi-Treble path, and 0.082 µF into IC3a's input with its 1M
     ///     to ground. Out at IC3a's non-inverting input.
     /// </summary>
-    static NetworkStageDesign ToneStage() {
+    static NetworkStageDesign ToneStage(bool distortion) {
         var net = new StageNetlist();
         var (a, b, top, shunt, k) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
         net.Capacitor(net.Input, a, 0.082e-6);
         net.Resistor(a, StageNetlist.Ground, 270e3);
         net.Resistor(a, b, 3.9e3);
         net.Resistor(b, top, 3.9e3);
+        if (distortion) {
+            net.Diodes(top, StageNetlist.Ground, DiodeModel.Silicon, 1, 1);
+        }
+
         net.Capacitor(top, shunt, 0.01e-6);
         net.Resistor(shunt, StageNetlist.Ground, 1.5e6);
 

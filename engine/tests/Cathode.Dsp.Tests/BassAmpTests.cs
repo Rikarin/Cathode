@@ -34,7 +34,10 @@ public partial class AmpStageTests {
         var circuit = new ReferenceCircuit();
         var node = circuit.Node();
         circuit.Source(node, 0, t => Drive(amplitude, t));
-        foreach (var d in designs) {
+        foreach (var d in designs.SelectMany(s => s is ChannelSwitchStageDesign c
+                         ? controls.IsOn(c.Switch) ? c.On : c.Off
+                         : [s]
+                     )) {
             if (d is NetworkStageDesign network) {
                 node = AmpReferences.Append(circuit, network, controls, PreampSettings.Stock, node);
             } else {
@@ -115,6 +118,9 @@ public class BassAmpTests(ITestOutputHelper output) {
             new[] { "switch1", "switch2" }.Select(static id => Label(id, "Portaflex B-15N"))
         );
         Assert.Equal("Hi Treble", Label("control1", "JC-120"));
+        Assert.Equal("Distortion", Label("control2", "JC-120"));
+        Assert.Equal("Distortion", Label("switch1", "JC-120"));
+        Assert.Empty(Label("switch2", "JC-120"));
         foreach (var type in Models) {
             Assert.Equal("Volume", Label("gain", type));
             Assert.Empty(Label("master", type));
@@ -140,7 +146,7 @@ public class BassAmpTests(ITestOutputHelper output) {
         using var block = Create(type, (CircuitAmpBlock.Gain, 10f));
         int[] knobs = [
             CircuitAmpBlock.Gain, CircuitAmpBlock.Bass, CircuitAmpBlock.Middle, CircuitAmpBlock.Treble,
-            CircuitAmpBlock.Control1
+            CircuitAmpBlock.Control1, CircuitAmpBlock.Control2
         ];
         var chord = Signals.Sine(41.2, Rate, 9_600, 0.5f)
             .Zip(Signals.Sine(61.7, Rate, 9_600, 0.5f), static (a, b) => a + b)
@@ -161,6 +167,14 @@ public class BassAmpTests(ITestOutputHelper output) {
             block.Params.SetTarget(toggle, 1f);
             var rendered = BlockRender.Mono(block, chord, 64);
             Assert.True(Analysis.AllFinite(rendered), $"{type}: switch {toggle}");
+            peak = Math.Max(peak, Analysis.Peak(rendered));
+        }
+
+        // With every switch on: a knob that only acts behind one (the JC-120's Distortion).
+        foreach (var value in new[] { 0f, 10f, 5f }) {
+            block.Params.SetTarget(CircuitAmpBlock.Control2, value);
+            var rendered = BlockRender.Mono(block, chord, 64);
+            Assert.True(Analysis.AllFinite(rendered), $"{type}: switched knob at {value}");
             peak = Math.Max(peak, Analysis.Peak(rendered));
         }
 
@@ -303,6 +317,85 @@ public class BassAmpTests(ITestOutputHelper output) {
         Assert.InRange(Db(rms[7] / rms[6] / (22 / 0.800)), -1, 1);
 
         static double Db(double ratio) => 20 * Math.Log10(ratio);
+    }
+
+    /// <summary>
+    ///     The JC-120's distortion, read after the tone stage (IC3a's input), a 108 Hz sine into the High input: off, the
+    ///     Distortion knob does nothing; on, it raises IC2a's gain (from 1.9× to 48×), and the diodes after the two 3.9k
+    ///     clip: the output's peak barely follows the drive and its third harmonic rises, where the same IC2a output with
+    ///     the distortion off (more input instead) stays clean.
+    /// </summary>
+    [Fact]
+    public void Jc120_distortion_knob_adds_gain_and_its_diodes_clip_only_when_on() {
+        var off0 = ThroughStack(0.005, false, 0);
+        var off10 = ThroughStack(0.005, false, 1);
+        Assert.Equal(off0.Fundamental, off10.Fundamental);
+
+        // Below the diodes' knee: the knob is IC2a's gain.
+        var on0 = ThroughStack(0.005, true, 0);
+        var on10 = ThroughStack(0.005, true, 1);
+        var knob = Db(on10.Fundamental / on0.Fundamental);
+        output.WriteLine($"5 mV in: on at 0 {Db(on0.Fundamental / off0.Fundamental):0.00} dB from off, at 10 +{knob:0.0} dB");
+        Assert.InRange(Db(on0.Fundamental / off0.Fundamental), -0.5, 0.5);
+        Assert.True(knob > 15, $"Distortion at 10 adds {knob:0.0} dB");
+
+        // 50 mV in: IC2a's output 8.6 V peak at 10, below its rails, clipped by the diodes.
+        var clipped = ThroughStack(0.05, true, 1);
+        var moderate = ThroughStack(0.05, true, 0.7);
+        var clean = ThroughStack(0.05 * 48 / 1.92, false, 0);
+        output.WriteLine(
+            $"On at 10: H3 {Db(clipped.Third / clipped.Fundamental):0.0} dB, peak {clipped.Peak:0.000} V; at 7: H3 "
+            + $"{Db(moderate.Third / moderate.Fundamental):0.0} dB, peak {moderate.Peak:0.000} V; off, same IC2a output: "
+            + $"H3 {Db(clean.Third / clean.Fundamental):0.0} dB, peak {clean.Peak:0.000} V"
+        );
+        Assert.True(Db(clipped.Third / clipped.Fundamental) > -20, "the diodes clip");
+        Assert.True(Db(clean.Third / clean.Fundamental) < -40, "no clipping with the distortion off");
+        Assert.True(
+            Db(clipped.Third / clipped.Fundamental) > Db(moderate.Third / moderate.Fundamental),
+            "more distortion, more third harmonic"
+        );
+        Assert.True(Db(clipped.Peak / moderate.Peak) < 6, "the diodes bound the peak"); // 48× over 3.9×: 22 dB linear
+        Assert.True(clean.Peak > 3 * clipped.Peak, "unclipped, the same drive goes far higher");
+
+        static double Db(double ratio) => 20 * Math.Log10(ratio);
+    }
+
+    /// <summary>
+    ///     A sine of <paramref name="amplitude" /> volts on bin 37 of 16384 (108 Hz at 48 kHz) through the JC-120's
+    ///     stages to the tone stage's output, volume and tone controls at 5: its fundamental, third harmonic and peak.
+    /// </summary>
+    static (double Fundamental, double Third, double Peak) ThroughStack(double amplitude, bool on, double distortion) {
+        const int N = 16_384;
+        const int Bin = 37;
+        var channel = new AmpChannel(AmpDesign.All[TypeOf("JC-120")], Rate);
+        channel.Configure(
+            new(0.5, 0.5, 0.5, 0.5, 1, false, 1, distortion, on),
+            new(0.5, 0, 0, 0.5, 0.5, 0.5)
+        );
+        channel.Reset();
+        var y = new double[N];
+        for (var n = 0; n < 2 * N; n++) {
+            var x = amplitude * Math.Sin(2 * Math.PI * Bin * n / N);
+            for (var k = 0; k < 3; k++) {
+                x = channel.Stages[k].Tick(x);
+            }
+
+            if (n >= N) {
+                y[n - N] = x;
+            }
+        }
+
+        return (Amplitude(Bin), Amplitude(3 * Bin), y.Max(Math.Abs));
+
+        double Amplitude(int bin) {
+            var (re, im) = (0.0, 0.0);
+            for (var n = 0; n < N; n++) {
+                re += y[n] * Math.Cos(2 * Math.PI * bin * n / N);
+                im += y[n] * Math.Sin(2 * Math.PI * bin * n / N);
+            }
+
+            return 2 * Math.Sqrt(re * re + im * im) / N;
+        }
     }
 
     /// <summary>

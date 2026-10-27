@@ -193,11 +193,26 @@ public sealed class AmpChannel {
     /// <summary>Whether the channel has a tone stack it can move (<see cref="ChannelSettings.StackLocation" />).</summary>
     public bool HasMovableStack => stackStage >= 0;
 
-    /// <summary>Whether a stage of <paramref name="design" /> is a tone stack: a stack stage, or a network with stack caps.</summary>
+    /// <summary>
+    ///     Whether a stage of <paramref name="design" /> is a tone stack: a stack stage, a network with stack caps, or a
+    ///     switch between two single passive such networks (no triode, pentode or op-amp: the JC-120's stack with and
+    ///     without its distortion diodes; a switched channel whose network holds its gain stage stays put).
+    /// </summary>
     public static bool IsStack(AmpStageDesign design) =>
         design is ToneStackStageDesign
         || (design is NetworkStageDesign network
-            && network.Netlist.Elements.Any(static e => e.CapacitorRole == CapacitorRole.Stack));
+            && network.Netlist.Elements.Any(static e => e.CapacitorRole == CapacitorRole.Stack))
+        || (design is ChannelSwitchStageDesign { Off: [var off], On: [var on] } && IsPassiveStack(off)
+            && IsPassiveStack(on));
+
+    static bool IsPassiveStack(AmpStageDesign design) =>
+        design is NetworkStageDesign network
+        && IsStack(network)
+        && !network.Netlist.Elements.Any(static e => e.Kind is ElementKind.Triode
+            or ElementKind.Pentode
+            or ElementKind.OpAmp
+            or ElementKind.Amplifier
+        );
 
     /// <summary>Applies the knobs (per block); circuits recompute only where a pot moved.</summary>
     public void Configure(in AmpControls preamp, in PowerControls power) {
