@@ -533,7 +533,23 @@ public sealed partial class EngineConnection(
         }
     }
 
-    void OnMidi(IReadOnlyList<MidiEventMessage> messages) => MidiReceived?.Invoke(messages);
+    /// <summary>
+    ///     Hands MIDI to every listener. A listener that fails (MIDI learn on an unwritable data folder) is logged; it
+    ///     must not reach the link's read loop, which would take the failure for a lost host.
+    /// </summary>
+    void OnMidi(IReadOnlyList<MidiEventMessage> messages) {
+        if (MidiReceived is not { } handlers) {
+            return;
+        }
+
+        foreach (var handler in handlers.GetInvocationList().Cast<Action<IReadOnlyList<MidiEventMessage>>>()) {
+            try {
+                handler(messages);
+            } catch (Exception e) when (e is not OutOfMemoryException) {
+                MidiHandlerFailed(logger, e.Message);
+            }
+        }
+    }
 
     void OnTelemetry(HostTelemetry t) {
         LastTelemetry = t;
@@ -565,6 +581,9 @@ public sealed partial class EngineConnection(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Shared telemetry '{Path}' unavailable, using IPC: {Message}")]
     static partial void TelemetryUnavailable(ILogger logger, string path, string message);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Handling MIDI failed: {Error}")]
+    static partial void MidiHandlerFailed(ILogger logger, string error);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Engine rejected {Type}: {Error}")]
     static partial void EngineRejected(ILogger logger, string type, string error);

@@ -15,7 +15,9 @@ sealed class FakeHost : IAsyncDisposable {
     readonly CancellationTokenSource stop = new();
     readonly Socket listener = new(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
     readonly Task accepting;
+    readonly SemaphoreSlim writeLock = new(1, 1);
     Socket? current;
+    NetworkStream? stream;
     int connections;
 
     public FakeHost(string socketPath) {
@@ -36,6 +38,12 @@ sealed class FakeHost : IAsyncDisposable {
     /// <summary>When it returns true for a request, the connection is closed instead of answering it (once).</summary>
     public Func<IpcMessage, bool>? DieOn { get; set; }
 
+    /// <summary>Pushes a message (telemetry, MIDI) to the connected Server.</summary>
+    public async Task PushAsync(IpcMessage message) {
+        var connected = stream ?? throw new InvalidOperationException("No Server connected.");
+        await WriteAsync(connected, message);
+    }
+
     /// <summary>Closes the current connection, as a host that exits does.</summary>
     public void Disconnect() => current?.Dispose();
 
@@ -45,6 +53,7 @@ sealed class FakeHost : IAsyncDisposable {
         current?.Dispose();
         await accepting.ContinueWith(static _ => { }, TaskScheduler.Default);
         stop.Dispose();
+        writeLock.Dispose();
         File.Delete(SocketPath);
     }
 
@@ -53,9 +62,10 @@ sealed class FakeHost : IAsyncDisposable {
             using var client = await listener.AcceptAsync(stop.Token);
             current = client;
             Interlocked.Increment(ref connections);
-            await using var stream = new NetworkStream(client, false);
+            await using var connected = new NetworkStream(client, false);
+            stream = connected;
             try {
-                while (await IpcFraming.ReadAsync(stream, stop.Token) is { } request) {
+                while (await IpcFraming.ReadAsync(connected, stop.Token) is { } request) {
                     Received.Enqueue(request);
                     if (DieOn is { } die && die(request)) {
                         DieOn = null;
@@ -67,11 +77,22 @@ sealed class FakeHost : IAsyncDisposable {
                         reply.Host = new("test", "fake", 48_000, 128);
                     }
 
-                    await IpcFraming.WriteAsync(stream, reply, stop.Token);
+                    await WriteAsync(connected, reply);
                 }
             } catch (Exception e) when (e is IOException or SocketException or ObjectDisposedException) {
                 // the Server dropped the link, or Disconnect closed it
             }
+
+            stream = null;
+        }
+    }
+
+    async Task WriteAsync(NetworkStream connected, IpcMessage message) {
+        await writeLock.WaitAsync(stop.Token);
+        try {
+            await IpcFraming.WriteAsync(connected, message, stop.Token);
+        } finally {
+            writeLock.Release();
         }
     }
 }

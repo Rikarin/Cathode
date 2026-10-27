@@ -1,5 +1,7 @@
 using Cathode.Contracts;
 using Cathode.Ipc;
+using Cathode.Server.Engine;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http.Json;
 
 namespace Cathode.Server.Tests;
@@ -40,5 +42,55 @@ public sealed class EngineLinkTests : IAsyncDisposable {
         using var removed = await client.DeleteAsync("/api/v1/live/blocks/delay1", Token)
             .WaitAsync(TimeSpan.FromSeconds(20), Token);
         Assert.True(removed.IsSuccessStatusCode, await removed.Content.ReadAsStringAsync(Token));
+    }
+
+    [Fact]
+    public async Task A_failing_midi_handler_leaves_the_engine_link_up() {
+        await using var server = new ServerFixture(host.SocketPath);
+        using var client = await server.ConnectedClientAsync();
+        var connection = server.Services.GetRequiredService<EngineConnection>();
+        // A listener that fails the way MIDI learn on an unwritable data folder does.
+        connection.MidiReceived += static _ => throw new IOException("The disk is full.");
+
+        await Ok(client.PutAsJsonAsync("/api/v1/midi/learn", new MidiLearnRequest("tuner"), Token));
+        await host.PushAsync(new() { Type = IpcTypes.Midi, Midi = [new(0xB0, 64, 127, 0)] });
+
+        // The other listeners (the MIDI router) still ran, and the link stayed up: no reconnect, no resync.
+        await ServerFixture.Eventually(async () =>
+            (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!.MidiMappings.Exists(static m =>
+                m is { Action: "tuner", Number: 64 }
+            )
+        );
+        await Task.Delay(300, Token);
+        Assert.Equal(1, host.Connections);
+        Assert.True((await client.GetFromJsonAsync<SystemInfo>("/api/v1/system", Token))!.Engine.Connected);
+        Assert.DoesNotContain("Engine link lost", server.Log, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_ipc_client_survives_a_handler_that_throws() {
+        await using var client = new IpcEngineClient(host.SocketPath);
+        var disconnected = false;
+        client.Disconnected += () => disconnected = true;
+        client.MidiReceived += static _ => throw new IOException("The disk is full.");
+        client.TelemetryReceived += static _ => throw new InvalidOperationException("Broken listener.");
+        await client.ConnectAsync(TimeSpan.FromSeconds(10), Token);
+        await client.SendAsync(new() { Type = IpcTypes.Hello }, Token);
+
+        await host.PushAsync(new() { Type = IpcTypes.Midi, Midi = [new(0xB0, 1, 2, 0)] });
+        await host.PushAsync(new() { Type = IpcTypes.Telemetry, Telemetry = new() });
+        var reply = await client.SendAsync(new() { Type = IpcTypes.Hello }, Token);
+
+        Assert.Equal("fake", reply.Host!.Backend);
+        Assert.False(disconnected);
+        Assert.True(client.IsConnected);
+    }
+
+    static async Task Ok(Task<HttpResponseMessage> request) {
+        using var response = await request;
+        Assert.True(
+            response.IsSuccessStatusCode,
+            $"{(int)response.StatusCode}: {await response.Content.ReadAsStringAsync()}"
+        );
     }
 }

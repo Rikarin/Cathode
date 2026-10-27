@@ -179,11 +179,26 @@ public sealed partial class MidiRouter : IDisposable {
             request.Target,
             request.Value
         );
-        globals.Update(g => {
-                g.MidiMappings.RemoveAll(m => m.Message == kind && m.Number == mapping.Number && m.Channel == channel);
-                g.MidiMappings.Add(mapping);
+        try {
+            globals.Update(g => {
+                    g.MidiMappings.RemoveAll(m => m.Message == kind
+                        && m.Number == mapping.Number
+                        && m.Channel == channel
+                    );
+                    g.MidiMappings.Add(mapping);
+                }
+            );
+        } catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
+            // The global settings could not be written (a full disk, a read-only data folder): the message is
+            // consumed, nothing is learnt, and learn stays armed for another try.
+            lock (gate) {
+                learning ??= request;
             }
-        );
+
+            ActionFailed(logger, "learn", e.Message);
+            return true;
+        }
+
         hub.Publish(
             new("midiLearned", message.Status, message.Data1, message.Data2),
             ContractsJsonContext.Default.MidiActivity

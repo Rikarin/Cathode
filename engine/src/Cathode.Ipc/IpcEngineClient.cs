@@ -86,9 +86,9 @@ public sealed class IpcEngineClient(string socketPath) : IEngineLink {
         try {
             while (await IpcFraming.ReadAsync(connected, cancellationToken).ConfigureAwait(false) is { } message) {
                 if (message.Type == IpcTypes.Telemetry && message.Telemetry is { } telemetry) {
-                    TelemetryReceived?.Invoke(telemetry);
+                    Raise(TelemetryReceived, telemetry);
                 } else if (message.Type == IpcTypes.Midi && message.Midi is { } midi) {
-                    MidiReceived?.Invoke(midi);
+                    Raise(MidiReceived, midi);
                 } else if (pending.TryRemove(message.Id, out var reply)) {
                     reply.TrySetResult(message);
                 }
@@ -107,7 +107,28 @@ public sealed class IpcEngineClient(string socketPath) : IEngineLink {
         }
     }
 
+    /// <summary>
+    ///     Raises a pushed message's event. A handler's failure is the handler's: it must not end the read loop, which
+    ///     would count it as a lost link (every pending reply failed, a reconnect and a full resync).
+    /// </summary>
+    void Raise<T>(Action<T>? handlers, T value) {
+        if (handlers is null) {
+            return;
+        }
+
+        foreach (var handler in handlers.GetInvocationList().Cast<Action<T>>()) {
+            try {
+                handler(value);
+            } catch (Exception e) when (e is not OutOfMemoryException) {
+                HandlerFailed?.Invoke(e);
+            }
+        }
+    }
+
     public event Action<HostTelemetry>? TelemetryReceived;
+
+    /// <summary>A telemetry or MIDI handler threw; the link carries on.</summary>
+    public event Action<Exception>? HandlerFailed;
 
     public event Action<IReadOnlyList<MidiEventMessage>>? MidiReceived;
 
