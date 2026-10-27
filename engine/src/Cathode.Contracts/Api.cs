@@ -141,7 +141,18 @@ public sealed record BlockTypeInfo(
 );
 
 // Request bodies.
-public sealed record AddBlockRequest(string Type, int Row, int Column, string? Id = null);
+/// <summary>
+///     A new block of <c>Type</c> in a cell. <c>Channels</c> and <c>Assets</c>, a pasted or copied block's settings,
+///     are set as it is placed: one edit and one undo step. An Input keeps the free hardware input it is given.
+/// </summary>
+public sealed record AddBlockRequest(
+    string Type,
+    int Row,
+    int Column,
+    string? Id = null,
+    Dictionary<string, Dictionary<string, float>>? Channels = null,
+    Dictionary<string, string>? Assets = null
+);
 
 public sealed record MoveBlockRequest(int Row, int Column);
 

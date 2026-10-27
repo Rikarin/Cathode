@@ -128,8 +128,18 @@ export class LiveStore {
   undo = () => this.mutate(c => c.POST('/api/v1/live/undo'));
   redo = () => this.mutate(c => c.POST('/api/v1/live/redo'));
 
-  addBlock = (type: string, row: number, column: number) =>
-    this.mutate(c => c.POST('/api/v1/live/blocks', { body: { type, row, column, id: null } }));
+  /** Adds a block; with `settings` (a pasted or copied block's channels and assets) as one edit and one undo step. */
+  addBlock = (
+    type: string,
+    row: number,
+    column: number,
+    settings?: { channels: PresetBlock['channels']; assets: PresetBlock['assets'] }
+  ) =>
+    this.mutate(c =>
+      c.POST('/api/v1/live/blocks', {
+        body: { type, row, column, id: null, channels: settings?.channels ?? null, assets: settings?.assets ?? null }
+      })
+    );
   removeBlock = (id: string) => this.mutate(c => c.DELETE('/api/v1/live/blocks/{id}', { params: { path: { id } } }));
   moveBlock = (id: string, row: number, column: number) =>
     this.mutate(c => c.PUT('/api/v1/live/blocks/{id}/position', { params: { path: { id } }, body: { row, column } }));

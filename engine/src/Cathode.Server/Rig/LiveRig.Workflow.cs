@@ -227,13 +227,7 @@ public sealed partial class LiveRig {
                 var descriptor = catalog.Descriptor(block.Type)
                     ?? throw new RigException(400, $"'{id}' has no parameters.");
                 var channels = SanitizeChannels(descriptor, request.Channels);
-                var slots = catalog.Info(block.Type)!.AssetSlots;
-                var assigned = (request.Assets ?? [])
-                    .Where(a => slots.Contains(a.Key)
-                        && assets.Get(a.Value) is { } asset
-                        && Stores.AssetStore.Fits(a.Key, asset.Kind)
-                    )
-                    .ToDictionary(static a => a.Key, static a => a.Value);
+                var assigned = FittingAssets(block.Type, request.Assets ?? []);
                 await StructuralAsync(p => {
                         var target = p.Blocks.Single(b => b.Id == id);
                         target.Channels = channels;
@@ -246,6 +240,20 @@ public sealed partial class LiveRig {
                 return Changed("blockSettingsPasted", id);
             }
         );
+
+    /// <summary>
+    ///     The requested assets a block of <paramref name="type" /> can take: slots it has, holding assets that exist
+    ///     and fit them. The rest are left out, as a pasted asset may have been deleted since it was copied.
+    /// </summary>
+    Dictionary<string, string> FittingAssets(string type, Dictionary<string, string> requested) {
+        var slots = catalog.Info(type)!.AssetSlots;
+        return requested
+            .Where(a => slots.Contains(a.Key)
+                && assets.Get(a.Value) is { } asset
+                && Stores.AssetStore.Fits(a.Key, asset.Kind)
+            )
+            .ToDictionary(static a => a.Key, static a => a.Value);
+    }
 
     /// <summary>Each channel's values, sanitized; unknown channels and parameters are a 400.</summary>
     static Dictionary<string, Dictionary<string, float>> SanitizeChannels(
@@ -610,9 +618,7 @@ public sealed partial class LiveRig {
             throw;
         }
 
-        coalesceKey = null;
-        Remember(undo, before);
-        redo.Clear();
+        history.Push(before);
     }
 
     static void CheckShape(Preset next) {

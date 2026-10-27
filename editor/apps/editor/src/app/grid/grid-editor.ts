@@ -12,7 +12,6 @@ import {
 import {
   type BlockTypeInfo,
   BuiltInTypes,
-  type ChannelName,
   ChannelNames,
   OutputTypes,
   type PresetBlock,
@@ -1108,32 +1107,21 @@ export class GridEditor {
     return this.blocks().find(b => b.row === row && b.column === column) ?? null;
   }
 
-  /** Adds a block of the copied type and gives it the copy's parameters on every channel, and its assets. */
+  /**
+   * Adds a block of the copied type with the copy's parameters on every channel that holds any, and its assets: one
+   * call, so one recompile and one undo step.
+   */
   private async placeCopy(copied: CopiedBlock, row: number, column: number): Promise<void> {
-    if (!(await this.live.addBlock(copied.type, row, column))) {
+    const channels = Object.fromEntries(
+      Object.entries(copied.channels).filter(([, values]) => Object.keys(values).length > 0)
+    );
+    if (!(await this.live.addBlock(copied.type, row, column, { channels, assets: copied.assets }))) {
       return;
     }
 
     const placed = this.cellBlock(row, column);
-    if (!placed) {
-      return;
+    if (placed) {
+      this.live.selectedId.set(placed.id);
     }
-
-    for (const [channel, values] of Object.entries(copied.channels)) {
-      if (Object.keys(values).length > 0) {
-        await this.live.mutate(c =>
-          c.PATCH('/api/v1/live/blocks/{id}/params', {
-            params: { path: { id: placed.id }, query: { channel: channel as ChannelName } },
-            body: values
-          })
-        );
-      }
-    }
-
-    for (const [slot, asset] of Object.entries(copied.assets)) {
-      await this.live.setAsset(placed.id, slot, asset);
-    }
-
-    this.live.selectedId.set(placed.id);
   }
 }
