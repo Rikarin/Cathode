@@ -1,6 +1,7 @@
+import { ScrollingModule } from '@angular/cdk/scrolling';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { type Bank, unwrap } from '@cathode/api-client';
+import { type Bank, type PresetSummary, unwrap } from '@cathode/api-client';
 import { provideIcons } from '@ng-icons/core';
 import { matAddRound, matStarRound } from '@ng-icons/material-icons/round';
 import { XuiAlertDialogImports } from '@xui/alert-dialog';
@@ -20,6 +21,8 @@ import { ManageSession, type SlotRef, nextSelection } from './manage';
 
 const SlotMime = 'application/x-cathode-slot';
 const PresetMime = 'application/x-cathode-preset';
+/** The height of an entry in the Library list, which the virtual scroll lays the list out by. */
+export const LibraryEntryHeight = 24;
 
 /**
  * Manage Presets (IRs and amp captures are managed in the Library). Presets sit in bank slots: click selects (⇧ extends, ⌘ toggles), drag swaps two
@@ -33,6 +36,7 @@ const PresetMime = 'application/x-cathode-preset';
   selector: 'cth-manage-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    ScrollingModule,
     XuiAlertDialogImports,
     XuiButtonImports,
     XuiContextMenuImports,
@@ -93,17 +97,26 @@ const PresetMime = 'application/x-cathode-preset';
           }
         </ul>
         <span class="text-foreground-muted mt-2 text-[11px] font-semibold tracking-wide uppercase">Library</span>
-        <ul class="flex min-h-0 flex-1 flex-col overflow-y-auto text-sm" aria-label="Presets to place">
-          @for (p of library.ordered(); track p.id) {
-            <li
-              class="hover:bg-active-overlay cursor-grab truncate rounded px-2 py-0.5"
-              draggable="true"
-              (dragstart)="dragPreset($event, p.id)"
-            >
-              {{ p.name }}
-            </li>
-          }
-        </ul>
+        <!-- Only the entries in view are rendered. -->
+        <cdk-virtual-scroll-viewport
+          class="min-h-0 flex-1 text-sm"
+          role="list"
+          aria-label="Presets to place"
+          data-testid="library-presets"
+          [itemSize]="entryHeight"
+        >
+          <div
+            *cdkVirtualFor="let p of library.ordered(); trackBy: byId; let i = index; let count = count"
+            role="listitem"
+            class="hover:bg-active-overlay h-6 cursor-grab truncate rounded px-2 py-0.5"
+            draggable="true"
+            [attr.aria-posinset]="i + 1"
+            [attr.aria-setsize]="count"
+            (dragstart)="dragPreset($event, p.id)"
+          >
+            {{ p.name }}
+          </div>
+        </cdk-virtual-scroll-viewport>
       </aside>
 
       <section class="flex min-w-0 flex-1 flex-col gap-3">
@@ -291,6 +304,8 @@ export class ManagePage {
 
   protected readonly tagColors = TagColors;
   protected readonly tagColorName = tagColorName;
+  protected readonly entryHeight = LibraryEntryHeight;
+  protected readonly byId = (_: number, preset: PresetSummary) => preset.id;
   /** Bumped after every change to the (mutable) sessions, so the view recomputes. */
   private readonly version = signal(0);
   private readonly session = signal(new ManageSession([], []));

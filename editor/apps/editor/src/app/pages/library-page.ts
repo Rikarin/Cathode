@@ -1,3 +1,4 @@
+import { ScrollingModule } from '@angular/cdk/scrolling';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import type { BlockPreset, PresetSummary } from '@cathode/api-client';
@@ -23,6 +24,9 @@ import { PresetSwitcher } from '../state/preset-switcher';
 import { AssetLibrary, AssetList, AssetToolbar } from './asset-library';
 import { GlobalBlocks } from './global-blocks';
 
+/** The height of a preset row, which the virtual scroll lays the list out by. */
+export const PresetRowHeight = 48;
+
 /**
  * The Library: presets (search by name, author or tag; show all, your own or the read-only factory bank's; double-click
  * or Load opens one in the editor; export, import, delete your own), the Block Library (folders of block and channel presets), the global blocks (rename, delete), and the NAM amps and IR cabs every Amp NAM, Cab
@@ -36,6 +40,7 @@ import { GlobalBlocks } from './global-blocks';
     AssetList,
     AssetToolbar,
     GlobalBlocks,
+    ScrollingModule,
     XuiAlertDialogImports,
     XuiButtonImports,
     XuiDialogImports,
@@ -131,21 +136,34 @@ import { GlobalBlocks } from './global-blocks';
           description="Build a rig in the editor and save it, or import a .cthpreset file."
         />
       } @else {
-        <div class="min-h-0 flex-1 overflow-auto px-6 pt-4">
-          <xui-table interactive class="w-full" data-testid="preset-list" aria-label="Presets">
-            <xui-tr class="bg-background sticky top-0 z-10">
+        <!-- Only the rows in view are rendered (the factory bank alone is a long list). -->
+        <div cdkVirtualScrollingElement class="min-h-0 flex-1 overflow-auto px-6 pt-4">
+          <xui-table
+            interactive
+            class="w-full"
+            data-testid="preset-list"
+            aria-label="Presets"
+            [attr.aria-rowcount]="(rows().length || 1) + 1"
+          >
+            <xui-tr class="bg-background sticky top-0 z-10" aria-rowindex="1">
               <xui-th class="w-10" aria-label="Favourite" />
               <xui-th class="min-w-0 flex-1">Name</xui-th>
               <xui-th class="w-48">Author</xui-th>
               <xui-th class="w-52 justify-end">Modified</xui-th>
             </xui-tr>
-            @for (preset of rows(); track preset.id) {
+            <cdk-virtual-scroll-viewport
+              class="[&_.cdk-virtual-scroll-content-wrapper]:w-full"
+              data-testid="preset-viewport"
+              [itemSize]="rowHeight"
+            >
               <xui-tr
+                *cdkVirtualFor="let preset of rows(); trackBy: byId; let i = index"
                 tabindex="0"
-                class="cursor-default"
+                class="h-12 cursor-default"
                 [class.cth-selected-row]="selected()?.id === preset.id"
                 [attr.data-state]="selected()?.id === preset.id ? 'selected' : null"
                 [attr.aria-selected]="selected()?.id === preset.id"
+                [attr.aria-rowindex]="i + 2"
                 [attr.data-testid]="'preset-row-' + preset.id"
                 (click)="selected.set(preset)"
                 (dblclick)="loadPreset(preset)"
@@ -169,26 +187,32 @@ import { GlobalBlocks } from './global-blocks';
                   </button>
                 </xui-td>
                 <xui-td class="min-w-0 flex-1">
-                  <div class="flex flex-wrap items-center gap-1.5">
+                  <!-- One line, so every row is the height the virtual scroll counts on. -->
+                  <div class="flex min-w-0 items-center gap-1.5 overflow-hidden">
                     @if (preset.color) {
                       <span class="size-2.5 shrink-0 rounded-full" [style.background]="preset.color"></span>
                     }
-                    <span class="font-medium">{{ preset.name }}</span>
+                    <span class="truncate font-medium">{{ preset.name }}</span>
                     @if (preset.factory) {
-                      <xui-tag minimal round color="primary" data-testid="factory-tag">Factory</xui-tag>
+                      <xui-tag minimal round color="primary" class="shrink-0" data-testid="factory-tag"
+                        >Factory</xui-tag
+                      >
                     }
                     @for (tag of preset.tags; track tag) {
-                      <xui-tag minimal round>{{ tag }}</xui-tag>
+                      <xui-tag minimal round class="shrink-0">{{ tag }}</xui-tag>
                     }
                   </div>
                 </xui-td>
-                <xui-td class="text-foreground-muted w-48">{{ preset.author || '—' }}</xui-td>
+                <xui-td class="text-foreground-muted w-48">
+                  <span class="truncate">{{ preset.author || '—' }}</span>
+                </xui-td>
                 <xui-td class="text-foreground-muted w-52 justify-end tabular-nums">
                   {{ preset.factory ? 'Factory bank' : modified(preset) }}
                 </xui-td>
               </xui-tr>
-            } @empty {
-              <xui-tr>
+            </cdk-virtual-scroll-viewport>
+            @if (rows().length === 0) {
+              <xui-tr aria-rowindex="2">
                 <xui-td class="text-foreground-muted flex-1 justify-center py-8">
                   No preset matches “{{ query() }}”.
                 </xui-td>
@@ -405,6 +429,8 @@ export class LibraryPage {
     { label: 'Factory', value: 'factory' as const }
   ];
   protected readonly selected = signal<PresetSummary | null>(null);
+  protected readonly rowHeight = PresetRowHeight;
+  protected readonly byId = (_: number, preset: PresetSummary) => preset.id;
   protected readonly confirmDelete = signal(false);
   /** Where the selected preset is used, which keeps it from being deleted (the in-use dialog lists them). */
   protected readonly uses = signal<readonly string[]>([]);

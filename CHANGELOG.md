@@ -11,6 +11,9 @@ the format upgrades older presets as it reads them.
 - **Opening the tuner mutes the output** (#26), with a short fade, as players expect. A global setting below the
   tuner's needle, **Output while tuning**, chooses Mute (the default), Bypass (the guitar dry, no blocks) or Pass
   through (the preset keeps sounding, as before). It applies however the tuner is opened: editor, footswitch or MIDI.
+- **Long lists stay quick** (#157): the Library's preset, NAM amp and IR cab tables and Manage presets' Library list
+  render only the rows in view, so searching and selecting in a library of hundreds of IRs no longer slows down. A
+  preset's tags now sit on its name's line.
 
 ### Internal
 
