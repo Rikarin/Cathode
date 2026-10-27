@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
+import type { PresetStep } from '@cathode/api-client';
 import { CompareStore } from './compare.store';
 import { GlobalStore } from './global.store';
 import { LiveStore } from './live.store';
@@ -67,15 +68,18 @@ export class PresetSwitcher {
     return true;
   }
 
-  /** Loads a preset, asking first about unsaved changes unless the caller already has (`confirmed`). */
-  async load(id: string, name: string, confirmed = false): Promise<boolean> {
+  /**
+   * Loads a preset, asking first about unsaved changes unless the caller already has (`confirmed`); `at`, its bank slot
+   * or setlist entry, when it is loaded from one (so preset next/previous go on from there).
+   */
+  async load(id: string, name: string, confirmed = false, at?: PresetStep): Promise<boolean> {
     if (!confirmed && !this.mayReplace(name)) {
       return false;
     }
 
     this.loading.set(name);
     try {
-      if (!(await this.live.load(id))) {
+      if (!(await (at ? this.live.loadAt(at) : this.live.load(id)))) {
         return false;
       }
     } finally {

@@ -150,7 +150,7 @@ export class LibraryStore {
     return done ?? false;
   }
 
-  /** The library's presets in "next preset" order (by name, as the MIDI router steps through them). */
+  /** The library's presets by name. */
   readonly ordered = computed(() => [...this.presets()].sort((a, b) => a.name.localeCompare(b.name)));
 
   /** Whether the library holds a preset with this id: false for a new one that has never been saved. */

@@ -27,7 +27,7 @@ public sealed partial class MidiRouter : IDisposable {
     readonly EngineConnection engine;
     readonly LiveRig rig;
     readonly GlobalStore globals;
-    readonly PresetStore presets;
+    readonly PresetNavigator navigator;
     readonly Library library;
     readonly EventHub hub;
     readonly ILogger<MidiRouter> logger;
@@ -62,7 +62,7 @@ public sealed partial class MidiRouter : IDisposable {
         EngineConnection engine,
         LiveRig rig,
         GlobalStore globals,
-        PresetStore presets,
+        PresetNavigator navigator,
         Library library,
         EventHub hub,
         ILogger<MidiRouter> logger
@@ -70,7 +70,7 @@ public sealed partial class MidiRouter : IDisposable {
         this.engine = engine;
         this.rig = rig;
         this.globals = globals;
-        this.presets = presets;
+        this.navigator = navigator;
         this.library = library;
         this.hub = hub;
         this.logger = logger;
@@ -377,24 +377,15 @@ public sealed partial class MidiRouter : IDisposable {
                 await rig.SaveAsync(new(), null);
                 break;
             case "presetSlot" when action.Target is { } bank:
-                var slot = library.Slot(bank, action.Value ?? data);
-                if (!(globals.Get().IgnoreRedundantPc && slot == rig.PresetId)) {
-                    await rig.LoadAsync(slot);
+                var slot = action.Value ?? data;
+                if (!(globals.Get().IgnoreRedundantPc && library.Slot(bank, slot) == rig.PresetId)) {
+                    await navigator.LoadSlotAsync(bank, slot);
                 }
 
                 break;
-            case "presetNext" or "presetPrevious":
-                await StepPresetAsync(action.Action == "presetNext" ? 1 : -1);
+            case "presetNext" or "presetPrevious": // in bank order, or through the active setlist
+                await navigator.StepAsync(action.Action == "presetNext" ? 1 : -1);
                 break;
-        }
-    }
-
-    /// <summary>Loads the next or previous preset by name, wrapping around.</summary>
-    async Task StepPresetAsync(int step) {
-        var all = presets.List().OrderBy(static p => p.Name, StringComparer.OrdinalIgnoreCase).ToList();
-        if (all.Count > 0) {
-            var current = all.FindIndex(p => p.Id == rig.PresetId);
-            await rig.LoadAsync(all[(Math.Max(current, 0) + step + all.Count) % all.Count].Id);
         }
     }
 

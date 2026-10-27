@@ -1,6 +1,7 @@
 using Cathode.Contracts;
 using Cathode.Server.Rig;
 using Cathode.Server.Stores;
+using Microsoft.AspNetCore.Http.HttpResults;
 using static Cathode.Server.Api.CathodeApi;
 
 namespace Cathode.Server.Api;
@@ -33,12 +34,31 @@ static class LiveApi {
             .WithName("LoadPreset");
         live.MapPut(
                 "/setlists/{id}/entries/{index:int}",
-                async (string id, int index, Library books, LiveRig rig, HttpContext http) => {
-                    var entry = books.Entry(id, index);
-                    return Respond(http, await rig.LoadAsync(entry.PresetId, entry.Scene));
-                }
+                async (string id, int index, PresetNavigator navigator, HttpContext http) =>
+                    Respond(http, await navigator.LoadEntryAsync(id, index))
             )
-            .WithName("LoadSetlistEntry");
+            .WithName("LoadSetlistEntry")
+            .WithSummary("Loads a setlist entry on its scene; preset next/previous then step through the setlist.");
+        live.MapPut(
+                "/banks/{id}/slots/{slot:int}",
+                async (string id, int slot, PresetNavigator navigator, HttpContext http) =>
+                    Respond(http, await navigator.LoadSlotAsync(id, slot))
+            )
+            .WithName("LoadBankSlot")
+            .WithSummary("Loads the preset in a bank slot (0-127); preset next/previous then go on from that slot.");
+        live.MapGet(
+                "/neighbour",
+                async Task<Results<Ok<PresetStep>, NoContent>>(int step, PresetNavigator navigator) =>
+                    await navigator.NeighbourAsync(step) is { } target
+                        ? TypedResults.Ok(target)
+                        : TypedResults.NoContent()
+            )
+            .WithName("GetPresetNeighbour")
+            .WithSummary(
+                "What preset next (step 1) or previous (-1) would load, in bank order or through the active setlist; "
+                + "load it with its bank slot or setlist entry (or by id, for a preset in no bank). "
+                + "204 with no presets."
+            );
         live.MapGet(
                 "/export",
                 async (LiveRig rig, PresetPackage package, CancellationToken cancellationToken) =>

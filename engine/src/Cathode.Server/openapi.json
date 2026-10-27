@@ -363,6 +363,7 @@
         "tags": [
           "Live"
         ],
+        "summary": "Loads a setlist entry on its scene; preset next/previous then step through the setlist.",
         "operationId": "LoadSetlistEntry",
         "parameters": [
           {
@@ -393,6 +394,81 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/live/banks/{id}/slots/{slot}": {
+      "put": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Loads the preset in a bank slot (0-127); preset next/previous then go on from that slot.",
+        "operationId": "LoadBankSlot",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "slot",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveState"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/live/neighbour": {
+      "get": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "What preset next (step 1) or previous (-1) would load, in bank order or through the active setlist; load it with its bank slot or setlist entry (or by id, for a preset in no bank). 204 with no presets.",
+        "operationId": "GetPresetNeighbour",
+        "parameters": [
+          {
+            "name": "step",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresetStep"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -4884,7 +4960,8 @@
           "canUndo",
           "canRedo",
           "muted",
-          "load"
+          "load",
+          "position"
         ],
         "type": "object",
         "properties": {
@@ -4925,9 +5002,19 @@
             "type": "integer",
             "format": "int64",
             "default": 0
+          },
+          "position": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PresetPosition"
+              }
+            ]
           }
         },
-        "description": "The rig as it is running: the working copy, which scene is active, and whether it differs from the library.\n\u0060Held\u0060 lists the blocks whose bypass and channel differ from the active scene\u0027s because Scene Ignore kept\nthem as they were: what they are running now. \u0060Load\u0060 counts the presets loaded into the working copy (a new\none, a library preset, the same one again): an edit made against one load can name it and is refused once\nanother has replaced the working copy."
+        "description": "The rig as it is running: the working copy, which scene is active, and whether it differs from the library.\n\u0060Held\u0060 lists the blocks whose bypass and channel differ from the active scene\u0027s because Scene Ignore kept\nthem as they were: what they are running now. \u0060Load\u0060 counts the presets loaded into the working copy (a new\none, a library preset, the same one again): an edit made against one load can name it and is refused once\nanother has replaced the working copy. \u0060Position\u0060 is the bank slot or setlist entry the preset was loaded\nfrom, while the working copy is still that preset (null when it was loaded by name, or is another now): preset\nnext/previous step on from there."
       },
       "MidiLearnRequest": {
         "required": [
@@ -5530,6 +5617,68 @@
           }
         },
         "description": "One modified parameter; see Cathode.Engine.Graph.ModifierDefinition for the semantics."
+      },
+      "PresetPosition": {
+        "type": "object",
+        "properties": {
+          "bank": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "slot": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "setlist": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "entry": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "A place in the preset order: a bank slot (\u0060Bank\u0060, \u0060Slot\u0060 0-127) or a setlist entry (\u0060Setlist\u0060,\n\u0060Entry\u0060 from 0)."
+      },
+      "PresetStep": {
+        "required": [
+          "presetId",
+          "position"
+        ],
+        "type": "object",
+        "properties": {
+          "presetId": {
+            "type": "string"
+          },
+          "scene": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "position": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PresetPosition"
+              }
+            ]
+          }
+        },
+        "description": "What preset next/previous would load: the preset, the scene to start on (a setlist entry\u0027s), and its place (null\nfor a preset in no bank)."
       },
       "PresetSummary": {
         "required": [

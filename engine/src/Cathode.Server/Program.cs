@@ -67,6 +67,7 @@ builder.Services.AddHostedService(static s => s.GetRequiredService<EngineConnect
 builder.Services.AddSingleton<AnalysisSubscriptions>();
 builder.Services.AddSingleton<GlobalStore>();
 builder.Services.AddSingleton<LiveRig>();
+builder.Services.AddSingleton<PresetNavigator>();
 builder.Services.AddSingleton<IrTools>();
 builder.Services.AddSingleton<MidiRouter>();
 builder.Services.AddSingleton<SnapshotStore>();

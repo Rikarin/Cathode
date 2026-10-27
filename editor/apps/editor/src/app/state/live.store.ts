@@ -7,6 +7,7 @@ import {
   type Preset,
   type PresetBlock,
   type PresetModifier,
+  type PresetStep,
   type RigEvent,
   type SceneBlockState,
   type SceneMidiMessage,
@@ -138,6 +139,22 @@ export class LiveStore {
 
   newPreset = () => this.mutate(c => c.POST('/api/v1/live/new'));
   load = (id: string) => this.mutate(c => c.PUT('/api/v1/live/preset/{id}', { params: { path: { id } } }));
+  /**
+   * Loads a place in the preset order: a bank slot or setlist entry through its own endpoint, so preset next/previous
+   * go on from there (and a setlist entry starts on its scene); a preset in no bank by its id.
+   */
+  loadAt = (at: PresetStep) => {
+    const { bank, slot, setlist, entry } = at.position ?? {};
+    if (setlist != null && entry != null) {
+      return this.mutate(c =>
+        c.PUT('/api/v1/live/setlists/{id}/entries/{index}', { params: { path: { id: setlist, index: entry } } })
+      );
+    }
+
+    return bank != null && slot != null
+      ? this.mutate(c => c.PUT('/api/v1/live/banks/{id}/slots/{slot}', { params: { path: { id: bank, slot } } }))
+      : this.load(at.presetId);
+  };
   replace = (preset: Preset) => this.mutate(c => c.PUT('/api/v1/live', { body: preset }));
   save = (name?: string, asNew = false) =>
     this.mutate(c => c.POST('/api/v1/live/save', { body: { name: name ?? null, asNew } }));

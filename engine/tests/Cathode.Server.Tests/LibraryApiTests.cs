@@ -61,6 +61,64 @@ public sealed class LibraryApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task Preset_next_and_previous_follow_the_bank_and_wrap_into_the_next_bank() {
+        // Verse before Chorus: the bank's order, not the alphabet's.
+        var bank = new Bank { Name = "Gig", Slots = [verse, null, chorus] };
+        await Ok(client.PutAsJsonAsync($"/api/v1/banks/{bank.Id}", bank, Token));
+        var global = (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!;
+        global.MidiMappings.Add(new("next", "cc", 0, 30, "presetNext"));
+        await Ok(client.PutAsJsonAsync("/api/v1/global", global, Token));
+        var factory = server.Services.GetRequiredService<Library>().Bank("factory")!;
+
+        var first = await Read(client.PutAsJsonAsync($"/api/v1/live/banks/{bank.Id}/slots/0", new { }, Token));
+        var next = await Neighbour(1);
+        var previous = await Neighbour(-1);
+        server.Services.GetRequiredService<MidiRouter>().OnMidi([new(0xB0, 30, 127, 0)]);
+        await ServerFixture.Eventually(async () =>
+            (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!.Preset.Id == chorus
+        );
+        var afterLast = await Neighbour(1);
+
+        Assert.Equal(verse, first.Preset.Id);
+        Assert.Equal(new PresetPosition(bank.Id, 0), first.Position);
+        Assert.Equal(new PresetStep(chorus, null, new(bank.Id, 2)), next); // the empty slot is skipped
+        // The factory bank comes first: before the Gig bank's first slot is the factory bank's last.
+        var lastFactory = factory.Slots.FindLastIndex(static s => s is not null);
+        Assert.Equal(new PresetStep(factory.Slots[lastFactory]!, null, new("factory", lastFactory)), previous);
+        // After the last bank's last slot (and no preset outside a bank): round to the first bank.
+        Assert.Equal(new PresetStep(factory.Slots[0]!, null, new("factory", 0)), afterLast);
+    }
+
+    [Fact]
+    public async Task Preset_next_and_previous_stay_in_the_active_setlist() {
+        var setlist = new Setlist { Name = "Friday", Entries = [new(chorus, 3), new(verse, 1)] };
+        await Ok(client.PutAsJsonAsync($"/api/v1/setlists/{setlist.Id}", setlist, Token));
+        var navigator = server.Services.GetRequiredService<PresetNavigator>();
+
+        var loaded = await Read(client.PutAsJsonAsync($"/api/v1/live/setlists/{setlist.Id}/entries/0", new { }, Token));
+        var second = await navigator.StepAsync(1);
+        var wrapped = await navigator.StepAsync(1);
+
+        Assert.Equal(new PresetPosition(Setlist: setlist.Id, Entry: 0), loaded.Position);
+        Assert.Equal((verse, 1), (second!.Preset.Id, second.ActiveScene));
+        Assert.Equal((chorus, 3), (wrapped!.Preset.Id, wrapped.ActiveScene));
+        Assert.Equal(new PresetPosition(Setlist: setlist.Id, Entry: 0), wrapped.Position);
+    }
+
+    [Fact]
+    public async Task Presets_in_no_bank_come_after_the_banks_by_name() {
+        var factory = server.Services.GetRequiredService<Library>().Bank("factory")!;
+
+        var loaded = await Read(client.PutAsJsonAsync($"/api/v1/live/preset/{verse}", new { }, Token));
+        var previous = await Neighbour(-1);
+        var next = await Neighbour(1);
+
+        Assert.Null(loaded.Position);
+        Assert.Equal(new PresetStep(chorus), previous);
+        Assert.Equal(new PresetStep(factory.Slots[0]!, null, new("factory", 0)), next);
+    }
+
+    [Fact]
     public async Task References_must_exist_and_used_presets_cannot_be_deleted() {
         var broken = new Setlist { Entries = [new("does-not-exist"), new(verse, 9)] };
         using var rejected = await client.PutAsJsonAsync($"/api/v1/setlists/{broken.Id}", broken, Token);
@@ -96,6 +154,9 @@ public sealed class LibraryApiTests : IAsyncLifetime {
         var saved = await Read(client.PostAsJsonAsync("/api/v1/live/save", new SaveRequest(name, true), Token));
         return saved.Preset.Id;
     }
+
+    Task<PresetStep?> Neighbour(int step) =>
+        client.GetFromJsonAsync<PresetStep>($"/api/v1/live/neighbour?step={step}", Token);
 
     async Task<LiveState> Read(Task<HttpResponseMessage> request) {
         using var response = await request;

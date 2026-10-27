@@ -13,7 +13,13 @@ public sealed partial class LiveRig {
 
     long tapFollowUntil;
 
-    /// <summary>The working copy's id (unlocked read, for "next preset" from a footswitch).</summary>
+    /// <summary>
+    ///     The bank slot or setlist entry the preset was loaded from, and that preset's id: it holds only while the
+    ///     working copy is still that preset (<see cref="LiveState.Position" />).
+    /// </summary>
+    (PresetPosition At, string Preset)? position;
+
+    /// <summary>The working copy's id (unlocked read, for a program change with Ignore Redundant PC).</summary>
     public string PresetId => Volatile.Read(ref preset).Id;
 
     /// <summary>

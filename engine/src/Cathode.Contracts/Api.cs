@@ -5,7 +5,9 @@ namespace Cathode.Contracts;
 ///     <c>Held</c> lists the blocks whose bypass and channel differ from the active scene's because Scene Ignore kept
 ///     them as they were: what they are running now. <c>Load</c> counts the presets loaded into the working copy (a new
 ///     one, a library preset, the same one again): an edit made against one load can name it and is refused once
-///     another has replaced the working copy.
+///     another has replaced the working copy. <c>Position</c> is the bank slot or setlist entry the preset was loaded
+///     from, while the working copy is still that preset (null when it was loaded by name, or is another now): preset
+///     next/previous step on from there.
 /// </summary>
 public sealed record LiveState(
     Preset Preset,
@@ -16,8 +18,21 @@ public sealed record LiveState(
     bool CanRedo,
     Dictionary<string, SceneBlockState>? Held = null,
     bool Muted = false,
-    long Load = 0
+    long Load = 0,
+    PresetPosition? Position = null
 );
+
+/// <summary>
+///     A place in the preset order: a bank slot (<c>Bank</c>, <c>Slot</c> 0-127) or a setlist entry (<c>Setlist</c>,
+///     <c>Entry</c> from 0).
+/// </summary>
+public sealed record PresetPosition(string? Bank = null, int? Slot = null, string? Setlist = null, int? Entry = null);
+
+/// <summary>
+///     What preset next/previous would load: the preset, the scene to start on (a setlist entry's), and its place (null
+///     for a preset in no bank).
+/// </summary>
+public sealed record PresetStep(string PresetId, int? Scene = null, PresetPosition? Position = null);
 
 public sealed record PresetSummary(
     string Id,
