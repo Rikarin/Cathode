@@ -213,6 +213,7 @@ static void shutdown_server(void *arg)
     cth_jack_stream *j = (cth_jack_stream *)arg;
     j->active = 0;
     atomic_fetch_add_explicit(&j->common->overloads, 1, memory_order_relaxed);
+    cth_linux_raise_status(j->common, CTH_STREAM_LOST); /* the server quit or threw the client out */
 }
 
 static int32_t latency(jack_port_t *port, int mode)

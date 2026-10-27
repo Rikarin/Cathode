@@ -182,5 +182,5 @@ A 10-minute local soak (macOS, null audio, production layout, same load as above
 | Host GCs | 0 (budget not yet reached) | **0** |
 | API | 5,600 requests | 18,593 requests, 0 errors; 36,682 WebSocket messages |
 
-Between preset loads, host allocation is flat at zero. The remaining 0.08 MB/min is the preset loads (about 34–42 KB each, 2 a minute). `HostAllocationTests` keeps commands and telemetry at 0 bytes and a preset reload under 48 KB.
+Between preset loads, host allocation is flat at zero. The remaining 0.08 MB/min is the preset loads (about 34–42 KB each, 2 a minute). `HostAllocationTests` keeps commands and telemetry at 0 bytes and a preset reload under 48 KB. The MIDI thread is held to the same rule on a real device: its port scan only compares the native port count, and a poll that carries nothing for the Server (MIDI clock, active sensing) builds no batch, which the MIDI-clock case in `HostAllocationTests` checks; only messages the Server maps (notes, CCs, program changes) allocate their batch.
 

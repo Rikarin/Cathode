@@ -106,6 +106,43 @@ public class NamAmpBlockTests {
     }
 
     [Fact]
+    public void A_model_processed_before_reset_or_after_dispose_passes_the_input_through() {
+        RequireNative();
+        var input = Signals.Noise(Block, 4, 0.3f);
+        var output = new float[Block];
+
+        // Before the fix a zero block size never advanced the native loop and hung the calling thread.
+        var model = NamModel.Load(Path.Combine(NamAssets.ModelsDirectory, "A2.nam"));
+        model.Process(input, output);
+        Assert.Equal(input, output);
+
+        model.Dispose();
+        Array.Clear(output);
+        model.Process(input, output);
+        Assert.Equal(input, output);
+    }
+
+    [Fact]
+    public void A_model_loaded_into_a_prepared_block_is_reset_for_its_spec() {
+        RequireNative();
+        var input = WavFile.Read(NamAssets.Golden("input.wav")).Channels[0];
+        using var loadedFirst = CreateBlock("wavenet_a1_standard", false);
+        using var loadedLater = new NamAmpBlock();
+        loadedLater.Params.SetTarget(Cathode.Dsp.Blocks.CaptureAmpBlock.Normalize, 0);
+        loadedLater.Prepare(Spec);
+        loadedLater.LoadAsset(
+            Cathode.Dsp.Blocks.CaptureAmpBlock.ModelSlot,
+            Path.Combine(NamAssets.ModelsDirectory, "wavenet_a1_standard.nam")
+        );
+        loadedLater.Reset();
+
+        var expected = Render(loadedFirst, input, static _ => Block);
+        var actual = Render(loadedLater, input, static _ => Block);
+
+        Assert.True(Analysis.NullResidualDb(expected, actual) < -120);
+    }
+
+    [Fact]
     public void Normalize_brings_the_model_to_the_target_loudness() {
         RequireNative();
         var input = Signals.Noise(4_800, 2, 0.2f);

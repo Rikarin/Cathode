@@ -39,9 +39,9 @@ static class ServeCommand {
         );
 
         if (options.Flag("null-audio")) {
+            using var nullOutputs = OutputBus.Parse(options.Text("outputs"), options.Text("di-out"));
             var spec = new ProcessSpec(rate, buffer);
             using var service = new EngineHostService(spec, "null", telemetryPath: telemetry);
-            using var nullOutputs = OutputBus.Parse(options.Text("outputs"), options.Text("di-out"));
             using var backend = new NullBackend((int)rate, buffer, nullOutputs);
             backend.Start(service.Engine);
             return await ServeAsync(service, socketPath, stop.Token).ConfigureAwait(false);
@@ -70,17 +70,54 @@ static class ServeCommand {
             device: new NativeDeviceMonitor(session),
             telemetryPath: telemetry,
             inputSources: session.Inputs.Mask
-        );
+        ) { Log = static message => Console.Error.WriteLine($"{DateTime.Now:HH:mm:ss.fff} {message}") };
         forwarder.Target = deviceService.Engine;
         if (options.Flag("mute")) {
             session.OutputGain = 0f; // unattended runs (soak tests): timing is identical, nothing is heard
         }
 
         session.Start();
+        using var serving = CancellationTokenSource.CreateLinkedTokenSource(stop.Token);
+        var watch = WatchDeviceAsync(deviceService, serving);
         try {
-            return await ServeAsync(deviceService, socketPath, stop.Token).ConfigureAwait(false);
+            var exit = await ServeAsync(deviceService, socketPath, serving.Token).ConfigureAwait(false);
+            await serving.CancelAsync().ConfigureAwait(false);
+            return await watch.ConfigureAwait(false) ?? exit;
         } finally {
             session.Stop();
+        }
+    }
+
+    /// <summary>Exit code when the audio device was lost or changed under the host (docs/adr/0002).</summary>
+    public const int DeviceExitCode = 3;
+
+    /// <summary>
+    ///     Polls the device status; when the device is lost or its settings changed under the stream, logs why and
+    ///     stops serving, so the host exits with <see cref="DeviceExitCode" /> and its supervisor (systemd, the desktop
+    ///     app) starts it again on the device as it now is. The Server then resends the rig. Returns the exit code, or
+    ///     null when serving ended for another reason.
+    /// </summary>
+    static async Task<int?> WatchDeviceAsync(EngineHostService service, CancellationTokenSource serving) {
+        try {
+            while (true) {
+                await Task.Delay(250, serving.Token).ConfigureAwait(false);
+                var status = service.DeviceStatus;
+                if (status == AudioDeviceStatus.Ok) {
+                    continue;
+                }
+
+                Console.Error.WriteLine(
+                    status == AudioDeviceStatus.Lost
+                        ? $"{DateTime.Now:HH:mm:ss.fff} error: the audio device was lost (unplugged, taken away or no longer calling back); exiting so the host is restarted"
+                        : $"{DateTime.Now:HH:mm:ss.fff} error: the audio device's sample rate, buffer size or default changed under the host; exiting so it is restarted with the new settings"
+                );
+                // Long enough for a telemetry push (every 100 ms) to tell the Server why before the connection drops.
+                await Task.Delay(300, CancellationToken.None).ConfigureAwait(false);
+                await serving.CancelAsync().ConfigureAwait(false);
+                return DeviceExitCode;
+            }
+        } catch (OperationCanceledException) {
+            return null;
         }
     }
 

@@ -56,16 +56,28 @@ public sealed record AudioSessionStats(
 ///     A single channel is used for both sides of a stereo pair.
 /// </summary>
 public sealed record LoopChannels(int[] Returns, int[] Sends) {
-    /// <summary>Parses 1-based lists such as <c>3,4</c>; null or empty means none.</summary>
-    public static LoopChannels Parse(string? returns, string? sends) => new(List(returns), List(sends));
+    /// <summary>
+    ///     Parses 1-based lists such as <c>3,4</c>; null or empty means none. A channel below 1 is a
+    ///     <see cref="FormatException" />: it would index before the driver's channel-pointer array on the audio thread.
+    /// </summary>
+    public static LoopChannels Parse(string? returns, string? sends) =>
+        new(List(returns, "--loop-in"), List(sends, "--loop-out"));
 
-    static int[] List(string? text) =>
+    internal static int[] List(string? text, string option) =>
         string.IsNullOrWhiteSpace(text)
             ? []
             : text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(static c => int.Parse(c, CultureInfo.InvariantCulture) - 1)
+                .Select(c => Channel(c, option))
                 .Take(2)
                 .ToArray();
+
+    /// <summary>A 1-based device channel as a 0-based index; anything below 1 is rejected.</summary>
+    static int Channel(string text, string option) {
+        var channel = int.Parse(text, CultureInfo.InvariantCulture);
+        return channel >= 1
+            ? channel - 1
+            : throw new FormatException($"{option}: device channels are numbered from 1, so '{text}' is not a channel.");
+    }
 }
 
 /// <summary>
@@ -106,7 +118,7 @@ public sealed record InputMap(int[][] Sources) {
 
         var sources = text.Split(';')
             .Take(Dsp.Routing.HardwareInputs.Count)
-            .Select(static s => LoopChannels.Parse(s, null).Returns)
+            .Select(static s => LoopChannels.List(s, "--input-map"))
             .ToArray();
         if (sources[0].Length == 0) {
             sources[0] = [0];
@@ -138,6 +150,11 @@ public sealed unsafe class NativeAudioSession : IDisposable {
     GCHandle self;
     nint stream;
     long exceptions;
+    readonly Lock watchdogLock = new();
+    bool running;
+    ulong lastCallbacks;
+    long lastCallbackAt; // Stopwatch timestamp when the callback count last moved (or the stream started)
+    Exception? callbackException; // the first exception not yet taken by TakeCallbackException
 
     public double SampleRate { get; private set; }
 
@@ -149,6 +166,41 @@ public sealed unsafe class NativeAudioSession : IDisposable {
 
     /// <summary>Linear gain on the device output. 0 mutes it (the default for unattended tests).</summary>
     public float OutputGain { get; set; } = 1f;
+
+    /// <summary>A started stream whose callback has not run for this long is reported as lost.</summary>
+    public static readonly TimeSpan CallbackStall = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    ///     Control side, allocation-free: what the backend reports about the device (<c>cth_audio_status</c>), or
+    ///     <see cref="AudioDeviceStatus.Lost" /> when a started stream's callback has stalled for
+    ///     <see cref="CallbackStall" /> (the backstop for a backend that cannot tell).
+    /// </summary>
+    public AudioDeviceStatus DeviceStatus {
+        get {
+            var status = (AudioDeviceStatus)NativeMethods.Status(stream);
+            if (status != AudioDeviceStatus.Ok) {
+                return status;
+            }
+
+            lock (watchdogLock) {
+                if (!running) {
+                    return status;
+                }
+
+                NativeMethods.Stats(stream, out var s);
+                var now = System.Diagnostics.Stopwatch.GetTimestamp();
+                if (s.Callbacks != lastCallbacks) {
+                    lastCallbacks = s.Callbacks;
+                    lastCallbackAt = now;
+                    return status;
+                }
+
+                return System.Diagnostics.Stopwatch.GetElapsedTime(lastCallbackAt, now) >= CallbackStall
+                    ? AudioDeviceStatus.Lost
+                    : status;
+            }
+        }
+    }
 
     /// <summary>Driver overloads so far. Unlike <see cref="Stats" /> it does not allocate, so it can be polled often.</summary>
     public long Overloads {
@@ -168,6 +220,18 @@ public sealed unsafe class NativeAudioSession : IDisposable {
             ? GC.AllocateArray<float>(Dsp.Routing.HardwareInputs.Count * 2 * MaxFrames, true)
             : [];
     }
+
+    /// <summary>
+    ///     Exceptions the processor threw on the audio thread so far. Each one leaves that callback's output silent (the
+    ///     backends clear it before the call), so a persistent one sounds like a dead interface.
+    /// </summary>
+    public long CallbackExceptions => Interlocked.Read(ref exceptions);
+
+    /// <summary>
+    ///     Control side: the first callback exception since the previous call, or null. Later ones are only counted, so
+    ///     the audio thread never allocates for them.
+    /// </summary>
+    public Exception? TakeCallbackException() => Interlocked.Exchange(ref callbackException, null);
 
     /// <summary>The input map the session was opened with.</summary>
     public InputMap Inputs => inputs;
@@ -217,9 +281,20 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         if (NativeMethods.Start(stream) != 0) {
             throw new InvalidOperationException($"Could not start audio device: {LastErrorMessage()}");
         }
+
+        lock (watchdogLock) {
+            NativeMethods.Stats(stream, out var s);
+            lastCallbacks = s.Callbacks;
+            lastCallbackAt = System.Diagnostics.Stopwatch.GetTimestamp();
+            running = true;
+        }
     }
 
     public void Stop() {
+        lock (watchdogLock) {
+            running = false;
+        }
+
         if (NativeMethods.Stop(stream) != 0) {
             throw new InvalidOperationException($"Could not stop audio device: {LastErrorMessage()}");
         }
@@ -278,10 +353,11 @@ public sealed unsafe class NativeAudioSession : IDisposable {
             self.Process(inputs, inputChannels, outputs, outputChannels, frames);
         }
 #pragma warning disable CA1031 // An exception must never unwind into the driver's thread.
-        catch (Exception)
+        catch (Exception e)
 #pragma warning restore CA1031
         {
             Interlocked.Increment(ref self.exceptions);
+            Interlocked.CompareExchange(ref self.callbackException, e, null);
         }
     }
 
@@ -355,7 +431,7 @@ public sealed unsafe class NativeAudioSession : IDisposable {
 
     /// <summary>Copies <paramref name="samples" /> to device channel <paramref name="channel" />, if the device has it.</summary>
     static void Write(float** outputs, int count, int channel, ReadOnlySpan<float> samples, float gain) {
-        if (channel >= count) {
+        if ((uint)channel >= (uint)count) {
             return;
         }
 
@@ -389,6 +465,6 @@ public sealed unsafe class NativeAudioSession : IDisposable {
         }
 
         var channel = map[Math.Min(index, map.Length - 1)];
-        return channel < count ? new(channels[channel], frames) : [];
+        return (uint)channel < (uint)count ? new(channels[channel], frames) : [];
     }
 }

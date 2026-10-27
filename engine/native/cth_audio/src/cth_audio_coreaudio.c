@@ -1,9 +1,20 @@
 /*
  * CoreAudio backend: a HAL IOProc on one device. This is the lowest-latency path on macOS; the IOProc
  * thread is already real-time, so no workgroup join is needed for the callback itself.
+ *
+ * macOS often splits one machine's audio into an output device and an input device (the built-in speakers and
+ * microphone, many USB interfaces, virtual drivers). As on WASAPI, a uid "<output uid>|<input uid>" pairs two devices,
+ * and "<output uid>|" opens no input; a pair is opened through a private aggregate device (the output device is the
+ * clock, the input device is drift-compensated) that close destroys. A NULL uid opens the default output and, when it
+ * has no inputs of its own, pairs it with the default input the same way.
+ *
+ * Property listeners are blocks on the stream's own serial dispatch queue: removing a listener does not wait for a
+ * notification the HAL has already dispatched, so close drains that queue before it frees the stream.
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
+#include <Block.h>
 #include <CoreAudio/CoreAudio.h>
+#include <dispatch/dispatch.h>
 #include <mach/mach_time.h>
 #include <stdatomic.h>
 #include <stdio.h>
@@ -14,9 +25,14 @@
 #include "cth_audio.h"
 
 #define MAX_CHANNELS 64
+#define UID_SIZE 256
 
 struct cth_stream {
-    AudioObjectID device;
+    AudioObjectID device;        /* what the IOProc runs on: the device itself, or the aggregate of a pair */
+    AudioObjectID aggregate;     /* the private aggregate this stream created, else kAudioObjectUnknown */
+    AudioObjectID output_device; /* the device chosen for output (the aggregate's clock when paired) */
+    AudioObjectID input_device;  /* the device paired in for input, else kAudioObjectUnknown */
+    int pairs_default_input;     /* opened with a NULL uid and paired with the default input */
     AudioDeviceIOProcID proc_id;
     cth_process_fn process;
     void *user;
@@ -31,8 +47,15 @@ struct cth_stream {
     double sample_rate;
     double ticks_to_ns;
     _Atomic int reset_timing; /* set by the control thread, applied by the audio thread */
+    _Atomic int status;       /* CTH_STREAM_*, raised by the property listeners */
+    int follows_default;      /* opened with a NULL uid: a new default output invalidates the stream */
     cth_stream_timing timing;  /* written only by the audio thread */
     float *planar; /* (inputs + outputs) * CTH_MAX_FRAMES */
+    dispatch_queue_t listeners;                   /* serial queue every property listener runs on */
+    AudioObjectPropertyListenerBlock on_device;   /* Block_copy'd, so close can remove the same blocks */
+    AudioObjectPropertyListenerBlock on_system;
+    AudioObjectPropertyListenerBlock on_output_alive; /* the sub-devices of a pair */
+    AudioObjectPropertyListenerBlock on_input_alive;
     const float *in_ptrs[MAX_CHANNELS];
     float *out_ptrs[MAX_CHANNELS];
 };
@@ -277,11 +300,130 @@ static OSStatus io_proc(AudioObjectID device, const AudioTimeStamp *now, const A
     return noErr;
 }
 
-static OSStatus overload_listener(AudioObjectID object, UInt32 count, const AudioObjectPropertyAddress *addresses, void *client)
+/* Device properties the stream listens to: overloads, and the device-global settings any other application (a DAW,
+ * Audio MIDI Setup) can change under it, or the device going away. */
+static const AudioObjectPropertyAddress device_properties[] = {
+    {kAudioDeviceProcessorOverload, kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain},
+    {kAudioDevicePropertyNominalSampleRate, kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain},
+    {kAudioDevicePropertyBufferFrameSize, kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain},
+    {kAudioDevicePropertyDeviceIsAlive, kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain},
+};
+#define DEVICE_PROPERTIES (sizeof device_properties / sizeof device_properties[0])
+
+static const AudioObjectPropertyAddress default_output_address = {
+    kAudioHardwarePropertyDefaultOutputDevice, kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain};
+static const AudioObjectPropertyAddress default_input_address = {
+    kAudioHardwarePropertyDefaultInputDevice, kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain};
+static const AudioObjectPropertyAddress alive_address = {
+    kAudioDevicePropertyDeviceIsAlive, kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMain};
+
+/* Raises the stream status to at least value (it never goes back down). */
+static void raise_status(cth_stream *s, int value)
 {
-    (void)object; (void)count; (void)addresses;
-    atomic_fetch_add_explicit(&((cth_stream *)client)->overloads, 1, memory_order_relaxed);
-    return noErr;
+    int old = atomic_load_explicit(&s->status, memory_order_relaxed);
+    while (old < value && !atomic_compare_exchange_weak(&s->status, &old, value)) {
+    }
+}
+
+/* Listener queue: what one notification about the stream's device means. */
+static void device_changed(cth_stream *s, AudioObjectPropertySelector selector)
+{
+    switch (selector) {
+    case kAudioDeviceProcessorOverload:
+        atomic_fetch_add_explicit(&s->overloads, 1, memory_order_relaxed);
+        break;
+    case kAudioDevicePropertyNominalSampleRate:
+        if (nominal_rate(s->device) != s->sample_rate) raise_status(s, CTH_STREAM_CHANGED);
+        break;
+    case kAudioDevicePropertyBufferFrameSize:
+        if ((int32_t)get_u32(s->device, kAudioDevicePropertyBufferFrameSize, kAudioObjectPropertyScopeGlobal)
+            != s->buffer_frames)
+            raise_status(s, CTH_STREAM_CHANGED);
+        break;
+    case kAudioDevicePropertyDeviceIsAlive:
+        if (!get_u32(s->device, kAudioDevicePropertyDeviceIsAlive, kAudioObjectPropertyScopeGlobal))
+            raise_status(s, CTH_STREAM_LOST);
+        break;
+    default:
+        break;
+    }
+}
+
+static AudioObjectID default_device(const AudioObjectPropertyAddress *which)
+{
+    AudioObjectID device = kAudioObjectUnknown;
+    UInt32 size = sizeof device;
+    AudioObjectGetPropertyData(kAudioObjectSystemObject, which, 0, NULL, &size, &device);
+    return device;
+}
+
+static AudioObjectID default_output(void) { return default_device(&default_output_address); }
+static AudioObjectID default_input(void) { return default_device(&default_input_address); }
+
+/* A listener that raises LOST when one sub-device of a pair goes away (the aggregate itself may stay alive). */
+static AudioObjectPropertyListenerBlock alive_listener(cth_stream *s, AudioObjectID device)
+{
+    return Block_copy(^(UInt32 count, const AudioObjectPropertyAddress *addresses) {
+        (void)count; (void)addresses;
+        if (!get_u32(device, kAudioDevicePropertyDeviceIsAlive, kAudioObjectPropertyScopeGlobal))
+            raise_status(s, CTH_STREAM_LOST);
+    });
+}
+
+/* Registers the stream's property listeners on its serial queue. */
+static void add_listeners(cth_stream *s)
+{
+    s->listeners = dispatch_queue_create("org.cathode.audio.listeners", DISPATCH_QUEUE_SERIAL);
+    s->on_device = Block_copy(^(UInt32 count, const AudioObjectPropertyAddress *addresses) {
+        for (UInt32 i = 0; i < count; i++) device_changed(s, addresses[i].mSelector);
+    });
+    for (size_t i = 0; i < DEVICE_PROPERTIES; i++)
+        AudioObjectAddPropertyListenerBlock(s->device, &device_properties[i], s->listeners, s->on_device);
+    if (s->follows_default) {
+        s->on_system = Block_copy(^(UInt32 count, const AudioObjectPropertyAddress *addresses) {
+            (void)count; (void)addresses;
+            if (default_output() != s->output_device || (s->pairs_default_input && default_input() != s->input_device))
+                raise_status(s, CTH_STREAM_CHANGED);
+        });
+        AudioObjectAddPropertyListenerBlock(kAudioObjectSystemObject, &default_output_address, s->listeners, s->on_system);
+        if (s->pairs_default_input)
+            AudioObjectAddPropertyListenerBlock(kAudioObjectSystemObject, &default_input_address, s->listeners, s->on_system);
+    }
+    if (s->aggregate != kAudioObjectUnknown) {
+        s->on_output_alive = alive_listener(s, s->output_device);
+        s->on_input_alive = alive_listener(s, s->input_device);
+        AudioObjectAddPropertyListenerBlock(s->output_device, &alive_address, s->listeners, s->on_output_alive);
+        AudioObjectAddPropertyListenerBlock(s->input_device, &alive_address, s->listeners, s->on_input_alive);
+    }
+}
+
+/* Removes the listeners, then waits for any notification already queued, so none can touch the stream once freed. */
+static void remove_listeners(cth_stream *s)
+{
+    if (!s->listeners) return;
+    for (size_t i = 0; i < DEVICE_PROPERTIES; i++)
+        AudioObjectRemovePropertyListenerBlock(s->device, &device_properties[i], s->listeners, s->on_device);
+    if (s->on_system) {
+        AudioObjectRemovePropertyListenerBlock(kAudioObjectSystemObject, &default_output_address, s->listeners, s->on_system);
+        if (s->pairs_default_input)
+            AudioObjectRemovePropertyListenerBlock(kAudioObjectSystemObject, &default_input_address, s->listeners, s->on_system);
+    }
+    if (s->on_output_alive) {
+        AudioObjectRemovePropertyListenerBlock(s->output_device, &alive_address, s->listeners, s->on_output_alive);
+        AudioObjectRemovePropertyListenerBlock(s->input_device, &alive_address, s->listeners, s->on_input_alive);
+    }
+    dispatch_sync(s->listeners, ^{
+    });
+    Block_release(s->on_device);
+    if (s->on_system) Block_release(s->on_system);
+    if (s->on_output_alive) Block_release(s->on_output_alive);
+    if (s->on_input_alive) Block_release(s->on_input_alive);
+    s->on_device = NULL;
+    s->on_system = NULL;
+    s->on_output_alive = NULL;
+    s->on_input_alive = NULL;
+    dispatch_release(s->listeners);
+    s->listeners = NULL;
 }
 
 static OSStatus set_rate(AudioObjectID device, double rate)
@@ -294,20 +436,155 @@ static OSStatus set_rate(AudioObjectID device, double rate)
     return status;
 }
 
+static CFStringRef cf_string(const char *text)
+{
+    return CFStringCreateWithCString(NULL, text, kCFStringEncodingUTF8);
+}
+
+/* A sub-device entry of an aggregate's description. */
+static CFDictionaryRef sub_device(const char *uid, int drift_compensation)
+{
+    CFMutableDictionaryRef entry =
+        CFDictionaryCreateMutable(NULL, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+    CFStringRef value = cf_string(uid);
+    CFDictionarySetValue(entry, CFSTR(kAudioSubDeviceUIDKey), value);
+    CFRelease(value);
+    if (drift_compensation) {
+        int one = 1;
+        CFNumberRef yes = CFNumberCreate(NULL, kCFNumberIntType, &one);
+        CFDictionarySetValue(entry, CFSTR(kAudioSubDeviceDriftCompensationKey), yes);
+        CFRelease(yes);
+    }
+    return entry;
+}
+
+/* Creates a private aggregate of output (first, the clock) and input (drift-compensated), visible to this process only.
+ * Its input channels are the output device's inputs (if any) followed by the input device's. */
+static OSStatus create_aggregate(AudioObjectID output, AudioObjectID input, AudioObjectID *aggregate)
+{
+    static _Atomic int counter;
+    char output_uid[UID_SIZE], input_uid[UID_SIZE], aggregate_uid[96];
+    copy_string_property(output, kAudioDevicePropertyDeviceUID, output_uid, sizeof output_uid);
+    copy_string_property(input, kAudioDevicePropertyDeviceUID, input_uid, sizeof input_uid);
+    snprintf(aggregate_uid, sizeof aggregate_uid, "org.cathode.pair.%d.%d", (int)getpid(), atomic_fetch_add(&counter, 1));
+
+    CFMutableDictionaryRef description =
+        CFDictionaryCreateMutable(NULL, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+    CFStringRef name = cf_string("Cathode");
+    CFStringRef uid = cf_string(aggregate_uid);
+    CFStringRef main_uid = cf_string(output_uid);
+    int one = 1;
+    CFNumberRef yes = CFNumberCreate(NULL, kCFNumberIntType, &one);
+    CFDictionaryRef subs[2] = {sub_device(output_uid, 0), sub_device(input_uid, 1)};
+    CFArrayRef list = CFArrayCreate(NULL, (const void **)subs, 2, &kCFTypeArrayCallBacks);
+    CFDictionarySetValue(description, CFSTR(kAudioAggregateDeviceNameKey), name);
+    CFDictionarySetValue(description, CFSTR(kAudioAggregateDeviceUIDKey), uid);
+    CFDictionarySetValue(description, CFSTR(kAudioAggregateDeviceIsPrivateKey), yes);
+    CFDictionarySetValue(description, CFSTR(kAudioAggregateDeviceMainSubDeviceKey), main_uid);
+    CFDictionarySetValue(description, CFSTR(kAudioAggregateDeviceSubDeviceListKey), list);
+
+    *aggregate = kAudioObjectUnknown;
+    OSStatus status = AudioHardwareCreateAggregateDevice(description, aggregate);
+    CFRelease(list);
+    CFRelease(subs[0]);
+    CFRelease(subs[1]);
+    CFRelease(yes);
+    CFRelease(main_uid);
+    CFRelease(uid);
+    CFRelease(name);
+    CFRelease(description);
+    if (status != noErr) return status;
+
+    /* The HAL publishes the new device's streams asynchronously; wait (up to 1 s) until it has both sides. */
+    for (int i = 0; i < 100
+                    && (channel_count(*aggregate, kAudioObjectPropertyScopeOutput) <= 0
+                        || channel_count(*aggregate, kAudioObjectPropertyScopeInput) <= 0);
+         i++)
+        usleep(10000);
+    return noErr;
+}
+
+/* Resolves a uid to the device to play on and the device to pair in for input (kAudioObjectUnknown for none).
+ * Returns 0, or -1 with the error set. */
+static int32_t resolve(const char *device_uid, int want_inputs, AudioObjectID *output, AudioObjectID *input, int *paired_default)
+{
+    *output = *input = kAudioObjectUnknown;
+    *paired_default = 0;
+    const char *bar = device_uid ? strchr(device_uid, '|') : NULL;
+    if (bar) {
+        char output_uid[UID_SIZE];
+        size_t length = (size_t)(bar - device_uid);
+        if (length >= sizeof output_uid) return fail("audio device not found", 0);
+        memcpy(output_uid, device_uid, length);
+        output_uid[length] = 0;
+        *output = find_device(output_uid);
+        if (*output == kAudioObjectUnknown) return fail("audio device not found", 0);
+        if (bar[1]) {
+            *input = find_device(bar + 1);
+            if (*input == kAudioObjectUnknown) return fail("input device not found", 0);
+        }
+        return 0;
+    }
+
+    *output = find_device(device_uid);
+    if (*output == kAudioObjectUnknown) return fail("audio device not found", 0);
+    if ((!device_uid || !device_uid[0]) && want_inputs && channel_count(*output, kAudioObjectPropertyScopeInput) == 0) {
+        AudioObjectID candidate = default_input();
+        if (candidate != kAudioObjectUnknown && candidate != *output
+            && channel_count(candidate, kAudioObjectPropertyScopeInput) > 0) {
+            *input = candidate;
+            *paired_default = 1;
+        }
+    }
+    return 0;
+}
+
+static int32_t open_stream(AudioObjectID device, int no_inputs, cth_stream_config *config, cth_process_fn process,
+                           void *user, cth_stream **stream);
+
 int32_t cth_audio_open(const char *device_uid, cth_stream_config *config, cth_process_fn process, void *user, cth_stream **stream)
 {
     if (!config || !process || !stream) return fail("invalid arguments", 0);
     *stream = NULL;
 
-    AudioObjectID device = find_device(device_uid);
-    if (device == kAudioObjectUnknown) return fail("audio device not found", 0);
+    AudioObjectID output, input;
+    int paired_default;
+    if (resolve(device_uid, config->input_channels > 0, &output, &input, &paired_default) != 0) return -1;
+    int no_inputs = device_uid && strchr(device_uid, '|') && input == kAudioObjectUnknown; /* "<output uid>|" */
 
+    AudioObjectID aggregate = kAudioObjectUnknown;
+    if (input != kAudioObjectUnknown && input != output) {
+        OSStatus status = create_aggregate(output, input, &aggregate);
+        if (status != noErr) return fail("could not combine the output and input devices", status);
+    }
+
+    int32_t result = open_stream(aggregate != kAudioObjectUnknown ? aggregate : output, no_inputs, config, process, user, stream);
+    if (result != 0) {
+        if (aggregate != kAudioObjectUnknown) AudioHardwareDestroyAggregateDevice(aggregate);
+        return result;
+    }
+
+    cth_stream *s = *stream;
+    s->aggregate = aggregate;
+    s->output_device = output;
+    s->input_device = aggregate != kAudioObjectUnknown ? input : kAudioObjectUnknown;
+    s->pairs_default_input = paired_default && aggregate != kAudioObjectUnknown;
+    s->follows_default = !device_uid || !device_uid[0];
+    add_listeners(s);
+    return 0;
+}
+
+/* Opens the IOProc stream on one device (a real one or the aggregate of a pair); listeners are added by the caller. */
+static int32_t open_stream(AudioObjectID device, int no_inputs, cth_stream_config *config, cth_process_fn process,
+                           void *user, cth_stream **stream)
+{
     int32_t outputs = channel_count(device, kAudioObjectPropertyScopeOutput);
     int32_t inputs = channel_count(device, kAudioObjectPropertyScopeInput);
-    if (outputs <= 0) return fail("device has no outputs", 0);
+    if (outputs <= 0) return fail("device has no outputs (pair it with one as \"<output uid>|<input uid>\")", 0);
     if (outputs > MAX_CHANNELS) outputs = MAX_CHANNELS;
     if (config->input_channels < inputs) inputs = config->input_channels < 0 ? 0 : config->input_channels;
     if (inputs > MAX_CHANNELS) inputs = MAX_CHANNELS;
+    if (no_inputs) inputs = 0;
 
     OSStatus status = set_rate(device, config->sample_rate);
     if (status != noErr) return fail("could not set the sample rate", status);
@@ -352,11 +629,12 @@ int32_t cth_audio_open(const char *device_uid, cth_stream_config *config, cth_pr
         return fail("could not create the IOProc", status);
     }
 
-    AudioObjectPropertyAddress overload = address(kAudioDeviceProcessorOverload, kAudioObjectPropertyScopeGlobal);
-    AudioObjectAddPropertyListener(device, &overload, overload_listener, s);
-
     config->sample_rate = nominal_rate(device);
     s->sample_rate = config->sample_rate;
+    s->aggregate = kAudioObjectUnknown;
+    s->output_device = device;
+    s->input_device = kAudioObjectUnknown;
+
     mach_timebase_info_data_t timebase;
     mach_timebase_info(&timebase);
     s->ticks_to_ns = (double)timebase.numer / (double)timebase.denom;
@@ -388,9 +666,9 @@ void cth_audio_close(cth_stream *s)
 {
     if (!s) return;
     cth_audio_stop(s);
-    AudioObjectPropertyAddress overload = address(kAudioDeviceProcessorOverload, kAudioObjectPropertyScopeGlobal);
-    AudioObjectRemovePropertyListener(s->device, &overload, overload_listener, s);
+    remove_listeners(s);
     AudioDeviceDestroyIOProcID(s->device, s->proc_id);
+    if (s->aggregate != kAudioObjectUnknown) AudioHardwareDestroyAggregateDevice(s->aggregate);
     free(s->planar);
     free(s);
 }
@@ -419,4 +697,9 @@ void cth_audio_timing(const cth_stream *s, cth_stream_timing *timing)
 void cth_audio_reset_timing(cth_stream *s)
 {
     if (s) atomic_store_explicit(&s->reset_timing, 1, memory_order_release);
+}
+
+int32_t cth_audio_status(const cth_stream *s)
+{
+    return s ? atomic_load_explicit(&((cth_stream *)s)->status, memory_order_relaxed) : CTH_STREAM_OK;
 }

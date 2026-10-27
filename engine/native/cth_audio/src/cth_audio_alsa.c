@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -101,6 +102,13 @@ uint64_t cth_linux_now_ns(void)
     struct timespec now;
     clock_gettime(CLOCK_MONOTONIC, &now);
     return (uint64_t)now.tv_sec * 1000000000u + (uint64_t)now.tv_nsec;
+}
+
+void cth_linux_raise_status(cth_common *c, int value)
+{
+    int old = atomic_load_explicit(&c->status, memory_order_relaxed);
+    while (old < value && !atomic_compare_exchange_weak(&c->status, &old, value)) {
+    }
 }
 
 void cth_linux_begin_cycle(cth_common *c)
@@ -753,9 +761,15 @@ static void *audio_thread(void *arg)
         atomic_fetch_add_explicit(&s->common.overloads, 1, memory_order_relaxed);
         if (err == -ENODEV) {
             fprintf(stderr, "cth_audio: the audio device was disconnected\n");
+            cth_linux_raise_status(&s->common, CTH_STREAM_LOST);
             break;
         }
         err = restart(s);
+        if (err == -ENODEV) { /* gone while restarting after an xrun */
+            fprintf(stderr, "cth_audio: the audio device was disconnected\n");
+            cth_linux_raise_status(&s->common, CTH_STREAM_LOST);
+            break;
+        }
         if (err < 0) {
             /* Not recoverable right now (for example mid-suspend): retry a few times a second until stopped. */
             struct pollfd wake = {.fd = s->wake[0], .events = POLLIN};
@@ -797,9 +811,31 @@ static int start_thread(cth_stream *s)
     return err;
 }
 
+/* Locks the process's memory once, as pages are touched (MCL_ONFAULT), so a page the audio path has used is never
+ * paged out and a major fault cannot stall the real-time thread. On fault only: the looper's large buffers stay lazily
+ * committed. CTH_MLOCK=0 turns it off. Without permission (no LimitMEMLOCK / memlock limit) it warns and goes on. */
+static void lock_memory(void)
+{
+    static atomic_flag done = ATOMIC_FLAG_INIT;
+    if (atomic_flag_test_and_set(&done)) return;
+    const char *env = getenv("CTH_MLOCK");
+    if (env && strcmp(env, "0") == 0) return;
+#ifdef MCL_ONFAULT
+    if (mlockall(MCL_CURRENT | MCL_FUTURE | MCL_ONFAULT) == 0) return;
+#else
+    errno = EINVAL; /* only locking everything up front is available, which would commit the looper's buffers */
+#endif
+    fprintf(stderr,
+            "cth_audio: memory could not be locked (%s), so the audio thread may stall on a page fault under memory "
+            "pressure. Allow it with LimitMEMLOCK=infinity in the systemd unit or a memlock limit in "
+            "/etc/security/limits.d.\n",
+            strerror(errno));
+}
+
 int32_t cth_audio_start(cth_stream *s)
 {
     if (!s) return cth_linux_fail("no stream");
+    lock_memory();
     if (s->jack) return cth_jack_start(s->jack);
     if (atomic_load(&s->running)) return 0;
 
@@ -864,4 +900,9 @@ void cth_audio_timing(const cth_stream *s, cth_stream_timing *timing)
 void cth_audio_reset_timing(cth_stream *s)
 {
     if (s) atomic_store_explicit(&s->common.reset_timing, 1, memory_order_release);
+}
+
+int32_t cth_audio_status(const cth_stream *s)
+{
+    return s ? atomic_load_explicit(&((cth_stream *)s)->common.status, memory_order_relaxed) : CTH_STREAM_OK;
 }

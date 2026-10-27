@@ -50,6 +50,7 @@ int Usage() {
                                              default: Input 1 on channel 1)
                  --outputs 1,3,0,0  (first device channel of Outputs 1-4, 0 = unmapped; default 1)
                  --di-out 5,6  (device channels for the dry DI out, before Input 1 Gain)
+                 exits with code 3 when the audio device is lost or its rate or buffer changes; restart it to reopen
            --self-test                     offline real-time path check (no device)
            --devices [--json]              list audio devices
            --audio-test [options]          run the engine on a device and report timing and dropouts
@@ -66,5 +67,7 @@ int Usage() {
            --version
          """
     );
-    return options.Command is null ? 0 : 2;
+    // Plain usage (no arguments, or --help) succeeds; arguments that name no command are an error, so a caller such as
+    // the desktop app never mistakes an unrecognised command for one that ran.
+    return args.Length == 0 || options.Command == "help" ? 0 : 2;
 }

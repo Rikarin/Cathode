@@ -25,6 +25,10 @@ public sealed class CompiledGraph : IDisposable {
     public const double BypassFadeMs = 10;
 
     readonly GraphOp[] ops;
+
+    /// <summary>The engine's retired-graph list: the graph retired before this one (CathodeEngine.Retire).</summary>
+    internal CompiledGraph? NextRetired;
+
     readonly IDspBlock[] blocks;
     readonly string[] slotIds;
     readonly Dictionary<string, int> slotById;
@@ -34,6 +38,14 @@ public sealed class CompiledGraph : IDisposable {
     readonly NativeBuffer[] right;
     readonly NativeBuffer dryLeft;
     readonly NativeBuffer dryRight;
+
+    /// <summary>
+    ///     Per slot, for blocks with latency only (null when the graph has none): the block's input delayed by its
+    ///     latency, which is the dry signal its bypass uses. The compiler aligns parallel paths and outputs to each
+    ///     block's latency, so a bypassed block must keep it, as hardware does, or the paths comb-filter.
+    /// </summary>
+    readonly DelayLine?[]? dryDelays;
+
     readonly BypassState[] bypass;
     readonly float fadeStep;
     readonly ModifierBinding[] modifiers;
@@ -191,6 +203,10 @@ public sealed class CompiledGraph : IDisposable {
         bypass = new BypassState[blocks.Length];
         for (var i = 0; i < blocks.Length; i++) {
             bypass[i] = new(bypassed[i], bypassModes[i]);
+            if (blocks[i].LatencySamples > 0) {
+                dryDelays ??= new DelayLine?[blocks.Length];
+                dryDelays[i] = new(blocks[i].LatencySamples);
+            }
         }
     }
 
@@ -416,12 +432,23 @@ public sealed class CompiledGraph : IDisposable {
         ref var bypass = ref this.bypass[slot];
         var target = bypass.Target ? 0f : 1f;
         var steady = bypass.Mix == target;
+        // A latent block's dry signal is its input delayed by its latency, kept running so it is current at a bypass.
+        var delay = dryDelays?[slot];
+        var latent = delay is not null;
+        if (delay is not null) {
+            var delayedLeft = this.dryLeft.Span[..io.Length];
+            var delayedRight = this.dryRight.Span[..io.Length];
+            io.Left.CopyTo(delayedLeft);
+            io.Right.CopyTo(delayedRight);
+            delay.Process(delayedLeft, delayedRight);
+        }
+
         switch (bypass.Mode) {
             case BypassKind.MuteIn or BypassKind.MuteFxIn:
-                RunWithFadedInput(slot, target, io, context);
+                RunWithFadedInput(slot, target, io, context, latent);
                 return;
             case BypassKind.MuteOut or BypassKind.MuteFxOut:
-                RunWithFadedOutput(slot, target, io, context);
+                RunWithFadedOutput(slot, target, io, context, latent);
                 return;
             case BypassKind.Thru or BypassKind.Mute when steady:
                 if (target == 1f) {
@@ -429,17 +456,22 @@ public sealed class CompiledGraph : IDisposable {
                 } else if (bypass.Mode == BypassKind.Mute) {
                     io.Left.Clear();
                     io.Right.Clear();
+                } else if (latent) {
+                    this.dryLeft.Span[..io.Length].CopyTo(io.Left); // the input, as late as the block would have made it
+                    this.dryRight.Span[..io.Length].CopyTo(io.Right);
                 }
 
-                return; // fully bypassed THRU leaves the input as it is
+                return; // fully bypassed THRU leaves the input as it is (delayed by a latent block's latency)
         }
 
         // Thru or Mute, mid-fade: crossfade between the processed signal and dry (Thru) or silence (Mute).
         var dryLeft = this.dryLeft.Span[..io.Length];
         var dryRight = this.dryRight.Span[..io.Length];
         if (bypass.Mode == BypassKind.Thru) {
-            io.Left.CopyTo(dryLeft);
-            io.Right.CopyTo(dryRight);
+            if (!latent) {
+                io.Left.CopyTo(dryLeft);
+                io.Right.CopyTo(dryRight);
+            }
         } else {
             dryLeft.Clear();
             dryRight.Clear();
@@ -460,12 +492,15 @@ public sealed class CompiledGraph : IDisposable {
     ///     Mute In and Mute FX In: the block always runs, on its input faded by the bypass mix, so its tails continue
     ///     after a bypass. Mute FX In adds the dry signal back as the input fades out.
     /// </summary>
-    void RunWithFadedInput(int slot, float target, in StereoBuffer io, in BlockContext context) {
+    void RunWithFadedInput(int slot, float target, in StereoBuffer io, in BlockContext context, bool latent) {
         ref var bypass = ref this.bypass[slot];
         var dryLeft = this.dryLeft.Span[..io.Length];
         var dryRight = this.dryRight.Span[..io.Length];
-        io.Left.CopyTo(dryLeft);
-        io.Right.CopyTo(dryRight);
+        if (!latent) { // a latent block's dry signal is already there, delayed to line up with its output
+            io.Left.CopyTo(dryLeft);
+            io.Right.CopyTo(dryRight);
+        }
+
         var mix = bypass.Mix;
         var start = mix;
         for (var i = 0; i < io.Length; i++) {
@@ -492,7 +527,7 @@ public sealed class CompiledGraph : IDisposable {
     ///     tails are already there when it is engaged; its output is faded by the bypass mix. Mute FX Out puts the dry
     ///     signal in its place, Mute Out silence.
     /// </summary>
-    void RunWithFadedOutput(int slot, float target, in StereoBuffer io, in BlockContext context) {
+    void RunWithFadedOutput(int slot, float target, in StereoBuffer io, in BlockContext context, bool latent) {
         ref var bypass = ref this.bypass[slot];
         if (bypass.Mix == target && target == 1f) {
             blocks[slot].Process(io, context);
@@ -502,8 +537,10 @@ public sealed class CompiledGraph : IDisposable {
         var dryLeft = this.dryLeft.Span[..io.Length];
         var dryRight = this.dryRight.Span[..io.Length];
         if (bypass.Mode == BypassKind.MuteFxOut) {
-            io.Left.CopyTo(dryLeft);
-            io.Right.CopyTo(dryRight);
+            if (!latent) { // a latent block's dry signal is already there, delayed to line up with its output
+                io.Left.CopyTo(dryLeft);
+                io.Right.CopyTo(dryRight);
+            }
         } else {
             dryLeft.Clear();
             dryRight.Clear();

@@ -54,7 +54,7 @@ public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage
         while (running) {
             if (DateTime.UtcNow - lastScan > TimeSpan.FromSeconds(2)) {
                 lastScan = DateTime.UtcNow;
-                var count = NativeMidi.Ports().Count;
+                var count = NativeMidi.PortCount(); // only the count: listing the ports allocates
                 if (count != knownPorts) {
                     knownPorts = count;
                     NativeMidi.Open();
@@ -62,22 +62,24 @@ public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage
             }
 
             received.Clear();
-            if (NativeMidi.Read(received) > 0) {
-                var batch = Translate(received);
-                if (batch.Count > 0) {
-                    forward(batch);
-                }
+            if (NativeMidi.Read(received) > 0 && Translate(received) is { } batch) {
+                forward(batch);
             }
 
             Thread.Sleep(1);
         }
     }
 
-    List<MidiEventMessage> Translate(List<MidiMessage> messages) {
+    /// <summary>
+    ///     MIDI thread: handles clock ticks and notes here and returns what the Server should get, or null when nothing is
+    ///     left. The batch is allocated only for such messages, so a running MIDI clock (about 50 ticks a second, nearly
+    ///     every poll) or active sensing allocates nothing (docs/adr/0001-process-model.md).
+    /// </summary>
+    public List<MidiEventMessage>? Translate(List<MidiMessage> messages) {
         var now = NativeMidi.NowNanoseconds();
         var engineNow = engine.SampleTime;
         var rate = engine.Spec.SampleRate;
-        var batch = new List<MidiEventMessage>(messages.Count);
+        List<MidiEventMessage>? batch = null;
         foreach (var message in messages) {
             if (message.Status == Clock) {
                 Tick(message.TimeNs);
@@ -90,6 +92,7 @@ public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage
 
             Notes(message);
             var age = now > message.TimeNs ? (now - message.TimeNs) * rate / 1e9 : 0;
+            batch ??= new(messages.Count);
             batch.Add(new(message.Status, message.Data1, message.Data2, engineNow - (long)age));
         }
 

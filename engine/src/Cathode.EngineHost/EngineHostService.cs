@@ -46,6 +46,8 @@ public sealed class EngineHostService : IDisposable {
     long overrunsSeen; // overruns already counted in the current window
     DeviceWindow deviceWindow = new(0, 0, 0);
     bool tunerOn;
+    long exceptionsReported; // callback exceptions already logged
+    long exceptionReportedAt; // Stopwatch timestamp of the last such log line
 
     static readonly int PitchIndex = RigControls.Descriptor.IndexOf("pitch");
     static readonly int PitchLow = RigControls.Descriptor.IndexOf("pitchLow");
@@ -54,6 +56,18 @@ public sealed class EngineHostService : IDisposable {
     public CathodeEngine Engine { get; }
 
     public HostInfo Info { get; }
+
+    /// <summary>
+    ///     The audio device's status (<see cref="AudioDeviceStatus.Ok" /> without a device). Anything else means the
+    ///     host must reopen the device; the serve command exits so its supervisor restarts it.
+    /// </summary>
+    public AudioDeviceStatus DeviceStatus => device?.Status ?? AudioDeviceStatus.Ok;
+
+    /// <summary>
+    ///     Where the host reports problems found while gathering telemetry (an exception on the audio thread); the serve
+    ///     command points it at the console.
+    /// </summary>
+    public Action<string>? Log { get; set; }
 
     /// <summary>Sends MIDI out (footswitch LEDs); replaced in tests. Defaults to the native shim.</summary>
     public Func<string?, byte[], bool> NativeMidiSend { get; set; } = static (destination, bytes) =>
@@ -235,6 +249,7 @@ public sealed class EngineHostService : IDisposable {
             var graph = compiler.Compile(request.Graph, Engine.Spec, request.Generation);
             Engine.Publish(graph);
             latest = graph;
+            DisposeRetired(); // not only on telemetry ticks, which a burst of preset changes outpaces
             return new() {
                 Type = IpcTypes.Ok,
                 Id = request.Id,
@@ -530,15 +545,46 @@ public sealed class EngineHostService : IDisposable {
         return IpcMessage.Ok(request.Id);
     }
 
-    HostTelemetry CollectTelemetry(HostTelemetry target) {
+    /// <summary>
+    ///     Logs the first exception the engine threw on the audio thread with its stack trace, then, while they keep
+    ///     coming, a count at most every 10 s: the callback swallows them (the output just goes silent), so this is the
+    ///     only place a real-time bug shows up.
+    /// </summary>
+    void ReportCallbackExceptions(IDeviceMonitor monitor) {
+        var count = monitor.CallbackExceptions;
+        if (count == exceptionsReported) {
+            return;
+        }
+
+        var exception = monitor.TakeCallbackException();
+        var now = Stopwatch.GetTimestamp();
+        if (exceptionsReported == 0 && exception is not null) {
+            Log?.Invoke($"error: the engine threw on the audio thread; that callback's output was silenced: {exception}");
+            exceptionReportedAt = now;
+        } else if (Stopwatch.GetElapsedTime(exceptionReportedAt, now) >= TimeSpan.FromSeconds(10)) {
+            Log?.Invoke(
+                $"error: {count} exceptions on the audio thread so far (latest: {exception?.GetType().Name ?? "unknown"}: {exception?.Message})"
+            );
+            exceptionReportedAt = now;
+        }
+
+        exceptionsReported = count;
+    }
+
+    void DisposeRetired() {
         while (Engine.CollectRetired() is { } retired) {
             retired.Dispose();
         }
+    }
+
+    HostTelemetry CollectTelemetry(HostTelemetry target) {
+        DisposeRetired();
 
         RefreshBlocks(); // picks up targets that modifiers moved on the audio thread
 
         if (device is not null) {
             TelemetryRegion.SetDriverOverloads(device.Overloads);
+            ReportCallbackExceptions(device);
         }
 
         // The tap feeds the tuner, and the pitch follower when a modifier listens to pitch.
@@ -582,6 +628,8 @@ public sealed class EngineHostService : IDisposable {
         }
 
         target.DriverOverloads = deviceWindow.Overloads;
+        target.CallbackExceptions = exceptionsReported;
+        target.DeviceStatus = DeviceStatus.Name();
         target.NativeP999 = deviceWindow.P999;
         target.NativeMax = deviceWindow.Max;
         target.Gen0 = GC.CollectionCount(0);

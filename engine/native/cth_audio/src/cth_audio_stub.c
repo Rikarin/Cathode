@@ -39,6 +39,7 @@ void cth_audio_timing(const cth_stream *stream, cth_stream_timing *timing)
 }
 
 void cth_audio_reset_timing(cth_stream *stream) { (void)stream; }
+int32_t cth_audio_status(const cth_stream *stream) { (void)stream; return CTH_STREAM_OK; }
 
 const char *cth_audio_backend(void) { return "none"; }
 const char *cth_audio_last_error(void) { return not_supported; }

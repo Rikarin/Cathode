@@ -72,7 +72,7 @@ On real signal, fast tanh gives ESR 7.7e-6 (A1) and 2.3e-5 (LSTM) against exact 
 
 - **Build:** the native build now downloads NeuralAmpModelerCore and Eigen on first configure. CI needs network access; cache `artifacts/obj` later.
 - **Version bumps:** bumping NAM is a deliberate act. Regenerate the goldens with that version's `render` (see `engine/tests/assets/nam/README.md`) and review the residuals.
-- **Model sample rate:** models declare a training rate (48 kHz for these). The engine runs at 48 kHz internally, so no resampling is needed. A mismatch isn't handled yet: warn in the UI, or resample.
+- **Model sample rate:** models declare a training rate (48 kHz for these; a file without one is taken as 48 kHz, as the NAM plugin does). When the engine runs at another rate (`--rate 44100` or `96000`), `CaptureAmpBlock` runs the model at its training rate inside a `CaptureResampler`: Kaiser-windowed sinc conversions at arbitrary ratio both ways, band-limited to 90 % of the lower Nyquist frequency, allocation-free on the audio thread. Their fixed delay (under 1 ms: 30 samples at 44.1 kHz, 58 at 96 kHz) is the block's `LatencySamples`, so the graph aligns parallel paths to it. At the training rate nothing changes (no resampler, bit-identical output).
 - **Resizing:** `SetSlimmableSize` is not real-time safe, so Lite/Full switching must build a new block or graph off-thread, which the RCU swap already supports.
 - **Still to do:**
   - investigate the 10–14 % A2/LSTM gap with a profiler

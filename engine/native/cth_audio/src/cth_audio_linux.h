@@ -24,6 +24,7 @@ typedef struct cth_common {
     _Atomic uint64_t callbacks;
     _Atomic uint64_t overloads;
     _Atomic int reset_timing; /* set by the control thread, applied by the audio thread */
+    _Atomic int status;       /* CTH_STREAM_*, raised with cth_linux_raise_status */
     cth_stream_timing timing; /* written only by the audio thread */
     const float *in_ptrs[CTH_MAX_CHANNELS];
     float *out_ptrs[CTH_MAX_CHANNELS];
@@ -37,6 +38,9 @@ void cth_linux_begin_cycle(cth_common *c);
 
 /* Bins the wall-clock time of one cycle of frames that started at started_ns and counts the callback. */
 void cth_linux_end_cycle(cth_common *c, uint64_t started_ns, int32_t frames);
+
+/* Raises the stream status to at least value (CTH_STREAM_*; it never goes back down). Any thread. */
+void cth_linux_raise_status(cth_common *c, int value);
 
 /* Sets cth_audio_last_error for the calling thread and returns -1. */
 int32_t cth_linux_fail(const char *format, ...) __attribute__((format(printf, 1, 2)));

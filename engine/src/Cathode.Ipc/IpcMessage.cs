@@ -181,6 +181,15 @@ public sealed class HostTelemetry {
 
     public long DriverOverloads { get; set; }
 
+    /// <summary>Cumulative exceptions the engine threw on the audio thread; each one silenced a callback.</summary>
+    public long CallbackExceptions { get; set; }
+
+    /// <summary>
+    ///     The audio device: <c>ok</c>, <c>changed</c> (another application changed its rate or buffer, or the default
+    ///     device changed) or <c>lost</c> (unplugged, taken away, or no longer calling back).
+    /// </summary>
+    public string DeviceStatus { get; set; } = "ok";
+
     public double NativeP999 { get; set; }
 
     public double NativeMax { get; set; }

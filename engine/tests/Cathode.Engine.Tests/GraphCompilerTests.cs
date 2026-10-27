@@ -226,6 +226,67 @@ public class GraphCompilerTests {
         Assert.Equal(2.0, Analysis.Rms(output) * Math.Sqrt(output.Length), 1e-5);
     }
 
+    [Theory]
+    [InlineData(BypassModes.Thru)]
+    [InlineData(BypassModes.MuteFxIn)]
+    [InlineData(BypassModes.MuteFxOut)]
+    public void A_bypassed_latent_block_keeps_its_latency_so_parallel_paths_stay_aligned(string mode) {
+        var definition = Graph(
+            [
+                Node("in", NodeTypes.Input, 0, 0),
+                Node("slow", "test-latency", 0, 1),
+                Node("fast", "volpan", 1, 1),
+                Node("out", NodeTypes.Output, 0, 2)
+            ],
+            ("in", "slow"),
+            ("in", "fast"),
+            ("slow", "out"),
+            ("fast", "out")
+        );
+        var slow = definition.Nodes.Single(static n => n.Id == "slow");
+        slow.Bypassed = true;
+        slow.BypassMode = mode;
+
+        // Before the fix a THRU-bypassed latent block passed its input on at once while the parallel path stayed
+        // delayed by its latency: two impulses 10 samples apart instead of one of twice the height.
+        var output = Run(definition, Signals.Impulse(256));
+
+        Assert.Equal(10, Analysis.PeakIndex(output));
+        Assert.Equal(2f, output[10], 1e-6f);
+        Assert.Equal(2.0, Analysis.Rms(output) * Math.Sqrt(output.Length), 1e-5);
+    }
+
+    [Fact]
+    public void Bypassing_a_latent_block_while_running_keeps_the_alignment() {
+        var definition = Graph(
+            [
+                Node("in", NodeTypes.Input, 0, 0),
+                Node("slow", "test-latency", 0, 1),
+                Node("fast", "volpan", 1, 1),
+                Node("out", NodeTypes.Output, 0, 2)
+            ],
+            ("in", "slow"),
+            ("in", "fast"),
+            ("slow", "out"),
+            ("fast", "out")
+        );
+        var engine = new CathodeEngine(Spec);
+        var graph = Compiler.Compile(definition, Spec, 1);
+        engine.Publish(graph);
+        var sine = Signals.Sine(1_000, Spec.SampleRate, 4_800, 0.25f);
+        var engaged = OfflineRenderer.Render(engine, sine, sine, Spec.MaxBlockSize).Left;
+
+        Assert.True(engine.Post(EngineCommand.SetBypass(1, graph.SlotOf("slow"), true)));
+        var bypassed = OfflineRenderer.Render(engine, sine, sine, Spec.MaxBlockSize).Left;
+
+        // The two paths sum in phase whether the block runs or not: the same level after the fade, no comb filter,
+        // and no step at the fade (both sides of the crossfade are aligned).
+        var tail = 2_400;
+        Assert.Equal(Analysis.Rms(engaged.AsSpan(tail)), Analysis.Rms(bypassed.AsSpan(tail)), 1e-4);
+        var maxStep = bypassed.Zip(bypassed.Skip(1), static (a, b) => Math.Abs(b - a)).Take(1_500).Max();
+        Assert.True(maxStep < 0.1f, $"step {maxStep}");
+    }
+
     [Fact]
     public void Nodes_that_cannot_reach_an_output_are_pruned_but_keep_their_slot() {
         var definition = Graph(

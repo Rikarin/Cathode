@@ -154,8 +154,8 @@ static class AudioCommands {
     ///     sweep on outputs 1 and 2, records input 1 and writes the trimmed IR as a WAV (docs/04 Phase 6 item 8).
     /// </summary>
     public static int IrCapture(CommandLine options) {
-        RequireBackend();
         var path = options.Text("out") ?? throw new InvalidOperationException("--out <file.wav> is required.");
+        RequireBackend();
         var seconds = options.Double("seconds", 5);
         var level = (float)Math.Pow(10, options.Double("level", -18) / 20);
         var tail = options.Double("tail", 1.5);

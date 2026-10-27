@@ -7,7 +7,9 @@ namespace Cathode.Dsp.Blocks;
 /// <summary>
 ///     The capture tier of the Amp block: a neural capture (<see cref="ICaptureModel" />) with input trim, loudness
 ///     normalisation, a post-EQ (bass, middle, treble, presence) and output level. Mono in (left), mono out copied to
-///     both channels. Without a model the gains are skipped and only the EQ runs.
+///     both channels. Without a model the gains are skipped and only the EQ runs. A model trained at another rate than
+///     the engine's runs at its own rate inside a <see cref="CaptureResampler" />, whose delay the block reports as its
+///     latency.
 /// </summary>
 /// <remarks>
 ///     This base only reads AIDA-X models, which run in managed code. <c>NamAmpBlock</c> in Cathode.Dsp.Native replaces
@@ -41,6 +43,11 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
     readonly SvfState[] tone = new SvfState[ToneBands.Length];
     float inputGain = 1f;
     float outputGain = 1f;
+    bool prepared;
+    CaptureResampler? resampler;
+
+    /// <summary>The rate a model is assumed to be trained at when its file does not say (as the NAM plugin assumes).</summary>
+    public const double DefaultModelRate = 48_000;
 
     public static BlockDescriptor Info { get; } = new(
         "nam",
@@ -63,19 +70,54 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
 
     public IReadOnlyList<string> AssetSlots { get; } = [ModelSlot];
 
+    /// <summary>The resampling around the model, or null when it runs at the engine rate.</summary>
+    public CaptureResampler? Resampler => resampler;
+
+    public override int LatencySamples => resampler?.Latency ?? 0;
+
     /// <summary>An amp that reads AIDA-X models only.</summary>
     public CaptureAmpBlock()
         : this(AidaModel.Load) { }
 
-    /// <summary>Control thread, before <see cref="IDspBlock.Prepare" />.</summary>
+    /// <summary>
+    ///     Control thread, normally before <see cref="IDspBlock.Prepare" />; on a block that is already prepared the new
+    ///     model is reset for the current spec, so it never runs unprepared.
+    /// </summary>
     public void LoadAsset(string slot, string path) {
         if (slot != ModelSlot) {
             throw new ArgumentException($"Unknown asset slot '{slot}'.", nameof(slot));
         }
 
         var loaded = load(path);
+        CaptureResampler? resampling = null;
+        if (prepared) {
+            try {
+                resampling = PrepareModel(loaded, Spec);
+            } catch {
+                loaded.Dispose();
+                throw;
+            }
+        }
+
         CaptureModel?.Dispose();
         CaptureModel = loaded;
+        resampler = resampling;
+    }
+
+    /// <summary>
+    ///     Resets <paramref name="model" /> for <paramref name="spec" />: at its training rate behind a resampler when
+    ///     that differs from the engine rate (returned), else at the engine rate (null).
+    /// </summary>
+    static CaptureResampler? PrepareModel(ICaptureModel model, in ProcessSpec spec) {
+        var trained = model.ExpectedSampleRate > 0 ? model.ExpectedSampleRate : DefaultModelRate;
+        if (!CaptureResampler.IsNeeded(spec.SampleRate, trained)) {
+            model.Reset(spec.SampleRate, spec.MaxBlockSize);
+            return null;
+        }
+
+        var resampling = new CaptureResampler(spec.SampleRate, trained, spec.MaxBlockSize);
+        model.Reset(resampling.ModelRate, resampling.MaxModelFrames);
+        return resampling;
     }
 
     (float Input, float Output) TargetGains() {
@@ -103,9 +145,13 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
         }
     }
 
-    protected override void OnPrepare(in ProcessSpec spec) => CaptureModel?.Reset(spec.SampleRate, spec.MaxBlockSize);
+    protected override void OnPrepare(in ProcessSpec spec) {
+        resampler = CaptureModel is null ? null : PrepareModel(CaptureModel, spec);
+        prepared = true;
+    }
 
     protected override void OnReset() {
+        resampler?.Reset();
         (inputGain, outputGain) = TargetGains();
         for (var b = 0; b < tone.Length; b++) {
             tone[b].Reset();
@@ -119,7 +165,11 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
 
         if (CaptureModel is not null) {
             GainRamp.Apply(io.Left, inputGain, input);
-            CaptureModel.Process(io.Left, io.Left);
+            if (resampler is not null) {
+                resampler.Process(io.Left, CaptureModel);
+            } else {
+                CaptureModel.Process(io.Left, io.Left);
+            }
         }
 
         ApplyTone(io.Left);

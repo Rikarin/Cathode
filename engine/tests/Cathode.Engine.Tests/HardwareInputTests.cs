@@ -220,6 +220,44 @@ public class HardwareInputTests {
         Assert.Equal([0], InputMap.Parse(";3").Sources[0]); // an empty Input 1 stays on channel 1
     }
 
+    [Theory]
+    [InlineData("0", null, null, null, "--loop-in")]
+    [InlineData(null, "3,-1", null, null, "--loop-out")]
+    [InlineData(null, null, "1;0", null, "--input-map")]
+    [InlineData(null, null, null, "0", "--di-out")]
+    public void Device_channels_below_one_are_rejected_with_the_option_named(
+        string? loopIn,
+        string? loopOut,
+        string? inputMap,
+        string? diOut,
+        string option
+    ) {
+        // A 0 used to become channel -1, which the audio thread dereferenced before the native pointer arrays.
+        var e = Assert.Throws<FormatException>(() => {
+                LoopChannels.Parse(loopIn, loopOut);
+                InputMap.Parse(inputMap);
+                OutputBus.Parse(null, diOut).Dispose();
+            }
+        );
+        Assert.StartsWith(option, e.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Outputs_take_zero_for_unmapped_but_not_a_negative_channel() {
+        using (var outputs = OutputBus.Parse("1,0,3", "5,6")) {
+            Assert.Equal(0, outputs.Pair(0));
+            Assert.False(outputs.IsMapped(1));
+            Assert.Equal(2, outputs.Pair(2));
+            Assert.Equal([4, 5], outputs.DiChannels);
+        }
+
+        Assert.StartsWith(
+            "--outputs",
+            Assert.Throws<FormatException>(() => OutputBus.Parse("1,-3", null)).Message,
+            StringComparison.Ordinal
+        );
+    }
+
     [Fact]
     public void Hardware_input_choices_follow_the_rows_on_every_block() {
         Assert.Equal("Input 1", MultiplexerBlock.Info.Params[0].Options![MultiplexerBlock.FirstInput]);

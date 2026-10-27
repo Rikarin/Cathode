@@ -194,6 +194,34 @@ public class CathodeEngineTests {
     }
 
     [Fact]
+    public void Every_graph_retired_between_two_sweeps_is_handed_back() {
+        // Before the fix the hand-back had four slots and dropped the fifth graph to the GC, which never ran its blocks'
+        // Dispose. Spillover off: each replaced graph fades out over 20 ms and retires, so every swap retires one.
+        var engine = new CathodeEngine(Spec);
+        engine.Rig.SetTarget(RigControls.Descriptor.IndexOf("spillover"), 0f);
+        var graphs = new List<CompiledGraph>();
+        for (var generation = 1; generation <= 12; generation++) {
+            var graph = Compiler.Compile(VolumeGraph(0), Spec, generation);
+            graphs.Add(graph);
+            engine.Publish(graph);
+            OfflineRenderer.Render(engine, new float[1_920], new float[1_920], 64); // past the swap fade
+        }
+
+        var retired = new List<CompiledGraph>();
+        while (engine.CollectRetired() is { } graph) {
+            retired.Add(graph);
+        }
+
+        Assert.Equal(graphs[..^1].ToHashSet(), retired.ToHashSet());
+        Assert.Equal(11, retired.Count);
+        foreach (var graph in retired) {
+            graph.Dispose();
+        }
+
+        engine.Dispose();
+    }
+
+    [Fact]
     public void A_preset_change_lets_the_old_delay_tail_ring_out_without_a_click() {
         var engine = new CathodeEngine(Spec);
         engine.Publish(Compiler.Compile(DelayGraph(), Spec, 1));
@@ -210,6 +238,41 @@ public class CathodeEngineTests {
         Assert.True(Analysis.Peak(left.AsSpan(6_000, 6_000)) > 0.05, "delay tail after the swap");
         var maxStep = left.Zip(left.Skip(1), static (a, b) => Math.Abs(b - a)).Take(2_000).Max();
         Assert.True(maxStep < 0.1f, $"click at the swap: step {maxStep}");
+    }
+
+    [Fact]
+    public void A_second_preset_change_fades_the_still_ringing_tail_instead_of_cutting_it() {
+        var engine = new CathodeEngine(Spec);
+        engine.Publish(Compiler.Compile(DelayGraph(), Spec, 1));
+        OfflineRenderer.Render(engine, Signals.Sine(220, Spec.SampleRate, 9_600, 0.5f), new float[9_600], 64);
+
+        // The note's echo comes 14,400-24,000 samples after it started, so it is ringing in the spilling delay graph when
+        // the second change arrives at 17,600.
+        engine.Publish(Compiler.Compile(VolumeGraph(0), Spec, 2));
+        var (before, _) = OfflineRenderer.Render(engine, new float[8_000], new float[8_000], 64);
+        engine.Publish(Compiler.Compile(VolumeGraph(0), Spec, 3));
+        var (after, _) = OfflineRenderer.Render(engine, new float[4_800], new float[4_800], 64);
+
+        var echo = Analysis.Peak(before.AsSpan(^480));
+        Assert.True(echo > 0.05, $"the echo is ringing at the second change ({echo:0.000})");
+        // It fades over the 20 ms swap fade (960 samples) rather than stopping at the block boundary ...
+        Assert.True(Analysis.Peak(after.AsSpan(0, 240)) > 0.5 * echo, "the evicted tail keeps playing into its fade");
+        Assert.True(Analysis.Peak(after.AsSpan(1_000)) < 1e-4, "and is gone once the fade is over");
+        // ... so the join is no steeper than the echo itself.
+        float[] tailEnd = before[^480..];
+        float[] joined = [..tailEnd, ..after.AsSpan(0, 1_000)];
+        var maxStep = joined.Zip(joined.Skip(1), static (a, b) => Math.Abs(b - a)).Max();
+        var naturalStep = tailEnd.Zip(tailEnd.Skip(1), static (a, b) => Math.Abs(b - a)).Max();
+        Assert.True(maxStep <= naturalStep * 1.1f + 1e-4f, $"click at the second change: step {maxStep} vs {naturalStep}");
+        OfflineRenderer.Render(engine, new float[48_000 * 5], new float[48_000 * 5], 512);
+        Assert.False(engine.IsSpilling);
+        var retired = 0;
+        while (engine.CollectRetired() is { } graph) {
+            graph.Dispose();
+            retired++;
+        }
+
+        Assert.Equal(2, retired);
     }
 
     [Theory]
