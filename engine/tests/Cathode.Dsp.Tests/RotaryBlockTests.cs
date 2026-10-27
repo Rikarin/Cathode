@@ -45,7 +45,10 @@ public class RotaryBlockTests {
     [Theory]
     [InlineData(1f, 4.0)]
     [InlineData(0f, 4.0 / 6)]
-    public void With_tempo_the_fast_horn_turns_once_per_division_and_slow_keeps_its_ratio(float speed, double expected) {
+    public void With_tempo_the_fast_horn_turns_once_per_division_and_slow_keeps_its_ratio(
+        float speed,
+        double expected
+    ) {
         // 1/8 at the renderer's 120 bpm is 4 Hz for Horn Fast (6 Hz); Horn Slow (1 Hz) keeps its sixth of it.
         using var rotary = Create(
             (RotaryBlock.Speed, speed),

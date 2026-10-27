@@ -84,16 +84,18 @@ public class SynthBlockTests {
 
     [Fact]
     public void A_drone_filter_rests_at_its_cutoff_in_silence_and_opens_as_you_play() {
-        SynthBlock Drone() => Create(
-            (SynthBlock.VoiceParam(0, SynthBlock.Shape), 2f), // saw
-            (SynthBlock.VoiceParam(0, SynthBlock.Track), SynthBlock.TrackOff),
-            (SynthBlock.VoiceParam(0, SynthBlock.Frequency), 220f),
-            (SynthBlock.VoiceParam(0, SynthBlock.Cutoff), 200f),
-            (SynthBlock.VoiceParam(0, SynthBlock.Resonance), 0f),
-            (SynthBlock.VoiceParam(1, SynthBlock.VoiceLevel), Decibels.SilenceDb),
-            (SynthBlock.VoiceParam(2, SynthBlock.VoiceLevel), Decibels.SilenceDb),
-            (SynthBlock.EnvAmount, 100f)
-        );
+        static SynthBlock Drone() =>
+            Create(
+                (SynthBlock.VoiceParam(0, SynthBlock.Shape), 2f), // saw
+                (SynthBlock.VoiceParam(0, SynthBlock.Track), SynthBlock.TrackOff),
+                (SynthBlock.VoiceParam(0, SynthBlock.Frequency), 220f),
+                (SynthBlock.VoiceParam(0, SynthBlock.Cutoff), 200f),
+                (SynthBlock.VoiceParam(0, SynthBlock.Resonance), 0f),
+                (SynthBlock.VoiceParam(1, SynthBlock.VoiceLevel), Decibels.SilenceDb),
+                (SynthBlock.VoiceParam(2, SynthBlock.VoiceLevel), Decibels.SilenceDb),
+                (SynthBlock.EnvAmount, 100f)
+            );
+
         using var silent = Drone();
         using var played = Drone();
 

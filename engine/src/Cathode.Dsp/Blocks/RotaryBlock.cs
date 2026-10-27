@@ -241,7 +241,7 @@ public sealed class RotaryBlock() : DspBlock(Info) {
         if (tempo > 0 && context.Tempo > 0) {
             // The fast horn turns once per division; every other rate keeps its ratio to Horn Fast, so Slow and Fast
             // still switch.
-            var hornFast = (double)Params.Current(HornFast);
+            double hornFast = Params.Current(HornFast);
             var locked = TempoDivisions.Rate(tempo, context.Tempo, hornFast) / hornFast;
             hornTarget *= locked;
             drumTarget *= locked;
