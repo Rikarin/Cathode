@@ -3,6 +3,8 @@ Description=Cathode server (presets, the API and the web editor)
 Documentation=https://github.com/Rikarin/cathode
 After=network-online.target cathode-host.service
 Wants=network-online.target cathode-host.service
+# The same private /tmp as the host: the looper export is a file the host writes there and the server sends.
+JoinsNamespaceOf=cathode-host.service
 
 [Service]
 Type=simple
@@ -13,10 +15,43 @@ Environment=Cathode__DataDirectory=/var/lib/cathode
 Environment=Cathode__Engine__SocketPath=/run/cathode/host.sock
 Environment=Cathode__EditorDirectory=/opt/cathode/editor
 Environment=DOTNET_CLI_TELEMETRY_OPTOUT=1
+# The server is a single-file bundle that unpacks its native libraries on first start; they go to the cache folder.
+Environment=DOTNET_BUNDLE_EXTRACT_BASE_DIR=/var/cache/cathode
 ExecStart=/opt/cathode/bin/cathode-server
 StateDirectory=cathode
+CacheDirectory=cathode
 Restart=always
 RestartSec=2
+
+# Sandboxing (README.md, "Sandboxing"): the server parses uploads from the network, so it gets the least: it writes
+# only its data (/var/lib/cathode), its cache (/var/cache/cathode) and the shared private /tmp, sees no devices, and
+# cannot ptrace the host (the system call filter leaves out @debug).
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+# The host's socket and telemetry file (the server maps the telemetry read-only, and connecting needs no write).
+ReadWritePaths=-/run/cathode
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+# No MemoryDenyWriteExecute: the server runs on the .NET JIT, which writes the code it then executes.
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallErrorNumber=EPERM
+UMask=0027
 
 [Install]
 WantedBy=multi-user.target
