@@ -152,6 +152,27 @@ public class PreampSupplyTests {
         Assert.Throws<ArgumentException>(static () => new DecouplingChain([new(10e3, 22e-6, 1e-3, 1)]));
 
     /// <summary>
+    ///     Where a model's rails are not printed, the voltages its stages assume are its chain's own nodes at rest: the
+    ///     inverter on node 0 and each triode stage on its node (the 5150's V1 rail, two droppers down, below its V2).
+    /// </summary>
+    [Theory]
+    [InlineData("5150")]
+    public void Assumed_rails_are_the_chains_rest_voltages(string type) {
+        var design = AmpDesign.All.Single(a => a.Name == type);
+        var channel = new AmpChannel(design, 2 * Rate);
+        channel.Reset();
+        var chain = channel.Power.Decoupling;
+        Assert.InRange(design.Power.PhaseInverter.Supply - chain.Voltage(0), -3, 3);
+        foreach (var stage in design.Preamp.OfType<TriodeStageDesign>()) {
+            Assert.InRange(stage.Supply - chain.Voltage(stage.SupplyNode ?? 0), -3, 3);
+        }
+
+        for (var k = 1; k <= chain.Count; k++) {
+            Assert.True(chain.Voltage(k) < chain.Voltage(k - 1));
+        }
+    }
+
+    /// <summary>
     ///     The stages sit on the nodes their designs name, inside a channel switch too (the SLO-100's channels).
     /// </summary>
     [Fact]

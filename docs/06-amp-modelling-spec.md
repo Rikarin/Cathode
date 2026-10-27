@@ -968,7 +968,7 @@ voltages):
 | SLO-100 | B2: 10k 2 W, 40 µF, 11.7 mA | B2 → 15k → B4, 10 µF (input stage, normal channel's first); B2 → 15k → B3, 10 µF (OD gain, cold clipper) | revised 1996 drawing, sheet 1 (el34world `Soldano_slo100.pdf`), 495 / 378 / 359 / 350 V |
 | Savage 120 | CE21: 2 × 2.2k, 22 µF (screens' CE20 100 µF) | CE21 → 1k + 2.2k → CE4 10 µF (V3) → 2.2k → CE9 10 µF (V2) → 2.2k → CE6 10 µF (V1B) | Engl 610-2; no voltages printed, so each node draws an equal share per triode (0.5 mA); V5 sits behind R107 with no cap of its own (here on CE21) |
 | Powerball | CE10: 2 × 2.2k, 22 µF | CE10 → 4.7k → CE3 10 µF (V6B); **assumed, not drawn:** CE3 → 10k → 22 µF (V5B, V6A) → 10k → 22 µF (V5A) | Engl 645-1; no voltages, equal shares (0.75 mA a triode); the two extra nodes are an assumption (below) |
-| 5150 | V3 (inverter): 10k, 22 µF | V3 → V2 (V2B, V5, V3A) → V1 (V1A, V1B, V2A), each generic 10k / 22 µF | the factory pages name the three rails but not the supply page: **resistors and caps not read** |
+| 5150 | V3 (inverter): 10k, 22 µF | V3 → V2 (V2B, V5, V3A) → V1 (V1A, V1B, V2A), each generic 10k / 22 µF | the factory pages name the three rails but not the supply page: **resistors and caps not read**; the rails the stages assume are the chain's own rest voltages, V3 430 / V2 381 / V1 363 V (once 340 V for V1 above 320 V for V2, the wrong way round for a node two droppers down) |
 | TriAxis (all three types) | its own supply | none | a rack preamp |
 
 **The generic chain** (every other model): the gain stages in pairs from the input (a 12AX7 each), the last pair on
