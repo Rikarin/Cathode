@@ -375,17 +375,22 @@ public static class CathodeApi {
                     bool? polarity,
                     string? channels,
                     double? maxLengthMs
-                ) =>
-                    TypedResults.Ok(
-                        await store.AddAsync(
-                            request.Body,
-                            name,
-                            AssetStore.ImportSettings(processing, polarity, channels, maxLengthMs),
-                            cancellationToken
-                        )
-                    )
+                ) => {
+                    var import = AssetStore.ImportSettings(processing, polarity, channels, maxLengthMs);
+                    if (request.ContentLength > AssetStore.MaxBytes) {
+                        throw AssetStore.TooLarge();
+                    }
+
+                    try {
+                        return TypedResults.Ok(await store.AddAsync(request.Body, name, import, cancellationToken));
+                    } catch (BadHttpRequestException e) when (e.StatusCode == StatusCodes.Status413PayloadTooLarge) {
+                        throw AssetStore.TooLarge(); // a chunked body past the request limit
+                    }
+                }
             )
             .Accepts<Stream>("application/octet-stream")
+            // The store's own limit, not Kestrel's default of 30,000,000 bytes.
+            .WithMetadata(new RequestSizeLimitAttribute(AssetStore.MaxBytes))
             .WithName("UploadAsset")
             .WithSummary(
                 "Uploads an asset. A .wav IR can be processed on import: processing (asIs, autoTrim, minimumPhase), polarity (make the main peak positive), channels (both, left, right, sum) and maxLengthMs."

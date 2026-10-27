@@ -108,7 +108,7 @@ public sealed class AssetStore {
         int read;
         while ((read = await content.ReadAsync(buffer, cancellationToken)) > 0) {
             if (original.Length + read > MaxBytes) {
-                throw new RigException(413, $"Assets are limited to {MaxBytes / (1024 * 1024)} MB.");
+                throw TooLarge();
             }
 
             original.Write(buffer, 0, read);
@@ -150,7 +150,7 @@ public sealed class AssetStore {
                 if (size > MaxBytes) {
                     file.Close();
                     File.Delete(temporary);
-                    throw new RigException(413, $"Assets are limited to {MaxBytes / (1024 * 1024)} MB.");
+                    throw TooLarge();
                 }
 
                 hash.AppendData(buffer, 0, read);
@@ -208,6 +208,9 @@ public sealed class AssetStore {
             return true;
         }
     }
+
+    /// <summary>The 413 for an asset over <see cref="MaxBytes" />.</summary>
+    public static RigException TooLarge() => new(413, $"Assets are limited to {MaxBytes / (1024 * 1024)} MB.");
 
     /// <summary>True for asset kinds that go into an amp's model slot.</summary>
     public static bool IsModel(string kind) => kind is "nam" or "aidax";
