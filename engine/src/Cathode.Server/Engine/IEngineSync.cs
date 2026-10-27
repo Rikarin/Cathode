@@ -9,7 +9,8 @@ public interface IEngineSync {
 
     /// <summary>
     ///     Compiles and publishes a graph. Throws <see cref="IpcException" /> if the host rejects it. Completes at
-    ///     once when no engine is connected; the rig resyncs on connect.
+    ///     once when no engine is connected, and as soon as the link drops (or the host stalls) before the host
+    ///     answers; the rig resyncs on connect.
     /// </summary>
     Task LoadGraphAsync(GraphDefinition graph, int generation);
 

@@ -684,6 +684,8 @@ public static class CathodeApi {
                         await engine.ExportLooperAsync(path);
                     } catch (IpcException e) {
                         throw new RigException(409, e.Message);
+                    } catch (IOException e) {
+                        throw new RigException(503, e.Message);
                     }
 
                     var file = new FileStream(
