@@ -187,6 +187,36 @@ public class MesaBoutiqueAmpTests(ITestOutputHelper output) {
         }
     }
 
+    /// <summary>
+    ///     The TriAxis Dynamic Voice alone: at 0 (the LDR dark) flat, as Mesa's manual says, within 0.5 dB at its
+    ///     89 Hz and 720 Hz branches; at the default 5 a mild "V"; at 10 the full "V" (the lows up, 720 Hz cut).
+    /// </summary>
+    [Fact]
+    public void Triaxis_dynamic_voice_is_flat_at_zero() {
+        var design = (NetworkStageDesign)AmpDesign.All.Single(static a => a.Name == "TriAxis Rhythm")
+            .Preamp.Single(static s => s.Name == "Dynamic Voice");
+
+        double Level(double voice, double frequency) {
+            var stage = design.Create(Rate);
+            stage.Update(new(0.5, 0.5, 0.5, 0.5, 0.5, false, Control2: voice));
+            stage.SetSourceResistance(0);
+            stage.Reset(0);
+            var input = Signals.Sine(frequency, Rate, 24_000, 0.01f);
+            var rendered = input.Select(x => (float)stage.Tick(x)).ToArray();
+            return Analysis.ToDb(Analysis.Rms(rendered.AsSpan(12_000)) / Analysis.Rms(input.AsSpan(12_000)));
+        }
+
+        foreach (var frequency in new[] { 89.0, 720.0 }) {
+            var (off, noon, full) = (Level(0, frequency), Level(0.5, frequency), Level(1, frequency));
+            output.WriteLine($"{frequency} Hz: {off:+0.00;-0.00} / {noon:+0.00;-0.00} / {full:+0.00;-0.00} dB at 0 / 5 / 10");
+            Assert.InRange(off, -0.5, 0.5);
+        }
+
+        Assert.True(Level(1, 89) > 10, "the full Dynamic Voice lifts 89 Hz");
+        Assert.True(Level(1, 720) < -6, "the full Dynamic Voice cuts 720 Hz");
+        Assert.InRange(Level(0.5, 89), 0.2, 6);
+    }
+
     /// <summary>Every knob swept end to end and every switch flipped while a loud chord plays: finite, bounded, converging.</summary>
     [Theory]
     [MemberData(nameof(Types))]

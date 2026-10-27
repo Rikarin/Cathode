@@ -104,7 +104,7 @@ public class HighGainAmpTests(ITestOutputHelper output) {
         Assert.Equal("Volume", Label("gain", "Mark IIC+"));
         Assert.Equal("Lead Drive", Label("control1", "Mark IIC+"));
         Assert.Equal("Lead Master", Label("control2", "Mark IIC+"));
-        Assert.Equal(["Shift", "Deep", "Lead Bright"], Switches("Mark IIC+"));
+        Assert.Equal(["Treble Shift", "Deep", "Bass Shift"], Switches("Mark IIC+"));
         Assert.Equal(["Fat", "Bright", "Mid Boost"], Switches("Mark IV"));
         Assert.Equal(
             ["80", "240", "750", "2200", "6600"],
@@ -218,6 +218,47 @@ public class HighGainAmpTests(ITestOutputHelper output) {
         Assert.True(tube < silicon - 10);
         Assert.True(spongy < silicon - 20);
         Assert.True(both < Math.Min(tube, spongy));
+    }
+
+    /// <summary>
+    ///     The Mark IIC+'s two Shift pulls are independent, as on the amp: Treble Shift (the 750 pF) lifts the stack's
+    ///     upper mids and leaves the lows, Bass Shift (V1A's 15 µF bypass) lifts the lows; with both on, both act.
+    /// </summary>
+    [Fact]
+    public void Mark_IIC_treble_and_bass_shift_are_separate_switches() {
+        static (double Low, double Mid) Levels(float treble, float bass) {
+            var tones = Signals.Sine(60, Rate, 24_000, 2e-4f)
+                .Zip(Signals.Sine(700, Rate, 24_000, 2e-4f), static (a, b) => a + b)
+                .ToArray();
+            using var block = Create(
+                "Mark IIC+",
+                (CircuitAmpBlock.Gain, 1f),
+                (CircuitAmpBlock.Control1, 2f),
+                (CircuitAmpBlock.Master, 2f),
+                (CircuitAmpBlock.Switch1, treble),
+                (CircuitAmpBlock.Switch3, bass)
+            );
+            var rendered = BlockRender.Mono(block, tones, 64).AsSpan(12_000).ToArray();
+            return (
+                Analysis.ToDb(Analysis.MagnitudeAt(rendered, 60, Rate)),
+                Analysis.ToDb(Analysis.MagnitudeAt(rendered, 700, Rate))
+            );
+        }
+
+        var off = Levels(0, 0);
+        var treble = Levels(1, 0);
+        var bass = Levels(0, 1);
+        var both = Levels(1, 1);
+        output.WriteLine(
+            $"60 Hz / 700 Hz against off: Treble Shift {treble.Low - off.Low:+0.0;-0.0} / {treble.Mid - off.Mid:+0.0;-0.0}"
+            + $" dB, Bass Shift {bass.Low - off.Low:+0.0;-0.0} / {bass.Mid - off.Mid:+0.0;-0.0}"
+            + $" dB, both {both.Low - off.Low:+0.0;-0.0} / {both.Mid - off.Mid:+0.0;-0.0} dB"
+        );
+        Assert.True(treble.Mid - off.Mid > 1, "Treble Shift does not lift the mids");
+        Assert.True(bass.Low - off.Low > 1, "Bass Shift does not lift the lows");
+        Assert.True(Math.Abs(bass.Mid - off.Mid) < Math.Abs(treble.Mid - off.Mid), "Bass Shift moves the mids");
+        Assert.True(both.Low - treble.Low > 1, "Bass Shift does nothing with Treble Shift on");
+        Assert.True(both.Mid - bass.Mid > 1, "Treble Shift does nothing with Bass Shift on");
     }
 
     /// <summary>The Mark's graphic EQ: a band at +12 dB lifts its frequency, at 0 dB the path is untouched.</summary>

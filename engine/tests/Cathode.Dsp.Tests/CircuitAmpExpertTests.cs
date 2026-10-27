@@ -101,6 +101,11 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                             && design.Power.PowerSupply.PreampResistance * design.Power.PowerSupply.PreampCap > 1)
                         // A rack preamp on its own supply (the TriAxis) sees no sag to scale.
                         && !(index == CircuitAmpBlock.PreampSag && design.PreampSupply is { Separate: true })
+                        // Nor does the B+ time constant reach far on the TriAxis leads: with the Dynamic Voice flat
+                        // at its default their lows no longer drive the generic power amp hard enough to sag much
+                        // (about −69 dB, against −50 dB with the old scooped default).
+                        && !(index == CircuitAmpBlock.SupplyTime
+                            && (design == TriAxis.Lead1 || design == TriAxis.Lead2))
                         // A 400 W bass amp at this level is far below the core's knee (−65 dB at drive 10).
                         && !(index == CircuitAmpBlock.TransformerDrive && design.Power.RatedPower >= 400);
                     data.Add(type, index, value, audible);

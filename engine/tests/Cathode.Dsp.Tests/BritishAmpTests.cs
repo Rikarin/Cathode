@@ -166,6 +166,46 @@ public class BritishAmpTests(ITestOutputHelper output) {
         }
     }
 
+    /// <summary>
+    ///     The Hiwatts' Presence works through its whole travel, as the real pot does with its two halves: below clipping,
+    ///     8 kHz rises at every step from 0 to 10, by more than 2 dB from 0 to 7.5 (the plate-side treble cut letting go;
+    ///     the feedback half, 100k across the 2k2 shunt, acts only near the top), while 200 Hz barely moves.
+    /// </summary>
+    [Theory]
+    [InlineData("Hiwatt DR103")]
+    [InlineData("Hiwatt DR504")]
+    public void Hiwatt_presence_acts_through_its_travel(string type) {
+        var tones = Signals.Sine(200, Rate, 24_000, 0.002f)
+            .Zip(Signals.Sine(8_000, Rate, 24_000, 0.002f), static (a, b) => a + b)
+            .ToArray();
+
+        (double Low, double High) Levels(float presence) {
+            using var block = Create(
+                type,
+                (CircuitAmpBlock.Gain, 3f),
+                (CircuitAmpBlock.Master, 3f),
+                (CircuitAmpBlock.Presence, presence)
+            );
+            var rendered = BlockRender.Mono(block, tones, 64).AsSpan(12_000).ToArray();
+            return (
+                Analysis.ToDb(Analysis.MagnitudeAt(rendered, 200, Rate)),
+                Analysis.ToDb(Analysis.MagnitudeAt(rendered, 8_000, Rate))
+            );
+        }
+
+        var levels = new[] { 0f, 2.5f, 5f, 7.5f, 10f }.Select(Levels).ToArray();
+        output.WriteLine(
+            $"{type} 8 kHz at presence 0..10: {string.Join(" ", levels.Select(static l => $"{l.High:0.0}"))} dB; "
+            + $"200 Hz {string.Join(" ", levels.Select(static l => $"{l.Low:0.0}"))} dB"
+        );
+        for (var i = 1; i < levels.Length; i++) {
+            Assert.True(levels[i].High > levels[i - 1].High, $"{type}: 8 kHz does not rise at step {i}");
+        }
+
+        Assert.True(levels[3].High - levels[0].High > 2, $"{type}: Presence 0 to 7.5 moves 8 kHz by under 2 dB");
+        Assert.True(Math.Abs(levels[4].Low - levels[0].Low) < 1, $"{type}: Presence moves 200 Hz");
+    }
+
     /// <summary>Below clipping, the gain and master knobs raise the level monotonically, as their pots do.</summary>
     [Theory]
     [MemberData(nameof(Types))]

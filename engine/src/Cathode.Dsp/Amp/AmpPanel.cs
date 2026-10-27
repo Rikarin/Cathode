@@ -15,12 +15,18 @@ public sealed record AmpPanel {
     ///     bright caps.
     /// </summary>
     static readonly string[] TubeOnly = [
-        "bias", "feedback", "pretube", "brightcap", "prebias", "presag", "powertube", "xfmrmatch", "xfmrlf", "xfmrhf",
-        "xfmrdrive", "speaker", "spkres", "spkq", "spkpeak", "spkhf", "spkimp", "presfreq", "depthfreq", "supply",
-        "rectifier", "katc", "tremrate", "tremdepth", "pthard", "prehard", "t2plate", "cfcomp", "cfharm", "prebiasx",
-        "pibiasx", "ptbiasx", "ptbiastime", "ptrecovery", "masterbiasx", "suppressor", "mvloc",
-        "screenfreq", "screenq", "stacktype"
+        "bias", "feedback", "brightcap", "presag", "powertube", "xfmrmatch", "xfmrlf", "xfmrhf", "xfmrdrive", "speaker", "spkres",
+        "spkq", "spkpeak", "spkhf", "spkimp", "presfreq", "depthfreq", "supply", "rectifier", "katc", "tremrate",
+        "tremdepth", "pthard", "t2plate", "cfcomp", "cfharm", "pibiasx", "ptbiasx", "ptbiastime", "ptrecovery",
+        "masterbiasx", "suppressor", "mvloc", "screenfreq", "screenq", "stacktype"
     ];
+
+    /// <summary>
+    ///     The Circuit Amp parameters that act on the preamp's triodes themselves (their type, bias, hardness and grid
+    ///     current): absent where the preamp has none (<see cref="HasPreampTubes" />). Preamp Sag stays in
+    ///     <see cref="TubeOnly" />: a solid-state amp's preamp rails are regulated.
+    /// </summary>
+    static readonly string[] PreampTubeOnly = ["pretube", "prebias", "prehard", "prebiasx"];
 
     /// <summary>Every standard knob under its usual name, no model-specific controls.</summary>
     public static AmpPanel Standard { get; } = new();
@@ -76,6 +82,18 @@ public sealed record AmpPanel {
     /// </summary>
     public bool HasTubes { get; init; } = true;
 
+    /// <summary>
+    ///     False where the preamp has no triode: the preamp-tube parameters (tube type, bias, hardness, grid current)
+    ///     are then absent from its panel. It follows <see cref="HasTubes" /> unless set, so a solid-state
+    ///     amp whose preamp runs a real triode (the Valvestate's ECC83) keeps them.
+    /// </summary>
+    public bool HasPreampTubes {
+        get => hasPreampTubes ?? HasTubes;
+        init => hasPreampTubes = value;
+    }
+
+    readonly bool? hasPreampTubes;
+
     /// <summary>Whether one of the model's own switches is called <paramref name="name" />.</summary>
     public bool HasSwitch(string name) => Switch1 == name || Switch2 == name || Switch3 == name;
 
@@ -84,7 +102,7 @@ public sealed record AmpPanel {
     ///     <paramref name="fallback" /> for a parameter the panel does not cover (the expert parameters).
     /// </summary>
     public string? Label(string id, string fallback) =>
-        !HasTubes && TubeOnly.Contains(id)
+        (!HasTubes && TubeOnly.Contains(id)) || (!HasPreampTubes && PreampTubeOnly.Contains(id))
             ? null
             : id switch {
                 "gain" => Gain,

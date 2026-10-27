@@ -74,7 +74,8 @@ public static class LoneStar {
             true,
             new(2e3),
             SpeakerDesign.OpenBack1x12,
-            new(30, 110e-6, 100, 30e-6, 15.9e3, 30e-6, 8e-3, RectifierModel.Silicon),
+            // B to C: 15.9k dropping 455 V to 395 V, so 3.8 mA into C and everything below it.
+            new(30, 110e-6, 100, 30e-6, 15.9e3, 30e-6, 3.8e-3, RectifierModel.Silicon),
             InverterInput: new(3e-9, 1.33e6),
             SupplySwitches: [new(SwitchRole.Switch3, RectifierModel.FiveU4)]
         ),

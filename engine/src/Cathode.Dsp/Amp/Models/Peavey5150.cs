@@ -22,8 +22,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         (read as 50k linear), a 100 pF beside the 470 pF treble cap (C60, whose wiring could not be read; left out).
 ///         The pages name three preamp rails: V3 (the inverter), V2 (V2B, V5, V3A) and V1 (V1A, V1B, V2A). Not on the
 ///         pages read: the supply page, so the rails' dropping resistors and caps (the generic chain's here, V3 to V2
-///         to V1), the preamp rails' voltages (taken as 340 V and 320 V, the inverter's as 430 V), B+ (490 V, docs/06
-///         gives 485-500 V), the idle current (13 mA, docs/06 gives 11-14 mA), the output transformer (1.9k assumed),
+///         to V1), the preamp rails' voltages (the inverter's taken as 430 V; V2 and V1 are the chain's own drops below
+///         it at its assumed draws, 381 V and 363 V), B+ (490 V, docs/06 gives 485-500 V), the idle current (13 mA, docs/06 gives 11-14 mA), the output transformer (1.9k assumed),
 ///         the resonance network (the depth control's generic shelf stands in for it), the feedback tap (8 Ω assumed).
 ///     </para>
 ///     <para>
@@ -33,13 +33,23 @@ namespace Cathode.Dsp.Amp.Models;
 ///     </para>
 /// </remarks>
 public static class Peavey5150 {
+    /// <summary>
+    ///     The V2 rail (V2B, V5, V3A): the chain's first node at rest, 430 V less 10k × 4.8 mA (its own 3 mA and V1's
+    ///     1.8 mA). The rails were once taken as 340 V (V1) and 320 V (V2), which put the node two droppers down above
+    ///     the one it hangs from.
+    /// </summary>
+    const double V2Rail = 381;
+
+    /// <summary>The V1 rail (V1A, V1B, V2A): the chain's second node, V2 less 10k × 1.8 mA.</summary>
+    const double V1Rail = 363;
+
     public static AmpDesign Design { get; } = new(
         "5150",
         [
             new TriodeStageDesign(
                 "V1A",
                 TriodeModel.Ecc83,
-                340,
+                V1Rail,
                 220e3,
                 1.82e3,
                 1e-6,
@@ -50,7 +60,7 @@ public static class Peavey5150 {
             new TriodeStageDesign(
                 "V2A",
                 TriodeModel.Ecc83,
-                340,
+                V1Rail,
                 100e3,
                 39e3,
                 CouplingCap: 22e-9,
@@ -61,7 +71,7 @@ public static class Peavey5150 {
             new TriodeStageDesign(
                 "V5B",
                 TriodeModel.Ecc83,
-                320,
+                V2Rail,
                 220e3,
                 2.2e3,
                 InputResistance: 1e6,
@@ -130,7 +140,7 @@ public static class Peavey5150 {
         net.Resistor(top, wiper, 1e6);
         net.Capacitor(top, wiper, 1e-9, CapacitorRole.Bright);
         net.Resistor(wiper, grid, 470e3);
-        net.Supply(supply, 340);
+        net.Supply(supply, V1Rail);
         net.Resistor(supply, plate, 100e3);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.82e3);
         net.Capacitor(cathode, StageNetlist.Ground, 1e-6);
@@ -147,7 +157,7 @@ public static class Peavey5150 {
         net.Resistor(coupled, StageNetlist.Ground, 330e3);
         net.Capacitor(coupled, StageNetlist.Ground, 1e-9);
         net.Resistor(coupled, grid, 220e3);
-        net.Supply(supply, 320);
+        net.Supply(supply, V2Rail);
         net.Resistor(supply, plate, 220e3);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.82e3);
         net.Capacitor(cathode, StageNetlist.Ground, 1e-6);
@@ -167,7 +177,7 @@ public static class Peavey5150 {
         net.Resistor(net.Input, series, 1e6);
         net.Capacitor(series, grid, 22e-9);
         net.Resistor(grid, StageNetlist.Ground, 1e6);
-        net.Supply(supply, 320);
+        net.Supply(supply, V2Rail);
         net.Resistor(supply, plate, 100e3);
         net.CathodeResistor(cathode, StageNetlist.Ground, 2.2e3);
         net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
@@ -210,7 +220,7 @@ public static class Peavey5150 {
             (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
         net.Capacitor(net.Input, grid, 47e-9);
         net.Resistor(grid, StageNetlist.Ground, 1e6);
-        net.Supply(supply, 320);
+        net.Supply(supply, V2Rail);
         net.Resistor(supply, plate, 68e3);
         net.CathodeResistor(cathode, StageNetlist.Ground, 3.3e3);
         net.Capacitor(cathode, StageNetlist.Ground, 4.7e-9);

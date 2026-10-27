@@ -43,7 +43,13 @@ public enum PotRole {
     Equalizer4,
 
     /// <summary>The fifth slider.</summary>
-    Equalizer5
+    Equalizer5,
+
+    /// <summary>
+    ///     The presence knob, for the part of a presence control that sits in a preamp stage (the Hiwatt's pot, whose
+    ///     plate-side half shunts treble off V2B's plate); the power amp's feedback network takes the knob as well.
+    /// </summary>
+    Presence
 }
 
 /// <summary>Which front-panel switch engages a switched element of a stage.</summary>
@@ -94,7 +100,8 @@ public readonly record struct EqualizerGains(double Band1, double Band2, double 
 ///     (<paramref name="Control1" />, <paramref name="Control2" />) and switches (<paramref name="Switch1" /> to
 ///     <paramref name="Switch3" />), a graphic equaliser's band gains, and the model's own tremolo
 ///     (<see cref="StageTremoloDesign" />): <paramref name="TremoloRate" /> in hertz, <paramref name="TremoloDepth" /> its
-///     Intensity knob's rotation (0 stops it).
+///     Intensity knob's rotation (0 stops it), and the presence knob for a stage that holds part of the presence
+///     control (<see cref="PotRole.Presence" />).
 /// </summary>
 public readonly record struct AmpControls(
     double Gain,
@@ -110,7 +117,8 @@ public readonly record struct AmpControls(
     bool Switch3 = false,
     EqualizerGains Equalizer = default,
     double TremoloRate = 0,
-    double TremoloDepth = 0
+    double TremoloDepth = 0,
+    double Presence = 0.5
 ) {
     public double Rotation(PotRole role) =>
         role switch {
@@ -125,6 +133,7 @@ public readonly record struct AmpControls(
             PotRole.Equalizer3 => Slider(Equalizer.Band3),
             PotRole.Equalizer4 => Slider(Equalizer.Band4),
             PotRole.Equalizer5 => Slider(Equalizer.Band5),
+            PotRole.Presence => Presence,
             _ => Control2
         };
 
