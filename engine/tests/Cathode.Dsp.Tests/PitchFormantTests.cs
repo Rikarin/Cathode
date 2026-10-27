@@ -194,13 +194,20 @@ public class PitchFormantTests(ITestOutputHelper output) {
             block.Process(new(blockLeft, blockRight), new(Rate, 120, 0));
         }
 
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        for (var b = 0; b < 2_000; b++) {
-            Fill();
-            block.Process(new(blockLeft, blockRight), new(Rate, 120, 0));
+        // Two windows of 1,000 blocks: an allocation in the audio path shows in both, while a one-off by the runtime on
+        // this thread (seen now and then on macOS, about 6.5 kB in whichever case it lands) can spoil only one.
+        long Window() {
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            for (var b = 0; b < 1_000; b++) {
+                Fill();
+                block.Process(new(blockLeft, blockRight), new(Rate, 120, 0));
+            }
+
+            return GC.GetAllocatedBytesForCurrentThread() - before;
         }
 
-        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+        var (first, second) = (Window(), Window());
+        Assert.True(first == 0 || second == 0, $"allocated {first} and {second} bytes");
 
         var tail = BlockRender.Mono(block, new float[48_000 * 5], 64);
         Assert.False(Analysis.AnySubnormal(tail), "subnormal samples");
