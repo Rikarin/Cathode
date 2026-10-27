@@ -43,7 +43,17 @@ namespace Cathode.Dsp.Wdf;
 /// </remarks>
 public sealed class RTypeScattering {
     const double MinimumConductance = 1e-15;
-    const double MinimumResistance = 1e-6; // a pot turned fully down: never a short, which would make X singular
+    /// <summary>
+    ///     The smallest resistance an internal resistor takes, in ohms: a pot turned to an end stop leaves this much of
+    ///     its track, never a short (which would make X singular). A milliohm is a hundredth of a real wiper's contact
+    ///     resistance (0.1 Ω and up), so the end stop stays ideal (a 1 MΩ pot's end isolates by 180 dB), yet its 1000 S
+    ///     next to the megohm leaks keeps the MNA's condition number near 1e8 (the Fender stack at its end stops),
+    ///     where 1 µΩ made it 1e11 and cost the scattering five of its sixteen digits. The DC operating point
+    ///     (<c>NetworkStage</c>) floors its resistors at the same value.
+    /// </summary>
+    public const double EndStop = 1e-3;
+
+    const double MinimumResistance = EndStop;
     const int MaxStackScratch = 1_024; // doubles (8 KB): larger networks keep their scratch on the heap
 
     readonly NetlistElementKind[] kinds;
@@ -159,7 +169,7 @@ public sealed class RTypeScattering {
         gains = new double[vcvsCount];
         for (var i = 0; i < elements.Count; i++) {
             if (kinds[i] == NetlistElementKind.Resistor) {
-                resistances[ordinal[i]] = elements[i].Value;
+                resistances[ordinal[i]] = Math.Max(elements[i].Value, MinimumResistance);
             } else if (kinds[i] == NetlistElementKind.Vcvs) {
                 gains[ordinal[i]] = elements[i].Value;
             }

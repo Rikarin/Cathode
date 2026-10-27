@@ -432,7 +432,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
     const double Open = 1e12; // a switched-off resistor
     const double Gmin = 1e-12;
     const double Short = 1e3; // siemens: an inductor at DC
-    const double EndStop = 1e-6; // ohms: a pot's half at an end stop, as the scattering's own floor
+    const double EndStop = RTypeScattering.EndStop; // ohms: a pot's half at an end stop, as the scattering's own floor
 
     readonly StageElement[] elements;
 
@@ -837,7 +837,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
             var e = elements[i];
             switch (e.Kind) {
                 case ElementKind.Resistor:
-                    Conductance(a, e.A, e.B, 1 / Math.Max(values[i], 1e-3));
+                    Conductance(a, e.A, e.B, 1 / Math.Max(values[i], EndStop));
                     break;
                 case ElementKind.Capacitor:
                     if (!dc) {

@@ -15,7 +15,7 @@ namespace Cathode.Dsp.Tests;
 public class DriveStageTests(ITestOutputHelper output) {
     const double Rate = 48_000;
     const int Length = 32_768;
-    const double Floor = 1e-6; // the R-type adaptor's minimum resistance, for a pot at its end stop
+    const double Floor = RTypeScattering.EndStop; // the R-type adaptor's minimum resistance, for a pot at its end stop
 
     static readonly double[] Frequencies = [30, 100, 300, 700, 1_000, 2_000, 4_000, 8_000, 12_000, 18_000];
 

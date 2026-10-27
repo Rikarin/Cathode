@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -10,19 +11,43 @@ namespace Cathode.Dsp.Wdf;
 /// </summary>
 public static class DenseLu {
     /// <summary>
+    ///     The default relative pivot threshold of <see cref="Factor" />: a pivot smaller than this fraction of the
+    ///     largest entry of the row it came from is rounding noise left by the elimination (double precision carries
+    ///     about 16 digits), so the matrix is singular to working precision.
+    /// </summary>
+    public const double WorkingPrecision = 1e-14;
+
+    /// <summary>Orders up to which <see cref="Factor" /> keeps its row scales on the stack (beyond it, on the heap).</summary>
+    const int MaxStackOrder = 256;
+
+    /// <summary>
     ///     Factors the n × n matrix <paramref name="a" /> into L U in place (unit lower triangle below the diagonal),
     ///     recording the row swaps in <paramref name="pivots" />. Returns false when a pivot falls below
-    ///     <paramref name="tiny" /> times the largest entry, i.e. the matrix is singular to working precision.
+    ///     <paramref name="tiny" /> times the largest magnitude of the row it came from (before the elimination), i.e.
+    ///     the matrix is singular to working precision, or is not finite.
     /// </summary>
-    public static bool Factor(Span<double> a, int n, Span<int> pivots, double tiny = 1e-300) {
+    /// <remarks>
+    ///     The pivot is judged against its own row, not the whole matrix: a nodal matrix spans many decades between its
+    ///     rows (a 1 kΩ branch next to a node held only by a megohm leak, or by the 1e-15 S safety conductance), and
+    ///     such a row is regular however small it is. What singularity looks like is a row that cancels: its pivot,
+    ///     after the elimination, many decades below the entries it started from. Allocation-free up to order
+    ///     <see cref="MaxStackOrder" />. Debug builds also check the growth factor (the largest entry of U against the
+    ///     largest of A), which partial pivoting keeps small.
+    /// </remarks>
+    public static bool Factor(Span<double> a, int n, Span<int> pivots, double tiny = WorkingPrecision) {
         if (a.Length < n * n || pivots.Length < n) {
             throw new ArgumentException("The buffers are smaller than the system.", nameof(a));
         }
 
         // On references, without bounds checks (the lengths are checked above).
         ref var m = ref MemoryMarshal.GetReference(a);
-        var largest = Largest(ref m, n * n);
-        var threshold = tiny * Math.Max(largest, double.Epsilon);
+        var scales = n <= MaxStackOrder ? stackalloc double[n] : new double[n];
+        for (var r = 0; r < n; r++) {
+            scales[r] = Largest(ref Unsafe.Add(ref m, r * n), n);
+        }
+
+        var largest = 0.0;
+        MeasureLargest(ref m, n, ref largest);
         // An even order keeps the rows' pairs of entries at even offsets throughout, so that every two-lane load reads
         // what one two-lane store wrote (a load that straddles two stores waits for both to retire).
         var paired = Vector128.IsHardwareAccelerated && n % 2 == 0;
@@ -38,10 +63,11 @@ public static class DenseLu {
             }
 
             pivots[k] = pivot;
-            if (!(best > threshold)) {
-                return false; // also catches NaN
+            if (!(best > tiny * scales[pivot])) {
+                return false; // also catches NaN, and a row of zeros
             }
 
+            scales[pivot] = scales[k]; // row k is done; the scale of the row swapped down goes with it
             ref var top = ref Unsafe.Add(ref m, k * n);
             if (pivot != k) {
                 ref var other = ref Unsafe.Add(ref m, pivot * n);
@@ -91,7 +117,31 @@ public static class DenseLu {
             }
         }
 
+        CheckGrowth(ref m, n, largest);
         return true;
+    }
+
+    /// <summary>The growth factor partial pivoting may reach before <see cref="CheckGrowth" /> calls it a failure.</summary>
+    const double MaxGrowth = 1e4;
+
+    /// <summary>Debug builds: the largest magnitude of the matrix before <see cref="Factor" /> eliminates it.</summary>
+    [Conditional("DEBUG")]
+    static void MeasureLargest(ref double m, int n, ref double largest) => largest = Largest(ref m, n * n);
+
+    /// <summary>
+    ///     Debug builds: the growth factor, the largest entry of U against the largest of the matrix it came from, stays
+    ///     below <see cref="MaxGrowth" />. Partial pivoting bounds it by 2^(n-1) in theory and keeps it near 1 in
+    ///     practice (nodal matrices are diagonally dominant); a large one means the factors, and every solve with them,
+    ///     have lost that many digits however large the pivots are.
+    /// </summary>
+    [Conditional("DEBUG")]
+    static void CheckGrowth(ref double m, int n, double largest) {
+        var upper = 0.0;
+        for (var r = 0; r < n; r++) {
+            upper = Math.Max(upper, Largest(ref Unsafe.Add(ref m, r * n + r), n - r));
+        }
+
+        Debug.Assert(!(upper > MaxGrowth * largest), $"LU growth factor {upper / largest:E2} exceeds {MaxGrowth:E0}.");
     }
 
     /// <summary>
