@@ -111,6 +111,7 @@ public class RTypeAdaptorTests(ITestOutputHelper output) {
     [Fact]
     public void Factor_rejects_a_nearly_singular_matrix_and_accepts_a_badly_scaled_regular_one() {
         Span<int> pivots = stackalloc int[2];
+
         // Two nodes joined by g, each held to ground by 1 µS: the second pivot is what is left after cancelling g, 2 µS.
         static double[] Joined(double g) => [g + 1e-6, -g, -g, g + 1e-6];
 

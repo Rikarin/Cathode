@@ -79,8 +79,7 @@ public sealed class TwoProcessTests : IAsyncDisposable {
     [Fact]
     public async Task Host_watching_its_stdin_stops_cleanly_when_the_launcher_goes() {
         StartHost(["--watch-stdin"]);
-        await ServerFixture.Eventually(
-            () => Task.FromResult(Output().Contains("serving on", StringComparison.Ordinal))
+        await ServerFixture.Eventually(() => Task.FromResult(Output().Contains("serving on", StringComparison.Ordinal))
         );
 
         // The launcher crashed or was killed: the OS closes its end of the pipe.

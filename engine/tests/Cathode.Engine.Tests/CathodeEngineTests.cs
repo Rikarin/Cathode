@@ -263,7 +263,10 @@ public class CathodeEngineTests {
         float[] joined = [..tailEnd, ..after.AsSpan(0, 1_000)];
         var maxStep = joined.Zip(joined.Skip(1), static (a, b) => Math.Abs(b - a)).Max();
         var naturalStep = tailEnd.Zip(tailEnd.Skip(1), static (a, b) => Math.Abs(b - a)).Max();
-        Assert.True(maxStep <= naturalStep * 1.1f + 1e-4f, $"click at the second change: step {maxStep} vs {naturalStep}");
+        Assert.True(
+            maxStep <= naturalStep * 1.1f + 1e-4f,
+            $"click at the second change: step {maxStep} vs {naturalStep}"
+        );
         OfflineRenderer.Render(engine, new float[48_000 * 5], new float[48_000 * 5], 512);
         Assert.False(engine.IsSpilling);
         var retired = 0;

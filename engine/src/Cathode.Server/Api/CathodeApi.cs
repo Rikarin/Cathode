@@ -489,7 +489,12 @@ public static class CathodeApi {
 
         app.Map(
                 "/ws",
-                async (HttpContext http, EventHub hub, AnalysisSubscriptions analysis, IHostApplicationLifetime lifetime) => {
+                async (
+                    HttpContext http,
+                    EventHub hub,
+                    AnalysisSubscriptions analysis,
+                    IHostApplicationLifetime lifetime
+                ) => {
                     if (!http.WebSockets.IsWebSocketRequest) {
                         http.Response.StatusCode = StatusCodes.Status400BadRequest;
                         return;

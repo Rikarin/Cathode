@@ -115,6 +115,7 @@ public class ModernMarshallTests(ITestOutputHelper output) {
         var chord = Signals.Sine(82.4, Rate, 24_000, 0.8f)
             .Zip(Signals.Sine(123.5, Rate, 24_000, 0.8f), static (a, b) => a + b)
             .ToArray();
+
         float[] Render(params (int Index, float Value)[] settings) {
             using var block = Create(
                 "Valvestate 8080",

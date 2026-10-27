@@ -131,7 +131,8 @@ static class ExactScattering {
         return (error / largest, norm * inverseNorm);
     }
 
-    static Fraction Voltage(Fraction[,] solved, int column, int node) => node > 0 ? solved[node - 1, column] : Fraction.Zero;
+    static Fraction Voltage(Fraction[,] solved, int column, int node) =>
+        node > 0 ? solved[node - 1, column] : Fraction.Zero;
 
     static void Conductance(Fraction[,] x, int p, int m, Fraction g) {
         if (p > 0) {

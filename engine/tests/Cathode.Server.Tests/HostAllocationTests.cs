@@ -123,7 +123,9 @@ public sealed class HostAllocationTests : IDisposable {
         poll.Add(new(start, 0xFE, 0, 0, 1));
         Assert.Null(midi.Translate(poll)); // nothing for the Server, so no batch
 
-        Assert.Equal(0, AllocationProbe.Measure(() => {
+        Assert.Equal(
+            0,
+            AllocationProbe.Measure(() => {
                     for (var i = 0; i < 1_000; i++) {
                         midi.Translate(poll);
                         _ = Cathode.Audio.Native.NativeMidi.PortCount(); // the port scan's check

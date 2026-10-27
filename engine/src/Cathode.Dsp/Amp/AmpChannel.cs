@@ -202,7 +202,8 @@ public sealed class AmpChannel {
         design is ToneStackStageDesign
         || (design is NetworkStageDesign network
             && network.Netlist.Elements.Any(static e => e.CapacitorRole == CapacitorRole.Stack))
-        || (design is ChannelSwitchStageDesign { Off: [var off], On: [var on] } && IsPassiveStack(off)
+        || (design is ChannelSwitchStageDesign { Off: [var off], On: [var on] }
+            && IsPassiveStack(off)
             && IsPassiveStack(on));
 
     static bool IsPassiveStack(AmpStageDesign design) =>

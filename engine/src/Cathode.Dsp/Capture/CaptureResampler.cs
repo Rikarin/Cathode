@@ -98,7 +98,12 @@ public sealed class CaptureResampler {
         var count = (int)(end - produced);
         for (var m = 0; m < count; m++) {
             var position = (produced + m) * engineRate; // engine time of model sample j, times fm
-            modelIn[m] = toModel.Interpolate(input, inputMask, position / modelRate, (double)(position % modelRate) / modelRate);
+            modelIn[m] = toModel.Interpolate(
+                input,
+                inputMask,
+                position / modelRate,
+                (double)(position % modelRate) / modelRate
+            );
         }
 
         if (count > 0) {

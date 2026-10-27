@@ -40,7 +40,9 @@ public class CaptureResamplerTests {
             using var block = Amp(new FakeModel(48_000, identity: false), engineRate, 64);
             var input = Signals.Sine(frequency, engineRate, engineRate, 0.25f);
             var output = BlockRender.Stereo(block, input, input, static _ => 64).Left;
-            return Analysis.ToDb(Analysis.Rms(output.AsSpan(engineRate / 2)) / Analysis.Rms(input.AsSpan(engineRate / 2)));
+            return Analysis.ToDb(
+                Analysis.Rms(output.AsSpan(engineRate / 2)) / Analysis.Rms(input.AsSpan(engineRate / 2))
+            );
         }
 
         foreach (var frequency in new[] { 500.0, 2_000, 6_000 }) {

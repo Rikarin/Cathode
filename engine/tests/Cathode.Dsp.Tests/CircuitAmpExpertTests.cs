@@ -293,6 +293,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     [Fact]
     public void Ac_supply_on_a_stiff_silicon_supply_charges_smoothly_and_follows_sag() {
         var design = JCM900.Head100.Power;
+
         (double Mean, double Kink) Run(double sag, double timeConstant) {
             var power = new PowerAmp(design, InnerRate);
             power.Configure(new(0.5, 0, 0, sag, 0.5, 0.5));
@@ -453,7 +454,8 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                     "follower" => PreampSettings.Stock with { FollowerBias = amount },
                     _ => PreampSettings.Stock
                 };
-                var settings = setting == "power hardness" ? PowerSettings.Stock with { Hardness = amount }
+                var settings = setting == "power hardness"
+                    ? PowerSettings.Stock with { Hardness = amount }
                     : PowerSettings.Stock;
                 channel.Apply(preamp, settings, ChannelSettings.Stock);
                 channel.Configure(controls, power);
@@ -473,7 +475,9 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
             previous = y;
         }
 
-        output.WriteLine($"{setting}: {steps} steps, steepest {largestStep:0.000} V against the signal's {peak:0.000} V");
+        output.WriteLine(
+            $"{setting}: {steps} steps, steepest {largestStep:0.000} V against the signal's {peak:0.000} V"
+        );
         Assert.True(largestStep < 1.5 * peak, $"{largestStep:0.000} V step against the signal's {peak:0.000} V");
     }
 

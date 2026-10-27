@@ -14,7 +14,10 @@ public struct SampleGlide {
     /// <summary>The next <see cref="Begin" /> starts at its setting instead of gliding to it.</summary>
     public void Reset() => primed = false;
 
-    /// <summary>Audio thread: glides from the last block's setting to <paramref name="setting" /> over the next <paramref name="frames" />.</summary>
+    /// <summary>
+    ///     Audio thread: glides from the last block's setting to <paramref name="setting" /> over the next
+    ///     <paramref name="frames" />.
+    /// </summary>
     public void Begin(float setting, int frames) {
         from = primed ? target : setting;
         primed = true;

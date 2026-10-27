@@ -738,7 +738,12 @@ public sealed class PowerAmp {
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     double Rectify(PowerSupplyDesign supply) =>
-        RectifierCurrent(unloadedSupply * variac - Supply, supply.SourceResistance * sagScale, rectifier, ref rectifierRoot);
+        RectifierCurrent(
+            unloadedSupply * variac - Supply,
+            supply.SourceResistance * sagScale,
+            rectifier,
+            ref rectifierRoot
+        );
 
     /// <summary>
     ///     The rectifier's current at <paramref name="headroom" /> volts between the source and the reservoir, through
@@ -866,7 +871,15 @@ public sealed class PowerAmp {
             var mean = 0.0;
             for (var i = 0; i < Settle + Average; i++) {
                 var source = peak * Math.Abs(Math.Sin(2 * Math.PI * 60 * i / Rate));
-                v = Charge(v, source, supply.SourceResistance, supply.Rectifier, load, 1 / (supply.Reservoir * Rate), ref root);
+                v = Charge(
+                    v,
+                    source,
+                    supply.SourceResistance,
+                    supply.Rectifier,
+                    load,
+                    1 / (supply.Reservoir * Rate),
+                    ref root
+                );
                 if (i >= Settle) {
                     mean += v / Average;
                 }

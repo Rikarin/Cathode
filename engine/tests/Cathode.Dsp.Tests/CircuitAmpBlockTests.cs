@@ -210,8 +210,12 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         var eq = TriodeModel.Ecc83;
         var el34 = PentodeModel.EL34;
         var cached = (TriodeTables.For(eq), PentodeTables.For(el34));
+
         static object BuildLock(Type type) =>
-            type.GetField("BuildLock", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
+            type.GetField(
+                "BuildLock",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static
+            )!
                 .GetValue(null)!;
 
         lock (BuildLock(typeof(TriodeTables))) {

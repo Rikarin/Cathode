@@ -9,8 +9,10 @@ namespace Cathode.Server.Realtime;
 ///     editor closing its tuner (or starting up) does not switch it off for another. A client names itself with the
 ///     same <c>client</c> id on its requests and its <c>/ws</c> socket; when its last socket closes, whatever it left
 ///     on is released. A request without a client id acts as before clients were counted: on adds an anonymous client,
-///     off turns the analyser off for everyone. The tuner's on or off is applied through <see cref="LiveRig.SetTunerAsync" />,
-///     which owns the tuner state (its event, the footswitch LED and the resync after a host restart), one change at a time.
+///     off turns the analyser off for everyone. The tuner's on or off is applied through
+///     <see cref="LiveRig.SetTunerAsync" />,
+///     which owns the tuner state (its event, the footswitch LED and the resync after a host restart), one change at a
+///     time.
 /// </summary>
 public sealed class AnalysisSubscriptions(LiveRig rig, EngineConnection engine) : IDisposable {
     readonly Lock gate = new();

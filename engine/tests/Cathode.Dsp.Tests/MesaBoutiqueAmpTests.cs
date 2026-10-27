@@ -246,7 +246,9 @@ public class MesaBoutiqueAmpTests(ITestOutputHelper output) {
 
         foreach (var frequency in new[] { 89.0, 720.0 }) {
             var (off, noon, full) = (Level(0, frequency), Level(0.5, frequency), Level(1, frequency));
-            output.WriteLine($"{frequency} Hz: {off:+0.00;-0.00} / {noon:+0.00;-0.00} / {full:+0.00;-0.00} dB at 0 / 5 / 10");
+            output.WriteLine(
+                $"{frequency} Hz: {off:+0.00;-0.00} / {noon:+0.00;-0.00} / {full:+0.00;-0.00} dB at 0 / 5 / 10"
+            );
             Assert.InRange(off, -0.5, 0.5);
         }
 

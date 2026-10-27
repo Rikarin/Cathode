@@ -43,6 +43,7 @@ namespace Cathode.Dsp.Wdf;
 /// </remarks>
 public sealed class RTypeScattering {
     const double MinimumConductance = 1e-15;
+
     /// <summary>
     ///     The smallest resistance an internal resistor takes, in ohms: a pot turned to an end stop leaves this much of
     ///     its track, never a short (which would make X singular). A milliohm is a hundredth of a real wiper's contact

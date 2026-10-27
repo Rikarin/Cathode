@@ -274,7 +274,8 @@ public sealed class WahBlock() : DspBlock(Info) {
     ///     DC operating points the inductor circuits have solved since Prepare (for tests and diagnostics): each voicing's
     ///     once, at Prepare, and none on a type change.
     /// </summary>
-    public long OperatingPointSolves => (circuitLeft?.OperatingPointSolves ?? 0) + (circuitRight?.OperatingPointSolves ?? 0);
+    public long OperatingPointSolves =>
+        (circuitLeft?.OperatingPointSolves ?? 0) + (circuitRight?.OperatingPointSolves ?? 0);
 
     /// <summary>Whether <paramref name="type" /> is modelled at component level (an inductor or inductor-less circuit).</summary>
     public static bool IsCircuit(int type) => Types[type].Kind != Kind.Filter;

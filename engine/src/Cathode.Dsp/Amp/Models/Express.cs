@@ -26,7 +26,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         Assumed, not drawn: the node voltages below B+ (only "~410 V" is given; the others follow from the droppers
 ///         at plausible currents: 395 / 300 / 270 / 250 V), the EL34s' idle current (35 mA), the presence pot's
-///         track (5k: the shunt is the pot itself, its wiper's 0.1 µF to ground, <see cref="FeedbackDesign.PresenceIsShunt" />). The bright switch is two panel switches: Bright the 500 pF position, Switch 1 the
+///         track (5k: the shunt is the pot itself, its wiper's 0.1 µF to ground,
+///         <see cref="FeedbackDesign.PresenceIsShunt" />). The bright switch is two panel switches: Bright the 500 pF
+///         position, Switch 1 the
 ///         100 pF ("Clarity"); with both on, both caps are in (the real switch takes one).
 ///     </para>
 /// </remarks>

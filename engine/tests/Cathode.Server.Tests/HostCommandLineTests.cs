@@ -21,7 +21,7 @@ public sealed class HostCommandLineTests {
 
     internal static async Task<(int Exit, string Output)> RunHostAsync(params string[] args) {
         using var process = new Process {
-            StartInfo = new("dotnet", ["exec", HostDll(), .. args]) {
+            StartInfo = new("dotnet", ["exec", HostDll(), ..args]) {
                 RedirectStandardOutput = true, RedirectStandardError = true
             }
         };

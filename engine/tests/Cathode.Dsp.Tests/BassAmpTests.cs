@@ -37,7 +37,7 @@ public partial class AmpStageTests {
         foreach (var d in designs.SelectMany(s => s is ChannelSwitchStageDesign c
                          ? controls.IsOn(c.Switch) ? c.On : c.Off
                          : [s]
-                     )) {
+                 )) {
             if (d is NetworkStageDesign network) {
                 node = AmpReferences.Append(circuit, network, controls, PreampSettings.Stock, node);
             } else {
@@ -335,7 +335,9 @@ public class BassAmpTests(ITestOutputHelper output) {
         var on0 = ThroughStack(0.005, true, 0);
         var on10 = ThroughStack(0.005, true, 1);
         var knob = Db(on10.Fundamental / on0.Fundamental);
-        output.WriteLine($"5 mV in: on at 0 {Db(on0.Fundamental / off0.Fundamental):0.00} dB from off, at 10 +{knob:0.0} dB");
+        output.WriteLine(
+            $"5 mV in: on at 0 {Db(on0.Fundamental / off0.Fundamental):0.00} dB from off, at 10 +{knob:0.0} dB"
+        );
         Assert.InRange(Db(on0.Fundamental / off0.Fundamental), -0.5, 0.5);
         Assert.True(knob > 15, $"Distortion at 10 adds {knob:0.0} dB");
 

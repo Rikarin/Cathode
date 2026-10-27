@@ -76,7 +76,9 @@ public sealed record LoopChannels(int[] Returns, int[] Sends) {
         var channel = int.Parse(text, CultureInfo.InvariantCulture);
         return channel >= 1
             ? channel - 1
-            : throw new FormatException($"{option}: device channels are numbered from 1, so '{text}' is not a channel.");
+            : throw new FormatException(
+                $"{option}: device channels are numbered from 1, so '{text}' is not a channel."
+            );
     }
 }
 

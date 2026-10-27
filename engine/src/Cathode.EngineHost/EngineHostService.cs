@@ -559,7 +559,9 @@ public sealed class EngineHostService : IDisposable {
         var exception = monitor.TakeCallbackException();
         var now = Stopwatch.GetTimestamp();
         if (exceptionsReported == 0 && exception is not null) {
-            Log?.Invoke($"error: the engine threw on the audio thread; that callback's output was silenced: {exception}");
+            Log?.Invoke(
+                $"error: the engine threw on the audio thread; that callback's output was silenced: {exception}"
+            );
             exceptionReportedAt = now;
         } else if (Stopwatch.GetElapsedTime(exceptionReportedAt, now) >= TimeSpan.FromSeconds(10)) {
             Log?.Invoke(

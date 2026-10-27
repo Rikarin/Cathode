@@ -355,6 +355,7 @@ public sealed class ControlsApiTests : IAsyncLifetime {
     public async Task The_tuner_scope_and_rta_run_while_any_client_has_them_on() {
         var engine = server.Services.GetRequiredService<EngineConnection>();
         var analysis = server.Services.GetRequiredService<AnalysisSubscriptions>();
+
         async Task Set(string who, bool on) {
             using var tuner = await client.PutAsJsonAsync($"/api/v1/tuner?client={who}", new BypassRequest(!on), Token);
             using var scope = await client.PutAsJsonAsync($"/api/v1/scope?client={who}", new ScopeRequest(on), Token);

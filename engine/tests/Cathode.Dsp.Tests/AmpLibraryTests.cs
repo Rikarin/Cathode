@@ -302,7 +302,8 @@ public partial class AmpStageTests {
 
     /// <summary>
     ///     The 5F6-A's presence (the 5k pot is the tail's shunt, the 0.1 µF on its wiper): the feedback filter's first-order
-    ///     β(s) equals Z / (R_f + Z) for Z = (1 - p) R + p R ∥ C at every setting; flat at 0 (the generic wiring, a pot and cap
+    ///     β(s) equals Z / (R_f + Z) for Z = (1 - p) R + p R ∥ C at every setting; flat at 0 (the generic wiring, a pot and
+    ///     cap
     ///     across a fixed 5k, cut 1 kHz's feedback by about 5 dB there), the two wirings equal at 10.
     /// </summary>
     [Fact]

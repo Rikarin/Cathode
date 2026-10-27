@@ -27,7 +27,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         The feedback resistor is taken as 47k (the drawing's first value; the 1959SLP reissue drawing also has 47k
 ///         into the presence pot alone). The presence pot is drawn with no 4k7 under it: here, as on
-///         <see cref="Marshall1959Slp" />, the pot is the shunt (<see cref="FeedbackDesign.PresenceIsShunt" />). Not on the drawing
+///         <see cref="Marshall1959Slp" />, the pot is the shunt (<see cref="FeedbackDesign.PresenceIsShunt" />). Not on
+///         the drawing
 ///         (guesses, as on <see cref="SuperLead100" />): the nodes (460, 375, 300 and 270 V), the idle current, the 1.7k
 ///         output transformer, the treble pot's taper. The inverter's 47 pF and its grid-current network are left out
 ///         as on <see cref="SuperLead100" />.

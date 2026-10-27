@@ -127,7 +127,9 @@ public class FenderAmpTests(ITestOutputHelper output) {
         var power = new AmpChannel(Amp.Models.TweedDeluxe.Design, 96_000).Power;
         var (plate, _) = power.PlateCurrents;
         var (screen, _) = power.ScreenCurrents;
-        output.WriteLine($"{power.CathodeResistor:0} Ω, cathode {power.CathodeVoltage:0.0} V, {plate * 1e3:0.0} mA plate");
+        output.WriteLine(
+            $"{power.CathodeResistor:0} Ω, cathode {power.CathodeVoltage:0.0} V, {plate * 1e3:0.0} mA plate"
+        );
         Assert.Equal(250, power.CathodeResistor, 6);
         Assert.Equal(power.CathodeVoltage, 250 * 2 * (plate + screen), 0.05 * power.CathodeVoltage);
         Assert.InRange(plate, 0.030, 0.040);

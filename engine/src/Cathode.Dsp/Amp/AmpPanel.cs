@@ -15,7 +15,8 @@ public sealed record AmpPanel {
     ///     bright caps.
     /// </summary>
     static readonly string[] TubeOnly = [
-        "bias", "feedback", "brightcap", "presag", "powertube", "xfmrmatch", "xfmrlf", "xfmrhf", "xfmrdrive", "speaker", "spkres",
+        "bias", "feedback", "brightcap", "presag", "powertube", "xfmrmatch", "xfmrlf", "xfmrhf", "xfmrdrive", "speaker",
+        "spkres",
         "spkq", "spkpeak", "spkhf", "spkimp", "presfreq", "depthfreq", "supply", "rectifier", "katc", "tremrate",
         "tremdepth", "pthard", "t2plate", "cfcomp", "cfharm", "pibiasx", "ptbiasx", "ptbiastime", "ptrecovery",
         "masterbiasx", "suppressor", "mvloc", "screenfreq", "screenq", "stacktype"

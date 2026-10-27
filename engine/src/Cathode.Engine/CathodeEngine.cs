@@ -264,6 +264,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
             Interlocked.Exchange(ref spill.Graph, null)?.Dispose();
             spill.Dispose();
         }
+
         looper?.Dispose();
         foreach (var eq in outputEqs) {
             eq.Dispose();
@@ -777,5 +778,4 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
             Outputs.Dispose();
         }
     }
-
 }

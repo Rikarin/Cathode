@@ -91,7 +91,9 @@ public static class FriedmanBE100 {
                 1.5e3,
                 0,
                 new(1e6, PotTaper.Linear),
-                new(Math.Sqrt(0.5), 47e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6, 805, 52.0 / 272) { PresenceIsShunt = true },
+                new(Math.Sqrt(0.5), 47e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6, 805, 52.0 / 272) {
+                    PresenceIsShunt = true
+                },
                 true,
                 new(1.7e3),
                 SpeakerDesign.Closed4x12,

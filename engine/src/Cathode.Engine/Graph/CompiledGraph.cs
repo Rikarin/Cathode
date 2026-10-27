@@ -457,7 +457,8 @@ public sealed class CompiledGraph : IDisposable {
                     io.Left.Clear();
                     io.Right.Clear();
                 } else if (latent) {
-                    this.dryLeft.Span[..io.Length].CopyTo(io.Left); // the input, as late as the block would have made it
+                    this.dryLeft.Span[..io.Length]
+                        .CopyTo(io.Left); // the input, as late as the block would have made it
                     this.dryRight.Span[..io.Length].CopyTo(io.Right);
                 }
 
