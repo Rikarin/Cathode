@@ -680,7 +680,8 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
                 Params.Advance(Eq1 + 2, frames),
                 Params.Advance(Eq1 + 3, frames),
                 Params.Advance(Eq1 + 4, frames)
-            )
+            ),
+            Presence: Knob(Params.Current(Presence))
         );
         // The tremolo: the model's own oscillator where it has one (Speed in hertz, Intensity as the knob's rotation),
         // else the generic bias tremolo.

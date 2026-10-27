@@ -27,9 +27,11 @@ namespace Cathode.Dsp.Amp.Models;
 ///         22.6k tail under a 1.6k bias resistor (about 3.5 V of grid bias at 2.2 mA), with the 22 nF and 100k taken
 ///         into V2B's stage as its load (the follower is stiff, so the 100k returns to AC ground, not bootstrapped). The
 ///         presence pot sits between 1 nF from V2B's plate and 0.1 µF to the feedback node, its wiper through 100 Ω to
-///         ground: here it is the library's presence (pot and cap across the shunt), which is its feedback half; the
-///         treble it takes off V2B's plate when turned down, and the fixed 470 Ω with 10 nF across the shunt, are left
-///         out.
+///         ground: its feedback half is the library's presence (pot and cap across the shunt), which acts only near the
+///         top of the knob (100k across 2k2), and its plate-side half is in V2B's stage (1 nF into the pot's lower part
+///         and 100 Ω: <see cref="HiwattParts.PresencePlateSide" />), the treble cut that does the work through the rest
+///         of the travel. The fixed 470 Ω with 10 nF across the shunt is left out (the library's feedback network has
+///         no fixed branch beside the presence's).
 ///     </para>
 ///     <para>
 ///         Not on the drawings (guesses): the rails (B+ 496 V at the plates, as AmpBooks gives; 450 V at the inverter
@@ -156,7 +158,10 @@ public static class HiwattDR103 {
         return new("V2A", net);
     }
 
-    /// <summary>V2B (100k, 1k5 unbypassed), 22 nF into the inverter's 100k grid resistor (the output).</summary>
+    /// <summary>
+    ///     V2B (100k, 1k5 unbypassed), 22 nF into the inverter's 100k grid resistor (the output); from its plate, 1 nF into
+    ///     the presence pot's plate-side half (<see cref="HiwattParts.PresencePlateSide" />).
+    /// </summary>
     static NetworkStageDesign V2B() {
         var net = new StageNetlist();
         var (rail, plate, cathode, grid) = (net.Node(), net.Node(), net.Node(), net.Node());
@@ -164,6 +169,7 @@ public static class HiwattDR103 {
         net.Resistor(rail, plate, 100e3);
         net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
+        HiwattParts.PresencePlateSide(net, plate);
         net.Capacitor(plate, grid, 22e-9);
         net.Resistor(grid, StageNetlist.Ground, 100e3);
         net.Output = grid;

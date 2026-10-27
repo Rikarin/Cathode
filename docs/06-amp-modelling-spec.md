@@ -451,7 +451,12 @@ none of the drawings give):
   (100k, 1k ‖ 47 nF) driving the Hiwatt network from its plate (1 nF, 220 pF, 220k, 22k, Middle 100k ‖ 1 nF, Bass 470k-A,
   100k with 47 nF and 47 nF), 22k into the 220k-A master, V2B (100k, 1k5), a 12AT7 long-tail pair (82k/91k) biased by a
   cathode follower at about 50 V (here the library pair with the same rest point: 22.6k tail, 1.6k bias), four EL34 with
-  22k stoppers and 100 Ω screens, 10k of feedback from the 16 Ω tap into 2k2 and the presence.
+  22k stoppers and 100 Ω screens, 10k of feedback from the 16 Ω tap into 2k2 and the presence. The presence pot (100k
+  linear) is both of its halves: the feedback half is the library's presence network (100k across the 2k2 shunt, so it
+  acts only near the top of the knob), the plate-side half is in V2B's stage (1 nF from the plate into the pot's lower
+  part and 100 Ω to ground, `PotRole.Presence`), the treble cut that works through the rest of the travel: about +4 dB
+  at 8 kHz from 0 to 7.5, where the feedback half alone gave a few tenths. The DR504 shares it (`HiwattParts`). The fixed
+  470 Ω with 10 nF across the shunt is still left out: `FeedbackDesign` has no fixed branch beside the presence's.
 - **JCM900 4100/4500**: not built. The vector reissue of drawing JMP52-02 (issue 11, 1997) is fully legible and was
   read: input 10k, 100 pF, 0.1 µF, 1M; IC1 (M5201, a dual op-amp whose sections the channel switch mutes) channel A
   non-inverting 1 + 100k ‖ 22 pF over 15k + 0.1 µF, channel B 1 + 100k ‖ 470 pF over 4k7 + 47 nF; channel A: 47 nF, 22k
