@@ -344,7 +344,11 @@ export class Sidecars {
     };
   }
 
-  private serverCommand(): Command {
+  /**
+   * The token goes in the environment, never on the command line: other accounts on the machine can read every
+   * process's arguments (`ps`, Task Manager), but not its environment.
+   */
+  private serverCommand(): Command & { env: NodeJS.ProcessEnv } {
     const server = engine.server();
     return {
       command: server.command,
@@ -352,10 +356,10 @@ export class Sidecars {
         ...server.args,
         `--urls=http://127.0.0.1:${this.port}${this.onNetwork() ? `;http://0.0.0.0:${this.network.port}` : ''}`,
         `--Cathode:Engine:SocketPath=${this.socket}`,
-        `--Cathode:Token=${this.token()}`,
         ...(this.onNetwork() ? [`--Cathode:EditorDirectory=${this.editorDirectory}`] : []),
         ...(this.dataDirectory ? [`--Cathode:DataDirectory=${this.dataDirectory}`] : [])
-      ]
+      ],
+      env: { Cathode__Token: this.token() }
     };
   }
 }
