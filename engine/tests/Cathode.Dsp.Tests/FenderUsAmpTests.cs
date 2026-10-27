@@ -145,11 +145,11 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
     ///     Fender's drawings list the AC signal at test points for a 1 kHz sine at the input with the knobs at noon:
     ///     the Hot Rod Deluxe III in Drive mode at 4 mV (V1B's grid 13 mV, V2A's grid 58 mV, its plate 1.49 V; the
     ///     loop's send, 1.45 V, is inside the channel stage here), the Blues Junior III at 10 mV (after the volume 42
-    ///     mV, the treble wiper 162 mV, the master's wiper 114 mV). The Blues Junior's are within 3.1 dB. The Hot Rod
-    ///     Deluxe's are within 6 dB: its stack's loss between V1B's plate and V2A's grid (15.7 dB on the drawing) is
+    ///     mV, the treble wiper 162 mV, the master's wiper 114 mV). The Blues Junior's are within 2.9 dB. The Hot Rod
+    ///     Deluxe's are within 6.6 dB: its stack's loss between V1B's plate and V2A's grid (15.7 dB on the drawing) is
     ///     what the stack's values give (16.5 dB), but the drawing's V1B gain (27 from grid to plate) is lower than a
-    ///     12AX7 with a bypassed 1.5k into that load gives, so our V2A grid is 4 dB hotter and the error carries on
-    ///     down the chain.
+    ///     12AX7 with a bypassed 1.5k into that load gives, so our V2A grid is 4.7 dB hotter and the error carries on
+    ///     down the chain (the 12AX7 refitted to RCA's points, a little steeper at these stages' idle, added 0.6 dB).
     /// </summary>
     [Theory]
     [InlineData("Hot Rod Deluxe", 0.004, "V1A=0.013,V1B=0.058,V2A=1.49")]
@@ -205,7 +205,7 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
             }
         }
 
-        Assert.All(errors, static e => Assert.InRange(e, -6.5, 6.5));
+        Assert.All(errors, static e => Assert.InRange(e, -7, 7));
     }
 
     [Fact]

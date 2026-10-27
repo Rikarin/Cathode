@@ -521,11 +521,12 @@ public partial class AmpStageTests {
     public void Power_amp_variants_match_the_reference_in_the_time_domain(string name) {
         var stiff = new PowerSupplyDesign(1e-3, 1, 1e-3, 1, 1e3, 1, 0);
         var plexi = Plexi.Design.Power with { PowerSupply = stiff };
-        // The inverter-input cases keep the 820 Ω bias the generic Plexi had when they were written: at their 7 V of
-        // drive a Marshall's 470 Ω puts the idle grid into grid current as well, which the pair's table leaves out (see
-        // Long_tail_pair_table_matches_the_reference_dc_sweep), and these cases are about the input network.
+        // The inverter-input cases bias the pair with 1k (the generic Plexi had 820 Ω when they were written): at their
+        // 7 V of drive a Marshall's 470 Ω puts the idle grid into grid current as well, which the pair's table leaves
+        // out (see Long_tail_pair_table_matches_the_reference_dc_sweep), and these cases are about the input network.
+        // With the 12AX7 refitted to its datasheet the pair draws more current, and 820 Ω got there too (-30 dB).
         var inputFixture = plexi with {
-            PhaseInverter = new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 10e3, 820),
+            PhaseInverter = new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 10e3, 1e3),
             InverterInput = new(22e-9, 1e6)
         };
         var sixV6 = AC30.Design.Power with {

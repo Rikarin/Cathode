@@ -298,6 +298,14 @@ sealed class ReferenceSimulator {
 
             Array.Copy(x, last, size);
             var solution = Solve(a, rhs);
+            if (iteration > 50) {
+                // Still cycling (a triode's knee at a low plate, with Koren's 12AX7 refitted to its datasheet points):
+                // half steps settle it.
+                for (var i = 0; i < size; i++) {
+                    solution[i] = last[i] + 0.5 * (solution[i] - last[i]);
+                }
+            }
+
             Array.Copy(solution, x, size);
 
             var limited = false;

@@ -327,12 +327,12 @@ public sealed class ToneStackStage : AmpStage {
     }
 
     /// <summary>
-    ///     The load wiper's resistance to ground with the sources off: the triode linearised at the operating point (the
-    ///     device's own Jacobian, grid current included: a cathode follower's grid sits near its cathode), the stack's
-    ///     and the bright cap's caps at their 1 kHz reactances and a bypassed cathode's cap across its resistor, solved
-    ///     by nodal analysis like <see cref="NetworkStage{TDevice}" />'s. So the source the next stage sees includes the
-    ///     treble pot's halves, the caps and the driver's own impedance (a cathode follower's few hundred ohms, a
-    ///     plate's tens of kΩ), not only the load pot and the slope resistor.
+    ///     The load wiper's resistance to ground with the sources off: the triode linearised at the operating point
+    ///     (the device's own Jacobian, grid current included: a cathode follower's grid sits near its cathode), the
+    ///     stack's and the bright cap's caps at their 1 kHz reactances and a bypassed cathode's cap across its
+    ///     resistor, solved by nodal analysis like <see cref="NetworkStage{TDevice}" />'s. So the source the next
+    ///     stage sees includes the treble pot's halves, the caps and the driver's own impedance (a cathode follower's
+    ///     few hundred ohms, a plate's tens of kΩ), not only the load pot and the slope resistor.
     /// </summary>
     double SmallSignalOutputResistance() {
         const double Omega = 2 * Math.PI * 1_000;

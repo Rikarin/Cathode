@@ -114,7 +114,7 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
     /// <summary>
     ///     Signal to in-band (under 20 kHz) aliases of a 2 kHz, 0.3 V sine at gain 8 on the models that alias most
     ///     (docs/06 §3.4): Standard oversampling may not fall below today's floor, and High (4 x) buys at least 6 dB
-    ///     more. Measured 23.6 / 34.7 (SLO-100), 19.7 / 26.5 (5150), 25.8 / 36.3 (Dual Rectifier), 21.0 / 28.1 dB
+    ///     more. Measured 23.8 / 33.0 (SLO-100), 19.7 / 26.3 (5150), 24.8 / 34.7 (Dual Rectifier), 20.9 / 27.7 dB
     ///     (5150III).
     /// </summary>
     [Theory]
