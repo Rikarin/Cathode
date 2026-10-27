@@ -403,6 +403,7 @@ Still to come: RMS, per-block CPU, scene state, and binary frames.
 Every mutation produces an **event** on `/ws`, whatever its source (REST, MIDI or footswitch). That keeps multiple editors in sync, and makes MIDI-driven changes visible in the UI as they are on Axe-Edit.
 
 Live state outside the preset has events of its own, which carry the current `revision` without raising it (the working copy did not change):
+- `globalChanged`: the global settings changed, from `PUT /global` or as a side effect: a footswitch's metronome, layout or view, a Manual A–D knob or pedal, MIDI learn, a linked global block's parameters. Clients fetch `GET /global` again.
 - `tunerChanged` (`value` 1 or 0): the tuner went on or off, from `PUT /tuner`, a MIDI mapping or a footswitch. The rig owns the tuner state, so a footswitch LED follows the editor's tuner and the other way round, and a host that restarts gets the tuner back as part of the resync, with whether to follow MIDI clock.
 
 ---

@@ -8,6 +8,9 @@ using Cathode.Server.Rig;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
+using System.Net.WebSockets;
+using System.Text;
+using System.Text.Json.Nodes;
 
 namespace Cathode.Server.Tests;
 
@@ -249,6 +252,43 @@ public sealed class ControlsApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task Global_settings_changed_from_midi_publish_an_event() {
+        await PutGlobal(static g => {
+                g.MidiMappings.Add(new("metro", "note", 0, 86, "metronome"));
+                g.MidiMappings.Add(new("manual", "cc", 0, 87, "manual", Value: 2));
+            }
+        );
+        using var socket = await server.Server.CreateWebSocketClient()
+            .ConnectAsync(new(server.Server.BaseAddress, "ws"), Token);
+        await NextEvent(socket, "connected"); // registered: from here on it sees every change
+        var router = server.Services.GetRequiredService<MidiRouter>();
+
+        router.OnMidi([new(0x90, 86, 127, 0)]); // the metronome, from a footswitch
+        await NextEvent(socket, "globalChanged");
+        router.OnMidi([new(0xB0, 87, 127, 0)]); // Manual C, from a pedal
+        await NextEvent(socket, "globalChanged");
+
+        var global = await Global();
+        Assert.True(global.Metronome);
+        Assert.Equal(1f, global.Manual[2]);
+        await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", Token);
+    }
+
+    /// <summary>Reads WebSocket messages until one of type <paramref name="type" /> arrives.</summary>
+    static async Task NextEvent(WebSocket socket, string type) {
+        var buffer = new byte[256 * 1024];
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Token);
+        deadline.CancelAfter(TimeSpan.FromSeconds(30)); // generous: a busy machine
+        while (true) {
+            var result = await socket.ReceiveAsync(buffer, deadline.Token);
+            var message = JsonNode.Parse(Encoding.UTF8.GetString(buffer, 0, result.Count));
+            if (message?["type"]?.GetValue<string>() == type) {
+                return;
+            }
+        }
+    }
+
+    [Fact]
     public async Task Selecting_a_scene_sends_its_midi_messages() {
         var sent = new List<byte[]>();
         server.Host.NativeMidiSend = (_, bytes) => {
@@ -423,6 +463,8 @@ public sealed class ControlsApiTests : IAsyncLifetime {
             return sent.Any(m => m.SequenceEqual(message));
         }
     }
+
+    async Task<GlobalSettings> Global() => (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!;
 
     async Task PutGlobal(Action<GlobalSettings> change) {
         var global = (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!;

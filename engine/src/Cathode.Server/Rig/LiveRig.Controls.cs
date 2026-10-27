@@ -351,8 +351,16 @@ public sealed partial class LiveRig {
     public void SetExternal(int index, float value) =>
         engine.SetParams(generation, [new(IpcBlocks.Rig, $"ext{index + 1}", Math.Clamp(value, 0f, 1f))]);
 
-    /// <summary>Global settings changed (EQ, metronome, tempo mode): put them into the engine.</summary>
+    /// <summary>
+    ///     Global settings changed (EQ, metronome, tempo mode, Manual A-D, the footswitch layout or view), from the
+    ///     editor, MIDI or a footswitch: put them into the engine and tell clients with <c>globalChanged</c>, which
+    ///     carries the current revision without raising it (the working copy did not change).
+    /// </summary>
     public void ApplyGlobalSettings(GlobalSettings global) {
+        hub.Publish(
+            new RigEvent("globalChanged", Interlocked.Read(ref revision)),
+            ContractsJsonContext.Default.RigEvent
+        );
         var values = GlobalValues(global);
         if (global.TempoMode == "preset") {
             values.Add(new(IpcBlocks.Rig, "tempo", (float)preset.Tempo));
