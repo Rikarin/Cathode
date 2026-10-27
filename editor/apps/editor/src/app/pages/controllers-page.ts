@@ -16,6 +16,7 @@ import { Coalescer } from '../core/coalescer';
 import { ConnectionService } from '../core/connection';
 import { Notify } from '../core/notify';
 import { GlobalStore } from '../state/global.store';
+import { KnobGesture } from '../state/knob-gesture';
 import { LiveStore } from '../state/live.store';
 
 /** External 1-8: the modifier sources a pedal or CC drives. */
@@ -64,6 +65,7 @@ export function scopeName(channel: string | null | undefined): string {
             [defaultValue]="0"
             [value]="sceneLevel()"
             (valueChange)="setSceneLevel($event)"
+            (committed)="gesture('level').end()"
           />
           @for (value of sceneControllers(); track $index) {
             <cth-knob
@@ -73,6 +75,7 @@ export function scopeName(channel: string | null | undefined): string {
               [max]="100"
               [value]="value * 100"
               (valueChange)="setSceneController($index, $event / 100)"
+              (committed)="gesture('controller' + $index).end()"
             />
           }
         </div>
@@ -313,6 +316,10 @@ export class ControllersPage {
    * values sent but not yet confirmed shown meanwhile, so a dragged knob neither floods the rig nor jumps back.
    */
   private readonly sending = new Coalescer<number | number[]>((key, value) => this.send(key, value));
+  /** The scene knobs' gestures, by knob: one drag is one undo step, the next drag another. */
+  private readonly gestures = new Map<string, KnobGesture>();
+  /** The gesture of the value waiting in {@link sending} for a scene key, sent with it. */
+  private readonly gestureOf = new Map<string, string>();
 
   protected readonly manualNames = ['A', 'B', 'C', 'D'];
   protected readonly modifiers = computed(() => this.live.preset()?.modifiers ?? []);
@@ -367,13 +374,28 @@ export class ControllersPage {
   }
 
   protected setSceneLevel(level: number): Promise<void> {
-    return this.sending.set(`scene:${this.live.activeScene()}:level`, level);
+    const key = `scene:${this.live.activeScene()}:level`;
+    this.gestureOf.set(key, this.gesture('level').current());
+    return this.sending.set(key, level);
   }
 
   protected setSceneController(index: number, value: number): Promise<void> {
     const controllers = [...this.sceneControllers()];
     controllers[index] = value;
-    return this.sending.set(`scene:${this.live.activeScene()}:controllers`, controllers);
+    const key = `scene:${this.live.activeScene()}:controllers`;
+    this.gestureOf.set(key, this.gesture(`controller${index}`).current());
+    return this.sending.set(key, controllers);
+  }
+
+  /** A scene knob's gesture. */
+  protected gesture(knob: string): KnobGesture {
+    let gesture = this.gestures.get(knob);
+    if (!gesture) {
+      gesture = new KnobGesture();
+      this.gestures.set(knob, gesture);
+    }
+
+    return gesture;
   }
 
   protected clamp(raw: string, min: number, max: number): number {
@@ -415,7 +437,8 @@ export class ControllersPage {
     } else if (kind === 'scene') {
       await this.live.updateScene(
         Number(id),
-        field === 'level' ? { level: value as number } : { controllers: value as number[] }
+        field === 'level' ? { level: value as number } : { controllers: value as number[] },
+        this.gestureOf.get(key)
       );
     } else if (kind === 'external') {
       const index = Number(id);

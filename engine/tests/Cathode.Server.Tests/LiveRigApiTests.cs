@@ -149,8 +149,12 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
     public async Task Knob_drags_coalesce_into_one_undo_step() {
         await Post("/api/v1/live/blocks", new AddBlockRequest("volpan", 2, 1));
         var before = await Live();
+        // One gesture: one step however slowly the test machine sends it (no 2 s window applies).
         for (var level = -1f; level >= -10f; level -= 1f) {
-            await Patch("/api/v1/live/blocks/volpan1/params", new Dictionary<string, float> { ["level"] = level });
+            await Patch(
+                "/api/v1/live/blocks/volpan1/params?gesture=drag",
+                new Dictionary<string, float> { ["level"] = level }
+            );
         }
 
         var undone = await Post("/api/v1/live/undo");
@@ -160,6 +164,37 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
             undone.Preset.Blocks.Single(static b => b.Id == "volpan1").Channels.Count
         );
         Assert.True(undone.CanUndo); // the add-block step is still there
+    }
+
+    [Fact]
+    public async Task Two_drags_of_one_knob_are_two_undo_steps_however_close_together() {
+        await Post("/api/v1/live/blocks", new AddBlockRequest("volpan", 2, 1));
+        const string url = "/api/v1/live/blocks/volpan1/params?channel=A&gesture=";
+
+        // Drag 1: -1 .. -5, released; drag 2 straight after: -6 .. -8.
+        for (var level = -1f; level >= -5f; level -= 1f) {
+            await Patch(url + "drag1", new Dictionary<string, float> { ["level"] = level });
+        }
+
+        for (var level = -6f; level >= -8f; level -= 1f) {
+            await Patch(url + "drag2", new Dictionary<string, float> { ["level"] = level });
+        }
+
+        var undone = await Post("/api/v1/live/undo");
+        Assert.Equal(-5f, undone.Preset.Blocks.Single(static b => b.Id == "volpan1").Channels["A"]["level"]);
+        var again = await Post("/api/v1/live/undo");
+        Assert.False(
+            again.Preset.Blocks.Single(static b => b.Id == "volpan1").Channels.TryGetValue("A", out var values)
+            && values.ContainsKey("level")
+        );
+        Assert.True(again.CanUndo); // the add-block step is still there
+
+        using var tooLong = await client.PatchAsJsonAsync(
+            url + new string('g', 65),
+            new Dictionary<string, float> { ["level"] = -1 },
+            Token
+        );
+        Assert.Equal(HttpStatusCode.BadRequest, tooLong.StatusCode);
     }
 
     [Fact]

@@ -346,6 +346,7 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
+    /** Sets parameters (undoable). With gesture (a client-made id for one drag of a knob, up to 64 characters), the changes of one gesture are one undo step and the next gesture is another; without, a run of changes to the same knob is one step until a 2 s pause. With load, the change was made on that load of a preset (LiveState.load) and is refused with 412 once another is loaded. */
     patch: operations['SetParams'];
     trace?: never;
   };
@@ -646,6 +647,7 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
+    /** Renames a scene or sets its level, controllers or MIDI. Level and controller changes coalesce into one undo step per gesture (a client-made id, as for SetParams) or, without one, until a 2 s pause. */
     patch: operations['UpdateScene'];
     trace?: never;
   };
@@ -1325,8 +1327,9 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
+    /** The global settings, with their revision as the ETag (send it back as If-Match on a PUT). */
     get: operations['GetGlobal'];
-    /** Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs (calibration, gain), oversampling, the tuner output, Manual A-D, MIDI, footswitches, global blocks, scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC and spillover. */
+    /** Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs (calibration, gain), oversampling, the tuner output, Manual A-D, MIDI, footswitches, global blocks, scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC and spillover. With If-Match (the revision a GET or PUT answered with as the ETag), refused with 412 when another change came first. */
     put: operations['PutGlobal'];
     post?: never;
     delete?: never;
@@ -2215,7 +2218,9 @@ export interface components {
     /**
      * @description The rig as it is running: the working copy, which scene is active, and whether it differs from the library.
      *     `Held` lists the blocks whose bypass and channel differ from the active scene's because Scene Ignore kept
-     *     them as they were: what they are running now.
+     *     them as they were: what they are running now. `Load` counts the presets loaded into the working copy (a new
+     *     one, a library preset, the same one again): an edit made against one load can name it and is refused once
+     *     another has replaced the working copy.
      */
     LiveState: {
       preset: components['schemas']['Preset'];
@@ -2231,6 +2236,11 @@ export interface components {
       };
       /** @default false */
       muted: boolean;
+      /**
+       * Format: int64
+       * @default 0
+       */
+      load: number;
     };
     /** @description Arms MIDI learn: the next CC, note or program change received is bound to this action. */
     MidiLearnRequest: {
@@ -3150,6 +3160,8 @@ export interface operations {
     parameters: {
       query?: {
         channel?: string;
+        load?: number;
+        gesture?: string;
       };
       header?: never;
       path: {
@@ -3645,7 +3657,9 @@ export interface operations {
   };
   UpdateScene: {
     parameters: {
-      query?: never;
+      query?: {
+        gesture?: string;
+      };
       header?: never;
       path: {
         scene: number;
@@ -3747,7 +3761,9 @@ export interface operations {
   };
   SetControllers: {
     parameters: {
-      query?: never;
+      query?: {
+        gesture?: string;
+      };
       header?: never;
       path?: never;
       cookie?: never;

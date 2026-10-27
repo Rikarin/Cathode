@@ -7,12 +7,15 @@ namespace Cathode.Server.Stores;
 
 /// <summary>
 ///     The global settings document (<c>&lt;data&gt;/global.json</c>), written atomically. Readers get a copy;
-///     <see cref="Update" /> applies a change under a lock and raises <see cref="Changed" /> with the result.
+///     <see cref="Update" /> applies a change under a lock and raises <see cref="Changed" /> with the result. Every
+///     change takes a new revision (an in-memory counter, like the live rig's), so a client that replaces the whole
+///     document can say which one it changed (<see cref="UpdateIf" />).
 /// </summary>
 public sealed class GlobalStore {
     readonly string path;
     readonly Lock gate = new();
     GlobalSettings settings;
+    long revision;
 
     public GlobalStore(IOptions<ServerOptions> options, ILogger<GlobalStore>? logger = null) {
         Directory.CreateDirectory(options.Value.DataDirectory);
@@ -26,17 +29,36 @@ public sealed class GlobalStore {
         }
     }
 
-    public GlobalSettings Update(Action<GlobalSettings> change) {
-        GlobalSettings result;
+    /// <summary>A copy of the settings and their revision, read together.</summary>
+    public (GlobalSettings Settings, long Revision) Versioned() {
         lock (gate) {
+            return (Copy(settings), revision);
+        }
+    }
+
+    public GlobalSettings Update(Action<GlobalSettings> change) => UpdateIf(null, change)!.Value.Settings;
+
+    /// <summary>
+    ///     Applies <paramref name="change" /> when the settings are still at revision <paramref name="expected" /> (or
+    ///     whatever their revision, when null); returns the result and its revision, or null (changing nothing) when
+    ///     another change came first.
+    /// </summary>
+    public (GlobalSettings Settings, long Revision)? UpdateIf(long? expected, Action<GlobalSettings> change) {
+        (GlobalSettings Settings, long Revision) result;
+        lock (gate) {
+            if (expected is { } wanted && wanted != revision) {
+                return null;
+            }
+
             var next = Copy(settings);
             change(next);
             AtomicRename.Write(path, JsonSerializer.Serialize(next, ContractsJsonContext.Default.GlobalSettings));
             settings = next;
-            result = Copy(next);
+            revision++;
+            result = (Copy(next), revision);
         }
 
-        Changed?.Invoke(result);
+        Changed?.Invoke(result.Settings);
         return result;
     }
 

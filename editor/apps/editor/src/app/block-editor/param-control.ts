@@ -26,6 +26,7 @@ import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
 import { withControl } from '../pages/perform';
 import { GlobalStore } from '../state/global.store';
+import { KnobGesture } from '../state/knob-gesture';
 import { LiveStore } from '../state/live.store';
 import { UiStore } from '../state/ui.store';
 
@@ -79,7 +80,8 @@ import { UiStore } from '../state/ui.store';
             [color]="accent()"
             [value]="value()"
             [modulated]="modulated()"
-            (valueChange)="set($event)"
+            (valueChange)="set($event, gesture.current())"
+            (committed)="gesture.end()"
           />
         </div>
         <ng-template #menu>
@@ -177,6 +179,8 @@ export class ParamControl {
   private readonly ui = inject(UiStore);
   private readonly globals = inject(GlobalStore);
   private readonly events = inject(EventStream);
+  /** The knob's gesture: one drag is one undo step, and the next drag another (the knob's `committed` ends it). */
+  protected readonly gesture = new KnobGesture();
 
   readonly block = input.required<PresetBlock>();
   readonly param = input.required<ParameterInfo>();
@@ -262,9 +266,9 @@ export class ParamControl {
     }
   }
 
-  protected set(value: number): void {
+  protected set(value: number, gesture?: string): void {
     const block = this.block();
-    this.live.setParam(block.id, this.live.channelOf(block.id), this.param().id, value);
+    this.live.setParam(block.id, this.live.channelOf(block.id), this.param().id, value, gesture);
     this.edited.emit(value);
   }
 }
