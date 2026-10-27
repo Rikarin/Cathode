@@ -120,6 +120,8 @@ public sealed class BufferStage : AmpStage {
 
     public override void Reset(double restInput) => rest = restInput;
 
+    public override void Retune(double restInput) => rest = restInput;
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override double Tick(double input) => input;
 

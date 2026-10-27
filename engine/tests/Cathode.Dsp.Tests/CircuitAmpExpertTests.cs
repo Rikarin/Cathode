@@ -376,6 +376,57 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         design.Panel.Label(CircuitAmpBlock.Info.Params[index].Id, "-") is not null
         && index is not (CircuitAmpBlock.Variac or CircuitAmpBlock.SupplyTime);
 
+    /// <summary>
+    ///     Preamp Bias, Preamp and Power Tube Hardness and CF Harmonics are continuous knobs: swept a little every block,
+    ///     the channel retunes and slews instead of resetting to its rest (which cut the signal to DC at every step).
+    /// </summary>
+    [Theory]
+    [InlineData("bias")]
+    [InlineData("hardness")]
+    [InlineData("follower")]
+    [InlineData("power hardness")]
+    public void Sweeping_a_continuous_operating_point_setting_does_not_cut_the_signal(string setting) {
+        var controls = new AmpControls(0.6, 0.5, 0.5, 0.5, 0.6, false);
+        var power = new PowerControls(0.5, 0.5, 0.5, 0.5, 0.5, 0.5);
+        var channel = new AmpChannel(JCM2203.Design, InnerRate);
+        channel.Configure(controls, power);
+        channel.Reset();
+        var (largestStep, peak, previous) = (0.0, 0.0, 0.0);
+        var steps = 0;
+        for (var n = 0; n < 48_000; n++) {
+            if (n >= 24_000 && n % 64 == 0) {
+                // Up to 10 % away over the second half, in blocks of 64 samples as the Circuit Amp applies it.
+                var amount = 1 + 0.1 * (n - 24_000) / 24_000;
+                var preamp = setting switch {
+                    "bias" => PreampSettings.Stock with { CathodeResistor = amount },
+                    "hardness" => PreampSettings.Stock with { Hardness = amount },
+                    "follower" => PreampSettings.Stock with { FollowerBias = amount },
+                    _ => PreampSettings.Stock
+                };
+                var settings = setting == "power hardness" ? PowerSettings.Stock with { Hardness = amount }
+                    : PowerSettings.Stock;
+                channel.Apply(preamp, settings, ChannelSettings.Stock);
+                channel.Configure(controls, power);
+                steps++;
+            }
+
+            var y = channel.Tick(0.3 * Math.Sin(2 * Math.PI * 220 * n / InnerRate));
+            if (n >= 12_000) {
+                var step = Math.Abs(y - previous);
+                if (n < 24_000) {
+                    peak = Math.Max(peak, step); // the signal's own steepest sample-to-sample step
+                } else {
+                    largestStep = Math.Max(largestStep, step);
+                }
+            }
+
+            previous = y;
+        }
+
+        output.WriteLine($"{setting}: {steps} steps, steepest {largestStep:0.000} V against the signal's {peak:0.000} V");
+        Assert.True(largestStep < 1.5 * peak, $"{largestStep:0.000} V step against the signal's {peak:0.000} V");
+    }
+
     /// <summary>Whether a model has a bright cap for the Bright Cap setting to scale (the Mark IV's lead channel has none).</summary>
     static bool HasBrightCap(AmpDesign design) =>
         design.Preamp.Any(static s => s switch {

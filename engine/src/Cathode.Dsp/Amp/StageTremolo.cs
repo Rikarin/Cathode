@@ -312,6 +312,8 @@ public sealed class OpticalTremoloStage : AmpStage {
 
     public override void Apply(in PreampSettings settings) => inner.Apply(settings);
 
+    public override void Retune(double restInput) => inner.Retune(restInput);
+
     public override void Reset(double restInput) {
         inner.Reset(restInput);
         phase = 0;
@@ -512,6 +514,12 @@ public sealed class GridDriveTremoloStage : AmpStage {
     public override void Apply(in PreampSettings settings) {
         plain.Apply(settings);
         modulated.Apply(settings);
+    }
+
+    public override void Retune(double restInput) {
+        this.restInput = restInput;
+        plain.Retune(restInput);
+        modulated.Retune(restInput);
     }
 
     public override void Reset(double restInput) {

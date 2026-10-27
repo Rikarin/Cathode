@@ -404,6 +404,12 @@ public sealed class HarmonicVibratoStage : AmpStage {
         treble.Apply(settings);
     }
 
+    public override void Retune(double restInput) {
+        bass.Retune(restInput);
+        treble.Retune(restInput);
+        Mix();
+    }
+
     public override void Reset(double restInput) {
         bass.Reset(restInput);
         treble.Reset(restInput);

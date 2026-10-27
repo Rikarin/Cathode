@@ -489,11 +489,12 @@ public sealed class PowerAmp {
         var reset = false;
         var model = settings.Tube ?? Design.Tube;
         if (model != tube || settings.Triode != previous.Triode || settings.Hardness != previous.Hardness) {
+            // A new tube or wiring resets the channel; the hardness is a continuous knob: rebiased, the stage slews.
+            reset = model != tube || settings.Triode != previous.Triode;
             tube = model;
             law = model.Hardened(settings.Hardness);
             root.Device.SetTube(PentodeTables.For(model), ScreenTap(settings.Triode), settings.Hardness);
             Rebias();
-            reset = true;
         }
 
         if (settings.GridExcursion != previous.GridExcursion

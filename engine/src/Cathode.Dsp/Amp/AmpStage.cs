@@ -189,12 +189,21 @@ public readonly record struct PreampSettings(
     /// <summary>The exact model of that device, for operating points.</summary>
     public TriodeModel Law(TriodeModel stock) => TubeFor(stock).Hardened(Hardness);
 
-    /// <summary>Whether a change from <paramref name="previous" /> moves an operating point (the channel resets).</summary>
+    /// <summary>
+    ///     Whether a change from <paramref name="previous" /> moves an operating point: a new tube resets the channel
+    ///     (<see cref="SwapsTube" />), a continuous setting retunes it (<see cref="AmpStage.Retune" />).
+    /// </summary>
     public bool MovesOperatingPoint(in PreampSettings previous) =>
         Tube != previous.Tube
         || CathodeResistor != previous.CathodeResistor
         || Hardness != previous.Hardness
         || FollowerBias != previous.FollowerBias;
+
+    /// <summary>
+    ///     Whether a change from <paramref name="previous" /> puts another tube in: a discrete swap, after which the
+    ///     channel resets to the new operating point rather than slewing there.
+    /// </summary>
+    public bool SwapsTube(in PreampSettings previous) => Tube != previous.Tube;
 
     /// <summary>Whether a stage must rebuild its devices for a change from <paramref name="previous" />.</summary>
     public bool ChangesDevices(in PreampSettings previous) =>
@@ -255,10 +264,21 @@ public abstract class AmpStage {
     public abstract void Update(in AmpControls controls);
 
     /// <summary>
-    ///     Applies the expert settings (component values; allocation-free). A new tube or cathode resistor moves the
-    ///     operating point, so the channel resets afterwards (<see cref="Reset" />).
+    ///     Applies the expert settings (component values; allocation-free). A new tube moves the operating point, so
+    ///     the channel resets afterwards (<see cref="Reset" />); a continuous setting that moves it (the cathode
+    ///     resistor, the hardness, a follower's bias) only retunes it (<see cref="Retune" />), so the knob can be swept or
+    ///     automated without cutting the signal.
     /// </summary>
     public virtual void Apply(in PreampSettings settings) { }
+
+    /// <summary>
+    ///     Recomputes <see cref="RestOutput" /> and <see cref="OutputResistance" /> for the current settings and a
+    ///     source resting at <paramref name="restInput" /> volts, leaving the circuit's state alone: the caps and Newton
+    ///     carry on from where they are and the circuit slews to its new operating point by itself (a cathode bypass
+    ///     cap recharging through the new resistor). Allocation-free. A stage whose operating point no setting moves
+    ///     keeps the default, which does nothing.
+    /// </summary>
+    public virtual void Retune(double restInput) { }
 
     /// <summary>
     ///     Puts the stage at its DC operating point for a source resting at <paramref name="restInput" /> volts:
