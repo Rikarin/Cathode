@@ -393,23 +393,29 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
                   role="tablist"
                   aria-label="Block pages"
                   aria-orientation="vertical"
-                  class="border-border -my-1 flex w-32 shrink-0 flex-col gap-0.5 border-e pe-3"
+                  class="border-hairline-strong flex w-34 shrink-0 flex-col gap-0.5 self-start rounded-lg border bg-(--well) p-1 shadow-[inset_0_1px_3px_rgb(0_0_0/0.6),0_1px_0_var(--highlight)]"
                   data-testid="block-pages"
                 >
+                  <!-- A sunken well of pages; the one shown is a raised key with an LED in the block's colour. -->
                   @for (name of pages(); track name) {
                     <button
                       type="button"
                       role="tab"
-                      class="rounded-md px-2.5 py-1.5 text-start text-sm transition-colors"
-                      [class.bg-active-overlay]="name === page()"
-                      [class.font-medium]="name === page()"
+                      class="focus-visible:outline-focus flex items-center gap-2 rounded-md border px-2.5 py-1 text-start text-[13px] outline-offset-1 transition-colors focus-visible:outline-2"
+                      [class.cth-page-key]="name === page()"
+                      [class.border-transparent]="name !== page()"
                       [class.text-foreground-muted]="name !== page()"
                       [class.hover:bg-hover-overlay]="name !== page()"
                       [class.hover:text-foreground]="name !== page()"
-                      [style.color]="name === page() ? accent() : null"
                       [attr.aria-selected]="name === page()"
                       (click)="showPage(name)"
                     >
+                      <span
+                        class="size-1.5 shrink-0 rounded-full transition-[background,box-shadow]"
+                        [style.background]="name === page() ? led() : 'rgb(255 255 255 / 0.12)'"
+                        [style.box-shadow]="name === page() ? '0 0 5px ' + led() : null"
+                        aria-hidden="true"
+                      ></span>
                       {{ name }}
                     </button>
                   }
@@ -602,6 +608,8 @@ export class BlockEditor {
   });
   protected readonly category = computed(() => this.info()?.category ?? '');
   protected readonly accent = computed(() => blockAccent(this.category()));
+  /** The shown page's LED: the block's accent, the theme's primary for a category without one. */
+  protected readonly led = computed(() => this.accent() ?? 'var(--color-primary)');
 
   protected showPage(name: string): void {
     const type = this.block()?.type;

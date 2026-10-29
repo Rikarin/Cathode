@@ -519,3 +519,14 @@ xui-menu {
     }
   }
 }
+
+/* The block page's shown page: a raised key in the pages' sunken well (block-editor.ts). */
+.cth-page-key {
+  border-color: var(--bezel-border);
+  background-image: linear-gradient(to bottom, var(--bezel-top), var(--bezel-bottom));
+  box-shadow:
+    inset 0 1px 0 var(--highlight),
+    var(--bezel-shadow);
+  color: var(--color-foreground);
+  font-weight: 500;
+}
