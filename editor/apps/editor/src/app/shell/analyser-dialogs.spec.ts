@@ -14,7 +14,21 @@ describe('the analyser dialogs', () => {
   function render<T>(component: Type<T>) {
     const sent: { path: string; query: unknown; body: unknown }[] = [];
     const connected$ = new Subject<void>();
-    const settings = signal({ tunerOutput: 'mute' } as GlobalSettings);
+    const settings = signal({
+      tunerOutput: 'mute',
+      tunerView: 'needle',
+      tuning: 'chromatic',
+      tunerReference: 440,
+      tunerOffsetsOn: false,
+      tunerOffsets: [0, 0, 0, 0, 0, 0, 0, 0]
+    } as GlobalSettings);
+    const events = {
+      clientId: 'me',
+      connected$,
+      scope: null,
+      rta: null,
+      latest: null as { tuner?: { frequency: number; note: string; octave: number; cents: number } } | null
+    };
     TestBed.configureTestingModule({
       providers: [
         {
@@ -40,7 +54,7 @@ describe('the analyser dialogs', () => {
             }
           }
         },
-        { provide: EventStream, useValue: { clientId: 'me', connected$, scope: null, rta: null } },
+        { provide: EventStream, useValue: events },
         { provide: Notify, useValue: { run: (action: () => Promise<unknown>) => action() } }
       ]
     });
@@ -51,7 +65,7 @@ describe('the analyser dialogs', () => {
       (fixture.componentInstance as unknown as { open: { set(value: boolean): void } }).open.set(on);
       fixture.detectChanges();
     };
-    return { sent, open, connected$, fixture, settings };
+    return { sent, open, connected$, fixture, settings, events };
   }
 
   it('the tuner stores the global Tuner Output, and only a change', async () => {
@@ -67,6 +81,57 @@ describe('the analyser dialogs', () => {
     await Promise.resolve();
     expect(settings().tunerOutput).toBe('bypass');
     expect(sent).toEqual([]);
+  });
+
+  it('the tuner stores its view, tuning, reference and offsets, clamped', async () => {
+    const { fixture, settings } = render(TunerDialog);
+    const dialog = fixture.componentInstance as unknown as {
+      setView(value: string): void;
+      setTuning(value: string): void;
+      setReference(field: HTMLInputElement): void;
+      setOffsetsOn(on: boolean): void;
+      setOffset(string: number, field: HTMLInputElement): void;
+    };
+    const field = (value: string) => Object.assign(document.createElement('input'), { type: 'number', value });
+
+    dialog.setView('strobe');
+    dialog.setTuning('dropD');
+    const reference = field('452.37');
+    dialog.setReference(reference);
+    dialog.setOffsetsOn(true);
+    const offset = field('1.3');
+    dialog.setOffset(2, offset);
+    dialog.setOffset(6, field('-40'));
+    await new Promise(resolve => setTimeout(resolve));
+
+    expect(settings()).toMatchObject({
+      tunerView: 'strobe',
+      tuning: 'dropD',
+      tunerReference: 450,
+      tunerOffsetsOn: true,
+      tunerOffsets: [0, 1.5, 0, 0, 0, -20, 0, 0]
+    });
+    // The fields show what was stored.
+    expect(reference.value).toBe('450');
+    expect(offset.value).toBe('1.5');
+  });
+
+  it('the tuner reads the detected pitch against the tuning, reference and offsets', () => {
+    const { fixture, settings, events } = render(TunerDialog);
+    const reading = (fixture.componentInstance as unknown as { reading: () => unknown }).reading;
+    expect(reading()).toBeNull();
+
+    // A D2 at pitch: chromatic says D2, Drop D says its string 6, and a +2 offset on string 6 reads it 2 cents flat.
+    events.latest = { tuner: { frequency: 440 * 2 ** ((38 - 69) / 12), note: 'D', octave: 2, cents: 0 } };
+    expect(reading()).toMatchObject({ note: 'D', octave: 2 });
+    expect(reading()).not.toHaveProperty('string');
+    settings.update(s => ({ ...s, tuning: 'dropD' }));
+    expect(reading()).toMatchObject({ note: 'D', octave: 2, string: 6 });
+    settings.update(s => ({ ...s, tunerOffsetsOn: true, tunerOffsets: [0, 0, 0, 0, 0, 2] }));
+    expect((reading() as { cents: number }).cents).toBeCloseTo(-2, 6);
+    // A tuning this editor does not know (saved by a newer one) reads as chromatic.
+    settings.update(s => ({ ...s, tuning: 'nashville' }));
+    expect(reading()).not.toHaveProperty('string');
   });
 
   it('the tuner sends nothing at startup, then its own on and off', async () => {

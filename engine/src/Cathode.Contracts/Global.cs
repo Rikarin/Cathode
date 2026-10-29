@@ -112,6 +112,28 @@ public sealed class GlobalSettings {
     /// </summary>
     public string TunerOutput { get; set; } = "mute";
 
+    /// <summary>The tuner's A4 reference in Hz, 430..450 (440, the default, is concert pitch).</summary>
+    public double TunerReference { get; set; } = 440;
+
+    /// <summary>How the editor's tuner shows the error: <c>needle</c> (the default) or <c>strobe</c>.</summary>
+    public string TunerView { get; set; } = "needle";
+
+    /// <summary>
+    ///     The tuning the tuner targets, by the editor's id: <c>chromatic</c> (the nearest note, the default) or a set
+    ///     of strings such as <c>standard</c> or <c>dropD</c>, whose nearest string it then targets. An id the editor
+    ///     does not know reads as chromatic.
+    /// </summary>
+    public string Tuning { get; set; } = "chromatic";
+
+    /// <summary>Whether the <c>TunerOffsets</c> apply: off (None, the default) tunes every string to pitch.</summary>
+    public bool TunerOffsetsOn { get; set; }
+
+    /// <summary>
+    ///     Cents (−20..20) added to each string's target in a tuning other than chromatic, string 1 (the highest)
+    ///     first, for a "sweetened" tuning. Up to eight; a string without a value has none.
+    /// </summary>
+    public List<float> TunerOffsets { get; set; } = [0, 0, 0, 0, 0, 0, 0, 0];
+
     /// <summary>Whether editors ask before changing presets while the working copy has unsaved edits.</summary>
     public bool ConfirmPresetChange { get; set; } = true;
 }

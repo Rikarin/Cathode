@@ -89,6 +89,50 @@ public sealed class AudioIoApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task The_tuner_reference_view_tuning_and_offsets_are_stored_and_validated() {
+        var before = await Global();
+        Assert.Equal(440.0, before.TunerReference);
+        Assert.Equal("needle", before.TunerView);
+        Assert.Equal("chromatic", before.Tuning);
+        Assert.False(before.TunerOffsetsOn);
+        Assert.Equal(8, before.TunerOffsets.Count);
+        Assert.Equal(440f, Rig("tunerRef"));
+
+        await PutGlobal(static g => {
+                g.TunerReference = 432;
+                g.TunerView = "strobe";
+                g.Tuning = "dropD";
+                g.TunerOffsetsOn = true;
+                g.TunerOffsets = [-1.5f, 0, 2, 0, 0, 0];
+            }
+        );
+
+        var after = await Global();
+        Assert.Equal(432.0, after.TunerReference);
+        Assert.Equal("strobe", after.TunerView);
+        Assert.Equal("dropD", after.Tuning);
+        Assert.True(after.TunerOffsetsOn);
+        Assert.Equal([-1.5f, 0, 2, 0, 0, 0], after.TunerOffsets);
+        await ServerFixture.Eventually(() => Rig("tunerRef") == 432f);
+
+        Action<GlobalSettings>[] spoilers = [
+            static g => g.TunerReference = 460,
+            static g => g.TunerView = "dial",
+            static g => g.Tuning = "drop d",
+            static g => g.TunerOffsets = [25],
+            static g => g.TunerOffsets = [0, 0, 0, 0, 0, 0, 0, 0, 0]
+        ];
+        foreach (var spoil in spoilers) {
+            var bad = await Global();
+            spoil(bad);
+            using var rejected = await client.PutAsJsonAsync("/api/v1/global", bad, Token);
+            Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
+        }
+
+        Assert.Equal(432.0, (await Global()).TunerReference);
+    }
+
+    [Fact]
     public async Task Every_switch_in_the_global_settings_survives_a_put() {
         // Each bool flipped from what the server holds: a field the PUT handler forgets to copy springs back.
         var switches = typeof(GlobalSettings).GetProperties()

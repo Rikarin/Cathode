@@ -669,7 +669,7 @@ public sealed partial class LiveRig(
 
     /// <summary>
     ///     Everything the global settings put into the engine: tempo (global mode), metronome, Manual A-D, the outputs'
-    ///     modes, Boost/Pad and EQs, and Input 1's gain and calibration.
+    ///     modes, Boost/Pad and EQs, Input 1's gain and calibration, and the tuner's output and reference.
     /// </summary>
     public static List<ParamValue> GlobalValues(GlobalSettings global) {
         var values = new List<ParamValue> {
@@ -679,7 +679,8 @@ public sealed partial class LiveRig(
             new(IpcBlocks.Rig, "gateOffset", global.NoiseGateOffset),
             new(IpcBlocks.Rig, "cabsOff", global.CabModelingOff ? 1 : 0),
             new(IpcBlocks.Rig, "spillover", global.PresetSpillover ? 1 : 0),
-            new(IpcBlocks.Rig, "tunerOut", Math.Max(Api.GlobalValidation.TunerOutputs.IndexOf(global.TunerOutput), 0))
+            new(IpcBlocks.Rig, "tunerOut", Math.Max(Api.GlobalValidation.TunerOutputs.IndexOf(global.TunerOutput), 0)),
+            new(IpcBlocks.Rig, "tunerRef", (float)global.TunerReference)
         };
         if (global.TempoMode == "global") {
             values.Add(new(IpcBlocks.Rig, "tempo", (float)global.Tempo));

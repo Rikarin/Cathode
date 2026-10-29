@@ -10,4 +10,5 @@ export * from './lib/speaker-cone';
 export * from './lib/step-bars';
 export * from './lib/toggle';
 export * from './lib/tuner';
+export * from './lib/tuning';
 export * from './lib/values';

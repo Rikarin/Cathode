@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/angular-vite';
 import { CthTuner, type TunerReading } from './tuner';
+import { findTuning, tuneTo } from './tuning';
 
 /** A low E string settling into tune. */
 function settling(): () => TunerReading {
@@ -11,7 +12,7 @@ function settling(): () => TunerReading {
   };
 }
 
-/** A needle tuner, ±50 cents, green within ±2. */
+/** A tuner: a needle spanning ±50 cents or a strobe, green within ±2. */
 const meta: Meta<CthTuner> = {
   title: 'Audio UI/Tuner',
   component: CthTuner
@@ -27,3 +28,11 @@ export const InTune: Story = {
 };
 
 export const NoSignal: Story = { args: { source: () => null } };
+
+/** The strobe: the marks drift right when sharp, left when flat, and stand still in tune. */
+export const Strobe: Story = { args: { source: settling(), view: 'strobe' } };
+
+/** Drop D's low string, targeted by `tuneTo`: the string's number shows under its note. */
+export const DropDString: Story = {
+  args: { source: () => tuneTo(73.1, 440, findTuning('dropD')) }
+};

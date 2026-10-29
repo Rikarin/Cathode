@@ -212,6 +212,8 @@ The words used in this manual and in amp and effects talk, in alphabetical order
 
 **Spillover.** Letting delay and reverb tails ring out after a block is bypassed or the preset changes, instead of cutting them.
 
+**Strobe.** A tuner display of marks that drift sideways while a string is out of tune and stand still when it is in tune. See [The tuner](/manual/live-performance#the-tuner).
+
 ## T
 
 **Tap tempo.** Setting the tempo by tapping a button or footswitch in time.
@@ -222,7 +224,7 @@ The words used in this manual and in amp and effects talk, in alphabetical order
 
 **Token (access token).** The password-like key a remote editor needs to control a headless rig.
 
-**Tuner.** Shows the pitch of the string you play. Open it with ⌘T.
+**Tuner.** Shows the pitch of the string you play, against the nearest note or a string of a tuning such as Drop D. Open it with ⌘T.
 
 ## V
 

@@ -53,6 +53,7 @@ public sealed class EngineHostService : IDisposable {
     static readonly int PitchLow = RigControls.Descriptor.IndexOf("pitchLow");
     static readonly int PitchHigh = RigControls.Descriptor.IndexOf("pitchHigh");
     static readonly int TunerIndex = RigControls.Descriptor.IndexOf("tuner");
+    static readonly int TunerReference = RigControls.Descriptor.IndexOf("tunerRef");
 
     public CathodeEngine Engine { get; }
 
@@ -715,6 +716,7 @@ public sealed class EngineHostService : IDisposable {
             tuner.Push(tap.AsSpan(0, read));
         }
 
+        tuner.Reference = Engine.Rig.GetTarget(TunerReference);
         var detected = tuner.Detect();
         reading = tunerOn ? detected : null;
         if (followPitch && detected is { } pitch) {

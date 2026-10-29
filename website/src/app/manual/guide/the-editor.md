@@ -114,7 +114,7 @@ A small dot beside a knob means a modifier drives it. While it runs, the knob tu
 | --------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | Block picker    | Double-click an empty cell, ↵ or Q on the grid | Every block type, with a search field.                                                                          |
 | Presets         | P, or a click on the preset name               | Search by name, author or tag, or type a bank slot number. A pin keeps it open to try one preset after another. |
-| Tuner           | ⌘T, or the tuner button                        | A needle tuner, and what the outputs play while tuning (mute, bypass or pass through).                          |
+| Tuner           | ⌘T, or the tuner button                        | A needle or strobe tuner, the tuning, A4 reference and string offsets, and what the outputs play while tuning.  |
 | Looper          | The looper button                              | Record, play, overdub, stop, undo, reverse, half speed, clear, and **Export WAV**.                              |
 | Analyser        | The analyser button                            | **Scope** shows the output's waveform; **RTA** its spectrum, with bands, decay and window settings.             |
 | Preset Leveling | ⌘L, or its button                              | Loudness measurement and a suggested level.                                                                     |

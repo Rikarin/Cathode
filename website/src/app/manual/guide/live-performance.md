@@ -44,11 +44,42 @@ Changing preset is fast, and with **Global ▸ Presets and scenes ▸ Preset spi
 
 ## The tuner
 
-Open the tuner with **⌘T**, the tuner button in the navigation bar, or a footswitch with the `tuner` action. Play a single string. The tuner shows the note and octave, a needle spanning ±50 cents, the frequency and the deviation in cents. The note and needle turn green within ±2 cents of the note.
+Open the tuner with **⌘T**, the tuner button in the navigation bar, or a footswitch with the `tuner` action. Play a single string. The tuner shows the note and octave, how far off it is (as a needle or a strobe), the frequency and the deviation in cents. The note and the display turn green within ±2 cents of the target.
 
 The tuner listens to the input, before any effects, so a wah or a pitch shifter does not confuse it.
 
-While the tuner is open, **Output while tuning** (below the needle) sets what every output plays. It is a global setting, kept for every preset:
+The settings below the display are global: they are kept for every preset, and every editor connected to the rig shares them.
+
+### Needle or strobe
+
+**View** switches between two displays:
+
+- **Needle**: a needle on a scale from −50 to +50 cents. Easy to read from a distance, and quick to show which way to turn the peg.
+- **Strobe**: two bands of marks that drift sideways. They move right when the string is sharp and left when it is flat, faster the further off it is, and stand still when it is in tune. A strobe shows errors far smaller than a needle can, so use it for the final touch: turn the peg until the marks stop.
+
+If your system asks apps to reduce motion (an accessibility setting of macOS and Windows), the needle shows instead of the strobe, and a note under the display says so.
+
+### Tunings
+
+**Tuning** chooses what the tuner aims for:
+
+- **Chromatic** (the default): the nearest of the twelve notes, whatever you play.
+- A guitar or bass tuning: Standard, Half step down, Whole step down, Drop D, Drop C, DADGAD, Open G, Open D, Open E, 7-string standard, 8-string standard, Bass 4-string or Bass 5-string. The tuner picks the string of that tuning closest to what you play and shows its number under the note (string 1 is the highest), with the cents to that string. A string far out of tune still reads against its own target rather than the nearest note: a low E string tuned down a whole step shows as string 6, 200 cents flat, in Standard, and in tune in Drop D.
+
+**A4** sets the reference pitch, the frequency of the A above middle C, from 430 to 450 Hz. It is 440 Hz, concert pitch, unless you change it, for example to match a piano tuned a little sharp. Every note and every string of a tuning moves with it.
+
+### Offsets
+
+Some players tune certain strings a few cents away from pitch so that chords in common positions sound sweeter on their guitar. With a tuning other than Chromatic selected, **Offsets** sets this up:
+
+- **None** (the default): every string is tuned to its exact pitch.
+- **Custom**: a box per string, in cents from −20 to +20 (in half cents). A positive offset tunes that string sharp, a negative one flat. The tuner then shows a string as in tune when it is at its pitch plus its offset.
+
+The offsets belong to the string numbers, not to a tuning, so the same set applies when you change from Standard to Drop D. Typical values are small, a cent or two on the B and G strings for example; there is no right set, so try a few and listen to the chords you play most.
+
+### Output while tuning
+
+While the tuner is open, **Output while tuning** sets what every output plays:
 
 | Option       | While tuning                                                                                       |
 | ------------ | -------------------------------------------------------------------------------------------------- |

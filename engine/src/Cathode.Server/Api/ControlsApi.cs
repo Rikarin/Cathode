@@ -239,6 +239,11 @@ static class ControlsApi {
         g.Inputs = settings.Inputs;
         g.Oversampling = settings.Oversampling;
         g.TunerOutput = settings.TunerOutput;
+        g.TunerReference = settings.TunerReference;
+        g.TunerView = settings.TunerView;
+        g.Tuning = settings.Tuning;
+        g.TunerOffsetsOn = settings.TunerOffsetsOn;
+        g.TunerOffsets = settings.TunerOffsets;
         g.Manual = settings.Manual;
         g.MidiChannel = settings.MidiChannel;
         g.MidiMappings = settings.MidiMappings;

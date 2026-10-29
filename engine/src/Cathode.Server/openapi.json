@@ -4593,6 +4593,11 @@
           "ignoreRedundantPc",
           "presetSpillover",
           "tunerOutput",
+          "tunerReference",
+          "tunerView",
+          "tuning",
+          "tunerOffsetsOn",
+          "tunerOffsets",
           "confirmPresetChange"
         ],
         "type": "object",
@@ -4737,6 +4742,31 @@
           "tunerOutput": {
             "type": "string",
             "description": "What the outputs play while the tuner is on: \u0060mute\u0060 (silence, faded, the default), \u0060bypass\u0060 (the\ninput dry, no blocks) or \u0060passThrough\u0060 (the preset keeps sounding)."
+          },
+          "tunerReference": {
+            "type": "number",
+            "description": "The tuner\u0027s A4 reference in Hz, 430..450 (440, the default, is concert pitch).",
+            "format": "double"
+          },
+          "tunerView": {
+            "type": "string",
+            "description": "How the editor\u0027s tuner shows the error: \u0060needle\u0060 (the default) or \u0060strobe\u0060."
+          },
+          "tuning": {
+            "type": "string",
+            "description": "The tuning the tuner targets, by the editor\u0027s id: \u0060chromatic\u0060 (the nearest note, the default) or a set\nof strings such as \u0060standard\u0060 or \u0060dropD\u0060, whose nearest string it then targets. An id the editor\ndoes not know reads as chromatic."
+          },
+          "tunerOffsetsOn": {
+            "type": "boolean",
+            "description": "Whether the \u0060TunerOffsets\u0060 apply: off (None, the default) tunes every string to pitch."
+          },
+          "tunerOffsets": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "float"
+            },
+            "description": "Cents (\u221220..20) added to each string\u0027s target in a tuning other than chromatic, string 1 (the highest)\nfirst, for a \u0022sweetened\u0022 tuning. Up to eight; a string without a value has none."
           },
           "confirmPresetChange": {
             "type": "boolean",

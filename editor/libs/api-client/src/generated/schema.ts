@@ -2145,6 +2145,26 @@ export interface components {
        *     input dry, no blocks) or `passThrough` (the preset keeps sounding).
        */
       tunerOutput: string;
+      /**
+       * Format: double
+       * @description The tuner's A4 reference in Hz, 430..450 (440, the default, is concert pitch).
+       */
+      tunerReference: number;
+      /** @description How the editor's tuner shows the error: `needle` (the default) or `strobe`. */
+      tunerView: string;
+      /**
+       * @description The tuning the tuner targets, by the editor's id: `chromatic` (the nearest note, the default) or a set
+       *     of strings such as `standard` or `dropD`, whose nearest string it then targets. An id the editor
+       *     does not know reads as chromatic.
+       */
+      tuning: string;
+      /** @description Whether the `TunerOffsets` apply: off (None, the default) tunes every string to pitch. */
+      tunerOffsetsOn: boolean;
+      /**
+       * @description Cents (−20..20) added to each string's target in a tuning other than chromatic, string 1 (the highest)
+       *     first, for a "sweetened" tuning. Up to eight; a string without a value has none.
+       */
+      tunerOffsets: number[];
       /** @description Whether editors ask before changing presets while the working copy has unsaved edits. */
       confirmPresetChange: boolean;
     };

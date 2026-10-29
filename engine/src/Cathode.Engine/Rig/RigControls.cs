@@ -93,6 +93,8 @@ public static class RigControls {
             ParamDescriptor.Switch("mute", "Mute"),
             // Global: what the outputs play while the tuner is on (TunerOutputs).
             ParamDescriptor.Choice("tunerOut", "Tuner Output", TunerOutputs),
+            // Global: the tuner's A4 reference, read by the host's pitch detector.
+            new("tunerRef", "Tuner Reference", ParamKind.Float, 430f, 450f, 440f, "Hz", Smoothing: ParamSmoothing.Step),
             // Live only, set by the host while its tuner runs: applies Tuner Output.
             ParamDescriptor.Switch("tuner", "Tuner")
         ],

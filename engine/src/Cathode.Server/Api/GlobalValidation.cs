@@ -19,6 +19,11 @@ static class GlobalValidation {
     /// <summary>The tuner output modes, in the order of the engine's Tuner Output choice.</summary>
     public static readonly ImmutableArray<string> TunerOutputs = ["mute", "bypass", "passThrough"];
 
+    static readonly string[] TunerViews = ["needle", "strobe"];
+
+    /// <summary>The most strings a tuning has (an 8-string guitar), so the most tuner offsets.</summary>
+    const int MaxStrings = 8;
+
     static readonly string[] Actions = [
         "scene", "sceneNext", "scenePrevious", "presetSlot", "presetNext", "presetPrevious", "bypass", "channel",
         "external", "manual", "tap", "tuner", "metronome", "mute", "looper", "sceneLevelUp", "sceneLevelDown", "save",
@@ -99,12 +104,37 @@ static class GlobalValidation {
             errors.Add($"Tuner output '{settings.TunerOutput}' is not mute, bypass or passThrough.");
         }
 
+        CheckTuner(settings, errors);
+
         if (settings.DefaultScene is < -1 or >= Preset.SceneCount) {
             errors.Add("The default scene is -1 (as saved) or 0-7.");
         }
 
         if (settings.Manual.Count != 4) {
             errors.Add("Manual has four values (A-D).");
+        }
+    }
+
+    /// <summary>
+    ///     The tuner's reference, view, tuning and offsets. The tunings are the editor's, so only the id's form is
+    ///     checked here.
+    /// </summary>
+    static void CheckTuner(GlobalSettings settings, List<string> errors) {
+        if (settings.TunerReference is < 430 or > 450 || !double.IsFinite(settings.TunerReference)) {
+            errors.Add("The tuner reference is 430 to 450 Hz.");
+        }
+
+        if (!TunerViews.Contains(settings.TunerView)) {
+            errors.Add($"Tuner view '{settings.TunerView}' is not needle or strobe.");
+        }
+
+        if (settings.Tuning is not { Length: > 0 and <= 32 } || !settings.Tuning.All(char.IsAsciiLetterOrDigit)) {
+            errors.Add("A tuning is named by 1 to 32 letters and digits.");
+        }
+
+        if (settings.TunerOffsets.Count > MaxStrings
+            || !settings.TunerOffsets.TrueForAll(static c => c is >= -20f and <= 20f)) {
+            errors.Add($"The tuner offsets are at most {MaxStrings}, each -20 to 20 cents.");
         }
     }
 
