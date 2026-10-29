@@ -402,7 +402,8 @@ public sealed partial class EngineConnection(
                     source.LoudnessMomentary,
                     source.LoudnessShortTerm,
                     OutputPeaks(LastTelemetry),
-                    Modulation(source)
+                    Modulation(source),
+                    Controllers(source.Controllers)
                 ),
                 ContractsJsonContext.Default.Telemetry
             );
@@ -464,6 +465,12 @@ public sealed partial class EngineConnection(
 
         return blocks;
     }
+
+    /// <summary>Where the rig's controllers stand; null until the engine has advanced them once.</summary>
+    static ControllerInfo? Controllers(ControllerState c) =>
+        c.SequencerStages == 0
+            ? null
+            : new(c.Running, c.SequencerStage, c.SequencerStages, c.Lfo1, c.Lfo2, c.Adsr1, c.Adsr2);
 
     /// <summary>The names of the hardware input sources in <paramref name="mask" /> (bit 0 = Input 1).</summary>
     static string[] InputNames(int mask) => [

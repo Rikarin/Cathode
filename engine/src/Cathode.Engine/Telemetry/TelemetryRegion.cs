@@ -7,8 +7,8 @@ namespace Cathode.Engine.Telemetry;
 ///     Shared-memory telemetry (docs/02-architecture.md, telemetry plane): a fixed-layout region the audio thread
 ///     writes once per callback and any number of readers poll, in this process or another, without a lock and without
 ///     resetting anything. It holds the callback count, a frame clock, the CPU histogram (cumulative, so readers diff
-///     two snapshots for a window), engine overruns, driver overloads, per-slot meter peaks, every block meter and each
-///     modifier's current value.
+///     two snapshots for a window), engine overruns, driver overloads, per-slot meter peaks, every block meter, each
+///     modifier's current value and where the rig's controllers stand.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -212,6 +212,17 @@ public sealed unsafe class TelemetryRegion : IDisposable {
     }
 
     /// <summary>
+    ///     Audio thread: publish where the rig's controllers stand after a callback (the sequencer's stage, the LFOs
+    ///     and ADSRs). Under the seqlock, so a reader never sees a stage of one callback with a stage count of another.
+    /// </summary>
+    public void RecordControllers(in ControllerState state) {
+        var l = layout;
+        Interlocked.Increment(ref l->Sequence);
+        l->Controllers = state;
+        Volatile.Write(ref l->Sequence, l->Sequence + 1);
+    }
+
+    /// <summary>
     ///     Audio thread: append output samples to the scope ring. The ring is outside the seqlock: the reader copies
     ///     the samples behind the published write count and drops any the writer overwrote meanwhile.
     /// </summary>
@@ -269,6 +280,7 @@ public sealed unsafe class TelemetryRegion : IDisposable {
             snapshot.ModifierGeneration = l->ModifierGeneration;
             snapshot.ModifierCount = l->ModifierCount;
             new ReadOnlySpan<float>(l->Modifier, TelemetryLayout.Modifiers).CopyTo(snapshot.Modifiers);
+            snapshot.Controllers = l->Controllers;
 
             Interlocked.MemoryBarrier(); // the copies above must complete before the sequence is checked again
             if (Volatile.Read(ref l->Sequence) == before) {
@@ -364,7 +376,7 @@ public sealed unsafe class TelemetryRegion : IDisposable {
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct TelemetryLayout {
     public const uint MagicValue = 0x54485443; // "CTHT"
-    public const int CurrentVersion = 7;
+    public const int CurrentVersion = 8;
     public const int Bins = 201;
     public const int MeterSlots = 64;
     public const int FramesPerSlot = 256;
@@ -423,6 +435,9 @@ public unsafe struct TelemetryLayout {
     ///     (<c>CompiledGraph.ModifierValues</c>): NaN for one that is disabled, has not run yet or engages its block.
     /// </summary>
     public fixed float Modifier[Modifiers];
+
+    /// <summary>The rig's controllers as of the last callback (<c>TelemetryRegion.RecordControllers</c>).</summary>
+    public ControllerState Controllers;
 
     /// <summary>Output loudness (ITU-R BS.1770, LUFS) as of the last callback.</summary>
     public float LoudnessMomentary;

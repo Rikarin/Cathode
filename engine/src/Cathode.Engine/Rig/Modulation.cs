@@ -44,6 +44,12 @@ public sealed class Modulation(ParamBank rig, double sampleRate) {
 
     public double Tempo => rig.Current(tempo);
 
+    /// <summary>The sequencer stage playing, from 0, as of the last <see cref="Advance" />.</summary>
+    public int SequencerStage { get; private set; }
+
+    /// <summary>How many stages the sequencer steps through (<c>seqStages</c>), as of the last Advance.</summary>
+    public int SequencerStages { get; private set; }
+
     /// <summary>The current value of a source, 0..1.</summary>
     public float Value(ModSource source) => values[(int)source];
 
@@ -88,6 +94,8 @@ public sealed class Modulation(ParamBank rig, double sampleRate) {
 
         var stage = Math.Min(stages - 1, (int)(sequencerPhase * stages));
         values[(int)ModSource.Sequencer] = rig.Advance(seq1 + stage, frames);
+        SequencerStage = stage;
+        SequencerStages = stages;
 
         values[(int)ModSource.Pitch] = rig.Advance(pitch, frames);
         for (var i = 0; i < 4; i++) {

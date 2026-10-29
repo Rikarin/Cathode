@@ -14,6 +14,10 @@ export interface StepBarChange {
  * hardware: a recessed panel with faint quarter lines, each bar a channel lit in `color` up to its value, the stage
  * number below and the value above while it is hovered, focused or drawn.
  *
+ * `active` marks the stage playing, as a step sequencer's LEDs do: its channel takes a faint wash of `color` behind the
+ * fill and a lit strip glows in the panel's margin below it. Neither moves anything, and neither touches the hover,
+ * focus and drawing states, which show the value and the outline as before.
+ *
  * Press and drag across the bars to draw the pattern: every bar the pointer passes, the skipped ones included, takes
  * the height under it. Each bar is also an ARIA slider: ↑/↓ step by 1 % (⇧: 0.1 %), Page keys by 10 %, Home/End go
  * to the ends, ←/→ move to the neighbouring bar.
@@ -67,10 +71,25 @@ export interface StepBarChange {
           [attr.aria-label]="'Stage ' + (i + 1)"
           [attr.aria-disabled]="disabled() || null"
           [attr.data-stage]="i + 1"
+          [attr.data-active]="active() === i || null"
           (keydown)="key($event, i)"
           (focus)="focused.set(i)"
           (blur)="focused.set(null)"
         >
+          <!-- The playing stage: a wash behind the fill and an LED strip in the margin below; both fade, neither moves. -->
+          <span
+            class="pointer-events-none absolute inset-0 rounded-[5px] transition-opacity duration-100 motion-reduce:transition-none"
+            [style.background]="wash()"
+            [style.opacity]="active() === i ? 1 : 0"
+            aria-hidden="true"
+          ></span>
+          <span
+            class="pointer-events-none absolute inset-x-1 -bottom-[5px] h-[2px] rounded-full transition-opacity duration-100 motion-reduce:transition-none"
+            [style.background]="color()"
+            [style.box-shadow]="glow()"
+            [style.opacity]="active() === i ? 1 : 0"
+            aria-hidden="true"
+          ></span>
           <span
             class="absolute inset-x-0 bottom-0 rounded-[5px] transition-[height] duration-75 ease-out motion-reduce:transition-none"
             [style.height.%]="value * 100"
@@ -124,6 +143,8 @@ export class CthStepBars {
   readonly disabled = input(false, { transform: booleanAttribute });
   /** The bars' colour (any CSS colour); the theme's primary when unset. */
   readonly color = input('var(--color-primary)');
+  /** The stage playing (from 0), marked live; null for none (as is a stage beyond the bars). */
+  readonly active = input<number | null>(null);
 
   /** Every change, while drawing too. */
   readonly changed = output<StepBarChange>();
@@ -140,6 +161,7 @@ export class CthStepBars {
       `color-mix(in oklab, ${this.color()} 55%, transparent) 45%, color-mix(in oklab, ${this.color()} 20%, transparent) 100%)`
   );
   protected readonly glow = computed(() => `0 0 10px color-mix(in oklab, ${this.color()} 30%, transparent)`);
+  protected readonly wash = computed(() => `color-mix(in oklab, ${this.color()} 14%, transparent)`);
 
   /** The values the current stroke has drawn, so a fast stroke fills the bars between two pointer events. */
   private last: { index: number; value: number } | null = null;

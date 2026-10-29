@@ -116,6 +116,10 @@ A step sequencer: a source that steps through 2 to 16 fixed levels in a loop.
 2. Set **Rate** (0.1 to 20 Hz), or **Tempo** to a note value to step in time.
 3. Drag each stage's slider to set its level.
 
+**Rate** counts steps, not whole patterns: at 4 Hz the sequencer moves to the next stage four times a second, however many stages there are. With **Tempo** set, each stage lasts one note of that value, so eight stages at 1/8 make one bar of 4/4.
+
+While audio is running, the stage playing is marked on the Controllers page: its bar takes a faint glow and a small light shows under it, so you can watch the pattern go round as you shape it. The marker stops when the audio does. The **LFO** and **ADSR** cards show their controller's current value in the same way, as a small bar beside the card's title.
+
 Put it on a filter for a rhythmic, synth-like pattern, or on a volume for a gated chop.
 
 ### External 1 to 8

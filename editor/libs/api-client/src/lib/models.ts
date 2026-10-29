@@ -198,6 +198,23 @@ export interface Telemetry {
    * id (the latest, not a peak). Absent when no modifier is driving a parameter, or without shared-memory telemetry.
    */
   modulation?: Modulation;
+  /** Where the rig's sequencer, LFOs and ADSRs stand (absent without shared-memory telemetry). */
+  controllers?: ControllerInfo;
+}
+
+/**
+ * The rig's controllers as of a telemetry frame (`Telemetry.controllers`): the sequencer's stage playing, from 0, of
+ * its `sequencerStages`, and LFO 1 and 2 and ADSR 1 and 2 at their current value, 0 to 1. `running` is false while
+ * the audio is stopped or no preset is loaded; the values then hold where they stopped.
+ */
+export interface ControllerInfo {
+  running: boolean;
+  sequencerStage: number;
+  sequencerStages: number;
+  lfo1: number;
+  lfo2: number;
+  adsr1: number;
+  adsr2: number;
 }
 
 /** Live modulated values by block id and then parameter id (`Telemetry.modulation`). */

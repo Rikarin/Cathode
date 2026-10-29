@@ -49,6 +49,9 @@ public sealed class TelemetrySnapshot {
     /// <summary>Each modifier's latest value, by index in the graph's modifiers (NaN where it drives none).</summary>
     public float[] Modifiers { get; } = new float[TelemetryLayout.Modifiers];
 
+    /// <summary>The rig's controllers as of the last callback.</summary>
+    public ControllerState Controllers { get; set; }
+
     /// <summary>The meter slot that holds frame <see cref="Frames" /> - 1, or -1 before the first callback.</summary>
     public long CurrentSlot => Frames == 0 ? -1 : (Frames - 1) / TelemetryLayout.FramesPerSlot;
 
@@ -132,6 +135,7 @@ public sealed class TelemetrySnapshot {
         other.ModifierGeneration = ModifierGeneration;
         other.ModifierCount = ModifierCount;
         Modifiers.CopyTo(other.Modifiers, 0);
+        other.Controllers = Controllers;
     }
 }
 
@@ -159,11 +163,19 @@ public readonly record struct TelemetryReading(
 public sealed class TelemetryMonitor(TelemetryRegion region) {
     public static readonly TimeSpan Window = TimeSpan.FromSeconds(2.5);
 
+    /// <summary>
+    ///     Polls without a new frame before the controllers count as stopped: a large buffer can call back less often
+    ///     than a 30 Hz poller polls, so one empty poll proves nothing.
+    /// </summary>
+    const int IdlePolls = 4;
+
     readonly TelemetrySnapshot current = new();
     readonly TelemetrySnapshot older = new();
     readonly TelemetrySnapshot newer = new();
     readonly float[] blockMeters = new float[TelemetryLayout.BlockMeters];
     long lastSlot = -1;
+    long lastFrames;
+    int idlePolls = IdlePolls;
     bool started;
 
     public TelemetryRegion Region => region;
@@ -195,6 +207,12 @@ public sealed class TelemetryMonitor(TelemetryRegion region) {
     /// <summary>The output's short-term loudness (3 s), LUFS, as of the last poll.</summary>
     public float LoudnessShortTerm { get; private set; }
 
+    /// <summary>
+    ///     Where the rig's controllers stand as of the last poll; <c>Running</c> only while the audio keeps coming (a
+    ///     stopped device leaves the last state in the region).
+    /// </summary>
+    public ControllerState Controllers { get; private set; }
+
     /// <summary>Returns null when the region could not be read consistently (a writer stuck mid-update).</summary>
     public TelemetryReading? Poll() {
         if (!region.TryRead(current)) {
@@ -213,6 +231,9 @@ public sealed class TelemetryMonitor(TelemetryRegion region) {
         LoudnessMomentary = current.LoudnessMomentary;
         LoudnessShortTerm = current.LoudnessShortTerm;
         lastSlot = current.CurrentSlot;
+        idlePolls = current.Frames != lastFrames ? 0 : Math.Min(idlePolls + 1, IdlePolls);
+        lastFrames = current.Frames;
+        Controllers = current.Controllers with { Running = current.Controllers.Running && idlePolls < IdlePolls };
 
         // Roll the two staggered baselines so the window always spans between one and two Window lengths.
         var windowFrames = (long)(Window.TotalSeconds * Math.Max(current.SampleRate, 1));

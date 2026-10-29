@@ -480,6 +480,62 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task Telemetry_carries_the_sequencers_stage_stepping_at_its_rate_and_tempo() {
+        using var socket = await server.Server.CreateWebSocketClient()
+            .ConnectAsync(new(server.Server.BaseAddress, "ws"), Token);
+        var buffer = new byte[256 * 1024];
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Token);
+        deadline.CancelAfter(TimeSpan.FromSeconds(30));
+
+        async Task<JsonNode> NextControllers() {
+            while (true) {
+                var result = await socket.ReceiveAsync(buffer, deadline.Token);
+                var frame = JsonNode.Parse(Encoding.UTF8.GetString(buffer, 0, result.Count))!;
+                if (frame["type"]!.GetValue<string>() == "telemetry" && frame["controllers"] is { } controllers) {
+                    return controllers;
+                }
+            }
+        }
+
+        // The stages seen over the next frames; the first few frames may predate the change.
+        async Task<List<int>> StagesOver(int frames) {
+            for (var i = 0; i < 3; i++) {
+                await NextControllers();
+            }
+
+            var stages = new List<int>();
+            for (var i = 0; i < frames; i++) {
+                var controllers = await NextControllers();
+                Assert.True(controllers["running"]!.GetValue<bool>());
+                Assert.Equal(4, controllers["sequencerStages"]!.GetValue<int>());
+                Assert.InRange(controllers["lfo1"]!.GetValue<float>(), 0f, 1f);
+                stages.Add(controllers["sequencerStage"]!.GetValue<int>());
+            }
+
+            return stages;
+        }
+
+        // 20 Hz: twenty stages a second, so a second of frames passes every stage; 0.1 Hz holds one for 10 s.
+        await Patch("/api/v1/live/controllers", new Dictionary<string, float> { ["seqStages"] = 4, ["seqRate"] = 20 });
+        Assert.Equal([0, 1, 2, 3], (await StagesOver(30)).Distinct().Order());
+        await Patch("/api/v1/live/controllers", new Dictionary<string, float> { ["seqRate"] = 0.1f });
+        Assert.InRange((await StagesOver(10)).Distinct().Count(), 1, 2);
+
+        // Synced: a 1/16 at 300 BPM is 20 stages a second; a 4/1 at 30 BPM holds a stage for 32 s.
+        var sixteenth = RigControls.Divisions.IndexOf("1/16");
+        await Patch("/api/v1/live/controllers", new Dictionary<string, float> { ["seqTempo"] = sixteenth });
+        await Put("/api/v1/live/tempo", new TempoRequest(300));
+        Assert.Equal([0, 1, 2, 3], (await StagesOver(30)).Distinct().Order());
+        await Patch(
+            "/api/v1/live/controllers",
+            new Dictionary<string, float> { ["seqTempo"] = RigControls.Divisions.IndexOf("4/1") }
+        );
+        await Put("/api/v1/live/tempo", new TempoRequest(30));
+        Assert.InRange((await StagesOver(10)).Distinct().Count(), 1, 2);
+        await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", Token);
+    }
+
+    [Fact]
     public async Task The_preset_list_exports_as_text_with_scene_names() {
         await Patch("/api/v1/live/scenes/1", new SceneUpdateRequest("Solo"));
         await Post("/api/v1/live/save", new SaveRequest("Zebra", true));

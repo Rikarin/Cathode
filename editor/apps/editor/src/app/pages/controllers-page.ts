@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { type SceneMidiMessage } from '@cathode/api-client';
-import { CthKnob, CthStepBars } from '@cathode/audio-ui';
+import { type ControllerInfo, type SceneMidiMessage, type Telemetry } from '@cathode/api-client';
+import { CthKnob, CthStepBars, onAnimationFrame } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
 import { matAddRound, matDeleteRound } from '@ng-icons/material-icons/round';
 import { XuiButtonImports } from '@xui/button';
@@ -13,6 +13,7 @@ import { XuiTextImports } from '@xui/text';
 import { RigControl } from '../controls/rig-knob';
 import { Coalescer } from '../core/coalescer';
 import { ConnectionService } from '../core/connection';
+import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
 import { GlobalStore } from '../state/global.store';
 import { KnobGesture } from '../state/knob-gesture';
@@ -20,6 +21,45 @@ import { LiveStore } from '../state/live.store';
 
 /** External 1-8: the modifier sources a pedal or CC drives. */
 const externalCount = 8;
+
+/** Telemetry older than this no longer shows the controllers moving: the socket or the engine has stopped. */
+const StaleMs = 500;
+
+/** A live value has to move this much (of 0 to 1) to be redrawn: finer steps are invisible in a 64 px bar. */
+const LiveStep = 0.01;
+
+/** The controllers with a live indicator on this page. */
+type LiveSource = 'lfo1' | 'lfo2' | 'adsr1' | 'adsr2';
+const liveSources: readonly LiveSource[] = ['lfo1', 'lfo2', 'adsr1', 'adsr2'];
+
+/** A card of controller settings; `live` names the controller whose value it shows moving. */
+interface ControllerGroup {
+  title: string;
+  ids: string[];
+  labels: string[];
+  live?: LiveSource;
+}
+
+/**
+ * The controllers to show live, from the latest telemetry `frame` received `ageMs` ago: null when they are not
+ * running or the frame is stale or lacks them. Returns `previous` itself while nothing visible changed (the same stage
+ * and every value within {@link LiveStep}), so a signal holding it is not marked for a change no one could see.
+ */
+export function liveControllers(
+  previous: ControllerInfo | null,
+  frame: Telemetry | null,
+  ageMs: number
+): ControllerInfo | null {
+  const next = frame?.controllers?.running && ageMs < StaleMs ? frame.controllers : null;
+  if (!next || !previous) {
+    return next;
+  }
+
+  const same =
+    next.sequencerStage === previous.sequencerStage &&
+    liveSources.every(source => Math.abs(next[source] - previous[source]) < LiveStep);
+  return same ? previous : next;
+}
 
 /** How the Controllers page names a modifier's scope: all channels, or one. */
 export function scopeName(channel: string | null | undefined): string {
@@ -218,7 +258,27 @@ export function scopeName(channel: string | null | undefined): string {
       <div class="grid gap-6 lg:grid-cols-2">
         @for (group of groups; track group.title) {
           <section xuiCard class="flex flex-col gap-3 p-4" [attr.aria-label]="group.title">
-            <h2 xuiHeading class="text-sm">{{ group.title }}</h2>
+            <div class="flex items-center justify-between gap-3">
+              <h2 xuiHeading class="text-sm">{{ group.title }}</h2>
+              @if (group.live; as source) {
+                <!-- Where the controller is now: a recessed channel lit up to its value, empty while it stands still. -->
+                <span
+                  class="relative h-1 w-16 overflow-hidden rounded-full"
+                  style="background: #0b0c0e; box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.6)"
+                  role="meter"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  [attr.aria-label]="group.title + ' now'"
+                  [attr.aria-valuenow]="percent(liveValue(source))"
+                  [attr.data-live]="source"
+                >
+                  <span
+                    class="bg-primary absolute inset-0 origin-left rounded-full"
+                    [style.transform]="'scaleX(' + (liveValue(source) ?? 0) + ')'"
+                  ></span>
+                </span>
+              }
+            </div>
             <div class="flex flex-wrap items-start gap-6">
               @for (id of group.ids; track id) {
                 <cth-rig-control
@@ -253,6 +313,7 @@ export function scopeName(channel: string | null | undefined): string {
         <cth-step-bars
           label="Sequencer stages"
           [values]="stageValues()"
+          [active]="playingStage()"
           (changed)="set('seq' + ($event.index + 1), $event.value)"
         />
       </section>
@@ -300,6 +361,7 @@ export class ControllersPage {
   private readonly globals = inject(GlobalStore);
   private readonly connection = inject(ConnectionService);
   private readonly notify = inject(Notify);
+  private readonly events = inject(EventStream);
   /**
    * The knobs here are sent through one coalescer: one request in flight per control, the latest value next, and the
    * values sent but not yet confirmed shown meanwhile, so a dragged knob neither floods the rig nor jumps back.
@@ -317,7 +379,7 @@ export class ControllersPage {
   protected readonly maxSceneMidi = 8;
   protected readonly midiTypes = ['pc', 'cc'];
   protected readonly midiTypeName = (type: string) => (type === 'cc' ? 'CC' : 'Program');
-  protected readonly groups = [
+  protected readonly groups: readonly ControllerGroup[] = [
     lfo(1),
     lfo(2),
     adsr(1),
@@ -329,6 +391,13 @@ export class ControllersPage {
     },
     { title: 'Pitch follower', ids: ['pitchLow', 'pitchHigh'], labels: ['Low', 'High'] }
   ];
+  /**
+   * The sequencer, LFOs and ADSRs as the engine last reported them, while they run: read from telemetry on animation
+   * frames (it bypasses change detection), and set only when the stage changed or a value moved visibly.
+   */
+  protected readonly controllersNow = signal<ControllerInfo | null>(null);
+  /** The sequencer stage playing, for the step bars' marker; null while the sequencer stands still. */
+  protected readonly playingStage = computed(() => this.controllersNow()?.sequencerStage ?? null);
   protected readonly scene = computed(() => this.live.preset()?.scenes[this.live.activeScene()]);
   protected readonly sceneLevel = computed(
     () =>
@@ -357,6 +426,24 @@ export class ControllersPage {
       (_, i) => this.stored(`seq${i + 1}`) ?? (i % 2 === 0 ? 1 : 0)
     )
   );
+
+  constructor() {
+    onAnimationFrame(() => {
+      const next = liveControllers(this.controllersNow(), this.events.latest, performance.now() - this.events.latestAt);
+      if (next !== this.controllersNow()) {
+        this.controllersNow.set(next);
+      }
+    });
+  }
+
+  /** LFO or ADSR `source`'s value now, 0 to 1, or null while it stands still. */
+  protected liveValue(source: LiveSource): number | null {
+    return this.controllersNow()?.[source] ?? null;
+  }
+
+  protected percent(value: number | null): number | null {
+    return value === null ? null : Math.round(value * 100);
+  }
 
   protected stored(id: string): number | undefined {
     return (this.sending.pending(`controller:${id}`) as number | undefined) ?? this.live.preset()?.controllers[id];
@@ -465,17 +552,19 @@ export class ControllersPage {
   }
 }
 
-function lfo(n: number) {
+function lfo(n: 1 | 2): ControllerGroup {
   return {
     title: `LFO ${n}`,
+    live: `lfo${n}`,
     ids: [`lfo${n}Rate`, `lfo${n}Shape`, `lfo${n}Tempo`],
     labels: ['Rate', 'Shape', 'Tempo']
   };
 }
 
-function adsr(n: number) {
+function adsr(n: 1 | 2): ControllerGroup {
   return {
     title: `ADSR ${n}`,
+    live: `adsr${n}`,
     ids: [`adsr${n}Attack`, `adsr${n}Decay`, `adsr${n}Sustain`, `adsr${n}Release`, `adsr${n}Threshold`],
     labels: ['Attack', 'Decay', 'Sustain', 'Release', 'Threshold']
   };

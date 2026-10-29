@@ -557,6 +557,17 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
             loudness.Momentary,
             loudness.ShortTerm
         );
+        region.RecordControllers(
+            new(
+                graph is not null, // the controllers advance with the graph's sub-blocks
+                modulation.SequencerStage,
+                modulation.SequencerStages,
+                modulation.Value(ModSource.Lfo1),
+                modulation.Value(ModSource.Lfo2),
+                modulation.Value(ModSource.Adsr1),
+                modulation.Value(ModSource.Adsr2)
+            )
+        );
     }
 
     /// <summary>

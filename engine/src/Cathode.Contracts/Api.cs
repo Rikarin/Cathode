@@ -231,7 +231,8 @@ public sealed record RigEvent(
 ///     frame. The loudness is the output's ITU-R BS.1770 momentary (400 ms) and short-term (3 s) level in LUFS. Both
 ///     come from the shared-memory telemetry and are absent without it. <c>Modulation</c> is the current value of every
 ///     parameter a modifier drives, in the parameter's units, by block id and then parameter id, as of the frame (not a
-///     peak); it is absent when no modifier is driving a parameter.
+///     peak); it is absent when no modifier is driving a parameter. <c>Controllers</c> is where the rig's sequencer,
+///     LFOs and ADSRs stand, also from the shared-memory telemetry.
 /// </summary>
 public sealed record Telemetry(
     string Type,
@@ -247,7 +248,23 @@ public sealed record Telemetry(
     float? LoudnessMomentary = null,
     float? LoudnessShortTerm = null,
     float[]? OutputPeaks = null,
-    Dictionary<string, Dictionary<string, float>>? Modulation = null
+    Dictionary<string, Dictionary<string, float>>? Modulation = null,
+    ControllerInfo? Controllers = null
+);
+
+/// <summary>
+///     Where the rig's controllers stand, as of a telemetry frame: the sequencer's stage playing (from 0) of its
+///     <c>SequencerStages</c>, and the current value (0..1) of LFO 1 and 2 and ADSR 1 and 2. <c>Running</c> is false
+///     while the audio is stopped or no preset is loaded: the values then hold where they stopped.
+/// </summary>
+public sealed record ControllerInfo(
+    bool Running,
+    int SequencerStage,
+    int SequencerStages,
+    float Lfo1,
+    float Lfo2,
+    float Adsr1,
+    float Adsr2
 );
 
 /// <summary>
