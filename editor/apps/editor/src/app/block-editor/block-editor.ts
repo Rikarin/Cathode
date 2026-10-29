@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  type ElementRef,
+  afterRenderEffect,
+  computed,
+  inject,
+  signal,
+  viewChild
+} from '@angular/core';
 import { BuiltInTypes, BypassModes, ChannelNames, OutputTypes, type ParameterInfo } from '@cathode/api-client';
 import { CthBlockTile, blockAccent } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
@@ -386,6 +395,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
 
           @if (mainParams().length > 0 || outputParams().length > 0) {
             <div
+              #settingsPanel
               class="from-surface-raised to-surface border-border flex gap-6 rounded-xl border bg-linear-to-b p-5 shadow-[inset_0_1px_0_rgb(255_255_255/0.05)]"
             >
               @if (pages().length > 1) {
@@ -393,15 +403,17 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
                   role="tablist"
                   aria-label="Block pages"
                   aria-orientation="vertical"
-                  class="border-hairline-strong flex w-34 shrink-0 flex-col gap-0.5 self-start rounded-lg border bg-(--well) p-1 shadow-[inset_0_1px_3px_rgb(0_0_0/0.6),0_1px_0_var(--highlight)]"
+                  class="border-hairline-strong -my-5 -ms-5 flex w-36 shrink-0 flex-col gap-0.5 self-stretch rounded-s-xl border-e bg-black/25 py-3 ps-2 shadow-[inset_-2px_0_4px_rgb(0_0_0/0.2)]"
                   data-testid="block-pages"
+                  [style.--panel-height.px]="tabPaint()?.height"
+                  [style.--tab-top.px]="tabPaint()?.top"
                 >
-                  <!-- A sunken well of pages; the one shown is a raised key with an LED in the block's colour. -->
+                  <!-- Tabs down the panel's edge: the page shown opens into the panel, with an LED in the block's colour. -->
                   @for (name of pages(); track name) {
                     <button
                       type="button"
                       role="tab"
-                      class="focus-visible:outline-focus flex items-center gap-2 rounded-md border px-2.5 py-1 text-start text-[13px] outline-offset-1 transition-colors focus-visible:outline-2"
+                      class="focus-visible:outline-focus flex items-center gap-2 rounded-s-md border border-e-0 px-2.5 py-1.5 text-start text-[13px] outline-offset-1 transition-colors focus-visible:outline-2"
                       [class.cth-page-key]="name === page()"
                       [class.border-transparent]="name !== page()"
                       [class.text-foreground-muted]="name !== page()"
@@ -546,8 +558,34 @@ export class BlockEditor {
   protected readonly isIo = computed(
     () => this.block()?.type === BuiltInTypes.input || OutputTypes.includes(this.block()?.type ?? '')
   );
+  private readonly settingsPanel = viewChild<ElementRef<HTMLElement>>('settingsPanel');
+  /**
+   * The settings panel's height and where the shown page's tab sits in it, so the tab is painted with the panel's own
+   * gradient at that height (`.cth-page-key`) and opens into the panel seamlessly wherever it is in the list.
+   */
+  protected readonly tabPaint = signal<{ height: number; top: number } | null>(null);
+
   constructor() {
     void this.blockPresets.refresh();
+    afterRenderEffect(onCleanup => {
+      this.page();
+      const panel = this.settingsPanel()?.nativeElement;
+      if (!panel) {
+        return;
+      }
+
+      const measure = () => {
+        const tab = panel.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+        if (tab) {
+          const top = tab.getBoundingClientRect().top - panel.getBoundingClientRect().top - panel.clientTop;
+          this.tabPaint.set({ height: panel.clientHeight, top: top + tab.clientTop });
+        }
+      };
+      measure();
+      const observer = new ResizeObserver(measure);
+      observer.observe(panel);
+      onCleanup(() => observer.disconnect());
+    });
   }
 
   protected removeEngageModifier(): void {
