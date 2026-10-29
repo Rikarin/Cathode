@@ -377,3 +377,137 @@ xui-toast {
     border-radius: 9999px;
   }
 }
+
+/*
+ * Selects as macOS pop-up buttons: a bezel like the buttons beside them (not an inset field), 6 px corners and the
+ * up/down chevrons of a pop-up, drawn as a mask in the text colour in place of xUI's expand icon.
+ */
+xui-select > button[role='combobox'] {
+  border-color: var(--bezel-border);
+  border-radius: var(--radius-control);
+  background-color: transparent;
+  background-image: linear-gradient(to bottom, var(--bezel-top), var(--bezel-bottom));
+  box-shadow:
+    inset 0 1px 0 var(--highlight),
+    var(--bezel-shadow);
+  font-size: 13px;
+
+  &:hover:not(:disabled) {
+    background-image: linear-gradient(to bottom, var(--bezel-hover-top), var(--bezel-hover-bottom));
+  }
+
+  &[aria-expanded='true'] {
+    background-image: linear-gradient(to bottom, var(--bezel-pressed-top), var(--bezel-pressed-bottom));
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.35);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 1px;
+  }
+
+  & > ng-icon {
+    display: none;
+  }
+
+  &::after {
+    content: '';
+    flex-shrink: 0;
+    width: 0.5rem;
+    height: 0.75rem;
+    margin-inline-start: 0.5rem;
+    background-color: var(--color-foreground-muted);
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1.5 4.25 4 1.75l2.5 2.5M1.5 7.75 4 10.25l2.5-2.5'/%3E%3C/svg%3E")
+      center / contain no-repeat;
+  }
+}
+
+/*
+ * A select's list as a macOS menu: rounded translucent material with a hairline edge and a deep shadow; the row under
+ * the pointer or the arrow keys filled with the accent, the chosen one marked with a check rather than coloured.
+ */
+.cdk-overlay-pane[role='listbox'] > xui-popover-panel {
+  margin-top: 0.25rem;
+  border-color: var(--hairline-strong);
+  border-radius: 0.5rem;
+  background-color: color-mix(in oklab, var(--color-surface-overlay) 85%, transparent);
+  backdrop-filter: blur(24px) saturate(1.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+  box-shadow:
+    inset 0 1px 0 var(--highlight),
+    0 10px 30px rgb(0 0 0 / 0.45);
+
+  & input {
+    font-size: 13px;
+  }
+
+  & ul[role='listbox'] {
+    padding: 0.3125rem;
+    background: transparent;
+    backdrop-filter: none;
+  }
+
+  & li[role='option'] {
+    position: relative;
+    padding: 0.1875rem 0.625rem 0.1875rem 1.5rem;
+    border-radius: 0.25rem;
+    color: var(--color-foreground);
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.25rem;
+
+    &.bg-primary\/10 {
+      background-color: var(--color-primary);
+      color: #fff;
+    }
+
+    &[aria-selected='true']::before {
+      content: '';
+      position: absolute;
+      inset-inline-start: 0.4375rem;
+      top: 50%;
+      width: 0.6875rem;
+      height: 0.6875rem;
+      translate: 0 -50%;
+      background-color: currentColor;
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='black' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 6.5 4.75 9.25 10 3'/%3E%3C/svg%3E")
+        center / contain no-repeat;
+    }
+  }
+}
+
+/*
+ * Menus (context menus, the block page's … menu, Preset ▾) as macOS menus, matching the select lists: the material,
+ * 8 px corners, compact 13 px rows, and the row under the pointer or the keys filled with the accent in white.
+ */
+xui-menu {
+  gap: 0;
+  padding: 0.3125rem;
+  border-color: var(--hairline-strong);
+  border-radius: 0.5rem;
+  box-shadow:
+    inset 0 1px 0 var(--highlight),
+    0 10px 30px rgb(0 0 0 / 0.45);
+
+  & [role='separator'] {
+    margin-block: 0.3125rem;
+    background-color: var(--hairline-strong);
+  }
+
+  & [xuiMenuItem] {
+    padding: 0.1875rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 13px;
+    line-height: 1.25rem;
+
+    &:is(:hover, :focus-visible):not([aria-disabled='true']) {
+      background-color: var(--color-primary);
+      color: #fff;
+
+      & ng-icon,
+      & span {
+        color: inherit;
+      }
+    }
+  }
+}
