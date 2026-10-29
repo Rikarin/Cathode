@@ -101,6 +101,14 @@
   --knob-top: #ffffff;
   --knob-bottom: #d9d9dd;
 
+  /* A rotary knob (cth-knob): Anode's turned-metal dial, its track and pointer. */
+  --dial-top: #ffffff;
+  --dial-bottom: #d6d6db;
+  --dial-rim: rgb(0 0 0 / 0.28);
+  --dial-shine: rgb(255 255 255 / 0.9);
+  --dial-track: rgb(0 0 0 / 0.14);
+  --dial-pointer: #1d1d1f;
+
   /* Chart series, in fixed order (validated: dataviz validate_palette.js --mode light, surface #f2f2f4). */
   --chart-1: #2f78d2;
   --chart-2: #d2621f;
@@ -168,6 +176,14 @@
   /* A switch's knob: Anode's fader-cap metal. */
   --knob-top: #e9e9ec;
   --knob-bottom: #b4b4ba;
+
+  /* A rotary knob (cth-knob): Anode's turned-metal dial, its track and pointer. */
+  --dial-top: #626268;
+  --dial-bottom: #38383c;
+  --dial-rim: rgb(0 0 0 / 0.75);
+  --dial-shine: rgb(255 255 255 / 0.22);
+  --dial-track: rgb(0 0 0 / 0.5);
+  --dial-pointer: #f5f5f7;
 
   /* Chart series, in fixed order (validated: dataviz validate_palette.js --mode dark, surface #1a1a1c). */
   --chart-1: #3d8ce8;

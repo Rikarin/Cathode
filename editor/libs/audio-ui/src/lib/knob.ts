@@ -28,8 +28,8 @@ const SettleMs = 800;
  * the travel (⇧: 0.1 %), Page keys by 10 %, Home/End go to the ends. Drag vertically (⇧ for fine), or around it in
  * circular mode, and use the wheel (both per the app's {@link CTH_KNOB_PREFERENCES}),
  * double-click the knob or its readout to type a value with its unit, ⌥-click to reset to the default. It reads like
- * hardware: the value in a recessed readout above, a machined cap whose pointer shows the position, the travel as an
- * arc in `color`, and the name below.
+ * hardware: the value in a recessed readout above, a turned-metal dial (Anode's, `--dial-*`) whose pointer shows
+ * the position, the travel as an arc in `color`, and the name below.
  *
  * While a modifier drives the parameter (`modulated`), the pointer, arc and readout follow that live value, gliding
  * between telemetry frames, and a dot on the track marks the value set here, which the modifier works from. Editing
@@ -102,13 +102,22 @@ const SettleMs = 800;
     >
       <svg viewBox="0 0 100 100" class="size-full overflow-visible" aria-hidden="true">
         <defs>
-          <radialGradient [attr.id]="capId" cx="38%" cy="30%" r="75%">
-            <stop offset="0%" stop-color="#5b616c" />
-            <stop offset="55%" stop-color="#2a2e35" />
-            <stop offset="100%" stop-color="#141619" />
+          <linearGradient [attr.id]="capId" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" style="stop-color: var(--dial-top)" />
+            <stop offset="100%" style="stop-color: var(--dial-bottom)" />
+          </linearGradient>
+          <radialGradient [attr.id]="shineId" cx="50%" cy="18%" r="55%">
+            <stop offset="0%" style="stop-color: var(--dial-shine)" />
+            <stop offset="100%" style="stop-color: var(--dial-shine); stop-opacity: 0" />
           </radialGradient>
         </defs>
-        <path [attr.d]="track" class="stroke-border fill-none" stroke-width="7" stroke-linecap="round" />
+        <path
+          [attr.d]="track"
+          class="fill-none"
+          stroke-width="7"
+          stroke-linecap="round"
+          style="stroke: var(--dial-track)"
+        />
         <!-- The value's stretch of the track, as a dash, so it can glide while modulated. -->
         <path
           [attr.d]="track"
@@ -120,7 +129,6 @@ const SettleMs = 800;
           [style.stroke-dasharray]="fill().length + ' ' + 2 * Sweep"
           [style.stroke-dashoffset]="-fill().offset"
           [style.stroke]="arcColor()"
-          [style.filter]="'drop-shadow(0 0 3px ' + arcColor() + ')'"
         />
         @if (live() !== null) {
           <circle
@@ -133,26 +141,21 @@ const SettleMs = 800;
             stroke-width="1.2"
           />
         }
-        <circle cx="50" cy="53" r="33" fill="rgb(0 0 0 / 0.45)" style="filter: blur(3px)" />
-        <circle
-          cx="50"
-          cy="50"
-          r="32"
-          [attr.fill]="'url(#' + capId + ')'"
-          stroke="rgb(255 255 255 / 0.1)"
-          stroke-width="1"
-        />
-        <circle cx="50" cy="50" r="26" fill="none" stroke="rgb(0 0 0 / 0.35)" stroke-width="1" />
+        <!-- Anode's turned-metal body: graded, a shine on its upper edge, a dark rim and a short shadow. -->
+        <circle cx="50" cy="52" r="31" fill="rgb(0 0 0 / 0.4)" style="filter: blur(1.5px)" />
+        <circle cx="50" cy="50" r="30.5" [attr.fill]="'url(#' + capId + ')'" />
+        <circle cx="50" cy="50" r="30.5" [attr.fill]="'url(#' + shineId + ')'" />
+        <circle cx="50" cy="50" r="31" fill="none" stroke-width="2" style="stroke: var(--dial-rim)" />
+        <path d="M 27 41 A 24.5 24.5 0 0 1 73 41" fill="none" stroke-width="1" style="stroke: var(--dial-shine)" />
         <line
           class="cth-knob-moving"
           [attr.x1]="pointerFrom.x"
           [attr.y1]="pointerFrom.y"
           [attr.x2]="pointerTo.x"
           [attr.y2]="pointerTo.y"
-          stroke="white"
-          stroke-width="4.5"
+          stroke-width="4"
           stroke-linecap="round"
-          style="transform-origin: 50px 50px"
+          style="stroke: var(--dial-pointer); transform-origin: 50px 50px"
           [style.transform]="'rotate(' + shownNormal() * Sweep + 'deg)'"
         />
       </svg>
@@ -167,6 +170,7 @@ export class CthKnob {
   private readonly instance = CthKnob.nextId++;
   protected readonly labelId = `cth-knob-label-${this.instance}`;
   protected readonly capId = `cth-knob-cap-${this.instance}`;
+  protected readonly shineId = `cth-knob-shine-${this.instance}`;
   private readonly dial = viewChild.required<ElementRef<HTMLElement>>('dial');
   private readonly editor = viewChild<ElementRef<HTMLInputElement>>('editor');
   private dragStart: { y: number; normal: number } | null = null;
@@ -246,8 +250,8 @@ export class CthKnob {
     };
   });
   /** The pointer at the start of travel; it is turned to the shown value, so it can glide. */
-  protected readonly pointerTo = point(0, 27);
-  protected readonly pointerFrom = point(0, 13);
+  protected readonly pointerTo = point(0, 25);
+  protected readonly pointerFrom = point(0, 9);
   /** Where the value set sits on the track, marked while the knob shows a modulated value. */
   protected readonly baseMarker = computed(() => point(this.normal(), 42));
   protected readonly arcColor = computed(() => this.color() ?? 'var(--color-primary)');
