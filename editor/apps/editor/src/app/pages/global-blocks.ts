@@ -44,7 +44,8 @@ import { LiveStore } from '../state/live.store';
       />
     } @else {
       <xui-table interactive class="w-full" data-testid="global-blocks" aria-label="Global blocks">
-        <xui-tr class="bg-background sticky top-0 z-10">
+        <!-- Pinned at the page's top edge, above its 16 px padding (a sticky element pins below padding). -->
+        <xui-tr class="!bg-background sticky -top-4 z-10">
           <xui-th class="min-w-0 flex-1">Name</xui-th>
           <xui-th class="w-48">Type</xui-th>
           <xui-th class="w-48">This preset</xui-th>

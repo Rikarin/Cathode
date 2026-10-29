@@ -277,15 +277,16 @@ export class AssetToolbar {
       />
     } @else {
       <!-- Only the rows in view are rendered: IR packs run to hundreds of files. -->
-      <div cdkVirtualScrollingElement class="min-h-0 flex-1 overflow-auto px-6 pt-4">
+      <!-- The space above the table is its margin, not the scroller's padding: a sticky header pins below padding. -->
+      <div cdkVirtualScrollingElement class="min-h-0 flex-1 overflow-auto px-6">
         <xui-table
           interactive
-          class="w-full"
+          class="mt-4 w-full"
           data-testid="asset-list"
           [attr.aria-label]="assets.kind() === 'amps' ? 'Amp captures' : 'Cab IRs'"
           [attr.aria-rowcount]="(assets.rows().length || 1) + 1"
         >
-          <xui-tr class="bg-background sticky top-0 z-10" aria-rowindex="1">
+          <xui-tr class="!bg-background sticky top-0 z-10" aria-rowindex="1">
             <xui-th class="w-10" aria-label="Favourite" />
             <xui-th class="min-w-0 flex-1">Name</xui-th>
             <xui-th class="w-24">Type</xui-th>
@@ -363,8 +364,8 @@ export class AssetToolbar {
           }
         </xui-table>
       </div>
-      <footer class="border-border bg-surface flex items-center gap-2 border-t px-6 py-3">
-        <span class="text-foreground-muted mr-auto text-sm">
+      <footer class="chrome-bar border-hairline-strong flex items-center gap-2 border-t px-4 py-1.5">
+        <span class="text-foreground-muted mr-auto text-xs">
           @if (assets.onlySelected(); as only) {
             <span class="text-foreground font-medium">{{ only.name }}</span>
           } @else if (assets.selectedAssets().length > 1) {
@@ -373,13 +374,21 @@ export class AssetToolbar {
             {{ count() }} · drop files here to upload
           }
         </span>
-        <button xuiButton type="button" variant="ghost" [disabled]="!assets.onlySelected()" (click)="renameSelected()">
+        <button
+          xuiButton
+          type="button"
+          variant="outline"
+          size="sm"
+          [disabled]="!assets.onlySelected()"
+          (click)="renameSelected()"
+        >
           Rename…
         </button>
         <button
           xuiButton
           type="button"
-          variant="ghost"
+          variant="outline"
+          size="sm"
           [disabled]="assets.selectedAssets().length === 0"
           [xuiMenuTriggerFor]="colors"
         >
@@ -388,7 +397,8 @@ export class AssetToolbar {
         <button
           xuiButton
           type="button"
-          variant="ghost"
+          variant="outline"
+          size="sm"
           color="error"
           data-testid="delete-assets"
           [disabled]="assets.selectedAssets().length === 0"

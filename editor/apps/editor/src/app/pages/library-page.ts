@@ -137,15 +137,16 @@ export const PresetRowHeight = 48;
         />
       } @else {
         <!-- Only the rows in view are rendered (the factory bank alone is a long list). -->
-        <div cdkVirtualScrollingElement class="min-h-0 flex-1 overflow-auto px-6 pt-4">
+        <!-- The space above the table is its margin, not the scroller's padding: a sticky header pins below padding. -->
+        <div cdkVirtualScrollingElement class="min-h-0 flex-1 overflow-auto px-6">
           <xui-table
             interactive
-            class="w-full"
+            class="mt-4 w-full"
             data-testid="preset-list"
             aria-label="Presets"
             [attr.aria-rowcount]="(rows().length || 1) + 1"
           >
-            <xui-tr class="bg-background sticky top-0 z-10" aria-rowindex="1">
+            <xui-tr class="!bg-background sticky top-0 z-10" aria-rowindex="1">
               <xui-th class="w-10" aria-label="Favourite" />
               <xui-th class="min-w-0 flex-1">Name</xui-th>
               <xui-th class="w-48">Author</xui-th>
@@ -220,8 +221,8 @@ export const PresetRowHeight = 48;
             }
           </xui-table>
         </div>
-        <footer class="border-border bg-surface flex items-center gap-2 border-t px-6 py-3">
-          <span class="text-foreground-muted mr-auto text-sm">
+        <footer class="chrome-bar border-hairline-strong flex items-center gap-2 border-t px-4 py-1.5">
+          <span class="text-foreground-muted mr-auto text-xs">
             @if (selected(); as preset) {
               <span class="text-foreground font-medium">{{ preset.name }}</span>
               @if (preset.description) {
@@ -231,11 +232,14 @@ export const PresetRowHeight = 48;
               {{ rows().length }} {{ rows().length === 1 ? 'preset' : 'presets' }} · double-click one to load it
             }
           </span>
-          <button xuiButton type="button" variant="ghost" [disabled]="!selected()" (click)="export()">Export</button>
+          <button xuiButton type="button" variant="outline" size="sm" [disabled]="!selected()" (click)="export()">
+            Export
+          </button>
           <button
             xuiButton
             type="button"
-            variant="ghost"
+            variant="outline"
+            size="sm"
             color="error"
             [disabled]="!selected() || selected()?.factory"
             [attr.title]="selected()?.factory ? 'Factory presets are read-only' : null"
@@ -247,6 +251,7 @@ export const PresetRowHeight = 48;
             xuiButton
             type="button"
             color="primary"
+            size="sm"
             data-testid="load-preset"
             [disabled]="!selected()"
             (click)="load()"
