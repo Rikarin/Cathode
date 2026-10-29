@@ -16,7 +16,12 @@ works on bass, or on an acoustic or clean tone before the effects.
 threshold at a time while you play, until that band is held in check. Ratios of 2 to 4 are plenty. Use each band's
 Level to rebalance the bands afterwards.
 
-To hear what one band is doing, mute the other two.`,
+To hear what one band is doing, mute the other two.
+
+**Reading the meters:** the block's page has a gain-reduction meter for each band, **Low**, **Mid** and **High**. Each
+bar hangs down from 0 dB as that band is turned down, on a scale to −24 dB; a mark holds the deepest reduction for a
+second and the number under the bar shows it. Lower a band's threshold until its meter moves on the notes you want to
+control and stays near 0 on the rest. The meters read 0 while the block is bypassed.`,
 
   params: {
     lowFreq: `The crossover between the low and mid bands. Everything below it is the low band.`,

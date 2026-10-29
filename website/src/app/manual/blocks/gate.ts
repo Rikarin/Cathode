@@ -22,7 +22,11 @@ Keep it in front of delays and reverbs, or it will chop off their tails.
 
 **Starting point:** Type Modern Gate, Threshold −60 dB, Attack 0.5 ms, Hold 20 ms, Release 100 ms. Play, stop, and raise
 Threshold until the noise vanishes when you mute the strings, then back it off until sustained notes stop being cut
-short. For a softer action, switch to Modern Expander with Ratio 2 to 4.`,
+short. For a softer action, switch to Modern Expander with Ratio 2 to 4.
+
+**Reading the meter:** the block's page has a **GR** (gain reduction) meter. It stays at 0 dB while the gate is open and
+drops as it closes, on a scale to −60 dB, so you can see whether it is shutting between notes or cutting into a
+sustained one. A mark holds the deepest reading for a second, and the number under the bar shows it.`,
 
   params: {
     threshold: `The level the detector compares against. Above it the gate is open; below it the gate closes (or the

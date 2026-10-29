@@ -310,7 +310,7 @@ public class GraphCompilerTests {
 
     [Fact]
     public void A_graph_whose_meters_or_modifiers_overflow_the_telemetry_is_refused() {
-        var count = TelemetryLayout.Modifiers + 1;
+        var count = Math.Max(TelemetryLayout.BlockMeters, TelemetryLayout.Modifiers) + 1;
         var definition = new GraphDefinition { Rows = count / 14 + 1, Columns = 14 };
         for (var i = 0; i < count; i++) {
             definition.Nodes.Add(Node($"v{i}", "volpan", i / 14, i % 14));

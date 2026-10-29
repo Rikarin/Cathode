@@ -50,6 +50,42 @@ public class CompressorBlockTests {
     }
 
     [Fact]
+    public void The_gain_reduction_meter_reads_the_reduction_as_positive_dB_and_0_below_the_threshold() {
+        using var block = Create(0);
+        var meter = new float[1];
+        Assert.Equal(["gainReduction"], block.MeterIds);
+
+        BlockRender.Mono(block, Signals.Sine(1_000, 48_000, 48_000), 64); // 0 dBFS: 20 dB over at 4:1
+        block.ReadMeters(meter);
+        Assert.InRange(meter[0], 12f, 15.5f); // up to 15 dB at the sine's peaks, released a little between them
+        Assert.Equal(-block.GainReductionDb, meter[0]);
+
+        block.Reset();
+        BlockRender.Mono(block, Signals.Sine(1_000, 48_000, 9_600, Db(-30)), 64);
+        block.ReadMeters(meter);
+        Assert.Equal(0f, meter[0]);
+
+        meter[0] = 99f;
+        ((IBlockMeters)block).ReadRestingMeters(meter); // what a bypassed compressor reads
+        Assert.Equal(0f, meter[0]);
+    }
+
+    [Fact]
+    public void The_meter_counts_the_companders_expander_but_not_the_sustainers_boost() {
+        var meter = new float[1];
+        using var compander = Create(CompressorBlock.Compander);
+        BlockRender.Mono(compander, Signals.Sine(1_000, 48_000, 48_000, Db(-80)), 64); // 20 dB under its expander
+        compander.ReadMeters(meter);
+        Assert.True(meter[0] > 10f, $"compander {meter[0]:0.0} dB");
+
+        using var sustainer = Create(CompressorBlock.Sustainer);
+        BlockRender.Mono(sustainer, Signals.Sine(1_000, 48_000, 48_000, Db(-40)), 64);
+        sustainer.ReadMeters(meter);
+        Assert.True(sustainer.GainReductionDb > 1f, "the sustainer raises a quiet signal");
+        Assert.Equal(0f, meter[0]);
+    }
+
+    [Fact]
     public void Opto_recovers_more_slowly_after_heavy_compression() {
         static float RecoveryDb(float type) {
             using var block = Create(type, -30, 10, release: 100);

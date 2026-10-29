@@ -427,6 +427,11 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         values[1] = motorMeter;
     }
 
+    public void ReadRestingMeters(Span<float> values) {
+        values[0] = MeterFloorDb;
+        values[1] = 0f;
+    }
+
     public void Refresh() {
         lock (sync) {
             if (synthesizer is null || disposed) {

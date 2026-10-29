@@ -21,14 +21,20 @@ Makeup on. Lower the Threshold for more squash, then raise Attack if the pick at
 compressor.
 
 **Parallel compression:** set Mix around 50 %: you keep the natural attack of your playing and add a sustained,
-compressed layer under it.`,
+compressed layer under it.
+
+**Reading the meter:** the block's page has a **GR** (gain reduction) meter above the knobs. The bar hangs down from
+0 dB as the compressor turns the level down, on a scale to −24 dB, and follows the attack and release you set. A mark
+stays at the deepest reduction for a second, and the number under the bar shows it. With the Compander type the meter
+includes what the expander takes off between notes. The Sustainer, and the Dynamics type at negative values, raise the
+level rather than lower it, so the meter stays at 0 on them. It also reads 0 while the block is bypassed.`,
 
   params: {
     type: `The compressor's design: how it measures the level and how it reacts. See the list below.`,
 
     threshold: `The level above which the compressor starts working. Lower means more of your playing is compressed. As a guide,
-a threshold that takes 3 to 6 dB off your normal picking is gentle; 10 dB or more is obvious squash. Bypass the block now
-and then to hear how much it is doing. Hidden with **Controls** on Compression, which sets it from its one knob.`,
+a threshold that takes 3 to 6 dB off your normal picking is gentle; 10 dB or more is obvious squash. The **GR** meter on
+the block's page shows how much it is taking off; bypass the block now and then to hear it too. Hidden with **Controls** on Compression, which sets it from its one knob.`,
 
     ratio: `How much the level over the threshold is reduced. At 4:1, a note 8 dB over the threshold comes out only 2 dB
 over. 2:1 is gentle, 4:1 to 8:1 is a typical guitar compressor, and at the top of the range (100) it is ∞:1, a limiter.

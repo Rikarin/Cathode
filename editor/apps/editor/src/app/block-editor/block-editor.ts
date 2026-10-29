@@ -38,6 +38,7 @@ import { isCabSlotParam } from './panels/cab';
 import { CabPanel } from './panels/cab-panel';
 import { CabResonanceHelper } from './panels/cab-resonance-helper';
 import { isCustomTableParam } from './panels/custom-shifter';
+import { DynamicsPanel } from './panels/dynamics-panel';
 import { IrPlayerPanel } from './panels/ir-player-panel';
 import { PeqPanel } from './panels/peq-panel';
 import { PitchPanel } from './panels/pitch-panel';
@@ -61,6 +62,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
     CabResonanceHelper,
     CthBlockTile,
     CabPanel,
+    DynamicsPanel,
     IrPlayerPanel,
     ModifierDialog,
     XuiContextMenuImports,
@@ -370,6 +372,15 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
             }
             @case ('pitch') {
               <cth-pitch-panel [block]="block" />
+            }
+            @case ('compressor') {
+              <cth-dynamics-panel [block]="block" />
+            }
+            @case ('mbcomp') {
+              <cth-dynamics-panel [block]="block" />
+            }
+            @case ('gate') {
+              <cth-dynamics-panel [block]="block" />
             }
           }
 

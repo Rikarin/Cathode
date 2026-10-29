@@ -163,6 +163,30 @@ public class PresetFeatureEngineTests {
     }
 
     [Fact]
+    public void A_compressors_gain_reduction_reaches_the_telemetry_and_rests_at_0_while_it_is_bypassed() {
+        using var region = TelemetryRegion.CreateInMemory(Spec.SampleRate);
+        var engine = new CathodeEngine(Spec) { Telemetry = region };
+        var graph = Compiler.Compile(Graph("compressor", "comp"), Spec, 4); // -20 dB at 4:1
+        engine.Publish(graph);
+        var monitor = new TelemetryMonitor(region);
+        monitor.Poll();
+        var meter = graph.MeterIndex("comp", "gainReduction");
+        var loud = Signals.Sine(997, Spec.SampleRate, 24_000);
+
+        OfflineRenderer.Render(engine, loud, loud, 64);
+        monitor.Poll();
+        Assert.InRange(monitor.BlockMeters[meter], 10f, 16f); // 0 dBFS, 20 dB over: up to 15 dB
+
+        Assert.True(engine.Post(EngineCommand.SetBypass(4, graph.SlotOf("comp"), true)));
+        OfflineRenderer.Render(engine, loud, loud, 64);
+        monitor.Poll(); // the bypass fade
+        OfflineRenderer.Render(engine, loud, loud, 64);
+        monitor.Poll();
+        Assert.Equal(0f, monitor.BlockMeters[meter]);
+        Assert.Equal(0f, graph.Meters[meter]);
+    }
+
+    [Fact]
     public void Each_modifiers_value_reaches_the_telemetry_region_for_its_generation() {
         using var region = TelemetryRegion.CreateInMemory(Spec.SampleRate);
         var engine = new CathodeEngine(Spec) { Telemetry = region };

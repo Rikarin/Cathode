@@ -36,6 +36,11 @@ public class MultibandCompressorBlockTests {
         Assert.True(block.GainReductionDb(0) < -6, $"low band reduced {block.GainReductionDb(0):0.0} dB");
         Assert.Equal(0, block.GainReductionDb(1), 0.5);
         Assert.Equal(0, block.GainReductionDb(2));
+        var meters = new float[3];
+        block.ReadMeters(meters);
+        Assert.Equal(["lowReduction", "midReduction", "highReduction"], block.MeterIds);
+        Assert.Equal(-block.GainReductionDb(0), meters[0]);
+        Assert.Equal(0f, meters[2]);
         Assert.True(Analysis.ToDb(spectrum[LowBin] / 0.5) < -6, "the loud low tone should come down");
         Assert.Equal(0, Analysis.ToDb(spectrum[HighBin] / 0.01), 0.2); // the quiet high tone is untouched
     }

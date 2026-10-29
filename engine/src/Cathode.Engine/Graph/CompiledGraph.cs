@@ -57,7 +57,7 @@ public sealed class CompiledGraph : IDisposable {
     readonly int[] meterOffsets;
     readonly string[] meterLayout;
     readonly IBlockMeters[] ownMeters;
-    readonly int[] ownOffsets;
+    readonly int[] ownSlots;
 
     /// <summary>
     ///     The standard meter every block has, first in its <see cref="MeterIds" />: its output peak (linear).
@@ -192,7 +192,7 @@ public sealed class CompiledGraph : IDisposable {
         meters = new float[meterCount];
         meterLayout = new string[meterCount];
         ownMeters = new IBlockMeters[metered];
-        ownOffsets = new int[metered];
+        ownSlots = new int[metered];
         LayOutMeters();
         bypass = new BypassState[blocks.Length];
         for (var i = 0; i < blocks.Length; i++) {
@@ -214,7 +214,7 @@ public sealed class CompiledGraph : IDisposable {
             meterLayout[meterOffsets[i]] = PeakMeter;
             if (blocks[i] is IBlockMeters own) {
                 ownMeters[metered] = own;
-                ownOffsets[metered++] = meterOffsets[i] + 1;
+                ownSlots[metered++] = i;
                 for (var m = 0; m < own.MeterIds.Count; m++) {
                     meterLayout[meterOffsets[i] + 1 + m] = own.MeterIds[m];
                 }
@@ -310,11 +310,18 @@ public sealed class CompiledGraph : IDisposable {
 
     /// <summary>
     ///     Audio thread, once per callback after <see cref="Process" />: reads the blocks' own meters into
-    ///     <see cref="Meters" />.
+    ///     <see cref="Meters" />. A fully bypassed block's meters read their resting values: nothing of it is heard,
+    ///     and a Thru block does not even run, so its own values would be stale.
     /// </summary>
     public void CaptureMeters() {
         for (var i = 0; i < ownMeters.Length; i++) {
-            ownMeters[i].ReadMeters(meters.AsSpan(ownOffsets[i], ownMeters[i].MeterIds.Count));
+            var slot = ownSlots[i];
+            var values = meters.AsSpan(meterOffsets[slot] + 1, ownMeters[i].MeterIds.Count);
+            if (bypass[slot].Target && bypass[slot].Mix == 0f) {
+                ownMeters[i].ReadRestingMeters(values);
+            } else {
+                ownMeters[i].ReadMeters(values);
+            }
         }
     }
 

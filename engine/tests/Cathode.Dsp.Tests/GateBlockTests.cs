@@ -28,6 +28,20 @@ public class GateBlockTests {
     }
 
     [Fact]
+    public void The_gain_reduction_meter_reads_how_far_the_gate_is_closed() {
+        using var gate = Create();
+        var meter = new float[1];
+
+        BlockRender.Mono(gate, Signals.Sine(220, 48_000, 48_000, Db(-20)), 64);
+        gate.ReadMeters(meter);
+        Assert.Equal(0f, meter[0]);
+
+        BlockRender.Mono(gate, Signals.Sine(220, 48_000, 48_000, Db(-80)), 64);
+        gate.ReadMeters(meter);
+        Assert.InRange(meter[0], 50f, 100f); // 20 dB under at 4:1, near 60 dB
+    }
+
+    [Fact]
     public void Hold_keeps_the_gate_open_after_the_signal_stops() {
         using var gate = Create(holdMs: 50, releaseMs: 5);
         var note = Signals.Sine(220, 48_000, 4_800, 0.5f);

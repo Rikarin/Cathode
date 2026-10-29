@@ -392,6 +392,30 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task A_compressors_gain_reduction_arrives_while_it_works_and_reads_0_when_bypassed() {
+        await Post("/api/v1/live/blocks", new AddBlockRequest("volpan", Preset.DefaultRow, 3));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("compressor", Preset.DefaultRow, 4));
+        await Patch(
+            "/api/v1/live/blocks/compressor1/params?channel=A",
+            new Dictionary<string, float> { ["threshold"] = -50 }
+        );
+        using var socket = await server.Server.CreateWebSocketClient()
+            .ConnectAsync(new(server.Server.BaseAddress, "ws"), Token);
+
+        // Null audio has no input: a -20 dBFS tone in place of the volume block's output feeds the compressor, 30 dB
+        // over its threshold.
+        await Ok(
+            client.PutAsJsonAsync("/api/v1/live/blocks/volpan1/test-tone", new TestToneRequest(true, 220, -20), Token)
+        );
+        var working = await Reduction(socket, static r => r > 10f);
+        Assert.InRange(working, 10f, 30f);
+
+        await Put("/api/v1/live/blocks/compressor1/bypass", new BypassRequest(true));
+        Assert.Equal(0f, await Reduction(socket, static r => r == 0f));
+        await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", Token);
+    }
+
+    [Fact]
     public async Task Telemetry_carries_each_modified_parameters_live_value_by_block_and_parameter() {
         using var socket = await server.Server.CreateWebSocketClient()
             .ConnectAsync(new(server.Server.BaseAddress, "ws"), Token);
@@ -546,6 +570,35 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         Assert.StartsWith("Cathode presets (2)", text, StringComparison.Ordinal);
         Assert.True(text.IndexOf("Alpha", StringComparison.Ordinal) < text.IndexOf("Zebra", StringComparison.Ordinal));
         Assert.Contains("Scene 2: Solo", text, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    ///     The Compressor's <c>gainReduction</c> from the first telemetry frame where it meets
+    ///     <paramref name="until" />; fails after 10 s.
+    /// </summary>
+    static async Task<float> Reduction(WebSocket socket, Func<float, bool> until) {
+        var buffer = new byte[256 * 1024];
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Token);
+        deadline.CancelAfter(TimeSpan.FromSeconds(10));
+        float? last = null;
+        while (true) {
+            WebSocketReceiveResult result;
+            try {
+                result = await socket.ReceiveAsync(buffer, deadline.Token);
+            } catch (OperationCanceledException) when (!Token.IsCancellationRequested) {
+                Assert.Fail($"No telemetry with the gain reduction expected within 10 s; the last read {last}.");
+                throw;
+            }
+
+            var frame = JsonNode.Parse(Encoding.UTF8.GetString(buffer, 0, result.Count))!;
+            if (frame["type"]!.GetValue<string>() == "telemetry"
+                && frame["blocks"]?["compressor1"]?["gainReduction"] is { } meter) {
+                last = meter.GetValue<float>();
+                if (until(last.Value)) {
+                    return last.Value;
+                }
+            }
+        }
     }
 
     float Rig(string id) => server.Host.Engine.Rig.GetTarget(RigControls.Descriptor.IndexOf(id));

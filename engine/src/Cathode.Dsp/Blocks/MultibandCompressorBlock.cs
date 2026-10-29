@@ -17,8 +17,12 @@ namespace Cathode.Dsp.Blocks;
 ///         <b>Auto Attack/Release</b> scales each band's times by its crest factor (<see cref="CrestFactor" />), and
 ///         each band can be muted (mute two to solo the third).
 ///     </para>
+///     <para>
+///         Its meters (<see cref="IBlockMeters" />) are each band's gain reduction, <c>lowReduction</c>,
+///         <c>midReduction</c> and <c>highReduction</c>, in dB (0 or more).
+///     </para>
 /// </summary>
-public sealed class MultibandCompressorBlock() : DspBlock(Info) {
+public sealed class MultibandCompressorBlock() : DspBlock(Info), IBlockMeters {
     public const int LowFreq = 0;
     public const int HighFreq = 1;
     public const int Bands = 3;
@@ -42,6 +46,7 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
     const double SwitchFadeMs = 10;
 
     static readonly string[] BandNames = ["low", "mid", "high"];
+    static readonly string[] Meters = ["lowReduction", "midReduction", "highReduction"];
     static readonly float[] DefaultAttack = [20f, 10f, 5f];
     static readonly float[] DefaultRelease = [200f, 150f, 100f];
 
@@ -130,6 +135,18 @@ public sealed class MultibandCompressorBlock() : DspBlock(Info) {
     ///     Current gain reduction of <paramref name="band" /> (0 = low) in dB, 0 or negative. For meters and tests.
     /// </summary>
     public float GainReductionDb(int band) => reduction[band];
+
+    /// <summary>Each band's gain reduction, low to high, dB, 0 or more (<see cref="ReadMeters" />).</summary>
+    public IReadOnlyList<string> MeterIds => Meters;
+
+    /// <summary>Audio thread: each band's reduction as of the end of the last callback, as a positive dB.</summary>
+    public void ReadMeters(Span<float> values) {
+        for (var b = 0; b < Bands; b++) {
+            values[b] = Math.Max(0f, -reduction[b]);
+        }
+    }
+
+    public void ReadRestingMeters(Span<float> values) => values.Clear();
 
     float MuteTarget(int band) => Params.Current(Mute(band)) >= 0.5f ? 0f : 1f;
 

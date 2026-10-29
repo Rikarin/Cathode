@@ -19,9 +19,10 @@ namespace Cathode.Dsp.Blocks;
 ///     </para>
 ///     Sidechain picks what the detector hears: the block's input, the grid input, another grid row
 ///     (a tap, <see cref="SideInputs.Taps" />) or one of the interface's inputs (<see cref="HardwareInputs" />), so a
-///     gate late in the chain can follow the clean guitar.
+///     gate late in the chain can follow the clean guitar. Its <c>gainReduction</c> meter
+///     (<see cref="IDynamicsBlock" />) is how far it is closed, in dB (0 when open, up to 100).
 /// </summary>
-public sealed class GateBlock() : DspBlock(Info), ISideInputBlock {
+public sealed class GateBlock() : DspBlock(Info), IDynamicsBlock {
     public const int Threshold = 0;
     public const int Ratio = 1;
     public const int Attack = 2;
@@ -59,6 +60,8 @@ public sealed class GateBlock() : DspBlock(Info), ISideInputBlock {
 
     /// <summary>Deepest attenuation the gate applies, in dB.</summary>
     const float FloorDb = -100f;
+
+    static readonly string[] Meters = ["gainReduction"];
 
     readonly SidechainSource sidechainSource = new();
     float envelope;
@@ -105,6 +108,12 @@ public sealed class GateBlock() : DspBlock(Info), ISideInputBlock {
 
     /// <summary>Current gain applied by the gate (1 = open). For meters and tests.</summary>
     public float CurrentGain => MathF.Pow(10f, gainDb / 20f);
+
+    /// <summary><c>gainReduction</c>: how far the gate is closed, dB, 0 or more (<see cref="ReadMeters" />).</summary>
+    public IReadOnlyList<string> MeterIds => Meters;
+
+    /// <summary>Audio thread: the gate's attenuation as of the end of the last callback, as a positive dB.</summary>
+    public void ReadMeters(Span<float> values) => values[0] = gainDb < -1e-4f ? -gainDb : 0f;
 
     /// <summary>
     ///     The grid input and the row taps for the sidechain, and the hardware inputs (<see cref="Inputs" />).

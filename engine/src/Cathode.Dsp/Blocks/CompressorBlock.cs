@@ -67,8 +67,12 @@ namespace Cathode.Dsp.Blocks;
 ///         reports the delay as latency, so the compiler aligns parallel rows, and changing it rebuilds the graph
 ///         (<see cref="ParamDescriptor.Recompile" />).
 ///     </para>
+///     <para>
+///         Its <c>gainReduction</c> meter (<see cref="IDynamicsBlock" />) is how far the gain cell pulls the signal
+///         down, in dB (0 or more), the Compander's expander included; the upward types read 0 while they raise it.
+///     </para>
 /// </summary>
-public sealed class CompressorBlock() : DspBlock(Info), ISideInputBlock {
+public sealed class CompressorBlock() : DspBlock(Info), IDynamicsBlock {
     public const int Type = 0;
     public const int Threshold = 1;
     public const int Ratio = 2;
@@ -147,6 +151,8 @@ public sealed class CompressorBlock() : DspBlock(Info), ISideInputBlock {
 
     /// <summary>The Look Ahead choices, in ms (a choice, not a knob: each change rebuilds the graph).</summary>
     public static ReadOnlySpan<float> LookAheadMs => [0f, 0.5f, 1f, 2f, 3f, 5f, 10f];
+
+    static readonly string[] Meters = ["gainReduction"];
 
     readonly SidechainSource sidechainSource = new();
     float[] aheadLeft = [];
@@ -242,6 +248,11 @@ public sealed class CompressorBlock() : DspBlock(Info), ISideInputBlock {
     public float GainReductionDb { get; private set; }
 
     /// <summary>
+    ///     <c>gainReduction</c>: how far the block pulls the signal down, dB, 0 or more (<see cref="ReadMeters" />).
+    /// </summary>
+    public IReadOnlyList<string> MeterIds => Meters;
+
+    /// <summary>
     ///     The static curve: output level for input level <paramref name="x" />, all in dB. A ratio of
     ///     <see cref="InfiniteRatio" /> or more is ∞:1; a ratio below 1 expands.
     /// </summary>
@@ -307,6 +318,12 @@ public sealed class CompressorBlock() : DspBlock(Info), ISideInputBlock {
     ///     The grid input and the row taps for the sidechain, and the hardware inputs (<see cref="Inputs" />).
     /// </summary>
     public SideInputs SideInputs => SideInputs.Taps | SideInputs.Hardware;
+
+    /// <summary>
+    ///     Audio thread: the reduction as of the end of the last callback, the compressor's and the Compander's
+    ///     expander's together; the upward types' boost reads 0.
+    /// </summary>
+    public void ReadMeters(Span<float> values) => values[0] = Math.Max(0f, -(GainReductionDb + expansion));
 
     /// <summary>Audio thread: keeps the tap the Sidechain parameter selects (<see cref="SidechainSource" />).</summary>
     public void SideInput(SideInputKind kind, int row, in StereoBuffer signal, in StereoBuffer destination) =>

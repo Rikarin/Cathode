@@ -1,11 +1,11 @@
 namespace Cathode.Dsp;
 
 /// <summary>
-///     A block with meters of its own (the Cab's preamp input level and Motor Drive gain reduction). Every block has
-///     the standard <c>peak</c> meter (its output peak, measured by the graph); these come after it in the block's
-///     meters, on the same path: the engine reads them into the graph's meters once per callback, the telemetry region
-///     keeps the highest value of each over its meter slots, and the server reports them with the block's peak by block
-///     id.
+///     A block with meters of its own (the Cab's preamp input level and Motor Drive gain reduction, the dynamics
+///     blocks' gain reduction). Every block has the standard <c>peak</c> meter (its output peak, measured by the
+///     graph); these come after it in the block's meters, on the same path: the engine reads them into the graph's
+///     meters once per callback, the telemetry region keeps the highest value of each over its meter slots, and the
+///     server reports them with the block's peak by block id.
 /// </summary>
 public interface IBlockMeters {
     /// <summary>
@@ -19,4 +19,11 @@ public interface IBlockMeters {
     ///     Must not allocate or block. Readers see the highest value since their previous read.
     /// </summary>
     void ReadMeters(Span<float> values);
+
+    /// <summary>
+    ///     Audio thread, in place of <see cref="ReadMeters" /> while the block is fully bypassed (nothing of it is
+    ///     heard, and it may not run at all): writes the values its meters rest at, such as no gain reduction. Must not
+    ///     allocate or block.
+    /// </summary>
+    void ReadRestingMeters(Span<float> values);
 }
