@@ -224,6 +224,11 @@ export class BlockPicker {
       if (item) {
         this.choose(item);
       }
+    } else if (event.key === 'Escape') {
+      // Closed here rather than by the dialog's own Escape (which skips a handled event): the dialog reports that
+      // close only once its exit animation ends, so an Enter on the grid in between would find the picker still open,
+      // do nothing, and the late close would then shut it for good.
+      this.open.set(false);
     } else {
       return;
     }
