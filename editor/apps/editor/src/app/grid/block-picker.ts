@@ -139,7 +139,7 @@ export function bestMatch(items: readonly PickerItem[], query: string): PickerIt
               [category]="item.type.category"
               [typeId]="item.type.typeId"
               size="lg"
-              (pointerenter)="active.set(item.index)"
+              (pointermove)="hover($event, item)"
               (click)="choose(item)"
             >
               @if (item.full) {
@@ -201,6 +201,17 @@ export class BlockPicker {
   protected search(query: string): void {
     this.query.set(query);
     this.active.set(bestMatch(this.items(), query)?.index ?? 0);
+  }
+
+  /**
+   * The pointer moved over a tile: it becomes the highlighted one. Only a real move counts: when typing narrows the
+   * list, the tiles reflow under a pointer that has not moved, and the browser reports the tile now under it. That
+   * must not take the highlight from the best match, or Enter would add whatever drifted under the cursor.
+   */
+  protected hover(event: PointerEvent, item: PickerItem): void {
+    if (event.movementX !== 0 || event.movementY !== 0) {
+      this.active.set(item.index);
+    }
   }
 
   protected choose(item: PickerItem): void {
