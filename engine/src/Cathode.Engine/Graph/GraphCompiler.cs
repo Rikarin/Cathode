@@ -215,6 +215,8 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                 errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown source '{modifier.Source}'.");
             } else if (!ModNames.TryParseCurve(modifier.Curve, out var curve)) {
                 errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown curve '{modifier.Curve}'.");
+            } else if (engage && !ModNames.TryParseEngageMode(modifier.Mode, out _)) {
+                errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown mode '{modifier.Mode}'.");
             } else if (HasModifier(modifiers, slot, index)) {
                 errors.Add($"Parameter '{modifier.Block}.{modifier.Param}' has more than one modifier.");
             } else {
@@ -252,6 +254,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         IDspBlock? block
     ) {
         if (block is null) {
+            _ = ModNames.TryParseEngageMode(modifier.Mode, out var mode); // checked by BindModifiers
             return new(
                 slot,
                 index,
@@ -262,7 +265,14 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                 false,
                 modifier.AttackMs,
                 modifier.ReleaseMs
-            ) { Enabled = modifier.Enabled };
+            ) {
+                Enabled = modifier.Enabled,
+                Switch = new(
+                    mode,
+                    modifier.Threshold ?? EngageSwitch.DefaultThreshold,
+                    modifier.OffDelayMs ?? 0f
+                )
+            };
         }
 
         var param = block.Descriptor.Params[index];

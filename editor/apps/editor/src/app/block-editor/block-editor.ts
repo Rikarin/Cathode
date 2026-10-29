@@ -26,7 +26,7 @@ import { XuiSelectImports } from '@xui/select';
 import { XuiSwitchImports } from '@xui/switch';
 import { XuiTagImports } from '@xui/tag';
 import { XuiTextImports } from '@xui/text';
-import { ModifierDialog } from '../controls/modifier-dialog';
+import { ModifierDialog, engagedWhen } from '../controls/modifier-dialog';
 import { BlockPresetsStore } from '../state/block-presets.store';
 import { CatalogStore } from '../state/catalog.store';
 import { GlobalStore } from '../state/global.store';
@@ -170,7 +170,9 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
             </ng-template>
             <cth-modifier-dialog [block]="block.id" [param]="engageParam" [(open)]="editingEngage" />
             @if (engageModifier(); as m) {
-              <span class="text-foreground-muted -mt-2 text-[11px]">Engaged by {{ m.source }} (at 50 % and above)</span>
+              <span class="text-foreground-muted -mt-2 text-[11px]" data-testid="engage-modifier-note">
+                Engaged by {{ m.source }} {{ engagedWhen(m) }}
+              </span>
             }
           }
 
@@ -460,7 +462,10 @@ export class BlockEditor {
   private readonly globals = inject(GlobalStore);
 
   protected readonly channels = ChannelNames.map(c => ({ label: c, value: c }));
-  /** The pseudo-parameter a modifier drives to engage the block: engaged at 0.5 and above (ModNames.EngageParam). */
+  /**
+   * The pseudo-parameter a modifier drives to engage the block (ModNames.EngageParam): by default engaged at 0.5 and
+   * above; the modifier's mode, threshold and off delay change that.
+   */
   protected readonly engageParam: ParameterInfo = {
     id: 'engage',
     name: 'Engage',
@@ -473,6 +478,7 @@ export class BlockEditor {
     visibleWhen: null
   };
   protected readonly editingEngage = signal(false);
+  protected readonly engagedWhen = engagedWhen;
   protected readonly blockPresets = inject(BlockPresetsStore);
   protected readonly ui = inject(UiStore);
   private readonly preferences = inject(PreferencesStore);

@@ -9,7 +9,13 @@ import {
   signal,
   untracked
 } from '@angular/core';
-import { ModifierCurves, ModifierSources, type ParameterInfo, type PresetModifier } from '@cathode/api-client';
+import {
+  EngageModes,
+  ModifierCurves,
+  ModifierSources,
+  type ParameterInfo,
+  type PresetModifier
+} from '@cathode/api-client';
 import { CthKnob, formatValue } from '@cathode/audio-ui';
 import { XuiButtonImports } from '@xui/button';
 import { XuiDialogImports } from '@xui/dialog';
@@ -51,9 +57,38 @@ export function shape(curve: string, s: number): number {
   }
 }
 
+/** The engage settings a modifier has when it stores none (Cathode.Engine.Graph.EngageSwitch). */
+const EngageDefaults = { threshold: 0.5, offDelayMs: 0 };
+
+/**
+ * When an engage modifier engages its block, to follow "Engaged": "at 50 % and above", "as soon as it moves, off
+ * after 300 ms below 5 %".
+ */
+export function engagedWhen(m: Pick<PresetModifier, 'mode' | 'threshold' | 'offDelayMs'>): string {
+  const percent = `${Math.round((m.threshold ?? EngageDefaults.threshold) * 100)} %`;
+  const delay = Math.round(m.offDelayMs ?? EngageDefaults.offDelayMs);
+  if (m.mode === 'moving') {
+    return `as soon as it moves, off ${delay > 0 ? `after ${delay} ms` : 'once back'} below ${percent}`;
+  }
+
+  return delay > 0 ? `at ${percent} and above, off after ${delay} ms below it` : `at ${percent} and above`;
+}
+
+/** An engage modifier as it is stored: settings at their defaults are left out, as a preset stores them. */
+export function sparseEngage(m: PresetModifier): PresetModifier {
+  const { mode, threshold, offDelayMs, ...rest } = m;
+  return {
+    ...rest,
+    ...(mode === 'moving' ? { mode } : {}),
+    ...(threshold != null && threshold !== EngageDefaults.threshold ? { threshold } : {}),
+    ...(offDelayMs != null && offDelayMs > 0 ? { offDelayMs } : {})
+  };
+}
+
 /**
  * Edits the modifier on one parameter (docs/02-architecture.md §5.4): which controller drives it, over what range,
- * through which curve, with what damping. The chart previews source to value.
+ * through which curve, with what damping. The chart previews source to value. On a block's engage switch it also
+ * sets how the value engages the block: by position or by movement, the threshold and the off delay.
  */
 @Component({
   selector: 'cth-modifier-dialog',
@@ -134,6 +169,42 @@ export function shape(curve: string, s: number): number {
             [value]="draft().curve"
             (valueChange)="patch({ curve: $event ?? 'linear' })"
           />
+          @if (engage()) {
+            <div class="border-border flex flex-col gap-3 border-t pt-4" data-testid="engage-settings">
+              <label class="flex items-center gap-3">
+                <span class="text-foreground-muted text-xs">Engages by</span>
+                <xui-segmented-control
+                  size="sm"
+                  aria-label="Engage mode"
+                  data-testid="engage-mode"
+                  [options]="engageModes"
+                  [value]="draft().mode ?? 'position'"
+                  (valueChange)="patch({ mode: $event === 'moving' ? 'moving' : null })"
+                />
+              </label>
+              <div class="flex flex-wrap gap-6">
+                <cth-knob
+                  label="Threshold"
+                  unit="%"
+                  [min]="0"
+                  [max]="100"
+                  [defaultValue]="50"
+                  [value]="threshold() * 100"
+                  (valueChange)="patch({ threshold: $event / 100 })"
+                />
+                <cth-knob
+                  label="Off delay"
+                  unit="ms"
+                  [min]="0"
+                  [max]="5000"
+                  [defaultValue]="0"
+                  [value]="draft().offDelayMs ?? 0"
+                  (valueChange)="patch({ offDelayMs: $event })"
+                />
+              </div>
+              <span class="text-foreground-muted text-[11px]">Engaged {{ engagedWhen() }}.</span>
+            </div>
+          }
           <xui-echart class="h-40 w-full" aria-label="Source to value" [option]="preview()" />
         </div>
       </xui-dialog-body>
@@ -169,6 +240,11 @@ export class ModifierDialog {
   protected readonly sourceName = (s: string) => SourceNames[s] ?? `External ${s.slice(3)}`;
   protected readonly existing = computed(() => this.live.modifierOf(this.block(), this.param().id));
   protected readonly log = computed(() => this.param().taper === 'log');
+  /** The block's engage switch (ModNames.EngageParam), which also has a mode, a threshold and an off delay. */
+  protected readonly engage = computed(() => this.param().id === 'engage');
+  protected readonly engageModes = EngageModes.map(m => ({ value: m, label: m === 'moving' ? 'Moving' : 'Position' }));
+  protected readonly threshold = computed(() => this.draft().threshold ?? EngageDefaults.threshold);
+  protected readonly engagedWhen = computed(() => engagedWhen(this.draft()));
   protected readonly draft = signal<PresetModifier>({
     block: '',
     param: '',
@@ -195,7 +271,25 @@ export class ModifierDialog {
         type: this.log() && d.min > 0 && d.max > 0 ? 'log' : 'value',
         axisLabel: { formatter: (v: number) => formatValue(v, this.param().unit) }
       },
-      series: [{ type: 'line', showSymbol: false, data: points }]
+      series: [
+        {
+          type: 'line',
+          showSymbol: false,
+          data: points,
+          // The engage threshold: the block is off below it.
+          ...(this.engage()
+            ? {
+                markLine: {
+                  silent: true,
+                  symbol: 'none',
+                  label: { formatter: 'threshold', position: 'insideEndTop' },
+                  lineStyle: { type: 'dashed' },
+                  data: [{ yAxis: this.threshold() }]
+                }
+              }
+            : {})
+        }
+      ]
     };
   });
 
@@ -214,7 +308,8 @@ export class ModifierDialog {
   }
 
   protected async save(): Promise<void> {
-    if (await this.live.putModifier(this.block(), this.param().id, this.draft())) {
+    const draft = this.engage() ? sparseEngage(this.draft()) : this.draft();
+    if (await this.live.putModifier(this.block(), this.param().id, draft)) {
       this.open.set(false);
     }
   }

@@ -212,7 +212,7 @@ The wiki page covers what the hardware does around the grid: its outputs, conver
 | Kill Dry | 🆕 ✅ | `killDry` on Delay, Multitap, Pitch, Plex and Reverb: the dry is muted in the block, so Mix sets the wet level alone (Global Mix still moves it) |  |
 | Level | ✅ | Every effect block (`level`, dB) |  |
 | Balance | 🆕 ✅ | Every effect block (`balance`, −100…100 %); the far side is turned down, wet and dry alike |  |
-| Bypass (as a modifier target) | 🆕 ✅ | A modifier on the `engage` pseudo-parameter engages the block at 50 % and above, bypasses it below, and wins over the scene; set from the engage switch's context menu |  |
+| Bypass (as a modifier target) | 🆕 ✅ | A modifier on the `engage` pseudo-parameter engages the block at 50 % and above, bypasses it below, and wins over the scene; set from the engage switch's context menu. 🆕 Its mode (position or moving), threshold and off delay, with hysteresis (`EngageSwitch`) |  |
 | Bypass modes Thru, Mute, Mute In, Mute FX In | ✅ | Since Phase 5 |  |
 | Bypass modes Mute Out, Mute FX Out | 🆕 ✅ | The block keeps running ("listening") while bypassed |  |
 | Input Select (L, R, L+R) | 🆕 ✅ | Reverb, Megatap, Multitap, Ten-Tap, Plex, Volume/Pan, 🆕 Rotary, Pitch, RTA |  |

@@ -117,6 +117,21 @@ public sealed class ModifierDefinition {
     public float ReleaseMs { get; set; }
 
     /// <summary>
+    ///     Engage modifiers only: <c>position</c> (engaged at or above <see cref="Threshold" />) or <c>moving</c>
+    ///     (engaged once the value moves); null is <c>position</c>.
+    /// </summary>
+    public string? Mode { get; set; }
+
+    /// <summary>Engage modifiers only: the value (0..1) below which the block is off; null is 0.5.</summary>
+    public float? Threshold { get; set; }
+
+    /// <summary>
+    ///     Engage modifiers only: how long, in ms, the value must stay below <see cref="Threshold" /> before the block
+    ///     is bypassed; null is 0.
+    /// </summary>
+    public float? OffDelayMs { get; set; }
+
+    /// <summary>
     ///     Whether the modifier starts out driving its parameter. A modifier scoped to one channel is compiled
     ///     disabled while its block is on another, and switched by <c>setModifier</c>.
     /// </summary>

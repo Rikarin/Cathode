@@ -248,7 +248,7 @@ public sealed class CompiledGraph : IDisposable {
                 : modifier.Value + (target - modifier.Value) * (float)(1 - Math.Exp(-seconds / (ms * 0.001)));
             if (modifier.ParamIndex == ModifierBinding.Engage) {
                 modifierValues[i] = float.NaN;
-                var bypassed = modifier.Value < 0.5f;
+                var bypassed = !modifier.UpdateSwitch(frames, Spec.SampleRate);
                 if (bypass[modifier.Slot].Target != bypassed) {
                     SetBypass(modifier.Slot, bypassed);
                 }
@@ -574,8 +574,9 @@ public sealed class CompiledGraph : IDisposable {
 
     /// <summary>
     ///     Audio thread only (<see cref="EngineCommandKind.SetModifier" />): a re-enabled modifier starts again from
-    ///     its source's value rather than from where it stopped; a disabled one leaves its parameter at
-    ///     <paramref name="baseValue" /> (an engage modifier leaves the bypass to the bypass commands).
+    ///     its source's value rather than from where it stopped (an engage modifier is seeded again, as on a preset
+    ///     load); a disabled one leaves its parameter at <paramref name="baseValue" /> (an engage modifier leaves the
+    ///     bypass to the bypass commands).
     /// </summary>
     internal void SetModifierEnabled(int index, bool enabled, float baseValue) {
         if ((uint)index >= (uint)modifiers.Length) {
@@ -585,6 +586,7 @@ public sealed class CompiledGraph : IDisposable {
         ref var modifier = ref modifiers[index];
         modifier.Enabled = enabled;
         modifier.Value = float.NaN;
+        modifier.ResetSwitch();
         modifierValues[index] = float.NaN;
         if (!enabled && modifier.ParamIndex != ModifierBinding.Engage) {
             blocks[modifier.Slot].Params.SetTarget(modifier.ParamIndex, baseValue);
@@ -650,4 +652,17 @@ public struct ModifierBinding(
     ///     Whether it drives its parameter (false for a channel-scoped modifier while its block is elsewhere).
     /// </summary>
     public bool Enabled { get; set; } = true;
+
+    /// <summary>The engage state of a modifier on <see cref="Engage" />; the others leave it alone.</summary>
+    public EngageSwitch Switch {
+        readonly get => engageSwitch;
+        init => engageSwitch = value;
+    }
+
+    EngageSwitch engageSwitch = new();
+
+    /// <summary>Audio thread: <see cref="EngageSwitch.Update" /> with <see cref="Value" />.</summary>
+    internal bool UpdateSwitch(int frames, double sampleRate) => engageSwitch.Update(Value, frames, sampleRate);
+
+    internal void ResetSwitch() => engageSwitch.Reset();
 }

@@ -62,6 +62,9 @@ public static class PresetGraph {
                         Curve = m.Curve,
                         AttackMs = m.AttackMs,
                         ReleaseMs = m.ReleaseMs,
+                        Mode = m.Mode,
+                        Threshold = m.Threshold,
+                        OffDelayMs = m.OffDelayMs,
                         Enabled = m.Channel is null || m.Channel == StateOf(m.Block).Channel
                     }
                 )

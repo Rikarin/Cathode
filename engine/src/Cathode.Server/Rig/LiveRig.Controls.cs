@@ -1,4 +1,5 @@
 using Cathode.Contracts;
+using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
 using Cathode.Ipc;
 
@@ -112,6 +113,8 @@ public sealed partial class LiveRig {
                 errors.Add($"Unknown modifier source '{m.Source}'.");
             } else if (!ModNames.TryParseCurve(m.Curve, out _)) {
                 errors.Add($"Unknown curve '{m.Curve}'.");
+            } else if (EngageErrors(m) is { } problem) {
+                errors.Add(problem);
             } else if (m.Channel is { } scope
                        && Preset.ChannelNames.IndexOf(scope) is var index
                        && (index < 0 || index >= descriptor.Channels)) {
@@ -121,6 +124,21 @@ public sealed partial class LiveRig {
 
         errors.AddRange(CountErrors(modifiers));
         return errors;
+    }
+
+    /// <summary>What is wrong with an engage modifier's mode, threshold or off delay, or null.</summary>
+    static string? EngageErrors(PresetModifier m) {
+        if (!ModNames.TryParseEngageMode(m.Mode, out _)) {
+            return $"Unknown engage mode '{m.Mode}'.";
+        }
+
+        if (m.Threshold is not (null or >= 0f and <= 1f)) {
+            return $"Engage threshold {m.Threshold} is not within 0-1.";
+        }
+
+        return m.OffDelayMs is not (null or >= 0f and <= EngageSwitch.MaxOffDelayMs)
+            ? $"Off delay {m.OffDelayMs} ms is not within 0-{EngageSwitch.MaxOffDelayMs} ms."
+            : null;
     }
 
     /// <summary>Problems with the number of modifiers: two on one parameter, or more than a preset holds.</summary>

@@ -2,7 +2,39 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { ParameterInfo, PresetModifier } from '@cathode/api-client';
 import { LiveStore } from '../state/live.store';
-import { ModifierDialog, shape } from './modifier-dialog';
+import { ModifierDialog, engagedWhen, shape, sparseEngage } from './modifier-dialog';
+
+describe('engage settings', () => {
+  const engage: PresetModifier = {
+    block: 'wah1',
+    param: 'engage',
+    source: 'ext1',
+    min: 0,
+    max: 1,
+    curve: 'linear',
+    attackMs: 0,
+    releaseMs: 0
+  };
+
+  it('describe the defaults as the plain switch at 50 %', () => {
+    expect(engagedWhen({})).toBe('at 50 % and above');
+    expect(engagedWhen({ threshold: 0.2, offDelayMs: 300 })).toBe('at 20 % and above, off after 300 ms below it');
+    expect(engagedWhen({ mode: 'moving', threshold: 0.05, offDelayMs: 250 })).toBe(
+      'as soon as it moves, off after 250 ms below 5 %'
+    );
+    expect(engagedWhen({ mode: 'moving', threshold: 0.05 })).toBe('as soon as it moves, off once back below 5 %');
+  });
+
+  it('are stored only when they differ from the defaults', () => {
+    expect(sparseEngage({ ...engage, mode: 'position', threshold: 0.5, offDelayMs: 0 })).toEqual(engage);
+    expect(sparseEngage({ ...engage, mode: 'moving', threshold: 0.05, offDelayMs: 300 })).toEqual({
+      ...engage,
+      mode: 'moving',
+      threshold: 0.05,
+      offDelayMs: 300
+    });
+  });
+});
 
 describe('modifier curves (as the engine applies them)', () => {
   it('pin both ends and bend the middle the documented way', () => {

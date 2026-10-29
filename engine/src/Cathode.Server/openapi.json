@@ -5692,6 +5692,29 @@
             "type": "number",
             "format": "float"
           },
+          "mode": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Engage modifiers only: \u0060position\u0060 (engaged at or above the threshold) or \u0060moving\u0060 (engaged as\nsoon as the value moves from where it rested, off again once it is back below the threshold). Null is\n\u0060position\u0060."
+          },
+          "threshold": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Engage modifiers only: the value (0-1) below which the block is off. Null is 0.5.",
+            "format": "float"
+          },
+          "offDelayMs": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Engage modifiers only: how long, in ms (0-5000), the value must stay below the threshold before the block\nis bypassed; engaging is immediate. Null is 0.",
+            "format": "float"
+          },
           "channel": {
             "type": [
               "null",

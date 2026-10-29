@@ -287,6 +287,22 @@ public sealed class PresetModifier {
     public float ReleaseMs { get; set; }
 
     /// <summary>
+    ///     Engage modifiers only: <c>position</c> (engaged at or above the threshold) or <c>moving</c> (engaged as
+    ///     soon as the value moves from where it rested, off again once it is back below the threshold). Null is
+    ///     <c>position</c>.
+    /// </summary>
+    public string? Mode { get; set; }
+
+    /// <summary>Engage modifiers only: the value (0-1) below which the block is off. Null is 0.5.</summary>
+    public float? Threshold { get; set; }
+
+    /// <summary>
+    ///     Engage modifiers only: how long, in ms (0-5000), the value must stay below the threshold before the block
+    ///     is bypassed; engaging is immediate. Null is 0.
+    /// </summary>
+    public float? OffDelayMs { get; set; }
+
+    /// <summary>
     ///     The channel (A-D) the modifier applies on, or null for every channel of its block. On another channel the
     ///     parameter keeps that channel's own value.
     /// </summary>

@@ -143,6 +143,113 @@ public class CathodeEngineTests {
     }
 
     [Fact]
+    public void An_engage_modifier_with_an_off_delay_holds_the_block_on_for_that_long() {
+        var engine = new CathodeEngine(Spec);
+        var definition = VolumeGraph(-6.0206f);
+        definition.Modifiers.Add(
+            new() { Block = "vol", Param = ModNames.EngageParam, Source = "manualA", OffDelayMs = 200f }
+        );
+        var graph = Compiler.Compile(definition, Spec, 1);
+        engine.Publish(graph);
+        var manual = RigControls.Descriptor.IndexOf("manualA");
+        var slot = graph.SlotOf("vol");
+        var block = new float[4_800]; // 100 ms
+
+        engine.Rig.SetTarget(manual, 1f);
+        OfflineRenderer.Render(engine, block, block, 64);
+        Assert.False(graph.IsBypassed(slot));
+
+        engine.Rig.SetTarget(manual, 0f);
+        OfflineRenderer.Render(engine, block, block, 64);
+        Assert.False(graph.IsBypassed(slot)); // 100 ms into the 200 ms delay
+        OfflineRenderer.Render(engine, block, block, 64);
+        OfflineRenderer.Render(engine, block, block, 64);
+        Assert.True(graph.IsBypassed(slot));
+    }
+
+    [Fact]
+    public void A_moving_engage_modifier_starts_off_on_load_and_wins_over_the_scenes_bypass() {
+        var engine = new CathodeEngine(Spec);
+        var manual = RigControls.Descriptor.IndexOf("manualA");
+        engine.Publish(Compiler.Compile(VolumeGraph(0), Spec, 1));
+        engine.Rig.SetTarget(manual, 0.8f); // the pedal rests half way up when the preset loads
+        OfflineRenderer.Render(engine, new float[9_600], new float[9_600], 64);
+        var definition = VolumeGraph(-6.0206f); // stored engaged
+        definition.Modifiers.Add(
+            new() {
+                Block = "vol",
+                Param = ModNames.EngageParam,
+                Source = "manualA",
+                Mode = "moving",
+                Threshold = 0.1f,
+                OffDelayMs = 50f
+            }
+        );
+        var graph = Compiler.Compile(definition, Spec, 2);
+        var slot = graph.SlotOf("vol");
+        var block = new float[4_800];
+
+        engine.Publish(graph);
+        OfflineRenderer.Render(engine, block, block, 64);
+        Assert.True(graph.IsBypassed(slot), "no engage on load, whatever the source was before");
+
+        engine.Rig.SetTarget(manual, 0.6f);
+        OfflineRenderer.Render(engine, block, block, 64);
+        Assert.False(graph.IsBypassed(slot), "moved");
+
+        engine.Post(EngineCommand.SetBypass(2, slot, true)); // a scene that has the block bypassed
+        OfflineRenderer.Render(engine, block, block, 64);
+        Assert.False(graph.IsBypassed(slot));
+
+        engine.Rig.SetTarget(manual, 0f);
+        OfflineRenderer.Render(engine, block, block, 64);
+        Assert.True(graph.IsBypassed(slot), "back at the heel");
+
+        engine.Post(EngineCommand.SetBypass(2, slot, false)); // a scene that has it engaged
+        OfflineRenderer.Render(engine, block, block, 64);
+        Assert.True(graph.IsBypassed(slot));
+    }
+
+    [Fact]
+    public void A_re_enabled_moving_engage_modifier_is_seeded_again() {
+        var engine = new CathodeEngine(Spec);
+        var definition = VolumeGraph(0);
+        definition.Modifiers.Add(
+            new() {
+                Block = "vol",
+                Param = ModNames.EngageParam,
+                Source = "manualA",
+                Mode = "moving",
+                Enabled = false
+            }
+        );
+        var graph = Compiler.Compile(definition, Spec, 1);
+        var slot = graph.SlotOf("vol");
+        var block = new float[4_800];
+        engine.Publish(graph);
+        engine.Rig.SetTarget(RigControls.Descriptor.IndexOf("manualA"), 1f);
+        OfflineRenderer.Render(engine, block, block, 64);
+        Assert.False(graph.IsBypassed(slot), "disabled: the bypass is the scene's");
+
+        engine.Post(EngineCommand.SetModifier(1, 0, true)); // the block's channel changed to the modifier's
+        OfflineRenderer.Render(engine, block, block, 64);
+
+        Assert.True(graph.IsBypassed(slot), "the value it was re-enabled at is where the pedal rests");
+    }
+
+    [Fact]
+    public void An_engage_modifier_with_an_unknown_mode_is_refused() {
+        var definition = VolumeGraph(0);
+        definition.Modifiers.Add(
+            new() { Block = "vol", Param = ModNames.EngageParam, Source = "manualA", Mode = "sideways" }
+        );
+
+        var error = Assert.Throws<GraphValidationException>(() => Compiler.Compile(definition, Spec, 1));
+
+        Assert.Contains(error.Errors, static e => e.Contains("unknown mode 'sideways'", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Midi_notes_are_held_until_released() {
         var engine = new CathodeEngine(Spec);
         engine.Publish(Compiler.Compile(VolumeGraph(0), Spec, 1));

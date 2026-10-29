@@ -2546,6 +2546,23 @@ export interface components {
       /** Format: float */
       releaseMs: number;
       /**
+       * @description Engage modifiers only: `position` (engaged at or above the threshold) or `moving` (engaged as
+       *     soon as the value moves from where it rested, off again once it is back below the threshold). Null is
+       *     `position`.
+       */
+      mode?: null | string;
+      /**
+       * Format: float
+       * @description Engage modifiers only: the value (0-1) below which the block is off. Null is 0.5.
+       */
+      threshold?: null | number;
+      /**
+       * Format: float
+       * @description Engage modifiers only: how long, in ms (0-5000), the value must stay below the threshold before the block
+       *     is bypassed; engaging is immediate. Null is 0.
+       */
+      offDelayMs?: null | number;
+      /**
        * @description The channel (A-D) the modifier applies on, or null for every channel of its block. On another channel the
        *     parameter keeps that channel's own value.
        */

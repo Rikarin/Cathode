@@ -160,11 +160,24 @@ public enum ModCurve {
     SCurve
 }
 
+/// <summary>What engages a block from its engage modifier (<see cref="ModNames.EngageParam" />).</summary>
+public enum EngageMode {
+    /// <summary>The modified value: engaged at or above the threshold, bypassed below it.</summary>
+    Position,
+
+    /// <summary>
+    ///     Movement: engaged as soon as the value moves away from where it rested, bypassed once it is back below the
+    ///     threshold.
+    /// </summary>
+    Moving
+}
+
 public static class ModNames {
     /// <summary>
-    ///     The pseudo-parameter a modifier can drive to engage and bypass a block (docs/08-blocks-parity.md §3):
-    ///     engaged while the modified value (0..1) is at least 0.5, bypassed below. While one drives a block, it wins
-    ///     over the scene's bypass state.
+    ///     The pseudo-parameter a modifier can drive to engage and bypass a block (docs/08-blocks-parity.md §3): by
+    ///     default engaged while the modified value (0..1) is at least 0.5, bypassed below; its mode, threshold and
+    ///     off delay change that (Cathode.Engine.Graph.EngageSwitch). While one drives a block, it wins over the
+    ///     scene's bypass state.
     /// </summary>
     public const string EngageParam = "engage";
 
@@ -175,6 +188,9 @@ public static class ModNames {
 
     public static readonly ImmutableArray<string> Curves = ["linear", "exp", "log", "scurve"];
 
+    /// <summary>The <see cref="EngageMode" /> names, in order.</summary>
+    public static readonly ImmutableArray<string> EngageModes = ["position", "moving"];
+
     public static bool TryParseSource(string name, out ModSource source) {
         var index = Sources.IndexOf(name);
         source = (ModSource)Math.Max(index, 0);
@@ -184,6 +200,13 @@ public static class ModNames {
     public static bool TryParseCurve(string name, out ModCurve curve) {
         var index = Curves.IndexOf(name);
         curve = (ModCurve)Math.Max(index, 0);
+        return index >= 0;
+    }
+
+    /// <summary>An engage mode by name; none (null) is <see cref="EngageMode.Position" />.</summary>
+    public static bool TryParseEngageMode(string? name, out EngageMode mode) {
+        var index = name is null ? 0 : EngageModes.IndexOf(name);
+        mode = (EngageMode)Math.Max(index, 0);
         return index >= 0;
     }
 }

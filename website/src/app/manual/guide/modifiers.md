@@ -48,11 +48,37 @@ Knobs with a logarithmic scale (frequencies, for example) are swept on that scal
 A modifier can switch a whole block on and off:
 
 1. On the block's page, right-click the **Engaged** switch in the left column.
-2. Choose **Engage from a modifier…**, pick a source, and save.
+2. Choose **Engage from a modifier…**, pick a source, and set how it engages the block (below).
+3. Click **Save**.
 
-The block is engaged while the modified value is at 50 % or above, and bypassed below. A note under the switch shows which source engages it. While a modifier engages the block, it wins over the scene's bypass state.
+The value the switch looks at is the modifier's output, from 0 to 100 %: the source after the curve, Min, Max, Attack and Release. Below the curve, the dialog has three more settings:
 
-This is how an auto-engaging wah works: put an expression pedal on the wah's position and also on its engage switch, with a Min and Max that put the switch-over point just above the heel. Rock the pedal forward and the wah comes on; return to the heel and it switches off.
+| Setting        | What it does                                                                                                                                                                                                                                                   |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Engages by** | **Position**: the block is on while the value is at the threshold or above it, and off below it. **Moving**: the block comes on the moment the value moves away from where it was resting, wherever that is, and goes off once it is back below the threshold. |
+| **Threshold**  | Where "off" begins, 0 to 100 % (50 % unless you change it). In Position mode it is the switch-over point. In Moving mode it marks the resting end of the travel, such as a pedal's heel.                                                                       |
+| **Off delay**  | 0 to 5000 ms (0 unless you change it). The block goes off only after the value has stayed below the threshold for this long without a break; coming back above the threshold starts the wait again. Engaging never waits.                                      |
+
+The chart marks the threshold with a dashed line, and a note under the switch on the block's page sums the settings up.
+
+A few details keep the switch steady:
+
+- With an off delay, or in Moving mode, the value has to drop a little (2 %) below the threshold before the wait starts, and the wait only resets once the value is back at the threshold. A pedal resting right on the threshold cannot flick the block on and off.
+- In Moving mode a move counts once the value has gone more than 3 % from where it rested, so the jitter of a pedal lying still does not engage it. A value that keeps moving below the threshold (your foot rocking near the heel) keeps the block on, since each move starts the off delay again. Without an off delay, moves below the threshold do nothing, and only a move above it engages the block.
+- When a preset loads, or a channel-scoped engage modifier starts to apply, the first value only tells the switch where the source is. Position mode takes the state that value gives, without waiting for the off delay. Moving mode starts off, even with the pedal halfway up, and comes on at the first move.
+
+With **Position**, **50 %** and **0 ms**, the settings a new engage modifier starts with, the block simply switches at the halfway point, as it did before these settings existed. While a modifier engages the block, it wins over the scene's bypass state: a scene cannot turn on a block the modifier has off, or the other way round.
+
+### Recipe: a wah that comes on when you touch the pedal
+
+Put an expression pedal (for example **External 1**) on the wah's position, then make the same pedal engage the wah:
+
+1. Right-click the wah's **Engaged** switch, choose **Engage from a modifier…** and pick **External 1**. Leave Min and Max at their full range.
+2. Set **Engages by** to **Moving**.
+3. Set **Threshold** just above where the pedal rests at the heel, such as 5 %.
+4. Set **Off delay** to around 300 ms, so the wah stays on while your foot rocks near the heel and only goes off once the pedal has been back there for a moment.
+
+Touch the pedal and the wah is on, wherever the pedal is. Park it at the heel and the wah drops out a moment later. Prefer the wah to come on only when the pedal goes past a point? Keep **Position** and set the threshold to that point, with an off delay of 100 to 200 ms so the wah does not stutter as you sweep through it.
 
 ## The controllers
 

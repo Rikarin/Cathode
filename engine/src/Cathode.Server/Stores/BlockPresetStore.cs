@@ -82,7 +82,10 @@ public sealed class BlockPresetStore(
                         Max = m.Max,
                         Curve = m.Curve,
                         AttackMs = m.AttackMs,
-                        ReleaseMs = m.ReleaseMs
+                        ReleaseMs = m.ReleaseMs,
+                        Mode = m.Mode,
+                        Threshold = m.Threshold,
+                        OffDelayMs = m.OffDelayMs
                     }
                 )
                 .ToList(),
