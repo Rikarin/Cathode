@@ -1,6 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal, untracked } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { matPushPinRound, matSearchRound, matStarOutlineRound, matStarRound } from '@ng-icons/material-icons/round';
+import {
+  matPushPinRound,
+  matSearchRound,
+  matStarOutlineRound,
+  matStarRound,
+  matVolumeUpRound
+} from '@ng-icons/material-icons/round';
 import { XuiButtonImports } from '@xui/button';
 import { XuiInputImports } from '@xui/input';
 import { XuiMenuImports } from '@xui/menu';
@@ -52,10 +58,11 @@ export function pickerEntries<T extends PickerEntry>(entries: readonly T[], quer
   selector: 'cth-picker-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgIcon, XuiButtonImports, XuiInputImports, XuiMenuImports, XuiTooltipImports],
-  providers: [provideIcons({ matPushPinRound, matSearchRound, matStarOutlineRound, matStarRound })],
+  providers: [provideIcons({ matVolumeUpRound, matPushPinRound, matSearchRound, matStarOutlineRound, matStarRound })],
   host: { class: 'flex min-h-0 flex-col gap-3' },
   template: `
     <div class="flex items-center gap-2">
+      <ng-content />
       <xui-input-group class="flex-1">
         <ng-icon xuiInputLeftElement name="matSearchRound" />
         <input
@@ -106,8 +113,9 @@ export function pickerEntries<T extends PickerEntry>(entries: readonly T[], quer
     @if (extra(); as text) {
       <button
         type="button"
-        class="hover:bg-active-overlay rounded-md px-2 py-1 text-left text-sm"
-        [class.bg-active-overlay]="index() === -1"
+        class="hover:bg-hover-overlay rounded-[5px] px-2 py-1 text-left"
+        [class.bg-primary]="index() === -1"
+        [class.text-white]="index() === -1"
         (click)="extraChosen.emit()"
       >
         {{ text }}
@@ -115,7 +123,7 @@ export function pickerEntries<T extends PickerEntry>(entries: readonly T[], quer
     }
     <ul
       role="listbox"
-      class="flex h-[min(55vh,26rem)] flex-col overflow-y-auto"
+      class="border-hairline-strong flex h-[min(55vh,26rem)] flex-col overflow-y-auto rounded-md border bg-(--well) p-1 shadow-[inset_0_1px_2px_rgb(0_0_0/0.45),0_1px_0_var(--highlight)]"
       [id]="listId"
       [attr.aria-label]="noun()"
     >
@@ -123,8 +131,9 @@ export function pickerEntries<T extends PickerEntry>(entries: readonly T[], quer
         <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -- the combobox pattern: focus stays in the search field, whose arrow keys and Enter drive the options through aria-activedescendant -->
         <li
           role="option"
-          class="group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-sm"
-          [class.bg-active-overlay]="i === index()"
+          class="group flex h-7 shrink-0 cursor-pointer items-center gap-2.5 rounded-[5px] px-2"
+          [class.bg-primary]="i === index()"
+          [class.text-white]="i === index()"
           [class.font-semibold]="entry.id === current()"
           [id]="optionId(entry)"
           [attr.aria-selected]="i === index()"
@@ -142,8 +151,22 @@ export function pickerEntries<T extends PickerEntry>(entries: readonly T[], quer
             (click)="$event.stopPropagation()"
           ></button>
           <span class="min-w-0 flex-1 truncate">{{ entry.name }}</span>
+          @if (entry.id === current()) {
+            <ng-icon
+              name="matVolumeUpRound"
+              size="14"
+              class="shrink-0"
+              [class.text-primary]="i !== index()"
+              aria-label="loaded"
+            />
+          }
           @if (entry.detail) {
-            <span class="text-foreground-muted truncate text-xs">{{ entry.detail }}</span>
+            <span
+              class="readout truncate text-[11px]"
+              [class.text-foreground-subtle]="i !== index()"
+              [class.text-white/75]="i === index()"
+              >{{ entry.detail }}</span
+            >
           }
           <button
             type="button"
@@ -159,10 +182,14 @@ export function pickerEntries<T extends PickerEntry>(entries: readonly T[], quer
         </li>
       } @empty {
         @if (!extra()) {
-          <li class="text-foreground-muted py-8 text-center text-sm">Nothing matches “{{ query() }}”.</li>
+          <li class="text-foreground-muted py-8 text-center">Nothing matches “{{ query() }}”.</li>
         }
       }
     </ul>
+    <div class="text-foreground-subtle flex items-center justify-between px-1 text-[11px]">
+      <span class="readout">{{ shown().length }} {{ noun() }}</span>
+      <span aria-hidden="true">↑↓ move · ↵ choose · esc close</span>
+    </div>
     <ng-template #colors let-entry="entry">
       <xui-menu>
         <button type="button" xuiMenuItem (click)="color.emit({ entry, color: '' })">No colour</button>

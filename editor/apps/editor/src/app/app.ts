@@ -45,9 +45,9 @@ import { TunerDialog } from './shell/tuner-dialog';
 import { CompareStore } from './state/compare.store';
 import { LibraryStore } from './state/library.store';
 import { LiveStore } from './state/live.store';
+import { MidiLearnStore } from './state/midi-learn.store';
 import { PresetSwitcher } from './state/preset-switcher';
 import { SetlistPlayer } from './state/setlist-player';
-import { MidiLearnStore } from './state/midi-learn.store';
 import { UiStore } from './state/ui.store';
 
 @Component({
@@ -170,7 +170,7 @@ import { UiStore } from './state/ui.store';
         <!-- Narrower than a laptop (an iPad in portrait), the pages and the tools take a row each. -->
         <nav
           xuiNavbar
-          class="gap-3 max-lg:h-auto max-lg:flex-wrap max-lg:py-1"
+          class="chrome-bar gap-3 border-none max-lg:h-auto max-lg:flex-wrap max-lg:py-1"
           [class.window-drag]="macWindow"
           [class.ps-21]="trafficLights()"
         >
@@ -297,7 +297,7 @@ import { UiStore } from './state/ui.store';
             }
           </div>
         </nav>
-        <div class="bg-surface border-border flex items-center gap-6 border-b px-4 py-1.5">
+        <div class="chrome-bar flex items-center gap-6 px-4 py-1.5">
           <div class="flex items-center gap-2">
             <span class="text-foreground-muted text-xs font-medium" aria-hidden="true">Compare</span>
             <xui-segmented-control

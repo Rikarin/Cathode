@@ -85,12 +85,12 @@ export function presetPlace(
       </div>
       <button
         type="button"
-        class="bg-surface-inset border-border hover:border-border-strong flex min-w-0 flex-1 items-center gap-3 rounded border px-2 text-start text-sm"
+        class="lcd-glass flex min-w-0 flex-1 items-center gap-3 px-2 text-start text-sm hover:brightness-110"
         data-testid="preset-picker-open"
         [xuiTooltip]="'Presets (P) · ' + place().where"
         (click)="ui.presetPicker.set(true)"
       >
-        <span class="text-primary w-8 shrink-0 font-semibold tabular-nums" aria-hidden="true">{{
+        <span class="text-lcd-accent w-8 shrink-0 font-semibold tabular-nums" aria-hidden="true">{{
           place().number
         }}</span>
         <span class="truncate font-medium" data-testid="preset-name">
@@ -113,7 +113,7 @@ export function presetPlace(
       @if (renaming()) {
         <input
           #sceneNameField
-          class="bg-surface-inset border-focus min-w-0 flex-1 rounded border px-2 text-sm outline-none"
+          class="lcd-glass border-focus min-w-0 flex-1 px-2 text-sm outline-none"
           aria-label="Scene name"
           data-testid="scene-name-input"
           [value]="sceneName()"
@@ -125,12 +125,12 @@ export function presetPlace(
       } @else {
         <button
           type="button"
-          class="bg-surface-inset border-border hover:border-border-strong flex min-w-0 flex-1 items-center gap-3 rounded border px-2 text-start text-sm"
+          class="lcd-glass flex min-w-0 flex-1 items-center gap-3 px-2 text-start text-sm hover:brightness-110"
           data-testid="scene-name"
           [xuiTooltip]="'Rename the scene'"
           (click)="renaming.set(true)"
         >
-          <span class="text-primary w-8 shrink-0 font-semibold tabular-nums" aria-hidden="true">{{
+          <span class="text-lcd-accent w-8 shrink-0 font-semibold tabular-nums" aria-hidden="true">{{
             sceneNumber()
           }}</span>
           <span class="truncate">{{ sceneName() }}</span>

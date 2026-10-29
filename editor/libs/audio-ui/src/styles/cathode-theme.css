@@ -1,0 +1,323 @@
+/**
+ * Cathode's design tokens: a Logic Pro / current-macOS layer over xUI, shared with the RBMK dashboard and Anode
+ * (~/Projects/Anode/editor/DESIGN.md is the reference). Imported after Tailwind and xUI's theme by the editor's
+ * styles.css and by audio-ui's Storybook.
+ *
+ * 1. Re-tunes xUI's own tokens (surfaces, text, borders, primary, focus) to Logic's graphite and Apple's blue, so every
+ *    xUI component follows without a class change.
+ * 2. Adds the chrome tokens xUI has no word for: hairlines, chrome and glass, pane headers, bezels, the LCD.
+ * 3. Defines the composite surfaces as utilities (`chrome-bar`, `glass-bar`, `pane`, `pane-header`, `bezel`,
+ *    `bezel-group`, `lcd-glass`, `well`, `readout`), so a gradient bezel is one class and looks the same everywhere.
+ *
+ * Every value is declared literally in both theme scopes (no `var()` between themes), so a `.light` subtree inside the
+ * dark app re-themes correctly. The app pins its theme with a class on <html> (index.html: `dark`).
+ */
+
+@theme {
+  /* SF Pro on Apple platforms, the platform UI face elsewhere: an app, not a document. */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro', system-ui, 'Segoe UI', Roboto, 'Helvetica Neue',
+    sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+@theme inline {
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+  --color-chrome: var(--chrome-bottom);
+
+  --color-lcd: var(--lcd-bottom);
+  --color-lcd-foreground: var(--lcd-foreground);
+  --color-lcd-muted: var(--lcd-muted);
+  --color-lcd-accent: var(--lcd-accent);
+  --color-lcd-border: var(--lcd-border);
+}
+
+:root,
+.light,
+[data-theme='light'],
+.dark,
+[data-theme='dark'] {
+  --radius-control: 0.375rem;
+  --duration-press: 80ms;
+}
+
+/* ------------------------------------------------------------------------------------------------------- light theme */
+:root,
+.light,
+[data-theme='light'] {
+  /* xUI: macOS light window greys. */
+  --background: #dcdcdf;
+  --surface: #f2f2f4;
+  --surface-raised: #fbfbfc;
+  --surface-overlay: #ffffff;
+  --surface-sunken: #e4e4e7;
+  --surface-inset: #e8e8eb;
+  --muted: #e2e2e5;
+  --muted-foreground: #5f5f65;
+  --foreground: #1d1d1f;
+  --foreground-muted: #505055;
+  --foreground-subtle: #636369;
+  --border: #c9c9ce;
+  --border-muted: #dcdce0;
+  --border-strong: #b0b0b6;
+  --primary: #0071e3;
+  --focus: #0071e3;
+  --link: #0062c4;
+  --link-hover: #004f9e;
+  --selection: color-mix(in oklab, #0071e3 24%, transparent);
+
+  --hairline: rgb(0 0 0 / 0.14);
+  --hairline-strong: rgb(0 0 0 / 0.24);
+  --highlight: rgb(255 255 255 / 0.85);
+
+  --chrome-top: #f1f1f3;
+  --chrome-bottom: #dcdcdf;
+  --glass: rgb(242 242 244 / 0.78);
+  --pane-header-top: #f4f4f6;
+  --pane-header-bottom: #e7e7ea;
+
+  --bezel-top: #ffffff;
+  --bezel-bottom: #ececee;
+  --bezel-border: rgb(0 0 0 / 0.2);
+  --bezel-hover-top: #ffffff;
+  --bezel-hover-bottom: #f4f4f6;
+  --bezel-pressed-top: #d4d4d8;
+  --bezel-pressed-bottom: #e0e0e3;
+  --bezel-shadow: 0 0.5px 1px rgb(0 0 0 / 0.14);
+
+  --lcd-top: #eef2f6;
+  --lcd-bottom: #d7dee6;
+  --lcd-border: rgb(0 0 0 / 0.22);
+  --lcd-foreground: #142030;
+  --lcd-muted: #4a5868;
+  --lcd-accent: #0062c4;
+  --lcd-divider: rgb(20 32 48 / 0.16);
+  --lcd-glare: rgb(255 255 255 / 0.65);
+
+  --well: #26262a;
+
+  /* A switch's knob: Anode's fader-cap metal. */
+  --knob-top: #ffffff;
+  --knob-bottom: #d9d9dd;
+
+  /* Chart series, in fixed order (validated: dataviz validate_palette.js --mode light, surface #f2f2f4). */
+  --chart-1: #2f78d2;
+  --chart-2: #d2621f;
+  --chart-3: #27906d;
+  --chart-4: #9455c8;
+}
+
+/* -------------------------------------------------------------------------------------------- dark theme (primary) */
+/* `:root.dark:not(.light)` matches the specificity of xUI 2.3's system-dark rule
+   (`:root:not(.light):not([data-theme='light'])` under prefers-color-scheme), which otherwise outranks `.dark`. */
+.dark,
+[data-theme='dark'],
+:root.dark:not(.light) {
+  /* xUI: Logic's graphite. Window gutters darkest, panes a step up, raised controls a step more. */
+  --background: #111112;
+  --surface: #222224;
+  --surface-raised: #2c2c2f;
+  --surface-overlay: #2e2e31;
+  --surface-sunken: #171718;
+  --surface-inset: #1a1a1c;
+  --muted: #38383b;
+  --muted-foreground: #a3a3a9;
+  --foreground: #ececee;
+  --foreground-muted: #aeaeb4;
+  --foreground-subtle: #98989f;
+  --border: #3a3a3e;
+  --border-muted: #2c2c2f;
+  --border-strong: #505056;
+  --primary: #0071e3;
+  --focus: #3a96f5;
+  --link: #4aa0f7;
+  --link-hover: #7cbaf9;
+  --selection: color-mix(in oklab, #0a84ff 36%, transparent);
+
+  --hairline: rgb(0 0 0 / 0.62);
+  --hairline-strong: rgb(0 0 0 / 0.85);
+  --highlight: rgb(255 255 255 / 0.07);
+
+  --chrome-top: #3a3a3e;
+  --chrome-bottom: #2a2a2d;
+  --glass: rgb(44 44 47 / 0.72);
+  --pane-header-top: #313134;
+  --pane-header-bottom: #29292c;
+
+  --bezel-top: #4c4c51;
+  --bezel-bottom: #3b3b3f;
+  --bezel-border: rgb(0 0 0 / 0.7);
+  --bezel-hover-top: #56565b;
+  --bezel-hover-bottom: #444448;
+  --bezel-pressed-top: #262628;
+  --bezel-pressed-bottom: #303033;
+  --bezel-shadow: 0 1px 1px rgb(0 0 0 / 0.35);
+
+  --lcd-top: #20262e;
+  --lcd-bottom: #12161b;
+  --lcd-border: rgb(0 0 0 / 0.8);
+  --lcd-foreground: #eef3f8;
+  --lcd-muted: #93a1b2;
+  --lcd-accent: #6cb4ff;
+  --lcd-divider: rgb(255 255 255 / 0.09);
+  --lcd-glare: rgb(255 255 255 / 0.06);
+
+  --well: #0e0e0f;
+
+  /* A switch's knob: Anode's fader-cap metal. */
+  --knob-top: #e9e9ec;
+  --knob-bottom: #b4b4ba;
+
+  /* Chart series, in fixed order (validated: dataviz validate_palette.js --mode dark, surface #1a1a1c). */
+  --chart-1: #3d8ce8;
+  --chart-2: #e0712b;
+  --chart-3: #35a07e;
+  --chart-4: #a865d9;
+}
+
+/* --------------------------------------------------------------------------------------------------- composites */
+
+/* Window chrome (title bar, status bar): a soft vertical gradient, a highlight on top, a hairline under it. */
+@utility chrome-bar {
+  background-image: linear-gradient(to bottom, var(--chrome-top), var(--chrome-bottom));
+  box-shadow:
+    inset 0 1px 0 var(--highlight),
+    inset 0 -1px 0 var(--hairline);
+}
+
+/* A translucent toolbar over content: blurred like a macOS toolbar. */
+@utility glass-bar {
+  background-color: var(--glass);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  box-shadow:
+    inset 0 1px 0 var(--highlight),
+    inset 0 -1px 0 var(--hairline);
+}
+
+/* A pane in the near-black window: graphite, 8 px rounded, a hairline edge and a highlight along its top. */
+@utility pane {
+  background-color: var(--surface);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 0.5rem;
+  box-shadow: inset 0 1px 0 var(--highlight);
+  /* clip, not hidden: a hidden pane is a scroll container, which drops its content-based minimum
+     height, so panes in a scrolling list shrank and cut off their rows instead of scrolling. */
+  overflow: clip;
+}
+
+/* A pane's title bar: a graded header with a hairline under it, the title in 11 px semibold. */
+@utility pane-header {
+  background-image: linear-gradient(to bottom, var(--pane-header-top), var(--pane-header-bottom));
+  box-shadow:
+    inset 0 1px 0 var(--highlight),
+    inset 0 -1px 0 var(--hairline);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* A raised, gradient-bezelled button face. Pressed (`aria-pressed="true"` or `:active`) sinks it. */
+@utility bezel {
+  background-image: linear-gradient(to bottom, var(--bezel-top), var(--bezel-bottom));
+  border: 1px solid var(--bezel-border);
+  border-radius: var(--radius-control);
+  box-shadow:
+    inset 0 1px 0 var(--highlight),
+    var(--bezel-shadow);
+  transition: background-image var(--duration-press) ease-out;
+
+  &:hover:not(:disabled) {
+    background-image: linear-gradient(to bottom, var(--bezel-hover-top), var(--bezel-hover-bottom));
+  }
+
+  &:active:not(:disabled),
+  &[aria-pressed='true'] {
+    background-image: linear-gradient(to bottom, var(--bezel-pressed-top), var(--bezel-pressed-bottom));
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.35);
+  }
+}
+
+/* Buttons joined into one bezelled capsule, split by hairlines; children carry no bezel. */
+@utility bezel-group {
+  display: inline-flex;
+  align-items: stretch;
+  overflow: hidden;
+  background-image: linear-gradient(to bottom, var(--bezel-top), var(--bezel-bottom));
+  border: 1px solid var(--bezel-border);
+  border-radius: calc(var(--radius-control) + 1px);
+  box-shadow:
+    inset 0 1px 0 var(--highlight),
+    var(--bezel-shadow);
+
+  & > * {
+    border-radius: 0;
+    background: transparent;
+  }
+
+  & > * + * {
+    box-shadow: inset 1px 0 0 var(--hairline);
+  }
+
+  & > *:hover:not(:disabled) {
+    background-image: linear-gradient(to bottom, var(--bezel-hover-top), var(--bezel-hover-bottom));
+  }
+
+  & > *:active:not(:disabled),
+  & > [aria-pressed='true'] {
+    background-image: linear-gradient(to bottom, var(--bezel-pressed-top), var(--bezel-pressed-bottom));
+    box-shadow:
+      inset 1px 0 0 var(--hairline),
+      inset 0 1px 3px rgb(0 0 0 / 0.4);
+  }
+}
+
+/* The LCD: dark (or pale) glass with a glare across its top half and an inset edge. */
+@utility lcd-glass {
+  color: var(--lcd-foreground);
+  background-image:
+    linear-gradient(to bottom, var(--lcd-glare), transparent 52%),
+    linear-gradient(to bottom, var(--lcd-top), var(--lcd-bottom));
+  border: 1px solid var(--lcd-border);
+  border-radius: 0.5rem;
+  box-shadow:
+    inset 0 1px 3px rgb(0 0 0 / 0.45),
+    0 1px 0 var(--highlight);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A sunken well: a gauge's slot, a readout's recess. */
+@utility well {
+  background-color: var(--well);
+  box-shadow:
+    inset 0 1px 2px rgb(0 0 0 / 0.6),
+    0 1px 0 var(--highlight);
+}
+
+/* A group heading inside a pane or drawer: 10 px semibold uppercase, muted. */
+@utility section-label {
+  color: var(--color-foreground-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Readouts: tabular figures so digits do not jitter as they change. */
+@utility readout {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Respect the system's reduced motion: no transitions or animations beyond an instant. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

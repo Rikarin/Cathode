@@ -1,26 +1,21 @@
 @import 'tailwindcss';
 @import '@xui/core/styles/theme.css';
+@import '../../../libs/audio-ui/src/styles/cathode-theme.css';
 @import '@angular/cdk/overlay-prebuilt.css';
 
 /* Tailwind only emits utilities it can see: the xUI packages and our libraries. */
 @source '../../../node_modules/@xui';
 @source '../../../libs';
 
-/* Cathode is a dark, stage-friendly editor by default; the tokens carry both themes. */
+/* Cathode is a dark, stage-friendly editor by default (index.html pins `dark`); the tokens carry both themes. */
 html,
 body {
   height: 100%;
 }
 
 body {
-  @apply bg-background text-foreground antialiased;
-  font-family:
-    Inter,
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    sans-serif;
+  @apply bg-background text-foreground font-sans antialiased;
+  font-size: 13px;
   overscroll-behavior: none;
   /* An app, not a document: labels, readouts and the grid's + are not text to select. Fields still are (below). */
   @apply select-none;
@@ -67,8 +62,20 @@ xui-select[class*='w-'] > button {
 
 /* The preset and scene readout's up/down steppers: half-height buttons stacked beside each line. */
 .cth-stepper {
-  @apply bg-surface-inset border-border text-foreground-muted grid w-5 flex-1 place-items-center border;
-  @apply hover:bg-hover-overlay hover:text-foreground focus-visible:border-focus outline-none;
+  @apply text-foreground-muted grid w-5 flex-1 place-items-center border;
+  @apply hover:text-foreground focus-visible:border-focus outline-none;
+  background-image: linear-gradient(to bottom, var(--bezel-top), var(--bezel-bottom));
+  border-color: var(--bezel-border);
+  box-shadow: inset 0 1px 0 var(--highlight);
+
+  &:hover {
+    background-image: linear-gradient(to bottom, var(--bezel-hover-top), var(--bezel-hover-bottom));
+  }
+
+  &:active {
+    background-image: linear-gradient(to bottom, var(--bezel-pressed-top), var(--bezel-pressed-bottom));
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.35);
+  }
 }
 
 .cth-stepper + .cth-stepper {
@@ -151,4 +158,166 @@ xui-select[class*='w-'] > button {
  */
 .cdk-overlay-backdrop.bg-foreground\/40 {
   background: rgb(0 0 0 / 0.6);
+}
+
+/* xUI's segmented control as a macOS segmented control: a sunken track, a bezelled selection. */
+xui-segmented-control {
+  background-color: var(--color-surface-inset);
+  border-color: var(--hairline);
+  box-shadow: inset 0 1px 1px rgb(0 0 0 / 0.18);
+}
+
+xui-segmented-control [role='radio'][aria-checked='true'] {
+  background-image: linear-gradient(to bottom, var(--bezel-top), var(--bezel-bottom));
+  box-shadow:
+    inset 0 1px 0 var(--highlight),
+    0 0 0 0.5px var(--bezel-border),
+    var(--bezel-shadow);
+}
+
+/* Menus, popovers and listboxes: macOS's translucent material (not a list inside a dialog, which is a well). */
+.cdk-overlay-pane :is([role='menu'], [role='listbox']):not([role='dialog'] *) {
+  background-color: color-mix(in oklab, var(--color-surface-overlay) 88%, transparent);
+  backdrop-filter: blur(24px) saturate(1.8);
+  -webkit-backdrop-filter: blur(24px) saturate(1.8);
+}
+
+/*
+ * xUI buttons as Logic's bezels. xUI marks its variants only with utility classes, so these select on them: outline
+ * and dash carry `text-foreground` without `border-none` (ghost); filled ones carry `bg-<colour>`. Unlayered, so these
+ * win over xUI's layered utilities.
+ */
+[xuiButton].text-foreground:not(.border-none, .text-link) {
+  background-color: transparent;
+  background-image: linear-gradient(to bottom, var(--bezel-top), var(--bezel-bottom));
+  border-color: var(--bezel-border);
+  border-style: solid;
+  color: var(--color-foreground);
+  box-shadow:
+    inset 0 1px 0 var(--highlight),
+    var(--bezel-shadow);
+
+  &:hover:not(:disabled) {
+    background-color: transparent;
+    background-image: linear-gradient(to bottom, var(--bezel-hover-top), var(--bezel-hover-bottom));
+    color: var(--color-foreground);
+  }
+
+  &:active:not(:disabled),
+  &[aria-pressed='true'] {
+    background-image: linear-gradient(to bottom, var(--bezel-pressed-top), var(--bezel-pressed-bottom));
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.35);
+  }
+
+  &.border-dashed {
+    border-style: dashed;
+  }
+}
+
+/* Filled buttons: macOS's default-button gloss over their colour. */
+[xuiButton]:is(.bg-primary, .bg-secondary, .bg-success, .bg-error, .bg-warning, .bg-info) {
+  background-image: linear-gradient(to bottom, rgb(255 255 255 / 0.16), rgb(255 255 255 / 0));
+  border-color: rgb(0 0 0 / 0.45);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.2),
+    var(--bezel-shadow);
+}
+
+/* A button group: one bezelled capsule split by hairlines (xUI already joins the radii and borders). */
+[xuiButtonGroup] {
+  border-radius: var(--radius-control);
+  box-shadow: var(--bezel-shadow);
+
+  & > [xuiButton].text-foreground:not(.border-none, .text-link) {
+    box-shadow: inset 0 1px 0 var(--highlight);
+  }
+
+  & > * + * {
+    box-shadow:
+      inset 1px 0 0 var(--hairline),
+      inset 0 1px 0 var(--highlight) !important;
+  }
+
+  & > * + :is(:active, [aria-pressed='true']) {
+    box-shadow:
+      inset 1px 0 0 var(--hairline),
+      inset 0 1px 2px rgb(0 0 0 / 0.35) !important;
+  }
+}
+
+/* Ghost buttons (toolbar icons, rows): a faint lighten on hover, a bezelled key when pressed or the current page. */
+[xuiButton].border-none:not(.text-link) {
+  &:hover:not(:disabled) {
+    background-color: var(--hover-overlay);
+    color: var(--color-foreground);
+  }
+
+  &[aria-pressed='true'],
+  &.bg-active-overlay {
+    background-color: transparent;
+    background-image: linear-gradient(to bottom, var(--bezel-top), var(--bezel-bottom));
+    color: var(--color-foreground);
+    box-shadow:
+      inset 0 1px 0 var(--highlight),
+      0 0 0 1px var(--bezel-border),
+      var(--bezel-shadow);
+  }
+}
+
+/* xUI's switch (the host is the track, its one span the knob) as a macOS switch in Logic's metal:
+   a sunken well when off, the accent with a gloss when on, a graded knob with a rim and a shadow. */
+xui-switch[role='switch'] {
+  background-color: var(--color-surface-inset);
+  background-image: linear-gradient(to bottom, rgb(0 0 0 / 0.22), transparent 70%);
+  border-color: var(--hairline-strong);
+  box-shadow:
+    inset 0 1px 2px rgb(0 0 0 / 0.45),
+    0 1px 0 var(--highlight);
+  transition: background-color var(--duration-press) ease-out;
+
+  &[data-state='checked'] {
+    background-color: var(--color-primary);
+    background-image: linear-gradient(to bottom, rgb(255 255 255 / 0.18), transparent 70%);
+    border-color: color-mix(in oklab, var(--color-primary) 55%, black);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  & > span {
+    background-color: var(--knob-bottom);
+    background-image: linear-gradient(to bottom, var(--knob-top), var(--knob-bottom));
+    box-shadow:
+      0 0 0 0.5px rgb(0 0 0 / 0.55),
+      0 1px 2px rgb(0 0 0 / 0.45),
+      inset 0 1px 0 rgb(255 255 255 / 0.6);
+  }
+}
+
+/*
+ * Dialog headers as a pane's title bar: compact (8 px padding, an 18 px icon, the title at 13 px), on the graded
+ * header material. xUI's own header is 16 px padding around a 32 px icon, taller than macOS's window title bars.
+ */
+.cdk-overlay-pane[role='dialog'] > div > header {
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem 0.5rem 1rem;
+  background-image: linear-gradient(to bottom, var(--pane-header-top), var(--pane-header-bottom));
+  border-color: var(--hairline);
+  box-shadow: inset 0 1px 0 var(--highlight);
+
+  & > ng-icon {
+    --ng-icon__size: 18px !important;
+  }
+
+  & > h2 {
+    font-size: 13px;
+  }
+
+  & > button {
+    width: 1.5rem;
+    height: 1.5rem;
+    margin-inline-end: 0;
+  }
 }

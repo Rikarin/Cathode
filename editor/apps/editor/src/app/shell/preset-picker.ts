@@ -40,23 +40,12 @@ export function parseSlot(query: string): number | null {
   template: `
     <xui-dialog
       icon="matLibraryMusicRound"
-      class="w-[min(40rem,calc(100vw-2rem))] max-w-none"
+      class="w-[min(46rem,calc(100vw-2rem))] max-w-none"
       title="Presets"
       [open]="ui.presetPicker()"
       (openChange)="!$event && ui.presetPicker.set(false)"
     >
       <xui-dialog-body class="flex min-h-0 flex-col gap-3">
-        @if (library.banks().length > 0) {
-          <xui-select
-            class="w-64"
-            aria-label="Bank"
-            [filterable]="false"
-            [items]="library.banks()"
-            [itemText]="bankName"
-            [value]="bank()"
-            (valueChange)="bankId.set($event?.id ?? null)"
-          />
-        }
         <cth-picker-list
           noun="presets"
           [placeholder]="
@@ -70,7 +59,19 @@ export function parseSlot(query: string): number | null {
           (extraChosen)="loadSlot()"
           (favorite)="library.setPresetMetadata($event.entry.id, { favorite: $event.favorite })"
           (color)="library.setPresetMetadata($event.entry.id, { color: $event.color })"
-        />
+        >
+          @if (library.banks().length > 0) {
+            <xui-select
+              class="w-44"
+              aria-label="Bank"
+              [filterable]="false"
+              [items]="library.banks()"
+              [itemText]="bankName"
+              [value]="bank()"
+              (valueChange)="bankId.set($event?.id ?? null)"
+            />
+          }
+        </cth-picker-list>
       </xui-dialog-body>
     </xui-dialog>
   `

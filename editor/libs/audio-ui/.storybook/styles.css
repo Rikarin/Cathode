@@ -1,7 +1,8 @@
 @import 'tailwindcss';
 @import '@xui/core/styles/theme.css';
+@import '../src/styles/cathode-theme.css';
 @source '../src';
 
 body {
-  @apply bg-background text-foreground;
+  @apply bg-background text-foreground font-sans;
 }
