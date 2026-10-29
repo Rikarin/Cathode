@@ -262,6 +262,14 @@ xui-segmented-control [role='radio'][aria-checked='true'] {
       0 0 0 1px var(--bezel-border),
       var(--bezel-shadow);
   }
+
+  /* A pressed key in an alarm state keeps its colour, hovered too: Mute lit red, as Logic's mute. */
+  &.text-error[aria-pressed='true'] {
+    &,
+    &:hover:not(:disabled) {
+      color: var(--color-error);
+    }
+  }
 }
 
 /* xUI's switch (the host is the track, its one span the knob) as a macOS switch in Logic's metal:

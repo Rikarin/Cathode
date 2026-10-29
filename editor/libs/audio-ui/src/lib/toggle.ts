@@ -1,8 +1,9 @@
 import { ChangeDetectionStrategy, Component, booleanAttribute, computed, input, model, output } from '@angular/core';
 
 /**
- * A vertical toggle that sits in a row of knobs (cth-knob): a recessed slot with a machined handle that reads ON at the
- * top and OFF at the bottom, the slot glowing in `color` when on, and the name below. It is an ARIA switch: click or
+ * A vertical toggle that sits in a row of knobs (cth-knob): a sunken well (the theme's `--well`) with a brushed-metal
+ * cap (`--knob-top/bottom`, the switches' metal) that reads ON at the top and OFF at the bottom, an LED on the cap lit
+ * in `color` when on with a faint wash of it in the well, and the name below. It is an ARIA switch: click or
  * Space/Enter flips it, ↑ turns it on and ↓ off.
  */
 @Component({
@@ -16,11 +17,10 @@ import { ChangeDetectionStrategy, Component, booleanAttribute, computed, input, 
     <button
       type="button"
       role="switch"
-      class="group/toggle focus-visible:outline-focus relative cursor-pointer rounded-lg border border-black/40 outline-offset-2 focus-visible:outline-2 disabled:cursor-default"
+      class="group/toggle focus-visible:outline-focus border-hairline-strong relative cursor-pointer rounded-[7px] border shadow-[inset_0_1px_3px_rgb(0_0_0/0.65),0_1px_0_var(--highlight)] outline-offset-2 focus-visible:outline-2 disabled:cursor-default"
       [style.width.px]="dimensions().width"
       [style.height.px]="dimensions().height"
       [style.background]="slot()"
-      [style.box-shadow]="slotShadow()"
       [disabled]="disabled()"
       [attr.aria-checked]="checked()"
       [attr.aria-labelledby]="labelId"
@@ -29,31 +29,32 @@ import { ChangeDetectionStrategy, Component, booleanAttribute, computed, input, 
       (keydown)="key($event)"
     >
       <span
-        class="absolute inset-x-[3px] flex flex-col items-center justify-center gap-[3px] rounded-md border border-white/10 transition-[top] duration-150 ease-out motion-reduce:transition-none"
-        [style.top.px]="checked() ? 3 : dimensions().height - dimensions().handle - 5"
+        class="absolute inset-x-[3px] flex flex-col items-center justify-center gap-[5px] rounded-[5px] transition-[top] duration-150 ease-out motion-reduce:transition-none"
+        [style.top.px]="checked() ? 2 : dimensions().height - dimensions().handle - 4"
         [style.height.px]="dimensions().handle"
         style="
-          background: linear-gradient(180deg, #5b616c 0%, #2a2e35 55%, #141619 100%);
+          background: linear-gradient(180deg, var(--knob-top) 0%, var(--knob-bottom) 100%);
           box-shadow:
-            0 3px 5px rgb(0 0 0 / 0.5),
-            inset 0 1px 0 rgb(255 255 255 / 0.12);
+            0 0 0 0.5px rgb(0 0 0 / 0.6),
+            0 2px 4px rgb(0 0 0 / 0.5),
+            inset 0 1px 0 rgb(255 255 255 / 0.7),
+            inset 0 -1px 0 rgb(0 0 0 / 0.15);
         "
         aria-hidden="true"
       >
-        @if (!checked()) {
-          <span class="block h-px w-3 bg-black/50 shadow-[0_1px_0_rgb(255_255_255/0.08)]"></span>
-        }
         <span
-          class="font-semibold tracking-wider"
+          class="block size-[5px] rounded-full transition-[background,box-shadow] duration-150"
+          [style.background]="checked() ? glow() : 'rgb(0 0 0 / 0.35)'"
+          [style.box-shadow]="
+            checked() ? '0 0 4px ' + glow() + ', 0 0 1px ' + glow() : 'inset 0 1px 1px rgb(0 0 0 / 0.4)'
+          "
+        ></span>
+        <span
+          class="font-semibold tracking-wider text-[#2a2a2e]/80"
           [class]="size() === 'sm' ? 'text-[9px]' : 'text-[10px]'"
-          [style.color]="checked() ? glow() : 'rgb(255 255 255 / 0.55)'"
-          [style.text-shadow]="checked() ? '0 0 6px ' + glow() : 'none'"
         >
           {{ checked() ? onLabel() : offLabel() }}
         </span>
-        @if (checked()) {
-          <span class="block h-px w-3 bg-black/50 shadow-[0_1px_0_rgb(255_255_255/0.08)]"></span>
-        }
       </span>
     </button>
     <span class="text-foreground-muted line-clamp-2 max-w-full text-center text-xs leading-tight" [id]="labelId">
@@ -84,13 +85,8 @@ export class CthToggle {
   protected readonly glow = computed(() => this.color() ?? 'var(--color-primary)');
   protected readonly slot = computed(() =>
     this.checked()
-      ? `linear-gradient(180deg, color-mix(in oklab, ${this.glow()} 45%, #0b0c0e) 0%, #0b0c0e 70%)`
-      : '#0b0c0e'
-  );
-  protected readonly slotShadow = computed(
-    () =>
-      'inset 0 2px 4px rgb(0 0 0 / 0.6), 0 1px 0 rgb(255 255 255 / 0.06)' +
-      (this.checked() ? `, 0 0 8px color-mix(in oklab, ${this.glow()} 35%, transparent)` : '')
+      ? `linear-gradient(180deg, color-mix(in oklab, ${this.glow()} 22%, var(--well)) 0%, var(--well) 60%)`
+      : 'var(--well)'
   );
 
   protected flip(): void {
