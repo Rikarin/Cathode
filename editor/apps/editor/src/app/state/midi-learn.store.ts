@@ -18,7 +18,7 @@ export function learnText(request: MidiLearnRequest): string {
 }
 
 /**
- * MIDI learn as the Server has it armed: read on start, on every reconnect and whenever any editor arms or cancels it
+ * MIDI learn as the Server has it armed: read once the event stream connects, on every reconnect and whenever any editor arms or cancels it
  * (`midiLearnChanged`), so a reload or another editor still shows it. While armed, a toast that stays says what the next
  * control moved will map, with a Cancel button.
  */
@@ -49,7 +49,8 @@ export class MidiLearnStore {
       const armed = this.armed();
       untracked(() => this.showToast(armed));
     });
-    void this.refresh();
+    // No read here: the store starts with the shell, before the connection is made. The stream's first `connected`
+    // reads it, as every reconnect does.
   }
 
   async refresh(): Promise<void> {

@@ -34,6 +34,7 @@ describe('learnText', () => {
 describe('MidiLearnStore', () => {
   function setup(armedOnServer: MidiLearnRequest | null) {
     const midi$ = new Subject<MidiActivity>();
+    const connected$ = new Subject<void>();
     const calls: string[] = [];
     const toasts: { message: string; actionText?: string; onAction?: () => void }[] = [];
     const dismissed: number[] = [];
@@ -58,7 +59,7 @@ describe('MidiLearnStore', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: ConnectionService, useValue: { client } },
-        { provide: EventStream, useValue: { connected$: new Subject(), midi$ } },
+        { provide: EventStream, useValue: { connected$, midi$ } },
         { provide: Notify, useValue: { run: (action: () => Promise<unknown>) => action(), error: () => undefined } },
         {
           provide: XuiToastService,
@@ -70,6 +71,7 @@ describe('MidiLearnStore', () => {
       ]
     });
     const store = TestBed.inject(MidiLearnStore);
+    connected$.next(); // the event stream's first `connected`
     return { store, midi$, calls, toasts, dismissed };
   }
 
