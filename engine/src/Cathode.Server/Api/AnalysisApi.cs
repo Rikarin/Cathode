@@ -95,18 +95,22 @@ static class AnalysisApi {
                     }
 
                     // ?client= names the editor, so the tuner, scope and RTA it leaves on are released with its socket.
+                    // It is counted before the handshake completes: the client may close its old socket as soon as the
+                    // new one is open, and the old one's leave must already see the new one.
                     var client = http.Request.Query["client"].ToString();
-                    using var socket = await http.WebSockets.AcceptWebSocketAsync();
                     if (client.Length > 0) {
                         analysis.Join(client);
                     }
 
-                    // Closed (with a close frame) when the Server stops, too: shutdown does not wait out the timeout.
-                    using var served = CancellationTokenSource.CreateLinkedTokenSource(
-                        http.RequestAborted,
-                        lifetime.ApplicationStopping
-                    );
                     try {
+                        using var socket = await http.WebSockets.AcceptWebSocketAsync();
+
+                        // Closed (with a close frame) when the Server stops, too: shutdown does not wait out the
+                        // timeout.
+                        using var served = CancellationTokenSource.CreateLinkedTokenSource(
+                            http.RequestAborted,
+                            lifetime.ApplicationStopping
+                        );
                         await hub.ServeAsync(socket, served.Token);
                     } finally {
                         if (client.Length > 0) {
