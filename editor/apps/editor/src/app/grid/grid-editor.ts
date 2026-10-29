@@ -151,7 +151,7 @@ export function dropAction(
   template: `
     <div
       #surface
-      class="group/grid relative touch-manipulation rounded-lg outline-none select-none [-webkit-touch-callout:none]"
+      class="group/grid relative mx-auto touch-manipulation rounded-lg outline-none select-none [-webkit-touch-callout:none]"
       role="grid"
       tabindex="0"
       aria-label="Signal grid"
@@ -174,7 +174,7 @@ export function dropAction(
               #cellElement
               role="gridcell"
               [attr.aria-colindex]="cell.column + 1"
-              class="outline-focus data-[wire=candidate]:outline-primary data-[wire=target]:outline-primary absolute rounded-lg outline-offset-4 data-focused:group-focus-visible/grid:outline-2 data-[wire=candidate]:outline-2 data-[wire=candidate]:outline-dashed data-[wire=target]:outline-2"
+              class="outline-focus data-[wire=candidate]:outline-primary data-[wire=target]:outline-primary absolute rounded-lg outline-offset-4 data-focused:group-focus-visible/grid:outline-2 data-focused:group-focus-visible/grid:*:outline-0 data-[wire=candidate]:outline-2 data-[wire=candidate]:outline-dashed data-[wire=target]:outline-2"
               [id]="'cell-' + cell.row + '-' + cell.column"
               [attr.data-testid]="'cell-' + cell.row + '-' + cell.column"
               [attr.aria-label]="describe(cell)"
@@ -194,7 +194,7 @@ export function dropAction(
               @if (cell.block; as block) {
                 @if (block.type === 'shunt') {
                   <div
-                    class="group border-border-muted hover:border-border flex size-full items-center rounded-lg border border-dashed"
+                    class="group border-border-muted hover:border-border flex size-full items-center rounded-md border border-dashed"
                     draggable="true"
                     [attr.title]="'Shunt (' + block.id + ')'"
                     (dragstart)="dragStart($event, block)"
@@ -262,7 +262,7 @@ export function dropAction(
                 }
               } @else {
                 <div
-                  class="border-border-muted hover:border-border text-foreground-subtle grid size-full place-items-center rounded-lg border border-dashed text-lg"
+                  class="text-foreground-subtle/60 hover:text-foreground-subtle grid size-full place-items-center rounded-md bg-black/25 text-lg shadow-[inset_0_1px_2px_rgb(0_0_0/0.55),0_1px_0_var(--highlight)] hover:bg-black/15"
                   aria-hidden="true"
                 >
                   +
@@ -586,15 +586,22 @@ export class GridEditor {
   protected readonly rows = computed(() => this.live.preset()?.rows ?? 6);
   protected readonly columns = computed(() => this.live.preset()?.columns ?? 14);
   protected readonly size = computed(() => gridSize(this.rows(), this.columns()));
-  /** The panel's width, so the grid can scale to fill it. */
-  private readonly available = signal(0);
+  /** The space the grid has (its host's content box), so it can scale to fit it. */
+  private readonly available = signal({ width: 0, height: 0 });
   /**
-   * How much the grid is scaled (CSS zoom, so text and icons stay sharp): it fills the panel's width, up to twice its
-   * natural size, and below 60 % it scrolls instead.
+   * How much the grid is scaled (CSS zoom, so text and icons stay sharp): as large as fits the space in both
+   * directions, up to twice its natural size; below 60 % it scrolls instead. A host without a height of its own (0)
+   * scales to the width only. Rounded down to a thousandth, so a fractional zoom never overflows by a pixel.
    */
   protected readonly scale = computed(() => {
-    const available = this.available();
-    return available > 0 ? Math.min(MaxScale, Math.max(MinScale, available / this.size().width)) : 1;
+    const { width, height } = this.available();
+    if (width <= 0) {
+      return 1;
+    }
+
+    const size = this.size();
+    const fit = Math.min(width / size.width, height > 0 ? height / size.height : Infinity);
+    return Math.min(MaxScale, Math.max(MinScale, Math.floor(fit * 1000) / 1000));
   });
   protected readonly blocks = computed(() => this.live.preset()?.blocks ?? []);
 
@@ -670,7 +677,7 @@ export class GridEditor {
     const host = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
     const observer = new ResizeObserver(([entry]) => {
       if (entry) {
-        this.available.set(entry.contentRect.width);
+        this.available.set({ width: entry.contentRect.width, height: entry.contentRect.height });
       }
     });
     afterNextRender(() => observer.observe(host));

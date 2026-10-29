@@ -44,12 +44,6 @@ export function blockCategoryStyle(category: string): BlockCategoryStyle {
   return { hue: Math.abs(hash) % 360, chroma: 0.13 };
 }
 
-/** A CSS gradient for a category: lighter at the top, dark enough under the label for white text. */
-export function blockGradient(category: string): string {
-  const { hue, chroma } = blockCategoryStyle(category);
-  return `linear-gradient(165deg, oklch(0.6 ${chroma} ${hue}), oklch(0.4 ${chroma * 0.8} ${hue}))`;
-}
-
 /** The swatch colour for a category (its gradient's middle), for dots and accents. */
 export function blockColor(category: string): string {
   const { hue, chroma } = blockCategoryStyle(category);
@@ -65,10 +59,18 @@ export function blockAccent(category: string): string | null {
   return chroma < 0.08 ? null : `oklch(0.72 ${chroma} ${hue})`;
 }
 
+/** A tile's face for a category: a vertical gloss, lighter at the top like a bezel, dark enough for white text. */
+export function blockFace(category: string): string {
+  const { hue, chroma } = blockCategoryStyle(category);
+  return `linear-gradient(to bottom, oklch(0.62 ${chroma} ${hue}), oklch(0.5 ${chroma * 0.9} ${hue}))`;
+}
+
 /**
- * A block as a coloured tile: the category's gradient, its icon near the top and the block's name below. Used by the
- * grid and the block picker so the colours mean the same everywhere. Badges go in the default slot, positioned
- * absolutely by the caller.
+ * A block as a coloured tile, after Logic's regions: the category's colour under a soft vertical gloss with a hairline
+ * edge, its icon in the body and its name in a darker strip along the bottom (where the grid's meter sits too). A
+ * bypassed block is a grey bezel with only its icon in the category's colour, as an off plug-in slot. Used by the grid
+ * and the block picker so the colours mean the same everywhere. Badges go in the default slot, positioned absolutely
+ * by the caller.
  */
 @Component({
   selector: 'cth-block-tile',
@@ -77,25 +79,27 @@ export function blockAccent(category: string): string | null {
   providers: [provideIcons(BlockIcons)],
   host: {
     class:
-      'relative flex flex-col items-center overflow-hidden rounded-lg px-1.5 text-white transition-[opacity,filter] duration-fast',
-    '[class.pt-2]': 'size() === "md"',
-    '[class.pt-3]': 'size() === "lg"',
-    '[class.opacity-45]': 'bypassed()',
-    '[class.grayscale]': 'bypassed()',
-    '[style.background]': 'gradient()',
+      'relative flex flex-col items-stretch overflow-hidden rounded-md transition-[background,color] duration-fast',
+    '[class.text-white]': '!bypassed()',
+    '[class.text-foreground-subtle]': 'bypassed()',
+    '[style.background]': 'bypassed() ? "linear-gradient(to bottom, var(--bezel-top), var(--bezel-bottom))" : face()',
     '[style.box-shadow]':
-      '"inset 0 1px 0 rgb(255 255 255 / 0.2), inset 0 0 0 1px rgb(255 255 255 / 0.08), 0 1px 3px rgb(0 0 0 / 0.3)"'
+      '"inset 0 1px 0 rgb(255 255 255 / " + (bypassed() ? "0.08" : "0.3") + "), 0 0 0 1px rgb(0 0 0 / 0.6), 0 1px 2px rgb(0 0 0 / 0.45)"'
   },
   template: `
-    <ng-icon
-      class="shrink-0 drop-shadow-sm"
-      aria-hidden="true"
-      [name]="iconName()"
-      [size]="size() === 'lg' ? '36' : '22'"
-    />
+    <div class="grid min-h-0 flex-1 place-items-center">
+      <ng-icon
+        class="drop-shadow-sm"
+        aria-hidden="true"
+        [style.color]="bypassed() ? accent() : null"
+        [name]="iconName()"
+        [size]="size() === 'lg' ? '34' : '20'"
+      />
+    </div>
     <span
-      class="w-full truncate text-center leading-tight font-semibold [text-shadow:0_1px_2px_rgb(0_0_0/0.35)]"
-      [class]="size() === 'lg' ? 'mt-2 text-[13px]' : 'mt-1 text-xs'"
+      class="truncate bg-black/30 px-1.5 text-center leading-tight font-semibold shadow-[inset_0_1px_0_rgb(0_0_0/0.3)]"
+      [class]="size() === 'lg' ? 'py-1.5 text-[12px]' : 'pt-0.5 pb-[7px] text-[11px]'"
+      [class.[text-shadow:0_1px_1px_rgb(0_0_0/0.5)]]="!bypassed()"
     >
       {{ name() }}
     </span>
@@ -111,6 +115,7 @@ export class CthBlockTile {
   /** `md` for the grid's cells, `lg` for the block picker. */
   readonly size = input<'md' | 'lg'>('md');
 
-  protected readonly gradient = computed(() => blockGradient(this.category()));
+  protected readonly face = computed(() => blockFace(this.category()));
+  protected readonly accent = computed(() => blockAccent(this.category()) ?? 'var(--color-foreground-muted)');
   protected readonly iconName = computed(() => blockIconName(this.typeId(), this.category()));
 }

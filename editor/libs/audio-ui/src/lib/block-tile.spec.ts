@@ -1,5 +1,5 @@
 import { BlockIcons, CategoryIcons, blockIconName } from './block-icons';
-import { BlockCategories, blockCategoryStyle, blockGradient } from './block-tile';
+import { BlockCategories, blockCategoryStyle, blockFace } from './block-tile';
 
 describe('block category styles', () => {
   it('give each known category its own colour', () => {
@@ -12,7 +12,7 @@ describe('block category styles', () => {
     expect(blockCategoryStyle('Spectral')).toEqual(style);
     expect(style.hue).toBeGreaterThanOrEqual(0);
     expect(style.hue).toBeLessThan(360);
-    expect(blockGradient('Spectral')).toContain(`${style.hue})`);
+    expect(blockFace('Spectral')).toContain(`${style.hue})`);
   });
 });
 

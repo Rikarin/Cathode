@@ -20,7 +20,7 @@ import { UiStore } from '../state/ui.store';
     <xui-splitter orientation="vertical" class="h-full">
       <xui-splitter-panel [defaultSize]="50" [min]="25">
         <div class="pane !bg-surface-sunken h-full [scrollbar-gutter:stable] !overflow-auto p-6">
-          <cth-grid-editor />
+          <cth-grid-editor class="h-full" />
           @if (ui.blockInfo()) {
             <div class="text-foreground-muted mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs" data-testid="amps-in-use">
               <span class="font-semibold">Amps in use</span>
