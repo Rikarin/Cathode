@@ -331,7 +331,7 @@ public sealed partial class MidiRouter : IDisposable {
             case "scene" or "sceneLevelUp" or "sceneLevelDown" or "sceneNext" or "scenePrevious":
                 await SceneAsync(action, data, continuous, down);
                 break;
-            case "save" or "presetSlot" or "presetNext" or "presetPrevious":
+            case "save" or "presetSlot" or "presetNext" or "presetPrevious" or "songNext" or "songPrevious":
                 await PresetAsync(action, data, down);
                 break;
             case "bypass" or "channel" or "external" or "manual" or "tap":
@@ -385,6 +385,9 @@ public sealed partial class MidiRouter : IDisposable {
                 break;
             case "presetNext" or "presetPrevious": // in bank order, or through the active setlist
                 await navigator.StepAsync(action.Action == "presetNext" ? 1 : -1);
+                break;
+            case "songNext" or "songPrevious": // through the active setlist, stopping at either end
+                await navigator.StepSongAsync(action.Action == "songNext" ? 1 : -1);
                 break;
         }
     }

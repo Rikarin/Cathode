@@ -74,6 +74,7 @@ A new mapping replaces any old mapping of the same message on the same channel. 
 | `layout`                         | A footswitch layout                                                            |                              | Makes that footswitch layout active.                                                                                                           |
 | `view`                           |                                                                                | View, **1** for the first    | Shows that view of the active layout.                                                                                                          |
 | `viewNext`, `viewPrevious`       |                                                                                |                              | Steps through the active layout's views.                                                                                                       |
+| `songNext`, `songPrevious`       |                                                                                |                              | Loads the next or previous song of the setlist being played: see [Playing a setlist](/manual/live-performance#playing-a-setlist).              |
 
 > **Note:** Scene, channel, manual, view and External numbers all start at **1**: Scene 1, Channel B, Slot 1. Only a CC's own value, when a `scene` mapping has no value of its own, counts from 0, as MIDI does. Earlier versions of the editor counted scenes, channels, manuals and views from 0: your switches and mappings still do what they did, and now read one higher.
 
@@ -150,6 +151,7 @@ Each action is picked from lists, as for MIDI learn: first the action, from the 
 | `view`, a view               | Shows that view of this switch's layout     |
 | `tuner`                      | Tuner on and off                            |
 | `presetNext`                 | The next preset                             |
+| `songNext`                   | The next song of the setlist being played   |
 
 A newly picked action starts on its first target and value (Scene 1, the first block, Slot 1), so it does something straight away.
 

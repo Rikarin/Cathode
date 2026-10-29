@@ -9,6 +9,8 @@ On Windows and Linux, read **⌘** as **Ctrl** and **⌥** as **Alt**. Shortcuts
 | P        | Open the preset picker (search by name, or type a bank slot number) |
 | ⌘PgUp    | Previous preset                                                     |
 | ⌘PgDn    | Next preset                                                         |
+| ⇧⌘PgUp   | Previous setlist song (of the setlist being played)                 |
+| ⇧⌘PgDn   | Next setlist song                                                   |
 | F5       | Reload the preset (the saved version, as a fresh load)              |
 | ⌘S       | Save                                                                |
 | ⇧⌘S      | Save as…                                                            |

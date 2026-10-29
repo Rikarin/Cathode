@@ -46,6 +46,7 @@ import { CompareStore } from './state/compare.store';
 import { LibraryStore } from './state/library.store';
 import { LiveStore } from './state/live.store';
 import { PresetSwitcher } from './state/preset-switcher';
+import { SetlistPlayer } from './state/setlist-player';
 import { MidiLearnStore } from './state/midi-learn.store';
 import { UiStore } from './state/ui.store';
 
@@ -196,6 +197,9 @@ import { UiStore } from './state/ui.store';
             >
             <a xuiButton variant="ghost" size="sm" routerLink="/perform" routerLinkActive="bg-active-overlay"
               >Perform</a
+            >
+            <a xuiButton variant="ghost" size="sm" routerLink="/setlists" routerLinkActive="bg-active-overlay"
+              >Setlists</a
             >
             <a xuiButton variant="ghost" size="sm" routerLink="/global" routerLinkActive="bg-active-overlay">Global</a>
           </div>
@@ -455,6 +459,7 @@ export class App {
   protected readonly saveAsName = signal('');
   protected readonly saveAsFirst = signal(false);
   private readonly library = inject(LibraryStore);
+  private readonly setlists = inject(SetlistPlayer);
   private readonly notify = inject(Notify);
   protected readonly abOptions = [
     { label: 'A', value: 'A' as const },
@@ -556,6 +561,8 @@ export class App {
       presetPicker: () => ui.presetPicker.set(true),
       presetPrevious: () => void this.presetPicker()?.step(-1),
       presetNext: () => void this.presetPicker()?.step(1),
+      songPrevious: () => void this.setlists.step(-1),
+      songNext: () => void this.setlists.step(1),
       reload: () => void this.presetPicker()?.reload(),
       save: () => void this.save(), // save() reports its own failures
       saveAs: () => this.openSaveAs(),

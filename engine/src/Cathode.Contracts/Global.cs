@@ -78,6 +78,17 @@ public sealed class GlobalSettings {
     /// <summary>The view (page of switches) of the active layout that is in use, 0 for the first.</summary>
     public int ActiveView { get; set; }
 
+    /// <summary>
+    ///     The setlist being played, by id: song next/previous step through its entries. Null for none; an id whose
+    ///     setlist is gone counts as none.
+    /// </summary>
+    public string? ActiveSetlist { get; set; }
+
+    /// <summary>
+    ///     The entry of the active setlist last loaded, from 0; −1 before its first song, so song next loads the first.
+    /// </summary>
+    public int ActiveSong { get; set; } = -1;
+
     public List<GlobalBlock> Blocks { get; set; } = [];
 
     /// <summary>The global performance page: controls shown in every preset that has their block.</summary>
@@ -169,7 +180,8 @@ public sealed class InputSettings {
 ///     Value = 0-3), external (Value = 1-8, the CC value drives External n), manual (Value = 0-3), tap, tuner,
 ///     metronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear), sceneLevelUp and
 ///     sceneLevelDown (the active scene's level by ±1 dB, then save the preset), save (save the preset), layout
-///     (Target = layout id), view (Value = view index), viewNext, viewPrevious. A CC mapped to scene without a Value
+///     (Target = layout id), view (Value = view index), viewNext, viewPrevious, songNext and songPrevious (the next or
+///     previous entry of the active setlist, stopping at either end). A CC mapped to scene without a Value
 ///     selects the scene its value names (0-7), and a value above 63 steps to the next scene.
 /// </summary>
 public sealed record MidiMapping(

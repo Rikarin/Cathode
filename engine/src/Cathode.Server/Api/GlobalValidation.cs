@@ -27,7 +27,7 @@ static class GlobalValidation {
     static readonly string[] Actions = [
         "scene", "sceneNext", "scenePrevious", "presetSlot", "presetNext", "presetPrevious", "bypass", "channel",
         "external", "manual", "tap", "tuner", "metronome", "mute", "looper", "sceneLevelUp", "sceneLevelDown", "save",
-        "layout", "view", "viewNext", "viewPrevious"
+        "layout", "view", "viewNext", "viewPrevious", "songNext", "songPrevious"
     ];
 
     public static void Check(GlobalSettings settings) {
@@ -108,6 +108,10 @@ static class GlobalValidation {
 
         if (settings.DefaultScene is < -1 or >= Preset.SceneCount) {
             errors.Add("The default scene is -1 (as saved) or 0-7.");
+        }
+
+        if (settings.ActiveSong < -1) {
+            errors.Add("The active song is -1 (before the first) or an entry of the setlist, from 0.");
         }
 
         if (settings.Manual.Count != 4) {

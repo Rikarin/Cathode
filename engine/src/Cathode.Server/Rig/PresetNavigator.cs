@@ -14,8 +14,10 @@ namespace Cathode.Server.Rig;
 ///     Where the loaded preset stands is the bank slot or setlist entry it was loaded from
 ///     (<see cref="LiveState.Position" />); loaded by name, it stands at its first slot in bank order. A preset in no
 ///     bank and not saved yet stands nowhere: next is the first preset, previous the last.
+///     Song next/previous (<see cref="StepSongAsync" />) are separate: they go through the active setlist kept in the
+///     global settings, whatever preset is loaded meanwhile, and survive a restart.
 /// </remarks>
-public sealed class PresetNavigator(Library library, PresetStore presets, LiveRig rig) {
+public sealed class PresetNavigator(Library library, PresetStore presets, LiveRig rig, GlobalStore globals) {
     /// <summary>What a step of <paramref name="step" /> (1 next, -1 previous) would load (null: no presets).</summary>
     public async Task<PresetStep?> NeighbourAsync(int step) {
         var state = await rig.StateAsync();
@@ -32,10 +34,54 @@ public sealed class PresetNavigator(Library library, PresetStore presets, LiveRi
     public Task<LiveState> LoadSlotAsync(string bank, int slot) =>
         rig.LoadAsync(library.Slot(bank, slot), null, new(bank, slot));
 
-    /// <summary>Loads a setlist entry on its scene, remembering it, so next/previous go through the setlist.</summary>
-    public Task<LiveState> LoadEntryAsync(string setlist, int index) {
+    /// <summary>
+    ///     Loads a setlist entry on its scene, remembering it, so next/previous go through the setlist; the setlist
+    ///     becomes the active one (<see cref="GlobalSettings.ActiveSetlist" />), at that song.
+    /// </summary>
+    public async Task<LiveState> LoadEntryAsync(string setlist, int index) {
         var entry = library.Entry(setlist, index);
-        return rig.LoadAsync(entry.PresetId, entry.Scene, new(Setlist: setlist, Entry: index));
+        var state = await rig.LoadAsync(entry.PresetId, entry.Scene, new(Setlist: setlist, Entry: index));
+        var active = globals.Get();
+        if (active.ActiveSetlist != setlist || active.ActiveSong != index) {
+            globals.Update(g => {
+                    g.ActiveSetlist = setlist;
+                    g.ActiveSong = index;
+                }
+            );
+        }
+
+        return state;
+    }
+
+    /// <summary>
+    ///     Loads the next (1) or previous (-1) song of the active setlist; null, and nothing loaded, with no setlist
+    ///     active or no song that way (song steps stop at either end of the set rather than wrapping round).
+    /// </summary>
+    public async Task<LiveState?> StepSongAsync(int step) {
+        var settings = globals.Get();
+        if (settings.ActiveSetlist is not { } id || library.Setlist(id) is not { } setlist) {
+            return null;
+        }
+
+        return SongStep(setlist, settings.ActiveSong, step, presets.Exists) is { } index
+            ? await LoadEntryAsync(id, index)
+            : null;
+    }
+
+    /// <summary>
+    ///     The entry a song step of <paramref name="step" /> goes to from entry <paramref name="from" /> (−1: before
+    ///     the first), passing over entries whose preset is missing; null at either end.
+    /// </summary>
+    public static int? SongStep(Setlist setlist, int from, int step, Func<string, bool> exists) {
+        var count = setlist.Entries.Count;
+        var direction = Math.Sign(step);
+        for (var i = Math.Clamp(from, -1, count) + direction; direction != 0 && i >= 0 && i < count; i += direction) {
+            if (exists(setlist.Entries[i].PresetId)) {
+                return i;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

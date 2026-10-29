@@ -1364,7 +1364,7 @@ export interface paths {
     };
     /** The global settings, with their revision as the ETag (send it back as If-Match on a PUT). */
     get: operations['GetGlobal'];
-    /** Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs (calibration, gain), oversampling, the tuner output, Manual A-D, MIDI, footswitches, global blocks, scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC and spillover. With If-Match (the revision a GET or PUT answered with as the ETag), refused with 412 when another change came first. */
+    /** Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs (calibration, gain), oversampling, the tuner output, Manual A-D, MIDI, footswitches, global blocks, scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC, spillover and the active setlist and song. With If-Match (the revision a GET or PUT answered with as the ETag), refused with 412 when another change came first. */
     put: operations['PutGlobal'];
     post?: never;
     delete?: never;
@@ -2118,6 +2118,16 @@ export interface components {
        * @description The view (page of switches) of the active layout that is in use, 0 for the first.
        */
       activeView: number;
+      /**
+       * @description The setlist being played, by id: song next/previous step through its entries. Null for none; an id whose
+       *     setlist is gone counts as none.
+       */
+      activeSetlist?: null | string;
+      /**
+       * Format: int32
+       * @description The entry of the active setlist last loaded, from 0; −1 before its first song, so song next loads the first.
+       */
+      activeSong: number;
       blocks: components['schemas']['GlobalBlock'][];
       /** @description The global performance page: controls shown in every preset that has their block. */
       perform: components['schemas']['PerformControl'][];
@@ -2321,7 +2331,8 @@ export interface components {
      *     Value = 0-3), external (Value = 1-8, the CC value drives External n), manual (Value = 0-3), tap, tuner,
      *     metronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear), sceneLevelUp and
      *     sceneLevelDown (the active scene's level by ±1 dB, then save the preset), save (save the preset), layout
-     *     (Target = layout id), view (Value = view index), viewNext, viewPrevious. A CC mapped to scene without a Value
+     *     (Target = layout id), view (Value = view index), viewNext, viewPrevious, songNext and songPrevious (the next or
+     *     previous entry of the active setlist, stopping at either end). A CC mapped to scene without a Value
      *     selects the scene its value names (0-7), and a value above 63 steps to the next scene.
      */
     MidiMapping: {

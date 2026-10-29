@@ -1,4 +1,4 @@
-This chapter is about using Cathode on stage and in rehearsal: the Perform page, preparing a set, the tuner, global mute, the looper, keeping presets at the same loudness, and a checklist for the gig.
+This chapter is about using Cathode on stage and in rehearsal: the Perform page, preparing and playing a setlist, the tuner, global mute, the looper, keeping presets at the same loudness, and a checklist for the gig.
 
 ## The Perform page
 
@@ -25,18 +25,36 @@ Captions and order are saved with the page: with the preset for **This preset**,
 
 ## Preparing a set
 
-The editor has no setlist page yet, so use a **bank** as your set list:
+A **setlist** is the running order of a gig: a list of songs, each one a preset from your library and the scene the song opens on. The same preset can appear as often as you like, for example once for a song's verse sound and again, on its lead scene, for another song. Setlists live on the **Setlists** page in the navigation bar.
 
-1. Open **Preset ▸ Manage presets…** and click **+** beside **Banks** to make a bank. Double-click it to name it after the gig.
-2. Drag your songs' presets from the **Library** list onto the first slots, in the order of the set. Leave an empty slot between sets if you like.
-3. Click **Save**.
+### Making a setlist
 
-Then, to load the songs in order:
+1. On the **Setlists** page, click **+** beside **Setlists**. Type a name for the gig and click **Rename**.
+2. Add songs from the **Library** list on the right: double-click a preset, focus it and press **↵**, click the **+** that appears when you point at it, or drag it onto the song list (between two songs to put it there).
+3. For each song, choose the **scene** it starts on. Give it a **name** of its own if the preset's name is not the song's ("Opener", "Encore"); leave it empty to show the preset's name.
+4. Put the songs in order: drag a song by its grip (the dotted handle on the left), use its arrow buttons, or focus it and press **⌥↑** or **⌥↓**. **×**, or **Delete** on a focused song, takes it out of the setlist; the preset stays in the library.
 
-- **From the computer:** press **P**, choose the bank at the top of the preset picker, type the song's slot number and press **↵**.
-- **From a foot controller:** map program changes to the bank with the `presetSlot` action (see [Changing presets by program change](/manual/midi-and-footswitches#changing-presets-by-program-change)), and step through the programs on your controller.
+Every change is saved as you make it: there is no Save button. Right-click a setlist in the list (or use the buttons above its songs) to **Rename**, **Duplicate** or **Delete** it. A copy is a good start for a second set or a shorter version of the same gig.
 
-The **Recent presets** button (the clock in the preset bar) also gives you the last eight presets you loaded, which helps at rehearsal.
+A song whose preset is no longer in the library (its file was deleted or moved outside Cathode) shows **Missing preset** with a warning sign. Cathode does not let you delete a preset a setlist still uses, so this only happens when files change behind its back. Remove the song, or put the preset back. While it is missing, playing the set skips that song.
+
+### Playing a setlist
+
+Click **Play on the Perform page** on the Setlists page, or pick the setlist from the **Setlist** list at the top of the **Perform** page. The bar shows the song playing (its number, its name, and its preset and scene), the next song, and every song of the set as a button.
+
+- **Next song** (the button on the right, **⇧⌘PgDn**, or a footswitch with the `songNext` action) loads the next song on its scene. Just after you pick a setlist, nothing is playing yet and Next song loads the first one.
+- **Previous song** (the button on the left, **⇧⌘PgUp**, or `songPrevious`) goes back one song.
+- Click a song's button to jump straight to it.
+
+The set does not wrap round: at the last song, Next song does nothing, so an extra press at the end of the night cannot take you back to the opener. Unsaved changes to the preset playing are handled as for any preset change: Cathode asks first, unless you have turned that off.
+
+Cathode remembers which setlist is playing and which song you are on in its global settings, so the place is kept if you load another preset in between (to fix something during a break), on every editor connected to the same Cathode, and after a restart. Next song always carries on from the last song the set loaded.
+
+To step through a set from a foot controller, map two switches or MIDI messages to `songNext` and `songPrevious` (see [MIDI actions](/manual/midi-and-footswitches#actions)). They work whichever page the editor shows, and with no editor open at all.
+
+> **Tip:** Preset next and previous (**⌘PgDn**, **⌘PgUp** and `presetNext`, `presetPrevious`) also follow a setlist, but only while the preset you loaded from it is still loaded, and they wrap round from the last song to the first. Song next and previous are the ones to use on stage.
+
+If you would rather call presets up by number, a **bank** still works as a running order: put the songs' presets in its first slots in set order on **Preset ▸ Manage presets…**, then load them with the preset picker (**P**, the bank, the slot number) or with program changes (see [Changing presets by program change](/manual/midi-and-footswitches#changing-presets-by-program-change)). The **Recent presets** button (the clock in the preset bar) also gives you the last eight presets you loaded, which helps at rehearsal.
 
 ### Switching presets mid-song
 
@@ -154,7 +172,7 @@ Use **Scene Level** (on the Controllers page) for differences between scenes, su
 
 Before you leave:
 
-- [ ] Every preset of the set is saved, in a bank in set order.
+- [ ] Every preset of the set is saved, and the set is a setlist with no missing presets (or a bank in set order).
 - [ ] Presets are levelled, and you have played each one at stage volume.
 - [ ] You have a backup: the presets exported as `.cthpreset` files, or a copy of Cathode's [data folder](/manual/the-editor#where-things-are-kept).
 - [ ] The MIDI controller, its cable and its power supply are packed; the layout and mappings work.

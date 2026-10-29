@@ -7,16 +7,18 @@ import { LiveStore } from '../state/live.store';
 import type { PerformControl as Control } from '@cathode/api-client';
 import { type ResolvedControl, movedControl, resolveControls, withLabel, withoutControl } from './perform';
 import { PerformControl, PerformDragType } from './perform-control';
+import { SetlistBar } from './setlist-bar';
 
 /**
- * Perform: big controls for playing live. The preset's page travels with the preset; the global page shows in every
- * preset that has its blocks. Add a control from any knob's context menu. A control a modifier drives follows its
- * live value. Controls can be renamed, and reordered by their move buttons or by dragging their grip onto another.
+ * Perform: big controls for playing live, under the setlist being played (its current and next song). The preset's
+ * page travels with the preset; the global page shows in every preset that has its blocks. Add a control from any
+ * knob's context menu. A control a modifier drives follows its live value. Controls can be renamed, and reordered by
+ * their move buttons or by dragging their grip onto another.
  */
 @Component({
   selector: 'cth-perform-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [PerformControl, XuiNonIdealStateImports, XuiSegmentedControlImports],
+  imports: [PerformControl, SetlistBar, XuiNonIdealStateImports, XuiSegmentedControlImports],
   host: { class: 'flex h-full flex-col gap-6 overflow-auto p-6' },
   template: `
     <header class="flex items-center gap-4">
@@ -29,6 +31,7 @@ import { PerformControl, PerformDragType } from './perform-control';
         (valueChange)="$event && page.set($event)"
       />
     </header>
+    <cth-setlist-bar />
     @if (controls().length === 0) {
       <xui-non-ideal-state
         class="flex-1"

@@ -138,7 +138,8 @@ static class ControlsApi {
             .WithSummary(
                 "Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs "
                 + "(calibration, gain), oversampling, the tuner output, Manual A-D, MIDI, footswitches, global blocks, "
-                + "scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC and spillover. "
+                + "scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC, spillover and "
+                + "the active setlist and song. "
                 + "With If-Match (the revision a GET or PUT answered with as the ETag), refused with 412 when another "
                 + "change came first."
             );
@@ -251,6 +252,8 @@ static class ControlsApi {
         g.Footswitches = settings.Footswitches;
         g.ActiveLayout = settings.ActiveLayout;
         g.ActiveView = Math.Max(0, settings.ActiveView);
+        g.ActiveSetlist = NullIfBlank(settings.ActiveSetlist);
+        g.ActiveSong = g.ActiveSetlist is null ? -1 : settings.ActiveSong;
         g.Blocks = settings.Blocks;
         g.Perform = settings.Perform;
         g.EffectsMix = settings.EffectsMix;

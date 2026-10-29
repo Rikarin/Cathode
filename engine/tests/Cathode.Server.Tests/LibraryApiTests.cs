@@ -106,6 +106,87 @@ public sealed class LibraryApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task Song_next_and_previous_follow_the_active_setlist_and_stop_at_its_ends() {
+        var setlist = new Setlist { Name = "Friday", Entries = [new(verse, 2), new(chorus, 3)] };
+        await Ok(client.PutAsJsonAsync($"/api/v1/setlists/{setlist.Id}", setlist, Token));
+        var global = (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!;
+        global.MidiMappings.Add(new("next", "cc", 0, 31, "songNext"));
+        global.MidiMappings.Add(new("previous", "cc", 0, 32, "songPrevious"));
+        global.ActiveSetlist = setlist.Id; // picked, not started: the next song is the first
+        await Ok(client.PutAsJsonAsync("/api/v1/global", global, Token));
+        var router = server.Services.GetRequiredService<MidiRouter>();
+        var navigator = server.Services.GetRequiredService<PresetNavigator>();
+        var globals = server.Services.GetRequiredService<GlobalStore>();
+
+        router.OnMidi([new(0xB0, 31, 127, 0)]);
+        await ServerFixture.Eventually(() => Task.FromResult(globals.Get().ActiveSong == 0));
+        var first = await Read(client.GetAsync("/api/v1/live", Token));
+        // Another preset loaded by name leaves the setlist's place where it was.
+        await Ok(client.PutAsJsonAsync($"/api/v1/live/preset/{verse}", new { }, Token));
+        var second = await navigator.StepSongAsync(1);
+        var pastTheEnd = await navigator.StepSongAsync(1);
+        router.OnMidi([new(0xB0, 32, 127, 0)]);
+        await ServerFixture.Eventually(() => Task.FromResult(globals.Get().ActiveSong == 0));
+        var beforeTheStart = await navigator.StepSongAsync(-1);
+
+        Assert.Equal((verse, 2), (first.Preset.Id, first.ActiveScene));
+        Assert.Equal((chorus, 3), (second!.Preset.Id, second.ActiveScene));
+        Assert.Null(pastTheEnd);
+        Assert.Null(beforeTheStart);
+        Assert.Equal(setlist.Id, globals.Get().ActiveSetlist);
+    }
+
+    [Fact]
+    public async Task A_setlist_keeps_a_missing_preset_and_songs_pass_over_it() {
+        var setlist = new Setlist { Name = "Friday", Entries = [new(verse), new(chorus), new(verse, 4)] };
+        await Ok(client.PutAsJsonAsync($"/api/v1/setlists/{setlist.Id}", setlist, Token));
+        server.Services.GetRequiredService<PresetStore>().Delete(chorus); // gone behind Cathode's back
+        var navigator = server.Services.GetRequiredService<PresetNavigator>();
+
+        setlist.Name = "Friday late";
+        using var kept = await client.PutAsJsonAsync($"/api/v1/setlists/{setlist.Id}", setlist, Token);
+        var other = new Setlist { Entries = [new(chorus)] };
+        using var added = await client.PutAsJsonAsync($"/api/v1/setlists/{other.Id}", other, Token);
+        await Read(client.PutAsJsonAsync($"/api/v1/live/setlists/{setlist.Id}/entries/0", new { }, Token));
+        var next = await navigator.StepSongAsync(1);
+
+        Assert.Equal(HttpStatusCode.OK, kept.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, added.StatusCode);
+        Assert.Equal((verse, 4), (next!.Preset.Id, next.ActiveScene));
+        Assert.Equal(new PresetPosition(Setlist: setlist.Id, Entry: 2), next.Position);
+        Assert.Equal(2, server.Services.GetRequiredService<GlobalStore>().Get().ActiveSong);
+    }
+
+    [Fact]
+    public async Task Deleting_the_active_setlist_leaves_none_active() {
+        var setlist = new Setlist { Name = "Friday", Entries = [new(verse)] };
+        await Ok(client.PutAsJsonAsync($"/api/v1/setlists/{setlist.Id}", setlist, Token));
+        await Read(client.PutAsJsonAsync($"/api/v1/live/setlists/{setlist.Id}/entries/0", new { }, Token));
+        var globals = server.Services.GetRequiredService<GlobalStore>();
+        var active = globals.Get();
+
+        await Ok(client.DeleteAsync($"/api/v1/setlists/{setlist.Id}", Token));
+
+        Assert.Equal((setlist.Id, 0), (active.ActiveSetlist, active.ActiveSong));
+        Assert.Equal((null, -1), (globals.Get().ActiveSetlist, globals.Get().ActiveSong));
+        Assert.Null(await server.Services.GetRequiredService<PresetNavigator>().StepSongAsync(1));
+    }
+
+    [Theory]
+    [InlineData(-1, 1, 0)]
+    [InlineData(0, 1, 2)] // entry 1's preset is missing
+    [InlineData(2, 1, null)] // no wrapping
+    [InlineData(2, -1, 0)]
+    [InlineData(0, -1, null)]
+    [InlineData(9, -1, 2)] // the setlist got shorter
+    [InlineData(0, 0, null)]
+    public void A_song_step_passes_over_missing_presets_and_stops_at_the_ends(int from, int step, int? to) {
+        var setlist = new Setlist { Entries = [new("a"), new("missing"), new("b")] };
+
+        Assert.Equal(to, PresetNavigator.SongStep(setlist, from, step, static id => id != "missing"));
+    }
+
+    [Fact]
     public async Task Presets_in_no_bank_come_after_the_banks_by_name() {
         var factory = server.Services.GetRequiredService<Library>().Bank("factory")!;
 

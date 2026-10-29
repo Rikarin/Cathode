@@ -51,6 +51,8 @@ export const Shortcuts: readonly Shortcut[] = [
   { id: 'presetPicker', group: 'Presets', label: 'Open the preset picker (a name, or a bank slot number)', key: 'p' },
   { id: 'presetPrevious', group: 'Presets', label: 'Previous preset', key: 'PageUp', mod: true },
   { id: 'presetNext', group: 'Presets', label: 'Next preset', key: 'PageDown', mod: true },
+  { id: 'songPrevious', group: 'Presets', label: 'Previous setlist song', key: 'PageUp', mod: true, shift: true },
+  { id: 'songNext', group: 'Presets', label: 'Next setlist song', key: 'PageDown', mod: true, shift: true },
   { id: 'reload', group: 'Presets', label: 'Reload the preset', key: 'F5' },
   { id: 'save', group: 'Presets', label: 'Save', key: 's', mod: true },
   { id: 'saveAs', group: 'Presets', label: 'Save as…', key: 's', mod: true, shift: true },

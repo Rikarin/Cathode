@@ -9,6 +9,11 @@ export const appRoutes: Route[] = [
   },
   { path: 'irs', redirectTo: () => '/library?view=cabs' },
   {
+    path: 'setlists',
+    loadComponent: () => import('./pages/setlists-page').then(m => m.SetlistsPage),
+    title: 'Setlists · Cathode'
+  },
+  {
     path: 'scenes',
     loadComponent: () => import('./pages/scene-manager').then(m => m.SceneManagerPage),
     title: 'Scenes · Cathode'

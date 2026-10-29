@@ -66,7 +66,7 @@ From the factory bank you can drag presets into your own banks. **⇧-drag** mak
 
 ### Setlists
 
-Cathode's server can store setlists, but this version of the editor has no page for them yet. To prepare a set, make a bank with your songs in order in its first slots, then load them by slot number from the preset picker or with a program change. See [Playing live](/manual/live-performance#preparing-a-set).
+A setlist puts presets in the order of a gig, each song on the scene it starts on. Setlists have a page of their own, **Setlists** in the navigation bar, where you make, rename, duplicate and delete them and fill them from the library; the Perform page plays them. See [Preparing a set](/manual/live-performance#preparing-a-set).
 
 ## The Block Library
 

@@ -9,7 +9,16 @@ namespace Cathode.Server.Stores;
 ///     at presets that exist, and a preset cannot be deleted while something still uses it. The factory bank
 ///     (<see cref="FactoryPresets.Bank" />) comes first and is read-only.
 /// </summary>
-public sealed class Library(IOptions<ServerOptions> options, PresetStore presets, ILogger<Library>? logger = null) {
+/// <remarks>
+///     A preset can still go missing behind Cathode's back (its file deleted or moved by hand): a setlist saved again
+///     keeps an entry that already pointed at it, so the rest of the setlist stays editable, but gains no new one.
+/// </remarks>
+public sealed class Library(
+    IOptions<ServerOptions> options,
+    PresetStore presets,
+    GlobalStore globals,
+    ILogger<Library>? logger = null
+) {
     readonly Lock gate = new();
 
     readonly JsonFileStore<Setlist> setlists = new(
@@ -43,9 +52,10 @@ public sealed class Library(IOptions<ServerOptions> options, PresetStore presets
     public void Save(Setlist setlist) {
         lock (gate) {
             var problems = new List<string>();
+            HashSet<string> kept = [..setlists.Get(setlist.Id)?.Entries.Select(static e => e.PresetId) ?? []];
             for (var i = 0; i < setlist.Entries.Count; i++) {
                 var entry = setlist.Entries[i];
-                if (!presets.Exists(entry.PresetId)) {
+                if (!presets.Exists(entry.PresetId) && !kept.Contains(entry.PresetId)) {
                     problems.Add($"Entry {i + 1}: no preset '{entry.PresetId}'.");
                 }
 
@@ -82,7 +92,24 @@ public sealed class Library(IOptions<ServerOptions> options, PresetStore presets
         }
     }
 
-    public bool DeleteSetlist(string id) => setlists.Delete(id);
+    /// <summary>Deletes a setlist; if it was the active one, no setlist is active any more.</summary>
+    public bool DeleteSetlist(string id) {
+        if (!setlists.Delete(id)) {
+            return false;
+        }
+
+        if (globals.Get().ActiveSetlist == id) {
+            globals.Update(g => {
+                    if (g.ActiveSetlist == id) {
+                        g.ActiveSetlist = null;
+                        g.ActiveSong = -1;
+                    }
+                }
+            );
+        }
+
+        return true;
+    }
 
     public bool DeleteBank(string id) =>
         id == FactoryPresets.BankId

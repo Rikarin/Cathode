@@ -44,6 +44,7 @@ describe('stores resync after a reconnection', () => {
       '/api/v1/presets': [{ id: 'p2', name: 'New' }],
       '/api/v1/assets': [{ ref: 'ir1', kind: 'ir' }],
       '/api/v1/banks': [{ id: 'gig', name: 'Gig', slots: [] }],
+      '/api/v1/setlists': [{ id: 'friday', name: 'Friday', entries: [] }],
       '/api/v1/block-presets': [{ id: 'b1', type: 'delay', name: 'Echo', values: {} }],
       '/api/v1/catalog/blocks': [{ typeId: 'delay', category: 'Delay' }],
       '/api/v1/catalog/rig': { typeId: 'rig', params: [] }
@@ -65,16 +66,17 @@ describe('stores resync after a reconnection', () => {
     return { reads, events, settle };
   }
 
-  it('reads the presets, assets and banks again', async () => {
+  it('reads the presets, assets, banks and setlists again', async () => {
     const { reads, events, settle } = setup();
     const library = TestBed.inject(LibraryStore);
 
     events.connected$.next();
     await settle();
 
-    expect(reads.sort()).toEqual(['/api/v1/assets', '/api/v1/banks', '/api/v1/presets']);
+    expect(reads.sort()).toEqual(['/api/v1/assets', '/api/v1/banks', '/api/v1/presets', '/api/v1/setlists']);
     expect(library.presets().map(p => p.id)).toEqual(['p2']);
     expect(library.banks().map(b => b.id)).toEqual(['gig']);
+    expect(library.setlists().map(s => s.id)).toEqual(['friday']);
     expect(library.impulseResponses()).toHaveLength(1);
   });
 

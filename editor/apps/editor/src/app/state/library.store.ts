@@ -48,6 +48,13 @@ export function presetUses(id: string, banks: readonly Bank[], setlists: readonl
   ];
 }
 
+/** `list` with `setlist` stored in it (added, or in place of the one with its id), by name as the Server lists them. */
+export function withSetlist(list: readonly Setlist[], setlist: Setlist): Setlist[] {
+  return [...list.filter(s => s.id !== setlist.id), setlist].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+  );
+}
+
 /** The preset library and the asset store (captures and impulse responses). */
 @Injectable({ providedIn: 'root' })
 export class LibraryStore {
@@ -57,6 +64,8 @@ export class LibraryStore {
   readonly presets = signal<readonly PresetSummary[]>([]);
   readonly assets = signal<readonly AssetInfo[]>([]);
   readonly banks = signal<readonly Bank[]>([]);
+  /** The setlists, by name (as the Server lists them). */
+  readonly setlists = signal<readonly Setlist[]>([]);
   readonly models = computed(() => this.assets().filter(a => a.kind === 'nam' || a.kind === 'aidax'));
   readonly impulseResponses = computed(() => this.assets().filter(a => a.kind === 'ir'));
   /** What a Cab slot playing an IR Pack takes: a multi-position pack (.cabgrid) or a single IR as a one-point pack. */
@@ -81,6 +90,7 @@ export class LibraryStore {
       this.refreshPresets(),
       this.refreshAssets(),
       this.refreshBanks(),
+      this.refreshSetlists(),
       this.usage().size > 0 ? this.refreshUsage() : undefined
     ]);
   }
@@ -116,6 +126,43 @@ export class LibraryStore {
 
   async refreshBanks(): Promise<void> {
     await this.notify.run(async () => this.banks.set(unwrap(await this.connection.client.GET('/api/v1/banks'))));
+  }
+
+  async refreshSetlists(): Promise<void> {
+    await this.notify.run(async () => this.setlists.set(unwrap(await this.connection.client.GET('/api/v1/setlists'))));
+  }
+
+  /**
+   * Stores a setlist, new or changed, and shows it at once; false (the refusal reported, and the stored setlists read
+   * again) if the Server refused it, for example for a new entry whose preset does not exist.
+   */
+  async saveSetlist(setlist: Setlist): Promise<boolean> {
+    const done = await this.notify.run(async () => {
+      unwrap(
+        await this.connection.client.PUT('/api/v1/setlists/{id}', {
+          params: { path: { id: setlist.id } },
+          body: setlist
+        })
+      );
+      return true;
+    });
+    if (done) {
+      this.setlists.update(list => withSetlist(list, setlist));
+    } else {
+      await this.refreshSetlists(); // show what is stored, not the refused change
+    }
+
+    return done ?? false;
+  }
+
+  /** Deletes a setlist (its presets stay in the library); the Server stops playing it if it was the active one. */
+  async deleteSetlist(id: string): Promise<boolean> {
+    const done = await this.notify.run(async () => {
+      unwrap(await this.connection.client.DELETE('/api/v1/setlists/{id}', { params: { path: { id } } }));
+      return true;
+    });
+    await this.refreshSetlists();
+    return done ?? false;
   }
 
   /** Renames a preset or sets its colour tag or favourite flag (stored, and live when it is loaded). */
