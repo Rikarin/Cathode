@@ -403,7 +403,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
                   role="tablist"
                   aria-label="Block pages"
                   aria-orientation="vertical"
-                  class="border-hairline-strong -my-5 -ms-5 flex w-36 shrink-0 flex-col gap-0.5 self-stretch rounded-s-xl border-e bg-black/25 py-3 ps-2 shadow-[inset_-2px_0_4px_rgb(0_0_0/0.2)]"
+                  class="border-hairline-strong -my-5 -ms-5 flex w-32 shrink-0 flex-col gap-0.5 self-stretch rounded-s-xl border-e bg-black/25 py-3 ps-2 shadow-[inset_-2px_0_4px_rgb(0_0_0/0.2)]"
                   data-testid="block-pages"
                   [style.--panel-height.px]="tabPaint()?.height"
                   [style.--tab-top.px]="tabPaint()?.top"
@@ -436,7 +436,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
               @if (mainParams().length > 0) {
                 <div
                   role="tabpanel"
-                  class="grid min-w-0 flex-1 grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] content-start justify-items-center gap-x-3 gap-y-5"
+                  class="grid min-w-26 flex-1 grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] content-start justify-items-center gap-x-3 gap-y-5"
                   [attr.aria-label]="page()"
                 >
                   @for (param of pageParams(); track param.id) {

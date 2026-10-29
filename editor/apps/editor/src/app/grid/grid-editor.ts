@@ -74,6 +74,10 @@ export interface CopiedBlock {
 
 const BlockMime = 'application/x-cathode-block';
 const MinScale = 0.6;
+/** The bypass modes that still pass the dry signal: a block bypassed in one is drawn with a wire hopping over it. */
+const PassingBypassModes: readonly string[] = ['thru', 'muteFxIn', 'muteFxOut'];
+/** The hop over a bypassed block: how wide it spans and how high it rises over the icon, in grid pixels. */
+const Hop = { width: 60, height: 26 } as const;
 const MaxScale = 2;
 
 function isIo(block: PresetBlock): boolean {
@@ -193,14 +197,19 @@ export function dropAction(
             >
               @if (cell.block; as block) {
                 @if (block.type === 'shunt') {
+                  <!-- A wire, as the cables are: its line runs across the whole cell, over the outline, which shows
+                       only on hover or when selected, so the shunt can still be found as a cell. -->
                   <div
-                    class="group border-border-muted hover:border-border flex size-full items-center rounded-md border border-dashed"
+                    class="group hover:border-border relative size-full rounded-md border border-dashed"
                     draggable="true"
+                    [class.border-transparent]="block.id !== live.selectedId()"
+                    [class.border-border]="block.id === live.selectedId()"
                     [attr.title]="'Shunt (' + block.id + ')'"
                     (dragstart)="dragStart($event, block)"
                   >
                     <div
-                      class="bg-foreground-muted h-0.5 w-full"
+                      class="absolute inset-x-[-1px] top-1/2 h-0.5 -translate-y-1/2"
+                      [class.bg-foreground-muted]="block.id !== live.selectedId()"
                       [class.bg-primary]="block.id === live.selectedId()"
                     ></div>
                   </div>
@@ -240,6 +249,17 @@ export function dropAction(
                       >
                         {{ live.channelOf(block.id) }}
                       </span>
+                    }
+                    @if (passesBypassed(block)) {
+                      <!-- Bypassed with the signal still passing: a wire straight through, hopping over the middle. -->
+                      <svg
+                        class="pointer-events-none absolute inset-0 size-full"
+                        data-testid="bypass-wire"
+                        aria-hidden="true"
+                        [attr.viewBox]="'0 0 ' + width + ' ' + height"
+                      >
+                        <path [attr.d]="bypassWire" class="stroke-foreground-muted fill-none" stroke-width="2" />
+                      </svg>
                     }
                     <cth-meter
                       class="pointer-events-none absolute right-1 bottom-0.5 left-1"
@@ -761,6 +781,28 @@ export class GridEditor {
 
   protected pasteAction(target: PresetBlock | null): 'place' | 'settings' | null {
     return pasteAction(this.clipboard(), target);
+  }
+
+  /**
+   * A wire across a cell at the cables' height that jumps over its middle in a smooth arch (two cubic Béziers, flat
+   * where they leave and rejoin the wire and at the top), in the cell's own coordinates.
+   */
+  protected readonly bypassWire = (() => {
+    const y = Cell.height / 2;
+    const top = y - Hop.height;
+    const start = (Cell.width - Hop.width) / 2;
+    const middle = Cell.width / 2;
+    const end = start + Hop.width;
+    const pull = Hop.width / 4;
+    return (
+      `M 0 ${y} H ${start} C ${start + pull} ${y} ${middle - pull} ${top} ${middle} ${top} ` +
+      `C ${middle + pull} ${top} ${end - pull} ${y} ${end} ${y} H ${Cell.width}`
+    );
+  })();
+
+  /** Whether a block is bypassed in a mode that lets the signal through, so the grid draws a wire over it. */
+  protected passesBypassed(block: PresetBlock): boolean {
+    return this.live.isBypassed(block.id) && PassingBypassModes.includes(block.bypassMode);
   }
 
   protected outletOf(block: PresetBlock): Point {
