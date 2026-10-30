@@ -15,7 +15,6 @@ import { XuiCardImports } from '@xui/card';
 import { XuiInputImports } from '@xui/input';
 import { XuiSegmentedControlImports } from '@xui/segmented-control';
 import { XuiSelectImports } from '@xui/select';
-import { XuiStatisticImports } from '@xui/statistic';
 import { XuiTextImports } from '@xui/text';
 import { NumberSteppers } from '../controls/number-steppers';
 import { InputClipLevel } from '../core/clip';
@@ -45,6 +44,13 @@ const BufferSizes = [32, 64, 128, 256, 512];
  * FX loop and the DI out use, a loopback latency test, and which Server to use. With a remote Server the interface is
  * that computer's, set there: the page says so instead of editing this computer's.
  */
+/** One figure on the LCD: its value, unit (empty for none) and label. */
+interface LcdFigure {
+  label: string;
+  value: string;
+  unit: string;
+}
+
 @Component({
   selector: 'cth-setup-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -58,7 +64,6 @@ const BufferSizes = [32, 64, 128, 256, 512];
     XuiInputImports,
     XuiSegmentedControlImports,
     XuiSelectImports,
-    XuiStatisticImports,
     XuiTextImports
   ],
   host: { class: 'block h-full overflow-auto p-6' },
@@ -67,18 +72,21 @@ const BufferSizes = [32, 64, 128, 256, 512];
       <section xuiCard class="flex flex-col gap-4 p-4" aria-labelledby="engine-heading">
         <h1 xuiHeading id="engine-heading" class="text-lg">Engine</h1>
         @if (system(); as s) {
-          <div
-            class="bg-surface-inset flex flex-wrap gap-x-10 gap-y-3 rounded-md border border-(--hairline) px-4 py-3 shadow-[inset_0_1px_2px_rgb(0_0_0/0.3)]"
-          >
-            <xui-statistic title="Backend" [value]="s.engine.connected ? (s.engine.backend ?? '–') : 'disconnected'" />
-            <xui-statistic title="Sample rate" [value]="s.engine.sampleRate / 1000" [precision]="1" suffix=" kHz" />
-            <xui-statistic title="Buffer" [value]="s.engine.bufferFrames" suffix=" frames" />
-            <xui-statistic title="Latency (buffer)" [value]="bufferMs()" [precision]="2" suffix=" ms" />
-            <xui-statistic title="CPU p99.9" [value]="s.engine.cpuP999" suffix=" %" />
-            <xui-statistic title="CPU max" [value]="s.engine.cpuMax" [precision]="1" suffix=" %" />
-            <xui-statistic title="Engine overruns" [value]="s.engine.overloads" />
-            <xui-statistic title="Driver overloads" [value]="s.engine.driverOverloads" />
-            <xui-statistic title="Inputs" [value]="(s.engine.inputs ?? ['Input 1']).join(', ')" />
+          <!-- The readings on LCD glass, as the RBMK dashboard shows a page's key figures. -->
+          <div class="lcd-glass flex flex-wrap" role="group" aria-label="Engine readings" data-testid="engine-readings">
+            @for (figure of engineFigures(); track figure.label) {
+              <div class="flex min-w-24 flex-col justify-center border-(--lcd-divider) px-3 py-1.5 [&+&]:border-l">
+                <span class="flex items-baseline gap-1 leading-tight">
+                  <span class="readout text-lcd-foreground text-[15px] font-semibold">{{ figure.value }}</span>
+                  @if (figure.unit) {
+                    <span class="text-lcd-muted text-[10px]">{{ figure.unit }}</span>
+                  }
+                </span>
+                <span class="text-lcd-muted truncate text-[9px] font-semibold tracking-wide uppercase">{{
+                  figure.label
+                }}</span>
+              </div>
+            }
           </div>
           @if (s.engine.lastError) {
             <xui-callout color="error" title="Last engine error">{{ s.engine.lastError }}</xui-callout>
@@ -108,14 +116,18 @@ const BufferSizes = [32, 64, 128, 256, 512];
           @if (l.connected) {
             <div class="flex flex-col gap-2" data-testid="latency-report">
               <h3 class="section-label">Latency</h3>
-              <div
-                class="bg-surface-inset flex flex-wrap gap-x-10 gap-y-3 rounded-md border border-(--hairline) px-4 py-3 shadow-[inset_0_1px_2px_rgb(0_0_0/0.3)]"
-              >
-                <xui-statistic title="Device input" [value]="ms(l.inputFrames, l)" [precision]="2" suffix=" ms" />
-                <xui-statistic title="Device output" [value]="ms(l.outputFrames, l)" [precision]="2" suffix=" ms" />
-                <xui-statistic title="Buffer" [value]="ms(l.bufferFrames, l)" [precision]="2" suffix=" ms" />
-                <xui-statistic title="Preset" [value]="ms(l.graphFrames, l)" [precision]="2" suffix=" ms" />
-                <xui-statistic title="Total" [value]="l.totalMs" [precision]="2" suffix=" ms" />
+              <div class="lcd-glass flex flex-wrap" role="group" aria-label="Latency" data-testid="latency-readings">
+                @for (figure of latencyFigures(l); track figure.label) {
+                  <div class="flex min-w-24 flex-col justify-center border-(--lcd-divider) px-3 py-1.5 [&+&]:border-l">
+                    <span class="flex items-baseline gap-1 leading-tight">
+                      <span class="readout text-lcd-foreground text-[15px] font-semibold">{{ figure.value }}</span>
+                      <span class="text-lcd-muted text-[10px]">{{ figure.unit }}</span>
+                    </span>
+                    <span class="text-lcd-muted truncate text-[9px] font-semibold tracking-wide uppercase">{{
+                      figure.label
+                    }}</span>
+                  </div>
+                }
               </div>
               <p class="text-foreground-muted text-xs">
                 The device figures are what the driver reports, each including one buffer. The preset's latency is the
@@ -416,6 +428,38 @@ export class SetupPage {
   protected readonly deviceName = (device: AudioDevice | null) =>
     device ? `${device.name} (${device.inputChannels} in / ${device.outputChannels} out)` : 'No audio (null backend)';
   protected readonly dirty = computed(() => JSON.stringify(this.settings()) !== JSON.stringify(this.applied()));
+  /** The engine's readings as the LCD shows them: a value, its unit, and what it is. */
+  protected readonly engineFigures = computed((): LcdFigure[] => {
+    const engine = this.system()?.engine;
+    if (!engine) {
+      return [];
+    }
+
+    const count = (n: number) => n.toLocaleString('en-US');
+    return [
+      { label: 'Backend', value: engine.connected ? (engine.backend ?? '–') : 'disconnected', unit: '' },
+      { label: 'Sample rate', value: (engine.sampleRate / 1000).toFixed(1), unit: 'kHz' },
+      { label: 'Buffer', value: String(engine.bufferFrames), unit: 'frames' },
+      { label: 'Latency (buffer)', value: this.bufferMs().toFixed(2), unit: 'ms' },
+      { label: 'CPU p99.9', value: String(Math.round(engine.cpuP999)), unit: '%' },
+      { label: 'CPU max', value: engine.cpuMax.toFixed(1), unit: '%' },
+      { label: 'Engine overruns', value: count(engine.overloads), unit: '' },
+      { label: 'Driver overloads', value: count(engine.driverOverloads), unit: '' },
+      { label: 'Inputs', value: (engine.inputs ?? ['Input 1']).join(', '), unit: '' }
+    ];
+  });
+
+  /** The latency report's figures, in milliseconds. */
+  protected latencyFigures(l: LatencyInfo): LcdFigure[] {
+    return [
+      { label: 'Device input', value: this.ms(l.inputFrames, l).toFixed(2), unit: 'ms' },
+      { label: 'Device output', value: this.ms(l.outputFrames, l).toFixed(2), unit: 'ms' },
+      { label: 'Buffer', value: this.ms(l.bufferFrames, l).toFixed(2), unit: 'ms' },
+      { label: 'Preset', value: this.ms(l.graphFrames, l).toFixed(2), unit: 'ms' },
+      { label: 'Total', value: l.totalMs.toFixed(2), unit: 'ms' }
+    ];
+  }
+
   protected readonly bufferMs = computed(() => {
     const engine = this.system()?.engine;
     return engine && engine.sampleRate > 0 ? (engine.bufferFrames / engine.sampleRate) * 1000 : 0;
