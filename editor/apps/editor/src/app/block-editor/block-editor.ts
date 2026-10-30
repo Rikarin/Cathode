@@ -49,7 +49,7 @@ import { CabResonanceHelper } from './panels/cab-resonance-helper';
 import { CompressorCurveTile } from './panels/compressor-curve-tile';
 import { isCustomTableParam } from './panels/custom-shifter';
 import { DynamicsPanel } from './panels/dynamics-panel';
-import { GeqPanel } from './panels/geq-panel';
+import { EqResponse, showsEqResponse } from './panels/eq-response';
 import { IrPlayerPanel } from './panels/ir-player-panel';
 import { PeqPanel } from './panels/peq-panel';
 import { PitchPanel } from './panels/pitch-panel';
@@ -75,7 +75,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
     CabPanel,
     CompressorCurveTile,
     DynamicsPanel,
-    GeqPanel,
+    EqResponse,
     IrPlayerPanel,
     ModifierDialog,
     XuiContextMenuImports,
@@ -447,9 +447,10 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
                   } @else if (block.type === 'peq' && onFirstPage()) {
                     <!-- The EQ curve: four knobs wide and two high at the page's right, beside the Output. -->
                     <cth-peq-panel class="[grid-column:span_4/-1] [grid-row:1/span_2]" [block]="block" />
-                  } @else if (block.type === 'geq' && onFirstPage()) {
-                    <!-- The measured response: four knobs wide and two high at the page's right, as the PEQ's. -->
-                    <cth-geq-panel class="[grid-column:span_4/-1] [grid-row:1/span_2]" [block]="block" />
+                  } @else if (onEqResponsePage()) {
+                    <!-- The measured response of the Graphic EQ, the Drive's EQ 2 or the Amp's Output EQ: four knobs
+                         wide and two high at the page's right, as the PEQ's; the knobs flow around it. -->
+                    <cth-eq-response class="[grid-column:span_4/-1] [grid-row:1/span_2]" [block]="block" />
                   } @else if ((block.type === 'mbcomp' || block.type === 'gate') && onFirstPage()) {
                     <!-- Gain reduction at the page's right, two rows high: one column for the gate, two for three bands. -->
                     <cth-dynamics-panel
@@ -659,6 +660,10 @@ export class BlockEditor {
   });
   /** Whether the first page (Basic) is showing, or the block has only one: where the dynamics blocks' meters sit. */
   protected readonly onFirstPage = computed(() => this.pages().length <= 1 || this.page() === this.pages()[0]);
+  /** Whether the page showing is the one the block's measured EQ response sits on (showsEqResponse). */
+  protected readonly onEqResponsePage = computed(() =>
+    showsEqResponse(this.block()?.type ?? '', this.page(), this.pages())
+  );
   /** The controls on the page showing; all of them for a block with one page. */
   protected readonly pageParams = computed(() => {
     const page = this.page();

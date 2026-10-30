@@ -21,20 +21,44 @@ const MaxDb = 18;
 export const RefetchDelayMs = 100;
 
 /**
- * The Graphic EQ's frequency response, as a tile four knobs wide and two high at the right of its Basic page. The
- * Server measures it on the engine's own equaliser (the passive types on their component-level networks, whose bands
- * interact), so the chart shows what is heard. It is asked for again a moment after the block's stored values change,
- * and the last curve stays up while the next is on its way; an answer overtaken by a newer request is dropped. Faint
- * lines mark the layout's band centres.
+ * The block types with a graphic EQ the Server measures, the page its chart sits on (null for the first page) and
+ * what the chart is called: the Graphic EQ itself, the Drive's EQ 2 and the Amp's Output EQ.
+ */
+const EqResponses: Readonly<Record<string, { page: string | null; name: string }>> = {
+  geq: { page: null, name: 'Graphic EQ' },
+  drive: { page: 'Graphic EQ', name: 'EQ 2' },
+  circuitamp: { page: 'EQ', name: 'Output EQ' }
+};
+
+/**
+ * Whether a block of `type` shows its EQ response on `page`, of its shown `pages`: the Graphic EQ on its first page
+ * (or its only one), the Drive on its Graphic EQ page, the Amp on its EQ page.
+ */
+export function showsEqResponse(type: string, page: string | null, pages: readonly string[]): boolean {
+  const on = EqResponses[type]?.page;
+  if (on === undefined) {
+    return false;
+  }
+
+  return on === null ? pages.length <= 1 || page === pages[0] : page === on;
+}
+
+/**
+ * A block's graphic EQ's frequency response, as a tile four knobs wide and two high at the right of the page with the
+ * EQ's controls: the Graphic EQ's own, the Drive's EQ 2 or the Amp's Output EQ. The Server measures it on the engine's
+ * own equaliser for that block (the Graphic EQ's passive types on their component-level networks, whose bands
+ * interact; the Amp's on its own approximation), so the chart shows what is heard; an EQ that is off reads flat. It
+ * is asked for again a moment after the block's stored values change, and the last curve stays up while the next is
+ * on its way; an answer overtaken by a newer request is dropped. Faint lines mark the layout's band centres.
  *
  * Like the Parametric EQ's chart, it measures the grid area it is given and draws to fill it, laid over the area
  * rather than in it, so it never sets the rows' height itself.
  */
 @Component({
-  selector: 'cth-geq-panel',
+  selector: 'cth-eq-response',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [XuiKonvaImports],
-  host: { class: 'relative block min-h-48 self-stretch justify-self-stretch', 'data-testid': 'geq-response' },
+  host: { class: 'relative block min-h-48 self-stretch justify-self-stretch', 'data-testid': 'eq-response' },
   template: `
     <xui-konva-stage [class]="well" role="img" [attr.aria-label]="description()" [config]="stage()">
       <xui-konva-layer>
@@ -52,7 +76,7 @@ export const RefetchDelayMs = 100;
     </xui-konva-stage>
   `
 })
-export class GeqPanel {
+export class EqResponse {
   private readonly connection = inject(ConnectionService);
   private readonly live = inject(LiveStore);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -120,7 +144,7 @@ export class GeqPanel {
   protected readonly area = computed(() => eqArea(this.points(), this.geo(), this.colors()));
   protected readonly grid = computed(() => eqGrid(this.geo(), this.colors()));
 
-  /** A faint line at each of the layout's band centres. */
+  /** A faint line at each of the layout's band centres; none while the EQ is off. */
   protected readonly centres = computed(() => {
     const { xOf, height } = this.geo();
     const color = this.colors().grid;
@@ -135,11 +159,12 @@ export class GeqPanel {
 
   protected readonly description = computed(() => {
     const response = this.response();
+    const name = `${EqResponses[this.block().type]?.name ?? 'EQ'} response`;
     if (!response) {
-      return 'Graphic EQ response';
+      return name;
     }
 
     const furthest = response.db.reduce((a, b) => (Math.abs(b) > Math.abs(a) ? b : a), 0);
-    return `Graphic EQ response, ${furthest.toFixed(1)} dB at its furthest from flat`;
+    return `${name}, ${furthest.toFixed(1)} dB at its furthest from flat`;
   });
 }

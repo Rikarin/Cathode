@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import type { FrequencyResponse, PresetBlock } from '@cathode/api-client';
 import { ConnectionService } from '../../core/connection';
 import { LiveStore } from '../../state/live.store';
-import { GeqPanel, RefetchDelayMs } from './geq-panel';
+import { EqResponse, RefetchDelayMs, showsEqResponse } from './eq-response';
 
 const geq = (values: Record<string, number> = {}): PresetBlock => ({
   id: 'geq1',
@@ -41,10 +41,10 @@ function render(get: ReturnType<typeof server>['get']) {
     ]
   });
   // jsdom has no canvas for Konva: the stage is swapped for the points it would be given.
-  TestBed.overrideComponent(GeqPanel, {
+  TestBed.overrideComponent(EqResponse, {
     set: { imports: [], template: '<span data-testid="curve">{{ curve().points.join(" ") }}</span>' }
   });
-  const fixture = TestBed.createComponent(GeqPanel);
+  const fixture = TestBed.createComponent(EqResponse);
   fixture.componentRef.setInput('block', geq());
   fixture.detectChanges();
   const panel = fixture.componentInstance as unknown as {
@@ -62,7 +62,7 @@ async function settle(fixture: { detectChanges: () => void }) {
   fixture.detectChanges();
 }
 
-describe('GeqPanel', () => {
+describe('EqResponse', () => {
   beforeAll(() => {
     // jsdom has no ResizeObserver; the tile only needs one to exist.
     if (!('ResizeObserver' in globalThis)) {
@@ -138,5 +138,27 @@ describe('GeqPanel', () => {
     await settle(fixture);
 
     expect(panel.response()?.db[1]).toBe(6);
+  });
+});
+
+describe('showsEqResponse', () => {
+  it('puts the Graphic EQ on its first page', () => {
+    expect(showsEqResponse('geq', null, [])).toBe(true);
+    expect(showsEqResponse('geq', 'Basic', ['Basic', 'More'])).toBe(true);
+    expect(showsEqResponse('geq', 'More', ['Basic', 'More'])).toBe(false);
+  });
+
+  it("puts the Drive and the Amp on their EQ's own page", () => {
+    const drive = ['Basic', 'Tone', 'Graphic EQ'];
+    expect(showsEqResponse('drive', 'Graphic EQ', drive)).toBe(true);
+    expect(showsEqResponse('drive', 'Basic', drive)).toBe(false);
+    const amp = ['Basic', 'Preamp', 'EQ', 'Dynamics'];
+    expect(showsEqResponse('circuitamp', 'EQ', amp)).toBe(true);
+    expect(showsEqResponse('circuitamp', 'Basic', amp)).toBe(false);
+  });
+
+  it('shows nothing for a block without a graphic EQ', () => {
+    expect(showsEqResponse('reverb', 'Basic', ['Basic'])).toBe(false);
+    expect(showsEqResponse('peq', null, [])).toBe(false);
   });
 });
