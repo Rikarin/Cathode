@@ -245,13 +245,17 @@ public sealed class GlobalBlock {
 /// </summary>
 public sealed record MidiActivity(string Type, int Status, int Data1, int Data2);
 
-/// <summary>The looper's transport, as the editor shows it.</summary>
+/// <summary>
+///     The looper's transport, as the editor shows it. <c>Source</c> says which looper the transport drives:
+///     <c>block</c>, the loaded preset's Looper block, or <c>rig</c>, the rig looper at the end of the chain.
+/// </summary>
 public sealed record LooperInfo(
     string State,
     double LengthSeconds,
     double PositionSeconds,
     bool Reversed,
-    bool HalfSpeed
+    bool HalfSpeed,
+    string Source
 );
 
 // Request bodies.

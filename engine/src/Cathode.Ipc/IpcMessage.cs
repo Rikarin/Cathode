@@ -261,6 +261,9 @@ public sealed class LooperStatus {
     public bool Reversed { get; set; }
 
     public bool HalfSpeed { get; set; }
+
+    /// <summary>Which looper the transport drives: <c>block</c>, the preset's Looper block, or <c>rig</c>.</summary>
+    public string Source { get; set; } = "rig";
 }
 
 /// <summary>The tuner's latest reading; mutable for the same reason as <see cref="HostTelemetry" />.</summary>

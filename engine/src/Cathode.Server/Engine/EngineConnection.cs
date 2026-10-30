@@ -480,7 +480,9 @@ public sealed partial class EngineConnection(
     ];
 
     static LooperInfo? Looper(HostTelemetry? t) =>
-        t?.Looper is { } l ? new(l.State, l.LengthSeconds, l.PositionSeconds, l.Reversed, l.HalfSpeed) : null;
+        t?.Looper is { } l
+            ? new(l.State, l.LengthSeconds, l.PositionSeconds, l.Reversed, l.HalfSpeed, l.Source)
+            : null;
 
     /// <summary>Outputs 1-4's peaks (a copy: an in-process host refills its telemetry in place).</summary>
     static float[]? OutputPeaks(HostTelemetry? t) => t is null ? null : [..t.OutputPeaks];

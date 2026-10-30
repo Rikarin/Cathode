@@ -112,13 +112,17 @@ export const MidiActions = [
 
 export const LooperActions = ['record', 'play', 'stop', 'overdub', 'undo', 'reverse', 'halfSpeed', 'clear'] as const;
 
-/** The looper as telemetry reports it. */
+/**
+ * The looper as telemetry reports it. `source` is the looper the transport drives: the loaded preset's Looper block
+ * (`block`), or else the rig looper at the end of the chain (`rig`).
+ */
 export interface LooperInfo {
-  state: 'empty' | 'recording' | 'playing' | 'overdubbing' | 'stopped';
+  state: 'empty' | 'armed' | 'recording' | 'playing' | 'overdubbing' | 'stopped';
   lengthSeconds: number;
   positionSeconds: number;
   reversed: boolean;
   halfSpeed: boolean;
+  source: 'block' | 'rig';
 }
 
 /**

@@ -754,6 +754,7 @@ public sealed class EngineHostService : IDisposable {
             status.PositionSeconds = looper.Position / Engine.Spec.SampleRate;
             status.Reversed = looper.IsReversed;
             status.HalfSpeed = looper.IsHalfSpeed;
+            status.Source = ReferenceEquals(looper, Engine.RigLooper) ? "rig" : "block";
         } else {
             target.Looper = null;
         }

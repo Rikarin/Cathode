@@ -539,6 +539,16 @@ public sealed class ControlsApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task The_looper_telemetry_says_which_looper_the_transport_drives() {
+        var engine = server.Services.GetRequiredService<EngineConnection>();
+        await ServerFixture.Eventually(() => engine.LastTelemetry?.Looper?.Source == "rig");
+
+        await Post("/api/v1/live/blocks", new AddBlockRequest("looper", 1, 3));
+
+        await ServerFixture.Eventually(() => engine.LastTelemetry?.Looper?.Source == "block");
+    }
+
+    [Fact]
     public async Task Global_blocks_share_settings_and_channels_copy() {
         await Patch("/api/v1/live/blocks/delay1/params", new Dictionary<string, float> { ["time"] = 444 });
         var linked = await Post("/api/v1/live/blocks/delay1/global", new LinkGlobalRequest("House delay"));

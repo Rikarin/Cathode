@@ -153,6 +153,10 @@ const LooperColors: Record<string, 'error' | 'warning' | 'success' | 'none'> = {
             @if (looper()?.halfSpeed) {
               <xui-tag minimal>half speed</xui-tag>
             }
+            <!-- Which looper the buttons drive: the preset's Looper block while it has one, else the rig's. -->
+            <xui-tag minimal class="ms-auto" data-testid="looper-source" [attr.title]="looperSource().detail">
+              {{ looperSource().name }}
+            </xui-tag>
           </div>
           <div class="flex flex-wrap gap-2" role="toolbar" aria-label="Looper transport">
             @for (action of transport; track action.id) {
@@ -203,6 +207,12 @@ export class Transport {
     { id: 'reverse', label: 'Reverse', icon: 'matSwapHorizRound' },
     { id: 'halfSpeed', label: 'Half speed', icon: 'matSlowMotionVideoRound' }
   ] as const;
+  /** Which looper the buttons drive: the preset's Looper block while it has one, else the rig looper. */
+  protected readonly looperSource = computed(() =>
+    this.looper()?.source === 'block'
+      ? { name: 'Looper block', detail: "The loaded preset's Looper block, where it sits in the chain" }
+      : { name: 'Rig looper', detail: 'The rig looper, after the whole preset; it keeps playing across presets' }
+  );
   protected readonly stateColor = computed(() => LooperColors[this.looper()?.state ?? 'empty'] ?? 'none');
 
   constructor() {
@@ -224,7 +234,8 @@ export class Transport {
         Math.abs((looper?.positionSeconds ?? 0) - (current?.positionSeconds ?? 0)) >= 0.1 ||
         looper?.lengthSeconds !== current?.lengthSeconds ||
         looper?.reversed !== current?.reversed ||
-        looper?.halfSpeed !== current?.halfSpeed
+        looper?.halfSpeed !== current?.halfSpeed ||
+        looper?.source !== current?.source
       ) {
         this.looper.set(looper ? { ...looper } : null);
       }
