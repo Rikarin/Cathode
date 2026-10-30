@@ -20,7 +20,8 @@ type View = 'scope' | 'rta';
   imports: [CthRta, CthScope, XuiDialogImports, XuiSegmentedControlImports, XuiSelectImports],
   template: `
     <xui-dialog title="Analyser" icon="matShowChartRound" size="lg" [(open)]="open">
-      <xui-dialog-body>
+      <!-- A set width, so the dialog does not change size between the views. -->
+      <xui-dialog-body class="w-[44rem] max-w-full">
         <xui-segmented-control
           class="mb-3"
           size="sm"
@@ -30,7 +31,10 @@ type View = 'scope' | 'rta';
           (valueChange)="$event && view.set($event)"
         />
         @if (view() === 'scope') {
-          <cth-scope class="bg-surface-sunken h-64 w-full rounded-lg" [source]="scope" />
+          <cth-scope
+            class="border-hairline-strong h-64 w-full overflow-hidden rounded-lg border bg-(--well) shadow-[inset_0_1px_3px_rgb(0_0_0/0.6),0_1px_0_var(--highlight)]"
+            [source]="scope"
+          />
           <p class="text-foreground-muted mt-2 text-xs">Output, left channel. Grid: ±0.5 full scale, 5 ms.</p>
         } @else {
           <div class="mb-3 flex flex-wrap items-end gap-4">
@@ -71,7 +75,10 @@ type View = 'scope' | 'rta';
               />
             </label>
           </div>
-          <cth-rta class="bg-surface-sunken h-64 w-full rounded-lg" [source]="rta" />
+          <cth-rta
+            class="border-hairline-strong h-64 w-full overflow-hidden rounded-lg border bg-(--well) shadow-[inset_0_1px_3px_rgb(0_0_0/0.6),0_1px_0_var(--highlight)]"
+            [source]="rta"
+          />
           <p class="text-foreground-muted mt-2 text-xs">
             {{ rtaSource() }}. Grid: 12 dB (0 dB = a full-scale sine); 100 Hz, 1 kHz, 10 kHz. Place an RTA block on the
             grid to look at any point of the chain.

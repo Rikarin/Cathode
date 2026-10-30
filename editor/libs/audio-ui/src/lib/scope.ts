@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, type ElementRef, input, viewChild } from '@angular/core';
-import { onAnimationFrame, themeColor } from './animation';
+import { onAnimationFrame, themeColors } from './animation';
 
 /** A window of samples at a known rate, oldest first (ScopeFrame in Cathode.Contracts). */
 export interface ScopeTrace {
@@ -7,10 +7,14 @@ export interface ScopeTrace {
   samples: ArrayLike<number>;
 }
 
+/** The theme's colours: the well's lines for the grid, brighter at the centre, and the accent for the trace. */
+const colors = themeColors({ grid: '--well-line', centre: '--well-line-strong', trace: '--color-primary' });
+
 /**
  * An oscilloscope (docs/02-architecture.md §5.9). `source` is read on animation frames. The trace starts at the
  * first rising zero crossing in the first half of the window, so a steady note stands still; with no crossing it
- * free-runs. Vertical scale is ±1 (0 dBFS); the grid marks ±0.5 and 5 ms steps.
+ * free-runs. Vertical scale is ±1 (0 dBFS); the grid marks ±0.5 and 5 ms steps. It is drawn for a sunken well: faint
+ * grid lines and the accent's trace with a soft glow, as on a phosphor screen.
  */
 @Component({
   selector: 'cth-scope',
@@ -46,11 +50,11 @@ export class CthScope {
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
     context.clearRect(0, 0, width, height);
     const trace = this.source()();
-    const grid = themeColor(canvas, '--color-border-muted');
-    context.strokeStyle = grid;
+    const theme = colors(canvas);
     context.lineWidth = 1;
     for (const level of [-0.5, 0, 0.5]) {
       const y = Math.round(height / 2 - (level * height) / 2) + 0.5;
+      context.strokeStyle = level === 0 ? theme.centre : theme.grid;
       context.beginPath();
       context.moveTo(0, y);
       context.lineTo(width, y);
@@ -65,6 +69,7 @@ export class CthScope {
     const shown = Math.floor(samples.length / 2);
     const start = trigger(samples, samples.length - shown);
     const step = width / (shown - 1);
+    context.strokeStyle = theme.grid;
     for (let ms = 5; ms < (shown / trace.sampleRate) * 1000; ms += 5) {
       const x = Math.round((ms / 1000) * trace.sampleRate * step) + 0.5;
       context.beginPath();
@@ -73,7 +78,9 @@ export class CthScope {
       context.stroke();
     }
 
-    context.strokeStyle = themeColor(canvas, '--color-primary');
+    context.strokeStyle = theme.trace;
+    context.shadowColor = theme.trace;
+    context.shadowBlur = 6;
     context.lineWidth = 1.5;
     context.beginPath();
     for (let i = 0; i < shown; i++) {
@@ -88,6 +95,7 @@ export class CthScope {
     }
 
     context.stroke();
+    context.shadowBlur = 0;
   }
 }
 

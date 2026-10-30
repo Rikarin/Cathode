@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, type ElementRef, input, viewChild } from '@angular/core';
-import { onAnimationFrame, themeColor } from './animation';
+import { onAnimationFrame, themeColors } from './animation';
 
 /** Band levels in dB at their centre frequencies (RtaFrame in Cathode.Contracts). */
 export interface RtaSpectrum {
@@ -10,9 +10,13 @@ export interface RtaSpectrum {
 /** Lowest level drawn; the scale runs from here to 0 dB. */
 export const RtaFloorDb = -96;
 
+/** The theme's colours: the well's lines for the grid, the accent for the bars and a light mark for the peaks. */
+const colors = themeColors({ grid: '--well-line', bar: '--color-primary', peak: '--well-mark' });
+
 /**
  * A real-time analyser: one bar per band on a log frequency axis, with a slowly falling peak hold. `source` is read
- * on animation frames, like the scope. Grid lines every 12 dB and at 100 Hz, 1 kHz and 10 kHz.
+ * on animation frames, like the scope. Grid lines every 12 dB and at 100 Hz, 1 kHz and 10 kHz. It is drawn for a
+ * sunken well: faint grid lines, translucent bars with a lit top edge, and the peaks as thin light marks.
  */
 @Component({
   selector: 'cth-rta',
@@ -52,7 +56,8 @@ export class CthRta {
 
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
     context.clearRect(0, 0, width, height);
-    context.strokeStyle = themeColor(canvas, '--color-border-muted');
+    const theme = colors(canvas);
+    context.strokeStyle = theme.grid;
     context.lineWidth = 1;
     for (let db = 0; db > RtaFloorDb; db -= 12) {
       const y = Math.round(levelToY(db, height)) + 0.5;
@@ -78,7 +83,7 @@ export class CthRta {
     }
 
     const barWidth = Math.max(1, width / count - 1);
-    context.fillStyle = themeColor(canvas, '--color-primary');
+    context.fillStyle = theme.bar;
     const peaks: { x: number; peak: number }[] = [];
     for (let i = 0; i < count; i++) {
       const frequency = spectrum.frequencies[i];
@@ -89,15 +94,18 @@ export class CthRta {
 
       const x = frequencyToX(frequency, width) - barWidth / 2;
       const y = levelToY(level, height);
+      context.globalAlpha = 0.45;
       context.fillRect(x, y, barWidth, height - y);
+      context.globalAlpha = 1;
+      context.fillRect(x, y, barWidth, Math.min(2, height - y));
       const peak = Math.max(level, (this.peaks[i] ?? RtaFloorDb) - this.peakFall() * elapsed);
       this.peaks[i] = peak;
       peaks.push({ x, peak });
     }
 
-    context.fillStyle = themeColor(canvas, '--color-warning');
+    context.fillStyle = theme.peak;
     for (const { x, peak } of peaks) {
-      context.fillRect(x, levelToY(peak, height) - 1, barWidth, 2);
+      context.fillRect(x, levelToY(peak, height) - 1, barWidth, 1.5);
     }
   }
 }
