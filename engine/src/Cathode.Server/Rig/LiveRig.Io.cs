@@ -55,19 +55,19 @@ public sealed partial class LiveRig {
                 _ when block.Type == GraphicEqBlock.Info.TypeId => (
                     GraphicEqBlock.Info,
                     GraphicEqBlock.Type,
-                    v => GraphicEqResponse.Of(v, ResponseFrequencies),
+                    static v => GraphicEqResponse.Of(v, ResponseFrequencies),
                     GraphicEqResponse.Centers
                 ),
                 _ when block.Type == DriveBlock.Info.TypeId => (
                     DriveBlock.Info,
                     DriveBlock.Type,
-                    v => DriveEqResponse.Of(v, ResponseFrequencies),
+                    static v => DriveEqResponse.Of(v, ResponseFrequencies),
                     DriveEqResponse.Centers
                 ),
                 _ when block.Type == CircuitAmpBlock.Info.TypeId => (
                     CircuitAmpBlock.Info,
                     CircuitAmpBlock.Type,
-                    v => AmpEqResponse.Of(v, ResponseFrequencies),
+                    static v => AmpEqResponse.Of(v, ResponseFrequencies),
                     AmpEqResponse.Centers
                 ),
                 _ => throw new RigException(400, $"'{id}' has no graphic EQ.")

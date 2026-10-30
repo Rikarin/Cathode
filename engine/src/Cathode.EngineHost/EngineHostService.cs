@@ -407,9 +407,9 @@ public sealed class EngineHostService : IDisposable {
         new() { Type = IpcTypes.Ok, Id = request.Id, MidiPorts = [..NativeMidiPorts()] };
 
     /// <summary>
-    ///     Sends a message out. Without a destination it goes to every output, and with none there it has nowhere to go:
-    ///     that is not a failure (scene MIDI and footswitch LEDs go out whether or not anything listens), only a named
-    ///     output that is gone or a send that fails is.
+    ///     Sends a message out. Without a destination it goes to every output, and with none there it has nowhere to
+    ///     go: that is not a failure (scene MIDI and footswitch LEDs go out whether or not anything listens), only a
+    ///     named output that is gone or a send that fails is.
     /// </summary>
     IpcMessage MidiOut(IpcMessage request) {
         var bytes = (request.Bytes ?? []).Select(static b => (byte)b).ToArray();
@@ -419,8 +419,8 @@ public sealed class EngineHostService : IDisposable {
 
         return NativeMidiSend(request.Destination, bytes)
             || (request.Destination is null && NativeMidiPorts().All(static p => p.IsInput))
-            ? IpcMessage.Ok(request.Id)
-            : IpcMessage.Fail(request.Id, "MIDI output is not available.");
+                ? IpcMessage.Ok(request.Id)
+                : IpcMessage.Fail(request.Id, "MIDI output is not available.");
     }
 
     /// <summary>

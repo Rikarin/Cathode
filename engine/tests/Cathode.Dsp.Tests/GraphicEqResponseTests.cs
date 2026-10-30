@@ -87,8 +87,7 @@ public class GraphicEqResponseTests {
         }
     }
 
-    static float[] Response(Dictionary<string, float> values) =>
-        GraphicEqResponse.Of(Bank(values), Frequencies);
+    static float[] Response(Dictionary<string, float> values) => GraphicEqResponse.Of(Bank(values), Frequencies);
 
     static float At(Dictionary<string, float> values, float hz) => GraphicEqResponse.Of(Bank(values), [hz])[0];
 

@@ -45,9 +45,10 @@ static class AnalysisApi {
             )
             .WithName("GetBlockResponse")
             .WithSummary(
-                "A block's graphic EQ's frequency response on its active channel, measured on the engine's equaliser: "
-                + "a Graphic EQ's (the passive types on their networks), a Drive's EQ 2, an Amp's Output EQ (flat while "
-                + "off). dB at 256 frequencies from 20 Hz to 20 kHz, with the band centres. 400 for another block."
+                "A block's graphic EQ's frequency response on its active channel, measured on the engine's "
+                + "equaliser: a Graphic EQ's (the passive types on their networks), a Drive's EQ 2, an Amp's Output EQ "
+                + "(flat while off). dB at 256 frequencies from 20 Hz to 20 kHz, with the band centres. 400 for "
+                + "another block."
             );
 
         api.MapPut(

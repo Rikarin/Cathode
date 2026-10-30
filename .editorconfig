@@ -28,14 +28,22 @@ dotnet_diagnostic.SK7005.severity = none
 
 # Tests, test references and spikes: table-driven test methods, repeated file names and ids, reference simulators
 # written as one routine per paper and throwaway measurement harnesses are the readable choice there (Skala's own
-# duplication rule measures tests apart for the same reason). The metrics and the repeated-literal rule stay on for the
-# shipped code.
+# duplication rule measures tests apart for the same reason). An API test class also names every request and response
+# type of the API it covers, so its type coupling (SK7081) counts the API, not the test. The metrics and the
+# repeated-literal rule stay on for the shipped code.
 [engine/{tests,spikes}/**.cs]
 dotnet_diagnostic.SK7001.severity = none
 dotnet_diagnostic.SK7002.severity = none
 dotnet_diagnostic.SK7003.severity = none
+dotnet_diagnostic.SK7081.severity = none
 dotnet_diagnostic.SK7082.severity = none
 dotnet_diagnostic.SK7083.severity = none
+
+# The wire contracts' source-generated JSON context lists every type that crosses the API with [JsonSerializable], as
+# the generator requires: its type coupling (SK7081) is the size of the API, and splitting it would only split that
+# list.
+[engine/src/Cathode.Contracts/ContractsJsonContext.cs]
+dotnet_diagnostic.SK7081.severity = none
 
 # The DSP library: a per-sample kernel or a circuit solver is one routine per algorithm on purpose (the hot path stays
 # inline and allocation-free, and it reads against the circuit or the paper it implements), and a circuit is one file.
