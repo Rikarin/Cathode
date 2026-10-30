@@ -26,6 +26,10 @@ import { ShortcutList } from './shortcut-list';
       (openChange)="$event || ui.settings.set(null)"
     >
       <xui-dialog-body class="overflow-hidden">
+        <!--
+          Each tab scrolls on its own; its scroller reaches out over the body's right padding (-mr-6) so the scrollbar
+          sits at the dialog's edge, and keeps 14 px before it, which with the 10 px bar matches the 24 px on the left.
+        -->
         <xui-tabs
           renderActiveTabPanelOnly
           [animate]="false"
@@ -33,13 +37,17 @@ import { ShortcutList } from './shortcut-list';
           (selectedTabIdChange)="select($event)"
         >
           <xui-tab id="preferences" title="Preferences">
-            <cth-preferences-panel class="h-[min(32rem,60vh)] [scrollbar-gutter:stable] overflow-y-auto pt-4 pr-6" />
+            <cth-preferences-panel
+              class="-mr-6 h-[min(32rem,60vh)] [scrollbar-gutter:stable] overflow-y-auto pt-4 pr-3.5"
+            />
           </xui-tab>
           <xui-tab id="setup" title="Audio setup">
-            <cth-setup-page class="!h-[min(32rem,60vh)] !px-0 !pt-4 !pb-0" />
+            <cth-setup-page class="-mr-6 !h-[min(32rem,60vh)] [scrollbar-gutter:stable] !pt-4 !pr-3.5 !pb-0 !pl-0" />
           </xui-tab>
           <xui-tab id="shortcuts" title="Keyboard shortcuts">
-            <cth-shortcut-list class="h-[min(32rem,60vh)] [scrollbar-gutter:stable] overflow-y-auto pt-4 pr-6" />
+            <cth-shortcut-list
+              class="-mr-6 h-[min(32rem,60vh)] [scrollbar-gutter:stable] overflow-y-auto pt-4 pr-3.5"
+            />
           </xui-tab>
         </xui-tabs>
       </xui-dialog-body>
