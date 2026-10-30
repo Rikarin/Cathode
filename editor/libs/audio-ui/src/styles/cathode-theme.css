@@ -100,6 +100,9 @@
   --well-line: rgb(255 255 255 / 0.08);
   --well-line-strong: rgb(255 255 255 / 0.2);
   --well-mark: rgb(255 255 255 / 0.7);
+  /* A text field's fill and its inner shadow: white, a little sunk into the surface. */
+  --field: #ffffff;
+  --field-shadow: rgb(0 0 0 / 0.14);
 
   /* A switch's knob: Anode's fader-cap metal. */
   --knob-top: #ffffff;
@@ -180,6 +183,9 @@
   --well-line: rgb(255 255 255 / 0.07);
   --well-line-strong: rgb(255 255 255 / 0.18);
   --well-mark: rgb(255 255 255 / 0.7);
+  /* A text field's fill and its inner shadow: sunk deeper than the surface around it. */
+  --field: #141416;
+  --field-shadow: rgb(0 0 0 / 0.6);
 
   /* A switch's knob: Anode's fader-cap metal. */
   --knob-top: #e9e9ec;

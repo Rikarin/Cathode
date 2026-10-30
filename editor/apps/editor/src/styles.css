@@ -868,3 +868,33 @@ xui-tabs > [role='tablist'] {
 .cdk-overlay-pane[role='dialog']:focus {
   outline: none;
 }
+
+/*
+ * Text fields (xUI's input) as macOS's: sunken into the surface, a hairline edge that is darker along the top where the
+ * light falls off, a soft inner shadow and a faint highlight under the lower edge. Focus draws Apple's glow round the
+ * field rather than recolouring its border. A field marked by colour or as invalid keeps its own border.
+ */
+[xuiInput]:not([type='checkbox'], [type='radio'], [type='range']) {
+  border-radius: var(--radius-control);
+  background-color: var(--field);
+  box-shadow:
+    inset 0 1px 0 var(--field-shadow),
+    inset 0 2px 3px var(--field-shadow),
+    0 1px 0 var(--highlight);
+
+  &:not(.border-primary, .border-success, .border-warning, .border-error, .ng-invalid.ng-touched) {
+    border-color: var(--hairline-strong);
+    border-top-color: color-mix(in oklab, var(--hairline-strong), black 35%);
+  }
+
+  &:focus-visible {
+    box-shadow:
+      inset 0 1px 0 var(--field-shadow),
+      inset 0 2px 3px var(--field-shadow),
+      0 0 0 3px color-mix(in oklab, var(--color-primary) 40%, transparent);
+  }
+
+  &:focus-visible:not(.border-primary, .border-success, .border-warning, .border-error, .ng-invalid.ng-touched) {
+    border-color: var(--color-primary);
+  }
+}
