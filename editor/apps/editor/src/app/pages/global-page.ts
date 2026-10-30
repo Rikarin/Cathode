@@ -436,18 +436,21 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
             }
           </div>
 
-          <!-- Not a live region: a stream of CCs would be read out without end. -->
+          <!--
+            Not a live region: a stream of CCs would be read out without end. Drawn as the preset display is, on LCD
+            glass, as a hardware MIDI monitor reads.
+          -->
           <div>
-            <span id="midi-monitor-label" class="text-foreground-muted text-xs">Monitor</span>
+            <span id="midi-monitor-label" class="section-label">Monitor</span>
             <ul
-              class="bg-surface-sunken mt-1 h-28 overflow-auto rounded-lg p-2 font-mono text-xs"
+              class="lcd-glass text-lcd-foreground mt-1.5 h-28 overflow-auto px-3 py-2 font-mono text-xs leading-5"
               tabindex="0"
               aria-labelledby="midi-monitor-label"
             >
               @for (line of monitor(); track $index) {
                 <li>{{ line }}</li>
               } @empty {
-                <li class="text-foreground-subtle">Nothing received yet.</li>
+                <li class="text-lcd-muted">Nothing received yet.</li>
               }
             </ul>
           </div>
