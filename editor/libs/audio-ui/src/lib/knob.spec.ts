@@ -118,6 +118,10 @@ describe('CthKnob', () => {
     dial.dispatchEvent(new MouseEvent('dblclick'));
     fixture.detectChanges();
     const editor = (fixture.nativeElement as HTMLElement).querySelector('input') as HTMLInputElement;
+    // It opens focused with the value selected, so typing replaces it.
+    expect(document.activeElement).toBe(editor);
+    expect(editor.selectionStart).toBe(0);
+    expect(editor.selectionEnd).toBe(editor.value.length);
     editor.value = '30';
     editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
 

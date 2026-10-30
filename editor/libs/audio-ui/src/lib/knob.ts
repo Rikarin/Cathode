@@ -3,6 +3,8 @@ import {
   Component,
   DestroyRef,
   type ElementRef,
+  Injector,
+  afterNextRender,
   booleanAttribute,
   computed,
   inject,
@@ -183,6 +185,7 @@ export class CthKnob {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.settle));
   }
   private readonly preferences = inject(CTH_KNOB_PREFERENCES, { optional: true });
+  private readonly injector = inject(Injector);
 
   readonly value = model(0);
   readonly min = input(0, { transform: numberAttribute });
@@ -359,7 +362,15 @@ export class CthKnob {
 
     this.commitWheel();
     this.typing.set(true);
-    queueMicrotask(() => this.editor()?.nativeElement.select());
+    // After the input renders: a microtask runs before change detection, while it is not there yet.
+    afterNextRender(
+      () => {
+        const field = this.editor()?.nativeElement;
+        field?.focus();
+        field?.select();
+      },
+      { injector: this.injector }
+    );
   }
 
   protected commitTyping(text: string): void {
