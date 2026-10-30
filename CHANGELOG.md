@@ -34,7 +34,7 @@ the format upgrades older presets as it reads them.
   macOS-style menus, pop-up buttons, switches, checkboxes and alerts, an LCD preset and scene display, knobs with a
   turned-metal dial, and blocks drawn like Logic regions. Shunts are plain wires, and a block bypassed in a mode that
   lets the signal through shows the cable arching over it. The Library, Scenes, Controllers, Perform, Setlists, Global
-  and Manage presets pages, the Cab's microphone and Align charts and the Analyser follow it.
+  and Manage presets pages, the Settings dialog, the Cab's microphone and Align charts and the Analyser follow it.
 - **A new app icon**: a glowing blue C with a waveform.
 - **Block pages** list their pages as tabs down the panel's edge and fit eight knobs to a row on a 1440-pixel window
   instead of six. The Parametric EQ's curve and the dynamics meters sit beside the knobs instead of above them.
@@ -53,6 +53,10 @@ the format upgrades older presets as it reads them.
 - **Manage presets** marks the bank shown before you pick one, and its Library list and the Setlists page's no longer
   scroll sideways with a long preset name.
 - **The New from template and Snapshots dialogs** no longer push their buttons past the dialog's edge.
+- **Shortcut letters after a click** (#39 follow-up): clicking a top-bar button such as the metronome no longer stops
+  M, P and the other letter shortcuts working, or rings the button at the next key. Space, Delete and Backspace still
+  go to a focused control.
+- **Dialogs opened from the keyboard** no longer start with a focus ring on their Close button.
 
 ### Internal
 
