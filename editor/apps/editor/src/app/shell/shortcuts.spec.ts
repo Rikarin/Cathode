@@ -1,4 +1,12 @@
-import { ShortcutService, Shortcuts, findShortcut, isOnControl, isTyping, shortcutKeys } from './shortcuts';
+import {
+  ShortcutService,
+  Shortcuts,
+  controlTakesKey,
+  findShortcut,
+  isOnControl,
+  isTyping,
+  shortcutKeys
+} from './shortcuts';
 
 function key(key: string, options: Partial<KeyboardEventInit> & { code?: string } = {}): KeyboardEvent {
   return new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...options });
@@ -99,7 +107,7 @@ describe('keyboard shortcuts', () => {
     input.remove();
   });
 
-  it('leaves bare keys to a focused button, switch, checkbox or slider', () => {
+  it('leaves Space and Delete to a focused button, switch, checkbox or slider', () => {
     const service = new ShortcutService();
     const ran: string[] = [];
     service.register({
@@ -124,7 +132,7 @@ describe('keyboard shortcuts', () => {
     }
 
     for (const target of [button, icon, toggle, box, knob]) {
-      for (const press of [key(' ', { code: 'Space' }), key('Delete'), key('b')]) {
+      for (const press of [key(' ', { code: 'Space' }), key('Delete')]) {
         target.dispatchEvent(press);
         expect(service.dispatch(press)).toBe(false);
         expect(press.defaultPrevented).toBe(false);
@@ -143,6 +151,45 @@ describe('keyboard shortcuts', () => {
     toggle.remove();
     box.remove();
     knob.remove();
+  });
+
+  it('runs letters from a button, switch, checkbox or slider, but leaves them to a list or menu', () => {
+    const service = new ShortcutService();
+    let muted = 0;
+    service.register({ mute: () => muted++ });
+    const metronome = document.createElement('button');
+    const toggle = document.createElement('div');
+    toggle.setAttribute('role', 'switch');
+    const knob = document.createElement('div');
+    knob.setAttribute('role', 'slider');
+    const list = document.createElement('ul');
+    list.setAttribute('role', 'listbox');
+    const option = document.createElement('li');
+    option.setAttribute('role', 'option');
+    list.append(option);
+    const menu = document.createElement('div');
+    menu.setAttribute('role', 'menu');
+    document.body.append(metronome, toggle, knob, list, menu);
+
+    for (const target of [metronome, toggle, knob]) {
+      const press = key('m');
+      target.dispatchEvent(press);
+      expect(service.dispatch(press)).toBe(true);
+    }
+
+    for (const target of [option, list, menu]) {
+      const press = key('m');
+      target.dispatchEvent(press);
+      expect(service.dispatch(press)).toBe(false);
+    }
+
+    expect(muted).toBe(3);
+    expect(controlTakesKey(metronome, ' ')).toBe(true);
+    expect(controlTakesKey(metronome, 'Delete')).toBe(true);
+    expect(controlTakesKey(document.body, ' ')).toBe(false);
+    for (const element of [metronome, toggle, knob, list, menu]) {
+      element.remove();
+    }
   });
 
   it('bypasses with Space from the grid and the page itself', () => {
@@ -240,19 +287,19 @@ describe('ShortcutService.dispatch and the focused element', () => {
     expect(onPage.defaultPrevented).toBe(true);
   });
 
-  it('treats radio, range, button and submit inputs as controls: bare keys stay theirs, ⌘ and F keys work', () => {
+  it('treats radio, range, button and submit inputs as controls: Space stays theirs, letters, ⌘ and F keys work', () => {
     const { shortcuts, ran } = service();
     const types = ['radio', 'range', 'submit', 'button'];
     for (const type of types) {
       const input = element('input', { type });
       expect(press(shortcuts, input, key(' ', { code: 'Space' }))).toBe(false);
-      expect(press(shortcuts, input, key('p'))).toBe(false);
-      expect(press(shortcuts, input, key('?', { shiftKey: true }))).toBe(false);
+      expect(press(shortcuts, input, key('p'))).toBe(true);
+      expect(press(shortcuts, input, key('?', { shiftKey: true }))).toBe(true);
       expect(press(shortcuts, input, key('s', { metaKey: true }))).toBe(true);
       expect(press(shortcuts, input, key('F5'))).toBe(true);
     }
 
-    expect(ran).toEqual(types.flatMap(() => ['save', 'reload']));
+    expect(ran).toEqual(types.flatMap(() => ['presetPicker', 'help', 'save', 'reload']));
   });
 
   it('yields bare keys to links, menu items, tabs, options, comboboxes and disclosure summaries', () => {

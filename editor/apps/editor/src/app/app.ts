@@ -41,6 +41,7 @@ import { ScopeDialog } from './shell/scope-dialog';
 import { ServerTargetForm } from './shell/server-target';
 import { SettingsDialog } from './shell/settings-dialog';
 import { ShortcutService } from './shell/shortcuts';
+import { keepToolbarClicksUnfocused } from './shell/toolbar-focus';
 import { Transport } from './shell/transport';
 import { TunerDialog } from './shell/tuner-dialog';
 import { CompareStore } from './state/compare.store';
@@ -485,6 +486,8 @@ export class App {
     inject(DestroyRef).onDestroy(this.registerShortcuts());
     // A dialog opened from the keyboard starts on itself, not with a focus ring on its Close button.
     inject(DestroyRef).onDestroy(keepDialogFocusOffClose(document));
+    // The top bars' buttons act on a click without taking focus, as a macOS toolbar's do.
+    inject(DestroyRef).onDestroy(keepToolbarClicksUnfocused(document));
   }
 
   /** The remote Server's URL when the desktop app uses one. */

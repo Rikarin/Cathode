@@ -151,10 +151,39 @@ const Controls = [
   '[role=treeitem]'
 ].join(', ');
 
+/** Controls that take typed characters themselves, to find an entry by its first letters. */
+const TypeToFind = [
+  'select',
+  '[role=listbox]',
+  '[role=option]',
+  '[role=menu]',
+  '[role=menuitem]',
+  '[role=menuitemcheckbox]',
+  '[role=menuitemradio]',
+  '[role=combobox]',
+  '[role=tree]',
+  '[role=treeitem]'
+].join(', ');
+
 /** Whether an event comes from a focused control (or something inside one), which takes bare keys itself. */
 export function isOnControl(target: EventTarget | null): boolean {
   const element = target as HTMLElement | null;
   return !!element?.closest && element.closest(Controls) !== null;
+}
+
+/**
+ * Whether the focused control the event comes from would use this key itself: Space, Delete and Backspace on any
+ * control, a character (a letter, digit or ?) only on a list or menu that finds its entries by typing. A button, switch,
+ * checkbox or knob does nothing with a letter, so M still mutes after a click on the metronome.
+ */
+export function controlTakesKey(target: EventTarget | null, key: string): boolean {
+  const element = target as HTMLElement | null;
+  if (!element?.closest) {
+    return false;
+  }
+
+  const character = key.length === 1 && key !== ' ';
+  return element.closest(character ? TypeToFind : Controls) !== null;
 }
 
 /**
@@ -225,7 +254,7 @@ export class ShortcutService {
     }
 
     const shortcut = findShortcut(event);
-    if (shortcut && yieldsToControl(shortcut) && isOnControl(event.target)) {
+    if (shortcut && yieldsToControl(shortcut) && controlTakesKey(event.target, event.key)) {
       return false; // Space on a focused button presses it; it does not bypass the selected block
     }
 
