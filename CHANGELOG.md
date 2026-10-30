@@ -27,6 +27,9 @@ the format upgrades older presets as it reads them.
 - **The Controllers page** marks the sequencer's stage as it plays, and the LFOs and ADSRs show where they are.
 - **A bank menu beside the preset**: it names the bank next and previous step through, and choosing another bank
   loads its first preset and plays on from there.
+- **Footswitch layouts can be deleted** and **views renamed** (Global ▸ Footswitches). Deleting a layout makes the
+  first one left active and unlinks switches that went on to it.
+- **⌘K resets every clip light** at once: the blocks' on the grid and the top bar's meters.
 
 ### Changed
 
@@ -35,6 +38,11 @@ the format upgrades older presets as it reads them.
   turned-metal dial, and blocks drawn like Logic regions. Shunts are plain wires, and a block bypassed in a mode that
   lets the signal through shows the cable arching over it. The Library, Scenes, Controllers, Perform, Setlists, Global
   and Manage presets pages, the Settings dialog, the Cab's microphone and Align charts and the Analyser follow it.
+  Text fields are sunken as macOS's, every control shares one focus ring, number fields step with the preset
+  display's arrows instead of the browser's, the MIDI monitor reads on LCD glass, and delete buttons turn red only
+  under the pointer.
+- **Own icons** for the metronome, looper and tuner.
+- **A block's level** runs along its tile's bottom edge, and its clip light shows only once the block has clipped.
 - **A new app icon**: a glowing blue C with a waveform.
 - **Block pages** list their pages as tabs down the panel's edge and fit eight knobs to a row on a 1440-pixel window
   instead of six. The Parametric EQ's curve and the dynamics meters sit beside the knobs instead of above them.
@@ -57,6 +65,11 @@ the format upgrades older presets as it reads them.
   M, P and the other letter shortcuts working, or rings the button at the next key. Space, Delete and Backspace still
   go to a focused control.
 - **Dialogs opened from the keyboard** no longer start with a focus ring on their Close button.
+- **A block's clip light** can be reset: the tile ignored the click.
+- **Escape** cancels a typed tempo instead of setting it.
+- **Footswitches:** the Sends message select is no longer squeezed, and a select's list grows to show its entries
+  whole.
+- **The navigation bar** no longer cuts off the focus ring of its first and last page.
 
 ### Internal
 
