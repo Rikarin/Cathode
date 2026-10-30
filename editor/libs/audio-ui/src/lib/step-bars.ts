@@ -47,7 +47,7 @@ export interface StepBarChange {
       (pointermove)="drag($event)"
       (pointerup)="release($event)"
       (pointercancel)="release($event)"
-      (lostpointercapture)="drawing.set(null)"
+      (lostpointercapture)="release($event)"
     >
       <!-- Quarter lines, behind the bars. -->
       @for (line of [0.25, 0.5, 0.75]; track line) {
@@ -183,9 +183,17 @@ export class CthStepBars {
   }
 
   protected drag(event: PointerEvent): void {
-    if (this.last !== null) {
-      this.drawAt(event.currentTarget as HTMLElement, event);
+    if (this.last === null) {
+      return;
     }
+
+    // No button held: the release went somewhere else (the desktop app's title bar swallows it), so end here.
+    if (event.buttons === 0) {
+      this.release(event);
+      return;
+    }
+
+    this.drawAt(event.currentTarget as HTMLElement, event);
   }
 
   protected release(event: PointerEvent): void {

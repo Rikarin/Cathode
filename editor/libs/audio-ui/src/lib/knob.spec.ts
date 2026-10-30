@@ -67,8 +67,8 @@ describe('CthKnob', () => {
       dial.releasePointerCapture = () => undefined;
 
       dial.dispatchEvent(new PointerEvent('pointerdown', { button: 0, clientY: 100, pointerId: 1 }));
-      dial.dispatchEvent(new PointerEvent('pointermove', { clientY: 90, pointerId: 1 }));
-      dial.dispatchEvent(new PointerEvent('pointermove', { clientY: 80, pointerId: 1 }));
+      dial.dispatchEvent(new PointerEvent('pointermove', { buttons: 1, clientY: 90, pointerId: 1 }));
+      dial.dispatchEvent(new PointerEvent('pointermove', { buttons: 1, clientY: 80, pointerId: 1 }));
       expect(host.commits).toHaveLength(0); // still dragging
       dial.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1 }));
       expect(host.commits).toEqual([host.value()]);
@@ -88,6 +88,28 @@ describe('CthKnob', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('ends a drag whose release it never heard, at the next move without a button or when it loses the pointer', () => {
+    const { host, dial } = render();
+    dial.setPointerCapture = () => undefined;
+    dial.releasePointerCapture = () => undefined;
+
+    dial.dispatchEvent(new PointerEvent('pointerdown', { button: 0, clientY: 100, pointerId: 1 }));
+    dial.dispatchEvent(new PointerEvent('pointermove', { buttons: 1, clientY: 90, pointerId: 1 }));
+    const dragged = host.value();
+    // The button came up over the desktop app's title bar: the next move has none held, and ends the drag there.
+    dial.dispatchEvent(new PointerEvent('pointermove', { buttons: 0, clientY: 40, pointerId: 1 }));
+    expect(host.value()).toBe(dragged);
+    expect(host.commits).toEqual([dragged]);
+    dial.dispatchEvent(new PointerEvent('pointermove', { buttons: 0, clientY: 20, pointerId: 1 }));
+    expect(host.value()).toBe(dragged);
+
+    dial.dispatchEvent(new PointerEvent('pointerdown', { button: 0, clientY: 100, pointerId: 1 }));
+    dial.dispatchEvent(new PointerEvent('lostpointercapture', { pointerId: 1 }));
+    expect(host.commits).toHaveLength(2);
+    dial.dispatchEvent(new PointerEvent('pointermove', { buttons: 1, clientY: 50, pointerId: 1 }));
+    expect(host.value()).toBe(dragged);
   });
 
   it('takes a typed value with its unit and clamps it', () => {
@@ -140,7 +162,7 @@ describe('CthKnob', () => {
       fixture.detectChanges();
 
       dial.dispatchEvent(new PointerEvent('pointerdown', { button: 0, clientY: 100, pointerId: 1 }));
-      dial.dispatchEvent(new PointerEvent('pointermove', { clientY: 50, pointerId: 1 })); // a quarter of the travel up
+      dial.dispatchEvent(new PointerEvent('pointermove', { buttons: 1, clientY: 50, pointerId: 1 })); // a quarter of the travel up
       host.modulated.set(-3); // the modifier keeps moving meanwhile
       fixture.detectChanges();
 

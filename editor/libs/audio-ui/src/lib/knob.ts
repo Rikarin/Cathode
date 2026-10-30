@@ -96,6 +96,7 @@ const SettleMs = 800;
       (pointermove)="drag($event)"
       (pointerup)="release($event)"
       (pointercancel)="release($event)"
+      (lostpointercapture)="release($event)"
       (dblclick)="startTyping()"
       (keydown)="key($event)"
       (wheel)="wheel($event)"
@@ -280,6 +281,12 @@ export class CthKnob {
 
   protected drag(event: PointerEvent): void {
     if (!this.dragStart) {
+      return;
+    }
+
+    // No button held: the release went somewhere else (the desktop app's title bar swallows it), so end here.
+    if (event.buttons === 0) {
+      this.release(event);
       return;
     }
 
