@@ -69,6 +69,7 @@ On Windows and Linux, read **⌘** as **Ctrl** and **⌥** as **Alt**. Shortcuts
 | -------- | --------------------------- |
 | ⌘T       | Tuner                       |
 | M        | Mute or unmute every output |
+| ⌘K       | Reset every clip light      |
 | ⌘,       | Settings                    |
 | ?        | Keyboard shortcuts          |
 | Esc      | Close the open dialog       |

@@ -75,7 +75,7 @@ The Cab block's **Preamp** page models a mic preamp, with **Preamp Drive**. Whil
 ## Meters and clipping
 
 - **The top bar** has an **IN** meter for Input 1 and an **OUT** meter for Output 1. Each caption turns into a red **CLIP** mark and holds for a moment when the input comes within 0.5 dB of full scale, or when an output reaches -1 dBFS. Hover the mark to see which output.
-- **Every block tile on the grid** shows its output peak, so you can see where a level jumps.
+- **Every block tile on the grid** shows its output peak along its bottom edge, so you can see where a level jumps. When a block's output reaches 0 dB, a red dot lights in the tile's corner and stays until you click it; **⌘K** resets every clip light at once, the blocks' and the meters' in the top bar.
 - **The Cab block** shows the mic preamp's input and Motor Drive's gain reduction.
 - **The Compressor, Multiband Compressor and Gate/Expander** show their gain reduction on their pages: how many dB they are taking off right now (one meter per band on the Multiband Compressor), with the deepest reading held for a second. A bypassed block reads 0.
 - **The Analyser** (the chart icon in the top bar) has an oscilloscope and an RTA (a real-time spectrum display) of the output.

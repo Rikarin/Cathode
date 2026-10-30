@@ -3,9 +3,11 @@ import {
   Component,
   type ElementRef,
   computed,
+  effect,
   inject,
   input,
   signal,
+  untracked,
   viewChild
 } from '@angular/core';
 import { onAnimationFrame, themeColors } from './animation';
@@ -22,6 +24,14 @@ const HotDb = -12;
 const ChannelGap = 2;
 /** The dark gap after each LED segment along the scale, in CSS pixels. */
 const SegmentGap = 1;
+
+/** Counts the requests to put out every clip light at once (resetClipLights); each meter watches it. */
+const clipResets = signal(0);
+
+/** Puts out every meter's clip light at once, as a hardware unit's clear button does: the editor's ⌘K. */
+export function resetClipLights(): void {
+  clipResets.update(n => n + 1);
+}
 
 interface ChannelState {
   level: number;
@@ -110,6 +120,10 @@ export class CthMeter {
       if (frameDue(time, this.last, this.preferences?.rate() ?? 60)) {
         this.draw(time);
       }
+    });
+    effect(() => {
+      clipResets();
+      untracked(() => this.clipped.set(false));
     });
   }
 

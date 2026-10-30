@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal, viewChild } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { resetClipLights } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
 import {
   matAddRound,
@@ -597,6 +598,7 @@ export class App {
       redo: () => void this.live.redo(),
       redoAlias: () => void this.live.redo(),
       mute: () => this.toggleMute(),
+      clearClips: () => resetClipLights(),
       tuner: () => ui.tunerOpen.update(open => !open),
       settings: () => ui.settings.update(tab => (tab === null ? 'preferences' : null)),
       help: () => ui.settings.update(tab => (tab === 'shortcuts' ? null : 'shortcuts'))
