@@ -263,11 +263,12 @@ export function dropAction(
                     }
                     <!--
                       The level as the tile's bottom edge, its full width under the name; the clip light shows only once
-                      the block has clipped, a red dot in the bottom corner that a click resets (the rest of the meter
-                      leaves the tile its clicks and drags).
+                      the block has clipped, a red dot in the bottom corner that a click resets. It takes clicks some
+                      10 px round it, as the dot alone is a small target on a scaled-down grid; the rest of the meter
+                      leaves the tile its clicks and drags.
                     -->
                     <cth-meter
-                      class="pointer-events-none absolute inset-x-0 bottom-0 gap-0 [&>button]:pointer-events-auto [&>button]:absolute [&>button]:right-1 [&>button]:bottom-1.5 [&>canvas]:bg-black/25"
+                      class="pointer-events-none absolute inset-x-0 bottom-0 gap-0 [&>button]:pointer-events-auto [&>button]:absolute [&>button]:right-1 [&>button]:bottom-1.5 [&>button]:before:absolute [&>button]:before:-inset-2.5 [&>button]:before:content-[''] [&>canvas]:bg-black/25"
                       orientation="horizontal"
                       clipLight="clipped"
                       [bar]="3"
