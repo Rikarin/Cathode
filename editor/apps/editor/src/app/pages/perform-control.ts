@@ -46,11 +46,14 @@ export const PerformDragType = 'application/x-cathode-perform';
     provideIcons({ matArrowBackRound, matArrowForwardRound, matCloseRound, matDragIndicatorRound, matEditRound })
   ],
   host: {
-    class:
-      'bg-surface-raised border-border relative flex min-h-48 flex-col items-center justify-center gap-2 rounded-xl border p-4 pt-9'
+    class: 'pane relative flex min-h-48 flex-col items-center justify-center gap-2 p-4 pt-11'
   },
   template: `
-    <div class="absolute inset-x-1 top-1 flex items-center" role="toolbar" [attr.aria-label]="control().label">
+    <div
+      class="pane-header absolute inset-x-0 top-0 flex items-center px-1 py-0.5"
+      role="toolbar"
+      [attr.aria-label]="control().label"
+    >
       <span
         class="text-foreground-muted flex cursor-grab items-center px-1"
         draggable="true"

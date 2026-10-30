@@ -24,7 +24,7 @@ const NoSetlist = 'none';
   imports: [RouterLink, XuiButtonImports, XuiIconImports, XuiSelectImports, XuiTooltipImports],
   providers: [provideIcons({ matSkipNextRound, matSkipPreviousRound })],
   host: {
-    class: 'bg-surface-raised border-border flex flex-col gap-3 rounded-xl border p-4',
+    class: 'pane flex flex-col gap-3 p-4',
     role: 'region',
     'aria-label': 'Setlist',
     'data-testid': 'setlist-bar'
@@ -54,31 +54,34 @@ const NoSetlist = 'none';
         >
           <ng-icon xui name="matSkipPreviousRound" size="sm" />
         </button>
-        <div class="flex min-w-0 flex-1 flex-col" aria-live="polite" data-testid="song-current">
-          @if (player.current(); as song) {
-            <span class="truncate text-lg font-semibold">
-              <span class="text-foreground-muted tabular-nums">{{ song.index + 1 }}</span> {{ song.title }}
-            </span>
-            <span class="text-foreground-muted truncate text-xs">{{ detail(song) }}</span>
-          } @else {
-            <span class="text-foreground-muted text-sm">
-              {{
-                player.songs().length === 0
-                  ? 'This setlist has no songs yet.'
-                  : 'Not started: Next song loads the first.'
-              }}
-            </span>
-          }
-        </div>
-        <div class="flex min-w-0 flex-col items-end text-right" data-testid="song-next">
-          <span class="text-foreground-muted text-[11px] font-semibold tracking-wide uppercase">Next</span>
-          <span class="max-w-56 truncate text-sm">
-            @if (player.next(); as next) {
-              <span class="text-foreground-muted tabular-nums">{{ next.index + 1 }}</span> {{ next.title }}
+        <!-- The song playing and the next one, on an LCD between the transport buttons. -->
+        <div class="lcd-glass flex min-w-0 flex-1 items-center gap-4 px-3 py-1.5">
+          <div class="flex min-w-0 flex-1 flex-col" aria-live="polite" data-testid="song-current">
+            @if (player.current(); as song) {
+              <span class="truncate text-lg font-semibold">
+                <span class="text-lcd-accent tabular-nums">{{ song.index + 1 }}</span> {{ song.title }}
+              </span>
+              <span class="text-lcd-muted truncate text-xs">{{ detail(song) }}</span>
             } @else {
-              <span class="text-foreground-muted">End of the set</span>
+              <span class="text-lcd-muted text-sm">
+                {{
+                  player.songs().length === 0
+                    ? 'This setlist has no songs yet.'
+                    : 'Not started: Next song loads the first.'
+                }}
+              </span>
             }
-          </span>
+          </div>
+          <div class="flex min-w-0 flex-col items-end text-right" data-testid="song-next">
+            <span class="text-lcd-muted text-[10px] font-semibold tracking-wide uppercase">Next</span>
+            <span class="max-w-56 truncate text-sm">
+              @if (player.next(); as next) {
+                <span class="text-lcd-muted tabular-nums">{{ next.index + 1 }}</span> {{ next.title }}
+              } @else {
+                <span class="text-lcd-muted">End of the set</span>
+              }
+            </span>
+          </div>
         </div>
         <button
           type="button"
