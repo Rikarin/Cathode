@@ -35,35 +35,41 @@ export function reductionMeters(type: string): ReductionMeter[] {
 }
 
 /**
- * Gain reduction for the dynamics blocks: how far the Compressor, each band of the Multiband Compressor or the
- * Gate/Expander is pulling the level down right now, from the block's own telemetry meters. Each meter grows down from
- * 0 dB, holds its deepest reading for a second and shows it as a number; a bypassed block reads 0.
+ * Gain reduction for the Multiband Compressor and the Gate/Expander, as a tile at the right of their Basic page, two
+ * knob rows high: how far each band, or the gate, is pulling the level down right now, from the block's own telemetry
+ * meters. Each meter grows down from 0 dB over the tile's height, holds its deepest reading for a second and shows it
+ * as a number; a bypassed block reads 0. Several meters are named (Low, Mid, High); a single one needs no name.
  *
- * The Compressor shows its meter with its transfer curve, on its Basic page among the knobs (compressor-curve-tile.ts).
+ * The Compressor shows its meter with its transfer curve (compressor-curve-tile.ts). The tile's content is laid over
+ * its grid area rather than in it, so it never sets the rows' height itself.
  */
 @Component({
   selector: 'cth-dynamics-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CthReductionMeter],
+  host: { class: 'relative block min-h-48 self-stretch justify-self-stretch' },
   template: `
     @if (meters().length > 0) {
-      <section
-        class="bg-surface-sunken/40 border-border flex w-fit items-stretch gap-4 rounded-xl border px-4 py-3"
+      <div
+        class="absolute inset-0 flex justify-center gap-3"
+        role="group"
         aria-label="Gain reduction"
         data-testid="reduction-meters"
       >
         @for (meter of meters(); track meter.id) {
-          <div class="flex flex-col items-center gap-1">
-            <span class="text-foreground-muted text-xs">{{ meter.caption }}</span>
+          <div class="flex h-full flex-col items-center gap-1">
             <cth-reduction-meter
-              class="h-32"
+              class="min-h-0 flex-1"
               [label]="meter.label"
               [range]="meter.range"
               [source]="sources()[$index] ?? idle"
             />
+            @if (meters().length > 1) {
+              <span class="text-foreground-muted text-xs">{{ meter.caption }}</span>
+            }
           </div>
         }
-      </section>
+      </div>
     }
   `
 })

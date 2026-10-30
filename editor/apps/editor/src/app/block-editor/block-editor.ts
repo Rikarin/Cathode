@@ -384,12 +384,6 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
             @case ('pitch') {
               <cth-pitch-panel [block]="block" />
             }
-            @case ('mbcomp') {
-              <cth-dynamics-panel [block]="block" />
-            }
-            @case ('gate') {
-              <cth-dynamics-panel [block]="block" />
-            }
           }
 
           @if (mainParams().length > 0 || outputParams().length > 0) {
@@ -441,10 +435,20 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
                   @for (param of pageParams(); track param.id) {
                     <cth-param-control [block]="block" [param]="param" [accent]="accent()" />
                   }
-                  @if (block.type === 'compressor' && page() === pages()[0]) {
+                  @if (block.type === 'compressor' && onFirstPage()) {
                     <!-- The transfer curve: two knobs wide and two high at the page's right, beside the Output; the
                          knobs flow around it (the grid packs densely). -->
                     <cth-compressor-curve-tile class="[grid-column:span_2/-1] [grid-row:1/span_2]" [block]="block" />
+                  } @else if ((block.type === 'mbcomp' || block.type === 'gate') && onFirstPage()) {
+                    <!-- Gain reduction at the page's right, two rows high: one column for the gate, two for three bands. -->
+                    <cth-dynamics-panel
+                      [class]="
+                        block.type === 'mbcomp'
+                          ? '[grid-column:span_2/-1] [grid-row:1/span_2]'
+                          : '[grid-column:span_1/-1] [grid-row:1/span_2]'
+                      "
+                      [block]="block"
+                    />
                   }
                 </div>
               }
@@ -642,6 +646,8 @@ export class BlockEditor {
     const chosen = this.ui.blockPage()[this.block()?.type ?? ''];
     return chosen && pages.includes(chosen) ? chosen : (pages[0] ?? null);
   });
+  /** Whether the first page (Basic) is showing, or the block has only one: where the dynamics blocks' meters sit. */
+  protected readonly onFirstPage = computed(() => this.pages().length <= 1 || this.page() === this.pages()[0]);
   /** The controls on the page showing; all of them for a block with one page. */
   protected readonly pageParams = computed(() => {
     const page = this.page();
