@@ -4,7 +4,7 @@ This chapter is about using Cathode on stage and in rehearsal: the Perform page,
 
 The **Perform** page shows the handful of controls you need while playing, large and on one page: a drive's gain, a delay's mix, a reverb's decay, a cab's microphone. It is easier to hit on a small screen or a touch screen than a knob in the block drawer.
 
-![The Perform page: drive, amp, compressor, reverb, gate and cab controls, each shown as a large knob or choice](screenshots/perform.webp)
+![The Perform page: the setlist bar, and compressor, drive, amp, cab and reverb controls, each shown as a large knob, switch or choice](screenshots/perform.webp)
 
 **To add a control:** right-click any knob, switch or choice on a block's page and choose:
 

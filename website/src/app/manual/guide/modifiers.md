@@ -1,6 +1,6 @@
 A **modifier** makes a knob move by itself, following a **controller**: an LFO that sweeps back and forth, an envelope that follows how hard you play, an expression pedal under your foot, a value that changes with the scene. This chapter covers adding and editing modifiers, every controller Cathode has, and the tempo that LFOs and delays can follow.
 
-![The modifier dialog on a drive's Drive knob: LFO 1 as the source, its minimum, maximum, attack and release, the channels it applies on, and an exponential curve](screenshots/modifiers.webp)
+![The modifier dialog on a compressor's Threshold: LFO 1 as the source, its minimum, maximum, attack and release, the channels it applies on, and an exponential curve](screenshots/modifiers.webp)
 
 ## How a modifier works
 

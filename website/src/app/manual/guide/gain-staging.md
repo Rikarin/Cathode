@@ -23,7 +23,7 @@ Set your interface's input gain first, before any preset work:
 
 Leave headroom: a digital input that clips sounds like nothing an amp does. A few decibels below full scale on your hardest playing is plenty; the amp models do not need a hot input, because the calibration below gives them the right voltage anyway.
 
-![The Audio setup page: latency figures, Input 1's calibration and the interface settings](screenshots/setup.webp)
+![The Audio setup page: the engine and latency readings, Input 1's calibration and the audio interface](screenshots/setup.webp)
 
 ## Calibrate Input 1
 

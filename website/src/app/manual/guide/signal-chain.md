@@ -2,7 +2,7 @@ The order of your blocks changes the sound as much as their settings. A fuzz aft
 
 How to place, move and wire blocks on the grid is in [The grid](/manual/the-grid). This chapter is about what goes where.
 
-![A preset on the grid: Input, Drive, Amp, Cab, Reverb, Output](screenshots/grid.webp)
+![A preset on the grid: Input, a gate, Compressor, Drive, Amp, Cab, Reverb, Output 1](screenshots/grid.webp)
 
 ## The classic order
 
