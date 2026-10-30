@@ -21,7 +21,6 @@ import { XuiFormFieldImports } from '@xui/form-field';
 import { XuiIconImports } from '@xui/icon';
 import { XuiInputImports } from '@xui/input';
 import { XuiMenuImports } from '@xui/menu';
-import { XuiTableImports } from '@xui/table';
 import { ConnectionService } from '../core/connection';
 import { Notify } from '../core/notify';
 import { CompareStore } from '../state/compare.store';
@@ -42,8 +41,7 @@ import { PresetSwitcher } from '../state/preset-switcher';
     XuiFormFieldImports,
     XuiIconImports,
     XuiInputImports,
-    XuiMenuImports,
-    XuiTableImports
+    XuiMenuImports
   ],
   providers: [
     provideIcons({
@@ -109,33 +107,37 @@ import { PresetSwitcher } from '../state/preset-switcher';
         [(open)]="snapshotsOpen"
       >
         <xui-dialog-body>
-          @if (snapshots().length === 0) {
-            <p class="text-foreground-muted py-6 text-center text-sm">No snapshots of this preset yet.</p>
-          } @else {
-            <xui-table>
-              @for (s of snapshots(); track s.id) {
-                <xui-tr>
-                  <xui-td class="w-full">{{ s.name }}</xui-td>
-                  <xui-td>
-                    <button type="button" xuiButton size="sm" variant="outline" (click)="loadSnapshot(s)">Load</button>
-                  </xui-td>
-                  <xui-td>
-                    <button
-                      type="button"
-                      xuiButton
-                      size="sm"
-                      variant="ghost"
-                      color="error"
-                      [attr.aria-label]="'Delete snapshot ' + s.name"
-                      (click)="deleteSnapshot(s)"
-                    >
-                      <ng-icon xui name="matDeleteRound" size="sm" />
-                    </button>
-                  </xui-td>
-                </xui-tr>
-              }
-            </xui-table>
-          }
+          <!-- A sunken well of rows, each the snapshot's name with its Load and Delete at the end. -->
+          <div
+            class="border-hairline-strong max-h-[min(55vh,26rem)] overflow-y-auto rounded-md border bg-(--well) p-1 shadow-[inset_0_1px_2px_rgb(0_0_0/0.45),0_1px_0_var(--highlight)]"
+          >
+            @for (s of snapshots(); track s.id) {
+              <div
+                class="hover:bg-hover-overlay flex min-w-0 items-center gap-2.5 rounded-[5px] px-2 py-1.5 [&+&]:shadow-[0_-1px_0_var(--well-line)]"
+                data-testid="snapshot-row"
+              >
+                <ng-icon xui name="matHistoryRound" size="sm" class="text-foreground-subtle shrink-0" />
+                <span class="min-w-0 flex-1 truncate text-sm" [title]="s.name">{{ s.name }}</span>
+                <button type="button" xuiButton size="sm" variant="outline" class="shrink-0" (click)="loadSnapshot(s)">
+                  Load
+                </button>
+                <button
+                  type="button"
+                  xuiButton
+                  size="sm"
+                  variant="ghost"
+                  color="error"
+                  class="shrink-0"
+                  [attr.aria-label]="'Delete snapshot ' + s.name"
+                  (click)="deleteSnapshot(s)"
+                >
+                  <ng-icon xui name="matDeleteRound" size="sm" />
+                </button>
+              </div>
+            } @empty {
+              <p class="text-foreground-muted px-4 py-6 text-center text-sm">No snapshots of this preset yet.</p>
+            }
+          </div>
         </xui-dialog-body>
         <xui-dialog-footer>
           <button xuiButton variant="outline" type="button" (click)="snapshot()">Take a snapshot</button>
@@ -151,33 +153,39 @@ import { PresetSwitcher } from '../state/preset-switcher';
         [(open)]="templatesOpen"
       >
         <xui-dialog-body>
-          @if (templates().length === 0) {
-            <p class="text-foreground-muted py-6 text-center text-sm">
-              No templates yet: build a starting point and choose Save as template.
-            </p>
-          } @else {
-            <xui-table>
-              @for (t of templates(); track t.id) {
-                <xui-tr>
-                  <xui-td class="w-full">{{ t.name }}</xui-td>
-                  <xui-td><button type="button" xuiButton size="sm" (click)="fromTemplate(t)">New</button></xui-td>
-                  <xui-td>
-                    <button
-                      type="button"
-                      xuiButton
-                      size="sm"
-                      variant="ghost"
-                      color="error"
-                      [attr.aria-label]="'Delete template ' + t.name"
-                      (click)="deleteTemplate(t)"
-                    >
-                      <ng-icon xui name="matDeleteRound" size="sm" />
-                    </button>
-                  </xui-td>
-                </xui-tr>
-              }
-            </xui-table>
-          }
+          <!-- A sunken well of rows, each the template's name with its New and Delete at the end. -->
+          <div
+            class="border-hairline-strong max-h-[min(55vh,26rem)] overflow-y-auto rounded-md border bg-(--well) p-1 shadow-[inset_0_1px_2px_rgb(0_0_0/0.45),0_1px_0_var(--highlight)]"
+          >
+            @for (t of templates(); track t.id) {
+              <div
+                class="hover:bg-hover-overlay flex min-w-0 items-center gap-2.5 rounded-[5px] px-2 py-1.5 [&+&]:shadow-[0_-1px_0_var(--well-line)]"
+                data-testid="template-row"
+              >
+                <ng-icon xui name="matViewQuiltRound" size="sm" class="text-foreground-subtle shrink-0" />
+                <span class="min-w-0 flex-1 truncate text-sm" [title]="t.name">{{ t.name }}</span>
+                <button type="button" xuiButton size="sm" variant="outline" class="shrink-0" (click)="fromTemplate(t)">
+                  New
+                </button>
+                <button
+                  type="button"
+                  xuiButton
+                  size="sm"
+                  variant="ghost"
+                  color="error"
+                  class="shrink-0"
+                  [attr.aria-label]="'Delete template ' + t.name"
+                  (click)="deleteTemplate(t)"
+                >
+                  <ng-icon xui name="matDeleteRound" size="sm" />
+                </button>
+              </div>
+            } @empty {
+              <p class="text-foreground-muted px-4 py-6 text-center text-sm">
+                No templates yet: build a starting point and choose Save as template.
+              </p>
+            }
+          </div>
         </xui-dialog-body>
       </xui-dialog>
     }
