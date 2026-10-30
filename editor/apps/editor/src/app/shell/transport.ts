@@ -15,13 +15,11 @@ import { provideIcons } from '@ng-icons/core';
 import {
   matDownloadRound,
   matFiberManualRecordRound,
-  matLoopRound,
   matPlayArrowRound,
   matRepeatRound,
   matSlowMotionVideoRound,
   matStopRound,
   matSwapHorizRound,
-  matTimerRound,
   matUndoRound
 } from '@ng-icons/material-icons/round';
 import { XuiButtonImports } from '@xui/button';
@@ -37,6 +35,7 @@ import { Notify } from '../core/notify';
 import { GlobalStore } from '../state/global.store';
 import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
+import { cthLooper, cthMetronome } from './icons';
 
 const LooperColors: Record<string, 'error' | 'warning' | 'success' | 'none'> = {
   recording: 'error',
@@ -65,13 +64,13 @@ const LooperColors: Record<string, 'error' | 'warning' | 'success' | 'none'> = {
     provideIcons({
       matDownloadRound,
       matFiberManualRecordRound,
-      matLoopRound,
+      cthLooper,
       matPlayArrowRound,
       matRepeatRound,
       matSlowMotionVideoRound,
       matStopRound,
       matSwapHorizRound,
-      matTimerRound,
+      cthMetronome,
       matUndoRound
     })
   ],
@@ -126,7 +125,7 @@ const LooperColors: Record<string, 'error' | 'warning' | 'success' | 'none'> = {
       [xuiTooltip]="'Metronome'"
       (click)="globals.update(g => (g.metronome = !g.metronome))"
     >
-      <ng-icon xui name="matTimerRound" size="sm" />
+      <ng-icon xui name="cthMetronome" size="sm" />
     </button>
     <button
       type="button"
@@ -137,10 +136,10 @@ const LooperColors: Record<string, 'error' | 'warning' | 'success' | 'none'> = {
       [xuiTooltip]="'Looper'"
       (click)="looperOpen.set(true)"
     >
-      <ng-icon xui name="matLoopRound" size="sm" [color]="looper()?.state === 'recording' ? 'error' : 'inherit'" />
+      <ng-icon xui name="cthLooper" size="sm" [color]="looper()?.state === 'recording' ? 'error' : 'inherit'" />
     </button>
 
-    <xui-dialog title="Looper" icon="matLoopRound" [(open)]="looperOpen">
+    <xui-dialog title="Looper" icon="cthLooper" [(open)]="looperOpen">
       <xui-dialog-body>
         <div class="flex flex-col gap-4">
           <div class="flex items-center gap-3">

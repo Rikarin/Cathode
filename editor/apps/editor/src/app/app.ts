@@ -32,6 +32,7 @@ import { Startup } from './core/startup';
 import { BatchSetDialog } from './shell/batch-set-dialog';
 import { keepDialogFocusOffClose } from './shell/dialog-focus';
 import { EngineMeters } from './shell/engine-meters';
+import { cthTuner } from './shell/icons';
 import { LevelingDialog } from './shell/leveling-dialog';
 import { PresetMenu } from './shell/preset-menu';
 import { PresetPicker } from './shell/preset-picker';
@@ -87,6 +88,7 @@ import { UiStore } from './state/ui.store';
   ],
   providers: [
     provideIcons({
+      cthTuner,
       matAddRound,
       matGraphicEqRound,
       matHistoryRound,
@@ -243,7 +245,7 @@ import { UiStore } from './state/ui.store';
               [xuiTooltip]="'Tuner (⌘T)'"
               (click)="ui.tunerOpen.set(true)"
             >
-              <ng-icon xui name="matTuneRound" size="sm" />
+              <ng-icon xui name="cthTuner" size="sm" />
             </button>
             <button
               type="button"

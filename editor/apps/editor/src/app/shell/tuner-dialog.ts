@@ -53,7 +53,7 @@ export const OffsetRange = 20;
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CthTuner, NumberSteppers, XuiDialogImports, XuiInputImports, XuiSegmentedControlImports, XuiSelectImports],
   template: `
-    <xui-dialog title="Tuner" icon="matTuneRound" [(open)]="open">
+    <xui-dialog title="Tuner" icon="cthTuner" [(open)]="open">
       <xui-dialog-body>
         <cth-tuner class="py-4" [source]="reading" [view]="view()" />
         @if (globals.settings(); as s) {
