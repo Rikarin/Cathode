@@ -720,3 +720,60 @@ xui-callout {
     margin-top: var(--header-height);
   }
 }
+
+/*
+ * Confirmations (xUI's alert dialog) as macOS alerts: the overlay material with a hairline edge and a deep shadow, the
+ * title at 14 px over 12 px text, and the buttons as bezels: Cancel plain, the action glossed in its colour. xUI's
+ * buttons here are plain buttons, not xuiButton, so the bezel rules above do not reach them.
+ */
+.cdk-overlay-pane[role='alertdialog'] > div {
+  padding: 1.25rem 1.25rem 1rem;
+  border-color: var(--hairline-strong);
+  border-radius: 0.75rem;
+  box-shadow:
+    inset 0 1px 0 var(--highlight),
+    0 18px 48px rgb(0 0 0 / 0.55);
+
+  & > h2 {
+    font-size: 14px;
+  }
+
+  & > h2 + div {
+    margin-top: 0.375rem;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  & > div:last-child {
+    margin-top: 1.25rem;
+  }
+
+  & > div:last-child > button {
+    height: var(--control-height-sm);
+    padding-inline: 0.875rem;
+    border: 1px solid rgb(0 0 0 / 0.45);
+    border-radius: var(--radius-control);
+    font-size: 12px;
+    background-image: linear-gradient(to bottom, rgb(255 255 255 / 0.16), rgb(255 255 255 / 0));
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.2),
+      var(--bezel-shadow);
+  }
+
+  & > div:last-child > button:first-child {
+    border-color: var(--bezel-border);
+    background-color: transparent;
+    background-image: linear-gradient(to bottom, var(--bezel-top), var(--bezel-bottom));
+    box-shadow:
+      inset 0 1px 0 var(--highlight),
+      var(--bezel-shadow);
+
+    &:hover {
+      background-image: linear-gradient(to bottom, var(--bezel-hover-top), var(--bezel-hover-bottom));
+    }
+  }
+
+  & > div:last-child > button:active {
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.35);
+  }
+}
