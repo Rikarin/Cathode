@@ -777,3 +777,25 @@ xui-callout {
     box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.35);
   }
 }
+
+/*
+ * The Setlists page's "playing" chip: a capsule like the presets list's, in the accent's tint; on the selected (accent)
+ * row, translucent white, so it reads on the blue.
+ */
+[data-testid='playing-tag'] {
+  height: 1.125rem;
+  padding-inline: 0.4375rem;
+  border-color: color-mix(in oklab, var(--color-primary) 40%, transparent);
+  background-color: color-mix(in oklab, var(--color-primary) 18%, transparent);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  color: var(--link);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+
+  [aria-selected='true'] > & {
+    border-color: rgb(255 255 255 / 0.3);
+    background-color: rgb(255 255 255 / 0.18);
+    color: #fff;
+  }
+}

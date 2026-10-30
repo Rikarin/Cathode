@@ -95,11 +95,9 @@ const PresetMime = 'application/x-cathode-preset';
     </header>
 
     <div class="flex min-h-0 flex-1 gap-4">
-      <aside class="flex w-56 shrink-0 flex-col gap-3 max-xl:w-44">
-        <div class="flex items-center justify-between">
-          <span class="text-foreground-muted text-[11px] font-semibold tracking-wide uppercase" id="setlists-label">
-            Setlists
-          </span>
+      <aside class="pane flex w-56 shrink-0 flex-col max-xl:w-44">
+        <div class="pane-header flex h-9 shrink-0 items-center justify-between ps-3 pe-1">
+          <span class="section-label" id="setlists-label">Setlists</span>
           <button
             type="button"
             xuiButton
@@ -113,16 +111,15 @@ const PresetMime = 'application/x-cathode-preset';
           </button>
         </div>
         <ul
-          class="flex min-h-0 flex-col gap-0.5 overflow-y-auto text-sm"
+          class="flex min-h-0 flex-col gap-0.5 overflow-y-auto p-1.5 text-sm"
           role="listbox"
           aria-labelledby="setlists-label"
         >
           @for (s of library.setlists(); track s.id) {
             <li
               role="option"
-              class="hover:bg-active-overlay flex cursor-pointer items-center gap-1 rounded px-2 py-1"
+              class="aria-selected:bg-primary not-aria-selected:hover:bg-hover-overlay flex h-7 shrink-0 cursor-pointer items-center gap-1 rounded-[5px] px-2 aria-selected:font-medium aria-selected:text-white"
               tabindex="0"
-              [class.bg-active-overlay]="s.id === setlist()?.id"
               [attr.aria-selected]="s.id === setlist()?.id"
               [attr.data-testid]="'setlist-' + s.id"
               [xuiContextMenuTriggerFor]="setlistActions"
@@ -135,20 +132,24 @@ const PresetMime = 'application/x-cathode-preset';
             >
               <span class="min-w-0 flex-1 truncate">{{ s.name }}</span>
               @if (s.id === player.setlist()?.id) {
-                <xui-tag minimal color="primary" class="shrink-0">playing</xui-tag>
+                <xui-tag class="shrink-0" data-testid="playing-tag">playing</xui-tag>
               }
             </li>
           } @empty {
-            <li class="text-foreground-muted text-xs">No setlists yet: add one.</li>
+            <li class="text-foreground-muted px-2 py-1 text-xs">No setlists yet: add one.</li>
           }
         </ul>
       </aside>
 
-      <section class="flex min-w-0 flex-1 flex-col gap-3">
+      <section class="pane flex min-w-0 flex-1 flex-col">
         @if (setlist(); as s) {
-          <div class="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Setlist">
-            <h2 class="mr-2 truncate font-medium" data-testid="setlist-name">{{ s.name }}</h2>
-            <span class="text-foreground-muted text-sm">{{ songCount(songs().length) }}</span>
+          <div
+            class="pane-header flex min-h-9 shrink-0 flex-wrap items-center gap-2 px-3 py-1"
+            role="toolbar"
+            aria-label="Setlist"
+          >
+            <h2 class="mr-1 truncate text-[13px] font-semibold" data-testid="setlist-name">{{ s.name }}</h2>
+            <span class="text-foreground-subtle readout text-xs">{{ songCount(songs().length) }}</span>
             <span class="flex-1"></span>
             <button type="button" xuiButton size="sm" variant="outline" (click)="openRename(s.id)">Rename…</button>
             <button type="button" xuiButton size="sm" variant="outline" (click)="duplicate(s.id)">Duplicate</button>
@@ -157,14 +158,14 @@ const PresetMime = 'application/x-cathode-preset';
             </button>
           </div>
           @if (missing() > 0) {
-            <xui-callout minimal compact color="warning" data-testid="setlist-missing">
+            <xui-callout minimal compact color="warning" class="mx-3 mt-3" data-testid="setlist-missing">
               {{ missing() === 1 ? 'One song’s preset is' : missing() + ' songs’ presets are' }} not in the library any
               more: playing the set passes over {{ missing() === 1 ? 'it' : 'them' }}. Remove
               {{ missing() === 1 ? 'it' : 'them' }}, or put the preset back.
             </xui-callout>
           }
           <ol
-            class="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pb-6"
+            class="flex min-h-0 flex-1 flex-col overflow-y-auto pb-6"
             aria-label="Songs"
             data-testid="setlist-songs"
             (dragover)="dragOver($event, songs().length)"
@@ -172,10 +173,9 @@ const PresetMime = 'application/x-cathode-preset';
           >
             @for (song of songs(); track $index; let i = $index, first = $first, last = $last) {
               <li
-                class="border-border-muted bg-surface flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm"
+                class="hover:bg-hover-overlay focus-visible:bg-active-overlay flex items-center gap-2 border-b border-(--hairline) px-2 py-1.5 text-sm outline-none"
                 tabindex="0"
-                [class.border-t-primary]="dropAt() === i"
-                [class.border-t-2]="dropAt() === i"
+                [style.box-shadow]="dropAt() === i ? 'inset 0 2px 0 var(--color-primary)' : null"
                 [class.opacity-50]="dragging() === i"
                 [attr.data-song]="i"
                 [attr.data-testid]="'song-' + i"
@@ -194,7 +194,10 @@ const PresetMime = 'application/x-cathode-preset';
                 >
                   <ng-icon xui name="matDragIndicatorRound" size="sm" />
                 </span>
-                <span class="text-foreground-subtle w-6 shrink-0 text-right tabular-nums">{{ i + 1 }}</span>
+                <span
+                  class="readout text-foreground-muted w-7 shrink-0 rounded-[4px] bg-(--well) py-0.5 text-center text-xs shadow-[inset_0_1px_2px_rgb(0_0_0/0.5)]"
+                  >{{ i + 1 }}</span
+                >
                 <span class="flex min-w-0 flex-1 basis-32 items-center gap-1">
                   @if (song.missing) {
                     <ng-icon xui name="matWarningAmberRound" size="sm" class="text-warning shrink-0" />
@@ -262,7 +265,7 @@ const PresetMime = 'application/x-cathode-preset';
             } @empty {
               <li class="flex flex-1">
                 <xui-non-ideal-state
-                  class="flex-1 rounded-md border border-dashed"
+                  class="m-3 flex-1 rounded-md border border-dashed border-(--hairline-strong)"
                   [class.border-primary]="dropAt() === 0"
                   title="No songs yet"
                   description="Add presets from the library on the right: double-click one, or drag it here."
@@ -270,7 +273,7 @@ const PresetMime = 'application/x-cathode-preset';
               </li>
             }
           </ol>
-          <p class="text-foreground-muted text-xs">
+          <p class="text-foreground-subtle shrink-0 border-t border-(--hairline) px-3 py-2 text-xs">
             Drag a song to move it, or focus it and press ⌥↑ or ⌥↓; Delete removes it. Changes are saved at once.
           </p>
         } @else {
@@ -282,20 +285,26 @@ const PresetMime = 'application/x-cathode-preset';
         }
       </section>
 
-      <aside class="flex w-64 shrink-0 flex-col gap-3 max-xl:w-48">
-        <span class="text-foreground-muted text-[11px] font-semibold tracking-wide uppercase">Library</span>
+      <aside class="pane flex w-64 shrink-0 flex-col max-xl:w-48">
+        <div class="pane-header flex h-9 shrink-0 items-center px-3">
+          <span class="section-label">Library</span>
+        </div>
         <input
           #filterField
           xuiInput
+          class="m-1.5 mb-1 w-auto"
           type="search"
           placeholder="Filter presets"
           aria-label="Filter presets"
           [value]="filter()"
           (input)="filter.set(filterField.value)"
         />
-        <!-- Only the entries in view are rendered. -->
+        <!--
+          Only the entries in view are rendered. The rows' wrapper is held to the viewport's width (it would size to the
+          longest name, and push the add buttons under the scrollbar), with the side padding on it.
+        -->
         <cdk-virtual-scroll-viewport
-          class="min-h-0 flex-1 text-sm"
+          class="min-h-0 flex-1 text-sm [&_.cdk-virtual-scroll-content-wrapper]:w-full [&_.cdk-virtual-scroll-content-wrapper]:px-1.5"
           role="list"
           aria-label="Presets to add"
           data-testid="setlist-library"
@@ -304,7 +313,7 @@ const PresetMime = 'application/x-cathode-preset';
           <div
             *cdkVirtualFor="let p of presets(); trackBy: byId; let i = index; let count = count"
             role="listitem"
-            class="hover:bg-active-overlay group flex h-6 cursor-grab items-center gap-1 rounded ps-2"
+            class="hover:bg-hover-overlay group flex h-6 cursor-grab items-center gap-1 rounded-[5px] ps-2"
             tabindex="0"
             [attr.draggable]="!!setlist()"
             [attr.aria-posinset]="i + 1"
