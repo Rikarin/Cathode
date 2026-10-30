@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked
+} from '@angular/core';
 import { type LatencyInfo, type SystemInfo, unwrap } from '@cathode/api-client';
 import { XuiButtonImports } from '@xui/button';
 import { XuiCalloutImports } from '@xui/callout';
@@ -18,7 +27,14 @@ import { Notify } from '../core/notify';
 import { NetworkAccess } from '../shell/network-access';
 import { ServerTargetForm } from '../shell/server-target';
 import { GlobalStore } from '../state/global.store';
-import { FullScaleRange, dbuFromFullScale, fullScaleFromDbu, fullScaleFromReference } from './calibration';
+import {
+  DefaultFullScale,
+  FullScaleRange,
+  dbuFromFullScale,
+  fullScaleFromDbu,
+  fullScaleFromReference,
+  fullScaleIn
+} from './calibration';
 
 const SampleRates = [44_100, 48_000, 88_200, 96_000];
 const BufferSizes = [32, 64, 128, 256, 512];
@@ -47,7 +63,7 @@ const BufferSizes = [32, 64, 128, 256, 512];
   ],
   host: { class: 'block h-full overflow-auto p-6' },
   template: `
-    <div class="flex max-w-4xl flex-col gap-4">
+    <div class="flex flex-col gap-4">
       <section xuiCard class="flex flex-col gap-4 p-4" aria-labelledby="engine-heading">
         <h1 xuiHeading id="engine-heading" class="text-lg">Engine</h1>
         @if (system(); as s) {
@@ -125,8 +141,9 @@ const BufferSizes = [32, 64, 128, 256, 512];
         }
         @if (input(); as i) {
           <p class="text-foreground-muted text-sm">
-            Full scale: {{ i.fullScaleVolts.toFixed(3) }} V peak ({{ dbu(i.fullScaleVolts).toFixed(1) }} dBu). The amp
-            and drive models read the input in volts by it; the default, 1 V, is how they always read it.
+            Full scale: {{ i.fullScaleVolts.toFixed(3) }} V peak ({{ dbu(i.fullScaleVolts).toFixed(1) }} dBu){{
+              i.fullScaleVolts === defaultFullScale ? ', the default' : ''
+            }}. The amp and drive models read the input in volts by it; the default, 1 V, is how they always read it.
           </p>
           <div class="flex flex-wrap items-end gap-3">
             <label class="flex flex-col gap-1 text-sm">
@@ -151,6 +168,17 @@ const BufferSizes = [32, 64, 128, 256, 512];
               (valueChange)="unit.set($event ?? 'dbu')"
             />
             <button xuiButton type="button" variant="outline" (click)="calibrate(levelVolts())">Use this level</button>
+            @if (i.fullScaleVolts !== defaultFullScale) {
+              <button
+                xuiButton
+                type="button"
+                variant="ghost"
+                data-testid="calibration-reset"
+                (click)="calibrate(defaultFullScale)"
+              >
+                Reset to 1 V
+              </button>
+            }
           </div>
           <div class="flex flex-wrap items-end gap-3">
             <label class="flex flex-col gap-1 text-sm">
@@ -358,7 +386,9 @@ export class SetupPage {
   protected readonly remote = signal<string | null>(null);
   protected readonly latencyReport = signal<LatencyInfo | null>(null);
   protected readonly inputClipping = signal(false);
+  /** The level in the field: Input 1's calibration in the unit chosen, until you type another to use. */
   protected readonly maxLevel = signal(4);
+  protected readonly defaultFullScale = DefaultFullScale;
   protected readonly unit = signal<'dbu' | 'volts'>('dbu');
   protected readonly reference = signal(0.5);
   protected readonly measuring = signal(false);
@@ -392,6 +422,15 @@ export class SetupPage {
   });
 
   constructor() {
+    // The field shows the calibration as it stands, and again when it changes or the unit does, so it is never a
+    // stale number to wonder about.
+    effect(() => {
+      const volts = this.input()?.fullScaleVolts;
+      const unit = this.unit();
+      if (volts !== undefined) {
+        untracked(() => this.maxLevel.set(fullScaleIn(volts, unit)));
+      }
+    });
     const poll = setInterval(() => void this.refreshSystem(), 2_000);
     // The clip warning holds for a second after the last over, so a single strum is seen.
     let lastOver = -Infinity;

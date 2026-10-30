@@ -22,5 +22,13 @@ export function fullScaleFromReference(referenceRms: number, peak: number): numb
   return peak > 0 && referenceRms > 0 ? (referenceRms * Math.SQRT2) / peak : null;
 }
 
+/** Full scale as Cathode reads the input when it has not been calibrated (the Server's default), in volts peak. */
+export const DefaultFullScale = 1;
+
+/** A full scale of `volts` peak as the calibration field shows it: dBu to a tenth, or volts to a thousandth. */
+export function fullScaleIn(volts: number, unit: 'dbu' | 'volts'): number {
+  return unit === 'dbu' ? Math.round(dbuFromFullScale(volts) * 10) / 10 : Math.round(volts * 1_000) / 1_000;
+}
+
 /** The global settings' calibration range: −30 to +40 dBV. */
 export const FullScaleRange = { min: 0.0316, max: 100 } as const;

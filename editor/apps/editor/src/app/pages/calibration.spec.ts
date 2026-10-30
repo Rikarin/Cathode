@@ -1,4 +1,10 @@
-import { dbuFromFullScale, fullScaleFromDbu, fullScaleFromReference } from './calibration';
+import {
+  DefaultFullScale,
+  dbuFromFullScale,
+  fullScaleFromDbu,
+  fullScaleFromReference,
+  fullScaleIn
+} from './calibration';
 
 describe('input calibration', () => {
   it('turns a documented maximum input level into peak volts at full scale', () => {
@@ -12,5 +18,14 @@ describe('input calibration', () => {
     // 0.5 V RMS reads half scale: full scale is 0.5 · √2 / 0.5 V peak.
     expect(fullScaleFromReference(0.5, 0.5)).toBeCloseTo(Math.SQRT2, 9);
     expect(fullScaleFromReference(0.5, 0)).toBeNull();
+  });
+});
+
+describe('the calibration field', () => {
+  it('shows a full scale in dBu to a tenth or volts to a thousandth, the default too', () => {
+    expect(fullScaleIn(DefaultFullScale, 'dbu')).toBe(-0.8);
+    expect(fullScaleIn(DefaultFullScale, 'volts')).toBe(1);
+    expect(fullScaleIn(fullScaleFromDbu(4), 'dbu')).toBe(4);
+    expect(fullScaleIn(1.73644, 'volts')).toBe(1.736);
   });
 });
