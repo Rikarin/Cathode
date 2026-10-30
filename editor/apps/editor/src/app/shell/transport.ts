@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  type ElementRef,
+  Injector,
+  afterNextRender,
+  computed,
+  inject,
+  signal,
+  viewChild
+} from '@angular/core';
 import { type LooperActions, type LooperInfo } from '@cathode/api-client';
 import { onAnimationFrame } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
@@ -80,7 +90,7 @@ const LooperColors: Record<string, 'error' | 'warning' | 'success' | 'none'> = {
         class="tabular-nums"
         data-testid="tempo"
         [xuiTooltip]="'Tempo: click to type'"
-        (click)="editing.set(true)"
+        (click)="startEditing()"
       >
         {{ tempo() }} BPM
       </button>
@@ -168,6 +178,9 @@ export class Transport {
   private readonly library = inject(LibraryStore);
   private readonly notify = inject(Notify);
 
+  private readonly injector = inject(Injector);
+  private readonly tempoField = viewChild<ElementRef<HTMLInputElement>>('tempoField');
+
   protected readonly editing = signal(false);
   protected readonly looperOpen = signal(false);
   protected readonly tempo = signal(120);
@@ -207,6 +220,20 @@ export class Transport {
         this.looper.set(looper ? { ...looper } : null);
       }
     });
+  }
+
+  /** Opens the tempo field focused with its value selected, so typing replaces it. */
+  protected startEditing(): void {
+    this.editing.set(true);
+    // After the field renders: it is not there until change detection has run.
+    afterNextRender(
+      () => {
+        const field = this.tempoField()?.nativeElement;
+        field?.focus();
+        field?.select();
+      },
+      { injector: this.injector }
+    );
   }
 
   protected setTempo(text: string): void {
