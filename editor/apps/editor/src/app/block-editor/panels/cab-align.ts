@@ -24,7 +24,7 @@ const LaneHeight = 44;
   template: `
     <div class="flex flex-col gap-2" data-testid="cab-align">
       <svg
-        class="bg-surface-sunken border-border w-full touch-none rounded-xl border select-none"
+        class="border-hairline-strong w-full touch-none rounded-lg border bg-(--well) shadow-[inset_0_1px_3px_rgb(0_0_0/0.6),0_1px_0_var(--highlight)] select-none"
         role="img"
         aria-label="Slot alignment"
         [attr.viewBox]="'0 0 ' + width + ' ' + height()"
@@ -33,8 +33,10 @@ const LaneHeight = 44;
         (pointerleave)="dragging.set(null)"
       >
         @for (ms of ticks; track ms) {
-          <line [attr.x1]="x(ms)" [attr.x2]="x(ms)" y1="0" [attr.y2]="height()" class="stroke-border" />
-          <text [attr.x]="x(ms) + 2" [attr.y]="height() - 3" class="fill-foreground-muted text-[9px]">{{ ms }} ms</text>
+          <line [attr.x1]="x(ms)" [attr.x2]="x(ms)" y1="0" [attr.y2]="height()" style="stroke: var(--well-line)" />
+          <text [attr.x]="x(ms) + 3" [attr.y]="height() - 4" class="fill-foreground-subtle text-[9px] tabular-nums">
+            {{ ms }} ms
+          </text>
         }
         @for (lane of lanes(); track lane.slot.slot) {
           <g
@@ -43,7 +45,20 @@ const LaneHeight = 44;
             class="cursor-ew-resize"
             (pointerdown)="grab($event, lane.slot)"
           >
-            <rect x="0" y="0" [attr.width]="width" [attr.height]="laneHeight" fill="transparent" />
+            <rect
+              x="0"
+              y="0"
+              [attr.width]="width"
+              [attr.height]="laneHeight"
+              [attr.fill]="lane.slot.slot === selected() ? 'rgb(255 255 255 / 0.04)' : 'transparent'"
+            />
+            <line
+              x1="0"
+              [attr.x2]="width"
+              [attr.y1]="laneHeight - 0.5"
+              [attr.y2]="laneHeight - 0.5"
+              style="stroke: var(--well-line)"
+            />
             <path [attr.d]="lane.path" fill="none" [attr.stroke]="lane.color" stroke-width="1.5" />
             <line
               [attr.x1]="x(lane.arrival)"
@@ -53,7 +68,7 @@ const LaneHeight = 44;
               [attr.stroke]="lane.color"
               stroke-dasharray="3 2"
             />
-            <text x="4" y="11" class="text-[10px]" [attr.fill]="lane.color">
+            <text x="6" y="12" class="text-[10px] font-semibold tabular-nums" [attr.fill]="lane.color">
               Mic {{ lane.slot.slot + 1 }} · {{ lane.arrival.toFixed(2) }} ms
             </text>
           </g>
