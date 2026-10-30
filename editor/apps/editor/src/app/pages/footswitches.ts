@@ -1,4 +1,4 @@
-import type { FootswitchLayout, FootswitchOverride, SwitchAction } from '@cathode/api-client';
+import type { FootswitchLayout, FootswitchOverride, GlobalSettings, SwitchAction } from '@cathode/api-client';
 
 /** A layout's view names; a layout without views has one, "Main". */
 export function viewNames(layout: FootswitchLayout): string[] {
@@ -25,6 +25,22 @@ export function removeView(layout: FootswitchLayout, view: number): FootswitchLa
       .filter(s => s.view !== view)
       .map(s => ({ ...s, view: s.view > view ? s.view - 1 : s.view }))
   };
+}
+
+/** The footswitch part of the global settings that a layout's removal changes. */
+export type LayoutSettings = Pick<GlobalSettings, 'footswitches' | 'activeLayout' | 'activeView'>;
+
+/**
+ * The settings without layout `id`: the first layout left becomes the active one (on its first view), and switches
+ * that went on to it no longer do, as the Server allows no link to a layout that is not there.
+ */
+export function removeLayout(settings: LayoutSettings, id: string): LayoutSettings {
+  const footswitches = settings.footswitches
+    .filter(l => l.id !== id)
+    .map(l => ({ ...l, switches: l.switches.map(s => (s.link === id ? { ...s, link: null } : s)) }));
+  const was = settings.activeLayout ?? null;
+  const active = was === id ? (footswitches[0]?.id ?? null) : was;
+  return { footswitches, activeLayout: active, activeView: active === was ? settings.activeView : 0 };
 }
 
 /** The preset's override for a switch, if it has one. */

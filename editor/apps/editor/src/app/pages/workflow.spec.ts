@@ -3,7 +3,7 @@ import { TagColors, pickerEntries, tagColorName } from '../shell/picker-list';
 import { parseSlot } from '../shell/preset-picker';
 import { libraryFolders, wholeBlock } from '../state/block-presets.store';
 import { nextChannel } from '../state/ui.store';
-import { actionText, addView, overrideOf, removeView, viewNames, withOverride } from './footswitches';
+import { actionText, addView, overrideOf, removeLayout, removeView, viewNames, withOverride } from './footswitches';
 import { movedControl, resolveControls, withControl, withLabel, withoutControl } from './perform';
 
 describe('footswitch views and overrides', () => {
@@ -98,6 +98,52 @@ describe('footswitch views and overrides', () => {
     expect(actionText({ action: 'view', value: 0 })).toBe('view 1');
     expect(actionText({ action: 'external', value: 1 })).toBe('external 1');
     expect(actionText({ action: 'bypass', target: 'delay1', value: null })).toBe('bypass delay1');
+  });
+});
+
+describe('removing a footswitch layout', () => {
+  const layout = (id: string, link: string | null = null): FootswitchLayout => ({
+    id,
+    name: id,
+    switches: [
+      {
+        index: 1,
+        label: '1',
+        message: 'cc',
+        channel: 1,
+        number: 20,
+        tap: { action: 'scene', value: 0 },
+        hold: null,
+        led: true,
+        view: 0,
+        link
+      }
+    ]
+  });
+
+  it('makes the first layout left active, on its first view, and unlinks switches that went on to it', () => {
+    const settings = {
+      footswitches: [layout('a'), layout('b', 'c'), layout('c', 'b')],
+      activeLayout: 'c',
+      activeView: 2
+    };
+    const left = removeLayout(settings, 'c');
+
+    expect(left.footswitches.map(l => l.id)).toEqual(['a', 'b']);
+    expect(left.footswitches[1]?.switches[0]?.link).toBeNull();
+    expect(left.activeLayout).toBe('a');
+    expect(left.activeView).toBe(0);
+    expect(settings.footswitches[1]?.switches[0]?.link).toBe('c'); // the settings given are left as they were
+  });
+
+  it('keeps the active layout and view when another goes, and leaves none when the last does', () => {
+    const settings = { footswitches: [layout('a'), layout('b')], activeLayout: 'a', activeView: 1 };
+    expect(removeLayout(settings, 'b')).toMatchObject({ activeLayout: 'a', activeView: 1 });
+    expect(removeLayout({ footswitches: [layout('a')], activeLayout: 'a', activeView: 0 }, 'a')).toEqual({
+      footswitches: [],
+      activeLayout: null,
+      activeView: 0
+    });
   });
 });
 

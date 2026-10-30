@@ -15,7 +15,9 @@ import {
 import { CthKnob } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
 import { matAddRound, matDeleteRound, matSettingsInputComponentRound } from '@ng-icons/material-icons/round';
+import { XuiAlertDialogImports } from '@xui/alert-dialog';
 import { XuiButtonImports } from '@xui/button';
+import { XuiButtonGroupImports } from '@xui/button-group';
 import { XuiCalloutImports } from '@xui/callout';
 import { XuiCardImports } from '@xui/card';
 import { XuiIconImports } from '@xui/icon';
@@ -39,6 +41,7 @@ import {
   type OverrideChange,
   addView,
   overrideOf,
+  removeLayout,
   removeView,
   shownValue,
   viewNames,
@@ -95,6 +98,8 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
     ActionPicker,
     CthKnob,
     NumberSteppers,
+    XuiAlertDialogImports,
+    XuiButtonGroupImports,
     XuiButtonImports,
     XuiCalloutImports,
     XuiCardImports,
@@ -473,12 +478,25 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
             <button xuiButton variant="outline" type="button" (click)="addLayout()">
               <ng-icon xui name="matAddRound" size="sm" /> New layout
             </button>
+            @if (activeLayout()) {
+              <button
+                xuiButton
+                variant="outline"
+                color="error"
+                type="button"
+                data-testid="delete-layout"
+                (click)="confirmDeleteLayout.set(true)"
+              >
+                <ng-icon xui name="matDeleteRound" size="sm" /> Delete layout…
+              </button>
+            }
           </div>
           @if (activeLayout(); as layout) {
             <div class="flex flex-wrap items-center gap-2" data-testid="footswitch-views">
               <span class="text-foreground-muted text-xs">Views</span>
               @for (view of views(); track $index; let i = $index) {
-                <span class="flex items-center gap-0.5">
+                <!-- The view, and while it is the one edited (and not the only one) its red remove key joined to it. -->
+                <span xuiButtonGroup>
                   <button
                     type="button"
                     xuiButton
@@ -493,7 +511,6 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
                       type="button"
                       xuiButton
                       size="sm"
-                      variant="ghost"
                       color="error"
                       [attr.aria-label]="'Remove view ' + view"
                       (click)="dropView(layout, i)"
@@ -676,6 +693,15 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
         </section>
       </div>
     }
+
+    <xui-alert-dialog
+      destructive
+      [title]="'Delete layout “' + (activeLayout()?.name ?? '') + '”?'"
+      description="Its switches and views go with it, and the first layout left becomes the active one. Switches that go on to this layout no longer do; a MIDI mapping or a switch whose action changes to it does nothing until you point it at another layout."
+      confirmText="Delete"
+      [(open)]="confirmDeleteLayout"
+      (confirmed)="deleteLayout()"
+    />
   `
 })
 export class GlobalPage {
@@ -824,6 +850,17 @@ export class GlobalPage {
   protected async learn(): Promise<void> {
     const { action, target, value } = this.learnAction();
     await this.midiLearn.arm({ action, target: target ?? null, value: value ?? null, modifier: null });
+  }
+
+  protected readonly confirmDeleteLayout = signal(false);
+
+  /** Deletes the active footswitch layout (removeLayout says what becomes of the rest). */
+  protected deleteLayout(): void {
+    const id = this.activeLayout()?.id;
+    if (id) {
+      this.editingView.set(0);
+      this.save(g => Object.assign(g, removeLayout(g, id)));
+    }
   }
 
   protected addLayout(): void {
