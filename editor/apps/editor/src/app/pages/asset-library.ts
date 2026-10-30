@@ -277,16 +277,19 @@ export class AssetToolbar {
       />
     } @else {
       <!-- Only the rows in view are rendered: IR packs run to hundreds of files. -->
-      <!-- The space above the table is its margin, not the scroller's padding: a sticky header pins below padding. -->
-      <div cdkVirtualScrollingElement class="min-h-0 flex-1 overflow-auto px-6">
+      <!--
+        Only the rows scroll, in the viewport, so the scrollbar starts under the header; the rows keep a gutter for it
+        and the header as much padding, so the columns stay in line.
+      -->
+      <div class="pane mx-6 my-4 flex min-h-0 flex-1 flex-col">
         <xui-table
           interactive
-          class="mt-4 w-full"
+          class="flex min-h-0 w-full flex-1 flex-col"
           data-testid="asset-list"
           [attr.aria-label]="assets.kind() === 'amps' ? 'Amp captures' : 'Cab IRs'"
           [attr.aria-rowcount]="(assets.rows().length || 1) + 1"
         >
-          <xui-tr class="!bg-background sticky top-0 z-10" aria-rowindex="1">
+          <xui-tr class="pane-header shrink-0 pe-[10px]" aria-rowindex="1">
             <xui-th class="w-10" aria-label="Favourite" />
             <xui-th class="min-w-0 flex-1">Name</xui-th>
             <xui-th class="w-24">Type</xui-th>
@@ -295,7 +298,7 @@ export class AssetToolbar {
             <xui-th class="w-32 justify-end">Added</xui-th>
           </xui-tr>
           <cdk-virtual-scroll-viewport
-            class="[&_.cdk-virtual-scroll-content-wrapper]:w-full"
+            class="min-h-0 flex-1 [scrollbar-gutter:stable] [&_.cdk-virtual-scroll-content-wrapper]:w-full"
             data-testid="asset-viewport"
             [itemSize]="rowHeight"
           >

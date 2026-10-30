@@ -137,23 +137,26 @@ export const PresetRowHeight = 48;
         />
       } @else {
         <!-- Only the rows in view are rendered (the factory bank alone is a long list). -->
-        <!-- The space above the table is its margin, not the scroller's padding: a sticky header pins below padding. -->
-        <div cdkVirtualScrollingElement class="min-h-0 flex-1 overflow-auto px-6">
+        <!--
+        Only the rows scroll, in the viewport, so the scrollbar starts under the header; the rows keep a gutter for it
+        and the header as much padding, so the columns stay in line.
+      -->
+        <div class="pane mx-6 my-4 flex min-h-0 flex-1 flex-col">
           <xui-table
             interactive
-            class="mt-4 w-full"
+            class="flex min-h-0 w-full flex-1 flex-col"
             data-testid="preset-list"
             aria-label="Presets"
             [attr.aria-rowcount]="(rows().length || 1) + 1"
           >
-            <xui-tr class="!bg-background sticky top-0 z-10" aria-rowindex="1">
+            <xui-tr class="pane-header shrink-0 pe-[10px]" aria-rowindex="1">
               <xui-th class="w-10" aria-label="Favourite" />
               <xui-th class="min-w-0 flex-1">Name</xui-th>
               <xui-th class="w-48">Author</xui-th>
               <xui-th class="w-52 justify-end">Modified</xui-th>
             </xui-tr>
             <cdk-virtual-scroll-viewport
-              class="[&_.cdk-virtual-scroll-content-wrapper]:w-full"
+              class="min-h-0 flex-1 [scrollbar-gutter:stable] [&_.cdk-virtual-scroll-content-wrapper]:w-full"
               data-testid="preset-viewport"
               [itemSize]="rowHeight"
             >
@@ -286,12 +289,10 @@ export const PresetRowHeight = 48;
           />
         }
         @for (folder of blockPresets.folders(); track folder.name) {
-          <details open class="border-border rounded-lg border">
-            <summary
-              class="hover:bg-hover-overlay flex cursor-pointer items-center gap-2 rounded-t-lg px-4 py-2 text-sm font-semibold"
-            >
+          <details open class="pane shrink-0">
+            <summary class="pane-header flex cursor-pointer items-center gap-2 px-4 py-2 text-xs! hover:brightness-110">
               {{ folder.name || 'Unfiled' }}
-              <span class="text-foreground-muted font-normal">{{ folder.entries.length }}</span>
+              <span class="text-foreground-subtle readout font-normal">{{ folder.entries.length }}</span>
             </summary>
             <xui-table compact interactive class="w-full">
               @for (preset of folder.entries; track preset.id) {

@@ -43,49 +43,51 @@ import { LiveStore } from '../state/live.store';
         description="Right-click a block on the grid and choose Make global (or press G)."
       />
     } @else {
-      <xui-table interactive class="w-full" data-testid="global-blocks" aria-label="Global blocks">
-        <!-- Pinned at the page's top edge, above its 16 px padding (a sticky element pins below padding). -->
-        <xui-tr class="!bg-background sticky -top-4 z-10">
-          <xui-th class="min-w-0 flex-1">Name</xui-th>
-          <xui-th class="w-48">Type</xui-th>
-          <xui-th class="w-48">This preset</xui-th>
-          <xui-th class="w-16" aria-label="Delete" />
-        </xui-tr>
-        @for (row of rows(); track row.id) {
-          <xui-tr>
-            <xui-td class="min-w-0 flex-1">
-              <input
-                #nameField
-                xuiInput
-                class="w-full max-w-96"
-                [attr.aria-label]="'Name of ' + row.name"
-                [value]="row.name"
-                (keydown.enter)="nameField.blur()"
-                (blur)="rename(row.id, nameField)"
-              />
-            </xui-td>
-            <xui-td class="text-foreground-muted w-48">{{ row.type }}</xui-td>
-            <xui-td class="w-48">
-              @for (id of row.here; track id) {
-                <xui-tag minimal round class="mr-1">{{ id }}</xui-tag>
-              }
-            </xui-td>
-            <xui-td class="w-16 justify-end">
-              <button
-                type="button"
-                xuiButton
-                variant="ghost"
-                size="sm"
-                color="error"
-                [attr.aria-label]="'Delete global block ' + row.name"
-                (click)="live.deleteGlobal(row.id)"
-              >
-                <ng-icon xui name="matDeleteRound" size="sm" />
-              </button>
-            </xui-td>
+      <!-- The pane is the scroller, so the header pins at its top edge. -->
+      <div class="pane min-h-0 overflow-auto!">
+        <xui-table interactive class="w-full" data-testid="global-blocks" aria-label="Global blocks">
+          <xui-tr class="pane-header sticky top-0 z-10">
+            <xui-th class="min-w-0 flex-1">Name</xui-th>
+            <xui-th class="w-48">Type</xui-th>
+            <xui-th class="w-48">This preset</xui-th>
+            <xui-th class="w-16" aria-label="Delete" />
           </xui-tr>
-        }
-      </xui-table>
+          @for (row of rows(); track row.id) {
+            <xui-tr>
+              <xui-td class="min-w-0 flex-1">
+                <input
+                  #nameField
+                  xuiInput
+                  class="w-full max-w-96"
+                  [attr.aria-label]="'Name of ' + row.name"
+                  [value]="row.name"
+                  (keydown.enter)="nameField.blur()"
+                  (blur)="rename(row.id, nameField)"
+                />
+              </xui-td>
+              <xui-td class="text-foreground-muted w-48">{{ row.type }}</xui-td>
+              <xui-td class="w-48">
+                @for (id of row.here; track id) {
+                  <xui-tag minimal round class="mr-1">{{ id }}</xui-tag>
+                }
+              </xui-td>
+              <xui-td class="w-16 justify-end">
+                <button
+                  type="button"
+                  xuiButton
+                  variant="ghost"
+                  size="sm"
+                  color="error"
+                  [attr.aria-label]="'Delete global block ' + row.name"
+                  (click)="live.deleteGlobal(row.id)"
+                >
+                  <ng-icon xui name="matDeleteRound" size="sm" />
+                </button>
+              </xui-td>
+            </xui-tr>
+          }
+        </xui-table>
+      </div>
     }
   `
 })

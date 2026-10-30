@@ -538,3 +538,8 @@ xui-menu {
   color: var(--color-foreground);
   font-weight: 500;
 }
+
+/* Tables in a pane (the Library's lists): rows split by the pane's hairlines rather than the page's border colour. */
+.pane xui-table xui-tr {
+  border-color: var(--hairline-strong);
+}
