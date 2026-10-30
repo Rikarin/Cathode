@@ -16,13 +16,11 @@ import {
   matDownloadRound,
   matFiberManualRecordRound,
   matPlayArrowRound,
-  matRepeatRound,
-  matSlowMotionVideoRound,
   matStopRound,
-  matSwapHorizRound,
   matUndoRound
 } from '@ng-icons/material-icons/round';
 import { XuiButtonImports } from '@xui/button';
+import { XuiButtonGroupImports } from '@xui/button-group';
 import { XuiDialogImports } from '@xui/dialog';
 import { XuiIconImports } from '@xui/icon';
 import { XuiInputImports } from '@xui/input';
@@ -53,6 +51,7 @@ const LooperColors: Record<string, 'error' | 'warning' | 'success' | 'none'> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     NumberSteppers,
+    XuiButtonGroupImports,
     XuiButtonImports,
     XuiDialogImports,
     XuiIconImports,
@@ -66,10 +65,7 @@ const LooperColors: Record<string, 'error' | 'warning' | 'success' | 'none'> = {
       matFiberManualRecordRound,
       cthLooper,
       matPlayArrowRound,
-      matRepeatRound,
-      matSlowMotionVideoRound,
       matStopRound,
-      matSwapHorizRound,
       cthMetronome,
       matUndoRound
     })
@@ -147,30 +143,111 @@ const LooperColors: Record<string, 'error' | 'warning' | 'success' | 'none'> = {
             <span class="text-foreground-muted text-sm tabular-nums">
               {{ (looper()?.positionSeconds ?? 0).toFixed(1) }} / {{ (looper()?.lengthSeconds ?? 0).toFixed(1) }} s
             </span>
-            @if (looper()?.reversed) {
-              <xui-tag minimal>reverse</xui-tag>
-            }
-            @if (looper()?.halfSpeed) {
-              <xui-tag minimal>half speed</xui-tag>
-            }
             <!-- Which looper the buttons drive: the preset's Looper block while it has one, else the rig's. -->
             <xui-tag minimal class="ms-auto" data-testid="looper-source" [attr.title]="looperSource().detail">
               {{ looperSource().name }}
             </xui-tag>
           </div>
-          <div class="flex flex-wrap gap-2" role="toolbar" aria-label="Looper transport">
-            @for (action of transport; track action.id) {
+          <!--
+            The transport as Logic draws it: Record, Play and Stop as symbols in one group, the key for what the looper
+            is doing filled with its colour (red recording, amber armed or overdubbing, green playing); then Overdub
+            and Undo, and Reverse and Half speed as keys that stay pressed while on.
+          -->
+          <div class="flex flex-wrap items-center gap-3" role="toolbar" aria-label="Looper transport">
+            <div xuiButtonGroup>
+              <button
+                xuiButton
+                size="sm"
+                type="button"
+                aria-label="Record"
+                data-testid="looper-record"
+                [variant]="recordColor() ? 'default' : 'outline'"
+                [color]="recordColor()"
+                [xuiTooltip]="'Record'"
+                (click)="act('record')"
+              >
+                <ng-icon xui name="matFiberManualRecordRound" size="sm" [color]="recordColor() ? 'inherit' : 'error'" />
+              </button>
+              <button
+                xuiButton
+                size="sm"
+                type="button"
+                aria-label="Play"
+                data-testid="looper-play"
+                [variant]="state() === 'playing' ? 'default' : 'outline'"
+                [color]="state() === 'playing' ? 'success' : null"
+                [xuiTooltip]="'Play'"
+                (click)="act('play')"
+              >
+                <ng-icon
+                  xui
+                  name="matPlayArrowRound"
+                  size="sm"
+                  [color]="state() === 'playing' ? 'inherit' : 'success'"
+                />
+              </button>
               <button
                 xuiButton
                 variant="outline"
                 size="sm"
                 type="button"
-                [attr.data-testid]="'looper-' + action.id"
-                (click)="act(action.id)"
+                aria-label="Stop"
+                data-testid="looper-stop"
+                [xuiTooltip]="'Stop'"
+                (click)="act('stop')"
               >
-                <ng-icon xui [name]="action.icon" size="sm" /> {{ action.label }}
+                <ng-icon xui name="matStopRound" size="sm" />
               </button>
-            }
+            </div>
+            <div xuiButtonGroup>
+              <button
+                xuiButton
+                size="sm"
+                type="button"
+                data-testid="looper-overdub"
+                [variant]="state() === 'overdubbing' ? 'default' : 'outline'"
+                [color]="state() === 'overdubbing' ? 'warning' : null"
+                (click)="act('overdub')"
+              >
+                Overdub
+              </button>
+              <button
+                xuiButton
+                variant="outline"
+                size="sm"
+                type="button"
+                aria-label="Undo"
+                data-testid="looper-undo"
+                [xuiTooltip]="'Undo the last pass'"
+                (click)="act('undo')"
+              >
+                <ng-icon xui name="matUndoRound" size="sm" />
+              </button>
+            </div>
+            <div xuiButtonGroup>
+              <button
+                xuiButton
+                variant="outline"
+                size="sm"
+                type="button"
+                data-testid="looper-reverse"
+                [active]="!!looper()?.reversed"
+                (click)="act('reverse')"
+              >
+                Reverse
+              </button>
+              <button
+                xuiButton
+                variant="outline"
+                size="sm"
+                type="button"
+                data-testid="looper-halfSpeed"
+                [active]="!!looper()?.halfSpeed"
+                (click)="act('halfSpeed')"
+              >
+                Half speed
+              </button>
+            </div>
           </div>
         </div>
       </xui-dialog-body>
@@ -198,15 +275,12 @@ export class Transport {
   protected readonly looperOpen = signal(false);
   protected readonly tempo = signal(120);
   protected readonly looper = signal<LooperInfo | null>(null);
-  protected readonly transport = [
-    { id: 'record', label: 'Record', icon: 'matFiberManualRecordRound' },
-    { id: 'play', label: 'Play', icon: 'matPlayArrowRound' },
-    { id: 'overdub', label: 'Overdub', icon: 'matRepeatRound' },
-    { id: 'stop', label: 'Stop', icon: 'matStopRound' },
-    { id: 'undo', label: 'Undo', icon: 'matUndoRound' },
-    { id: 'reverse', label: 'Reverse', icon: 'matSwapHorizRound' },
-    { id: 'halfSpeed', label: 'Half speed', icon: 'matSlowMotionVideoRound' }
-  ] as const;
+  /** The looper's state, empty before the first telemetry. */
+  protected readonly state = computed(() => this.looper()?.state ?? 'empty');
+  /** Record's fill: red while recording, amber while armed (waiting for the threshold), none otherwise. */
+  protected readonly recordColor = computed(() =>
+    this.state() === 'recording' ? 'error' : this.state() === 'armed' ? 'warning' : null
+  );
   /** Which looper the buttons drive: the preset's Looper block while it has one, else the rig looper. */
   protected readonly looperSource = computed(() =>
     this.looper()?.source === 'block'
