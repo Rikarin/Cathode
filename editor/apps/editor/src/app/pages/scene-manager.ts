@@ -104,15 +104,18 @@ export function sceneRows(
     @if (rows().length === 0) {
       <xui-non-ideal-state class="flex-1" title="No blocks" description="Add blocks to the grid first." />
     } @else {
-      <!-- The table scrolls in its pane, both ways, so its sticky header stays at the pane's top; the page doesn't. -->
-      <div class="pane min-h-0 overflow-auto!">
+      <!--
+        The table scrolls in its pane, both ways, so its sticky header stays at the pane's top; the page doesn't. The
+        header is 2rem high, the vertical scrollbar starting under it.
+      -->
+      <div class="pane scroll-under-header min-h-0 overflow-auto! [--header-height:2rem]">
         <table class="w-full border-separate border-spacing-0 text-sm" data-testid="scene-matrix">
           <thead>
             <tr>
-              <th class="pane-header text-foreground-muted sticky top-0 z-10 px-3 py-2 text-left">Block</th>
+              <th class="pane-header text-foreground-muted sticky top-0 z-10 h-8 px-3 py-0 text-left">Block</th>
               @for (scene of scenes(); track $index) {
                 <th
-                  class="pane-header sticky top-0 z-10 px-3 py-2 text-left whitespace-nowrap"
+                  class="pane-header sticky top-0 z-10 h-8 px-3 py-0 text-left whitespace-nowrap"
                   [class.text-primary]="$index === live.activeScene()"
                   [class.text-foreground-muted]="$index !== live.activeScene()"
                 >

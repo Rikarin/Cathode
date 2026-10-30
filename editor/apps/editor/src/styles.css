@@ -697,3 +697,26 @@ xui-callout {
     color: var(--callout-accent);
   }
 }
+
+/*
+ * A pane scrolling a table both ways under its pinned header bar (`--header-height` high): the vertical scrollbar
+ * starts under the bar, and the gutter beside the bar is painted as the bar, so the bar runs the pane's full width.
+ */
+.scroll-under-header {
+  background-image:
+    linear-gradient(var(--highlight), var(--highlight)), linear-gradient(var(--hairline), var(--hairline)),
+    linear-gradient(to bottom, var(--pane-header-top), var(--pane-header-bottom));
+  background-position:
+    0 0,
+    0 calc(var(--header-height) - 1px),
+    0 0;
+  background-size:
+    100% 1px,
+    100% 1px,
+    100% var(--header-height);
+  background-repeat: no-repeat;
+
+  &::-webkit-scrollbar-track:vertical {
+    margin-top: var(--header-height);
+  }
+}
