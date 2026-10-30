@@ -1182,7 +1182,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** A Graphic EQ's frequency response on its active channel, measured on the engine's equaliser (the passive types on their networks): dB at 256 frequencies from 20 Hz to 20 kHz. 400 for another block. */
+    /** A block's graphic EQ's frequency response on its active channel, measured on the engine's equaliser: a Graphic EQ's (the passive types on their networks), a Drive's EQ 2, an Amp's Output EQ (flat while off). dB at 256 frequencies from 20 Hz to 20 kHz, with the band centres. 400 for another block. */
     get: operations['GetBlockResponse'];
     put?: never;
     post?: never;
@@ -2053,8 +2053,9 @@ export interface components {
       label?: null | string;
     };
     /**
-     * @description A block's frequency response on its active channel (`GET /api/v1/live/blocks/{id}/response`): the gain in
-     *     dB at each frequency in hertz, log-spaced from 20 Hz to 20 kHz, and the centres of the bands that shape it.
+     * @description The frequency response of a block's graphic EQ on its active channel (a Graphic EQ, a Drive's EQ 2 or an Amp's
+     *     Output EQ; `GET /api/v1/live/blocks/{id}/response`): the gain in dB at each frequency in hertz, log-spaced
+     *     from 20 Hz to 20 kHz, and the centres of the bands that shape it (none while the EQ is off).
      */
     FrequencyResponse: {
       frequencies: number[];

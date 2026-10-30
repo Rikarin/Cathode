@@ -6,7 +6,7 @@ namespace Cathode.Server.Rig;
 
 /// <summary>
 ///     Audio I/O helpers (docs/08-blocks-parity.md §2): the cab resonance helper's checks and readings; and the
-///     Graphic EQ's frequency response for its chart.
+///     graphic EQs' frequency responses for their charts.
 /// </summary>
 public sealed partial class LiveRig {
     /// <summary>Throws 404 unless the working copy has block <paramref name="id" />.</summary>
@@ -41,35 +41,51 @@ public sealed partial class LiveRig {
     }
 
     /// <summary>
-    ///     A Graphic EQ's frequency response in its active channel, measured on the engine's own equaliser
-    ///     (<see cref="GraphicEqResponse" />) at <see cref="ResponseFrequencies" />, with its layout's band centres.
+    ///     The frequency response of a block's graphic EQ in its active channel, measured on the engine's own
+    ///     equaliser at <see cref="ResponseFrequencies" />, with its layout's band centres: a Graphic EQ's
+    ///     (<see cref="GraphicEqResponse" />), a Drive's EQ 2 (<see cref="DriveEqResponse" />) or an Amp's Output EQ
+    ///     (<see cref="AmpEqResponse" />). 400 for a block without one.
     /// </summary>
-    public async Task<FrequencyResponse> GraphicEqResponseAsync(string id) {
+    public async Task<FrequencyResponse> EqResponseAsync(string id) {
         var state = await StateAsync();
         var block = state.Preset.Blocks.Find(b => b.Id == id)
             ?? throw new RigException(404, $"No block '{id}'.");
-        if (block.Type != GraphicEqBlock.Info.TypeId) {
-            throw new RigException(400, $"'{id}' is not a Graphic EQ.");
-        }
+        (BlockDescriptor Info, int Type, Func<ParamBank, float[]> Of, Func<ParamBank, float[]> Centers) kind =
+            block.Type switch {
+                _ when block.Type == GraphicEqBlock.Info.TypeId => (
+                    GraphicEqBlock.Info,
+                    GraphicEqBlock.Type,
+                    v => GraphicEqResponse.Of(v, ResponseFrequencies),
+                    GraphicEqResponse.Centers
+                ),
+                _ when block.Type == DriveBlock.Info.TypeId => (
+                    DriveBlock.Info,
+                    DriveBlock.Type,
+                    v => DriveEqResponse.Of(v, ResponseFrequencies),
+                    DriveEqResponse.Centers
+                ),
+                _ when block.Type == CircuitAmpBlock.Info.TypeId => (
+                    CircuitAmpBlock.Info,
+                    CircuitAmpBlock.Type,
+                    v => AmpEqResponse.Of(v, ResponseFrequencies),
+                    AmpEqResponse.Centers
+                ),
+                _ => throw new RigException(400, $"'{id}' has no graphic EQ.")
+            };
 
         var scene = state.Preset.Scenes[state.ActiveScene];
-        var info = GraphicEqBlock.Info;
-        var values = new ParamBank(info.Params);
-        values.SetTarget(GraphicEqBlock.Type, ValueIn(scene, block, info, GraphicEqBlock.Type)); // the type first
-        for (var p = 0; p < info.Params.Count; p++) {
-            values.SetTarget(p, ValueIn(scene, block, info, p));
+        var values = new ParamBank(kind.Info.Params);
+        values.SetTarget(kind.Type, ValueIn(scene, block, kind.Info, kind.Type)); // the type first
+        for (var p = 0; p < kind.Info.Params.Count; p++) {
+            values.SetTarget(p, ValueIn(scene, block, kind.Info, p));
         }
 
         values.SnapToTargets();
-        return new(
-            ResponseFrequencies,
-            GraphicEqResponse.Of(values, ResponseFrequencies),
-            GraphicEqResponse.Layout(values).Centers
-        );
+        return new(ResponseFrequencies, kind.Of(values), kind.Centers(values));
     }
 
     /// <summary>The frequencies a block's response is given at: 256, log-spaced from 20 Hz to 20 kHz.</summary>
-    static readonly float[] ResponseFrequencies = GraphicEqResponse.Frequencies();
+    static readonly float[] ResponseFrequencies = EqResponse.Frequencies();
 
     /// <summary>A parameter of a block in the channel <paramref name="scene" /> gives it, or the default.</summary>
     static float ValueIn(Scene scene, PresetBlock of, BlockDescriptor descriptor, int index) {

@@ -5,11 +5,11 @@ using Cathode.Dsp.Parameters;
 namespace Cathode.Dsp.Tests;
 
 /// <summary>
-///     The Graphic EQ's measured frequency response (<see cref="GraphicEqResponse" />), which the Server hands the
-///     editor's chart.
+///     The Graphic EQ's measured frequency response (<see cref="GraphicEqResponse" />, on <see cref="EqResponse" />),
+///     which the Server hands the editor's chart.
 /// </summary>
 public class GraphicEqResponseTests {
-    static readonly float[] Frequencies = GraphicEqResponse.Frequencies();
+    static readonly float[] Frequencies = EqResponse.Frequencies();
 
     [Fact]
     public void The_frequencies_run_log_spaced_from_20_hz_to_20_khz() {
@@ -79,7 +79,7 @@ public class GraphicEqResponseTests {
                 Assert.All(
                     db,
                     d => Assert.True(
-                        float.IsFinite(d) && d > GraphicEqResponse.FloorDb && d < 40f,
+                        float.IsFinite(d) && d > EqResponse.FloorDb && d < 40f,
                         $"type {type}: {d} dB"
                     )
                 );

@@ -41,12 +41,13 @@ static class AnalysisApi {
 
         live.MapGet(
                 "/blocks/{id}/response",
-                async (string id, LiveRig rig) => TypedResults.Ok(await rig.GraphicEqResponseAsync(id))
+                async (string id, LiveRig rig) => TypedResults.Ok(await rig.EqResponseAsync(id))
             )
             .WithName("GetBlockResponse")
             .WithSummary(
-                "A Graphic EQ's frequency response on its active channel, measured on the engine's equaliser (the "
-                + "passive types on their networks): dB at 256 frequencies from 20 Hz to 20 kHz. 400 for another block."
+                "A block's graphic EQ's frequency response on its active channel, measured on the engine's equaliser: "
+                + "a Graphic EQ's (the passive types on their networks), a Drive's EQ 2, an Amp's Output EQ (flat while "
+                + "off). dB at 256 frequencies from 20 Hz to 20 kHz, with the band centres. 400 for another block."
             );
 
         api.MapPut(

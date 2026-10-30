@@ -2494,7 +2494,7 @@
         "tags": [
           "Live"
         ],
-        "summary": "A Graphic EQ\u0027s frequency response on its active channel, measured on the engine\u0027s equaliser (the passive types on their networks): dB at 256 frequencies from 20 Hz to 20 kHz. 400 for another block.",
+        "summary": "A block\u0027s graphic EQ\u0027s frequency response on its active channel, measured on the engine\u0027s equaliser: a Graphic EQ\u0027s (the passive types on their networks), a Drive\u0027s EQ 2, an Amp\u0027s Output EQ (flat while off). dB at 256 frequencies from 20 Hz to 20 kHz, with the band centres. 400 for another block.",
         "operationId": "GetBlockResponse",
         "parameters": [
           {
@@ -4590,7 +4590,7 @@
             }
           }
         },
-        "description": "A block\u0027s frequency response on its active channel (\u0060GET /api/v1/live/blocks/{id}/response\u0060): the gain in\ndB at each frequency in hertz, log-spaced from 20 Hz to 20 kHz, and the centres of the bands that shape it."
+        "description": "The frequency response of a block\u0027s graphic EQ on its active channel (a Graphic EQ, a Drive\u0027s EQ 2 or an Amp\u0027s\nOutput EQ; \u0060GET /api/v1/live/blocks/{id}/response\u0060): the gain in dB at each frequency in hertz, log-spaced\nfrom 20 Hz to 20 kHz, and the centres of the bands that shape it (none while the EQ is off)."
       },
       "GlobalBlock": {
         "required": [

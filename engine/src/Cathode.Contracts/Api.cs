@@ -123,8 +123,9 @@ public sealed record TestToneRequest(bool Enabled, double Frequency = 100, float
 public sealed record SpeakerResonanceInfo(double BaseHz, float Percent, double Hz);
 
 /// <summary>
-///     A block's frequency response on its active channel (<c>GET /api/v1/live/blocks/{id}/response</c>): the gain in
-///     dB at each frequency in hertz, log-spaced from 20 Hz to 20 kHz, and the centres of the bands that shape it.
+///     The frequency response of a block's graphic EQ on its active channel (a Graphic EQ, a Drive's EQ 2 or an Amp's
+///     Output EQ; <c>GET /api/v1/live/blocks/{id}/response</c>): the gain in dB at each frequency in hertz, log-spaced
+///     from 20 Hz to 20 kHz, and the centres of the bands that shape it (none while the EQ is off).
 /// </summary>
 public sealed record FrequencyResponse(float[] Frequencies, float[] Db, float[] Centers);
 

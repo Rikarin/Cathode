@@ -445,6 +445,12 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
     /// <summary>The internal processing rate as a multiple of the sample rate.</summary>
     public int Oversampling { get; private set; } = 2;
 
+    /// <summary>
+    ///     The oversampling the amp runs at at <paramref name="sampleRate" />: 2 x below 64 kHz, else 1 x; twice that
+    ///     at <paramref name="high" /> (the Oversampling setting's High).
+    /// </summary>
+    public static int OversamplingFor(double sampleRate, bool high) => (sampleRate < 64_000 ? 2 : 1) * (high ? 2 : 1);
+
     /// <summary>The oversampler's filters (the global setting); set before <see cref="IDspBlock.Prepare" />.</summary>
     public OversamplingPhase OversamplingPhase { get; set; }
 
@@ -821,8 +827,7 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
     }
 
     protected override void OnPrepare(in ProcessSpec spec) {
-        var high = Params.GetTarget(OversamplingSetting) >= 0.5f;
-        Oversampling = (spec.SampleRate < 64_000 ? 2 : 1) * (high ? 2 : 1);
+        Oversampling = OversamplingFor(spec.SampleRate, Params.GetTarget(OversamplingSetting) >= 0.5f);
         oversampler.Resize(spec.MaxBlockSize);
         oversampler4.Resize(Oversampling == 4 ? spec.MaxBlockSize : 1);
         if (oversampler.Phase != OversamplingPhase) {

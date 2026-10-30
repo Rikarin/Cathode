@@ -2,6 +2,7 @@ using Cathode.Contracts;
 using Cathode.Dsp.Amp;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Cabinets;
+using Cathode.Dsp.Filters;
 using Cathode.Engine.Rig;
 using System.Net;
 using System.Net.Http.Json;
@@ -256,7 +257,8 @@ public sealed class AudioIoApiTests : IAsyncLifetime {
         var boosted = await Response();
         await Ok(client.PutAsJsonAsync("/api/v1/live/blocks/geq1/channel", new ChannelRequest("B"), Token));
         var flat = await Response();
-        using var other = await client.GetAsync("/api/v1/live/blocks/drive1/response", Token);
+        await Post("/api/v1/live/blocks", new AddBlockRequest("reverb", Preset.DefaultRow, 4));
+        using var other = await client.GetAsync("/api/v1/live/blocks/reverb1/response", Token);
         using var missing = await client.GetAsync("/api/v1/live/blocks/ghost/response", Token);
 
         Assert.Equal(256, boosted.Frequencies.Length);
@@ -271,6 +273,54 @@ public sealed class AudioIoApiTests : IAsyncLifetime {
         async Task<FrequencyResponse> Response() =>
             (await client.GetFromJsonAsync<FrequencyResponse>("/api/v1/live/blocks/geq1/response", Token))!;
     }
+
+    [Fact]
+    public async Task A_drives_eq_2_response_follows_its_active_channel() {
+        await Ok(
+            client.PatchAsJsonAsync(
+                "/api/v1/live/blocks/drive1/params",
+                new Dictionary<string, float> { ["eq2"] = DriveBlock.EqPost, ["geq7"] = 6 },
+                Token
+            )
+        );
+
+        var boosted = await Response("drive1");
+        await Ok(client.PutAsJsonAsync("/api/v1/live/blocks/drive1/channel", new ChannelRequest("B"), Token));
+        var off = await Response("drive1");
+
+        Assert.Equal(256, boosted.Db.Length);
+        Assert.Equal(GraphicEqualizer.Layouts[DriveBlock.Eq2Layout].Centers, boosted.Centers);
+        Assert.Equal(6f, boosted.Db[Nearest(boosted, 1_000)], 0.1f);
+        Assert.All(off.Db, static d => Assert.Equal(0f, d));
+        Assert.Empty(off.Centers);
+    }
+
+    [Fact]
+    public async Task An_amps_output_eq_response_follows_its_active_channel() {
+        await Post("/api/v1/live/blocks", new AddBlockRequest("circuitamp", Preset.DefaultRow, 3));
+        await Ok(
+            client.PatchAsJsonAsync(
+                "/api/v1/live/blocks/circuitamp1/params",
+                new Dictionary<string, float> { ["outeq"] = 1, ["outeq6"] = -6 }, // 10 Band, 1 kHz
+                Token
+            )
+        );
+
+        var cut = await Response("circuitamp1");
+        await Ok(client.PutAsJsonAsync("/api/v1/live/blocks/circuitamp1/channel", new ChannelRequest("B"), Token));
+        var off = await Response("circuitamp1");
+
+        Assert.Equal(GraphicEqualizer.Layouts[0].Centers, cut.Centers);
+        Assert.Equal(-6f, cut.Db[Nearest(cut, 1_000)], 0.1f);
+        Assert.All(off.Db, static d => Assert.Equal(0f, d));
+        Assert.Empty(off.Centers);
+    }
+
+    async Task<FrequencyResponse> Response(string block) =>
+        (await client.GetFromJsonAsync<FrequencyResponse>($"/api/v1/live/blocks/{block}/response", Token))!;
+
+    static int Nearest(FrequencyResponse response, float hz) =>
+        response.Frequencies.Select((f, i) => (Distance: Math.Abs(Math.Log(f / hz)), i)).Min().i;
 
     float Rig(string id) => server.Host.Engine.Rig.GetTarget(RigControls.Descriptor.IndexOf(id));
 
