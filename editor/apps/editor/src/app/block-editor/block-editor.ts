@@ -49,6 +49,7 @@ import { CabResonanceHelper } from './panels/cab-resonance-helper';
 import { CompressorCurveTile } from './panels/compressor-curve-tile';
 import { isCustomTableParam } from './panels/custom-shifter';
 import { DynamicsPanel } from './panels/dynamics-panel';
+import { GeqPanel } from './panels/geq-panel';
 import { IrPlayerPanel } from './panels/ir-player-panel';
 import { PeqPanel } from './panels/peq-panel';
 import { PitchPanel } from './panels/pitch-panel';
@@ -74,6 +75,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
     CabPanel,
     CompressorCurveTile,
     DynamicsPanel,
+    GeqPanel,
     IrPlayerPanel,
     ModifierDialog,
     XuiContextMenuImports,
@@ -445,6 +447,9 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
                   } @else if (block.type === 'peq' && onFirstPage()) {
                     <!-- The EQ curve: four knobs wide and two high at the page's right, beside the Output. -->
                     <cth-peq-panel class="[grid-column:span_4/-1] [grid-row:1/span_2]" [block]="block" />
+                  } @else if (block.type === 'geq' && onFirstPage()) {
+                    <!-- The measured response: four knobs wide and two high at the page's right, as the PEQ's. -->
+                    <cth-geq-panel class="[grid-column:span_4/-1] [grid-row:1/span_2]" [block]="block" />
                   } @else if ((block.type === 'mbcomp' || block.type === 'gate') && onFirstPage()) {
                     <!-- Gain reduction at the page's right, two rows high: one column for the gate, two for three bands. -->
                     <cth-dynamics-panel
