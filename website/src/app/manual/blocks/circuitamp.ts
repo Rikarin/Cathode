@@ -366,7 +366,8 @@ switched out while their gain is 0 dB.`,
 
     outeq: `A graphic EQ built into the block, with a choice of layouts: octave and 2/3-octave layouts, and the passive
 Mark, 5-, 4- and 3-band and console voicings, approximated here by broad overlapping bands. Off by default. Bands left
-at 0 dB cost nothing.`,
+at 0 dB cost nothing. The chart at the EQ page's right shows its curve, measured on this EQ itself: its passive layouts
+are the approximations, so they differ from the Graphic EQ block's circuits of the same name.`,
 
     outeqloc: `Where the graphic EQ sits: at the block's *Output* (a plain tone EQ), *Pre Power Amp* (between preamp and
 power amp, so it shapes what the power tubes distort, like the Mark series' EQ), or at the *Input* (before the preamp,

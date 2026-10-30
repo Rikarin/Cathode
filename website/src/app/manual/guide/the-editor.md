@@ -50,6 +50,7 @@ Under the navigation bar is a second bar for the preset you are playing.
 - **Scene 1 to 8:** click to switch scenes, or press ⌘1 to ⌘8.
 - **The preset and scene display:** two lines, each with up and down arrows.
   - The top line shows the preset's number (its slot in its bank) and name. A dot after the name means unsaved changes. Click it (or press **P**) to open the preset picker. The arrows step to the next or previous preset (⌘PgDn, ⌘PgUp).
+  - Beside it, the **bank** the preset is in (**No bank** for a preset loaded from a setlist or kept in no bank). Click it to choose another bank: its first preset loads, and the arrows go on through that bank. See [Next and previous](/manual/presets-and-scenes#loading-presets).
   - The bottom line shows the scene's number and name. Click the name to rename the scene. The arrows step through the eight scenes.
 - **Recent presets:** the clock icon lists the last presets you loaded in this editor.
 - **New preset** (+): starts an empty preset. If the working copy has unsaved changes, Cathode asks first.
@@ -71,7 +72,7 @@ The Editor page is split in two: the **grid** on top and the **drawer** below. D
 
 ### The grid
 
-Six rows of fourteen cells. Each block sits in a cell, and cables join them from left to right. Each block's tile shows its name in its category's colour, a small level meter along the bottom, the channel it is on (A to D) in the top-right corner, and a number in the top-left when there is more than one of its type. A bypassed block is greyed out. [The grid](/manual/the-grid) explains how to work with it.
+Six rows of fourteen cells. Each block sits in a cell, and cables join them from left to right. Each block's tile is its category's colour, with its icon, its name and a small level meter in a strip along the bottom, the channel it is on (A to D) in the top-right corner, and a number in the top-left when there is more than one of its type. A bypassed block turns grey; when its bypass mode lets the signal through, the cable runs on through it and arches over its icon. [The grid](/manual/the-grid) explains how to work with it.
 
 Hold **⌥** (Alt), or press **F1** to toggle, for **Block Info**: every tile shows a short code (AMP, DRV, CAB…), its channel and a **GLOBAL** mark if it is a global block, and a line under the grid lists the amps in use with their model on each channel and the scenes that use it.
 
@@ -93,7 +94,12 @@ The left column holds the block's identity and state:
 - **Block Library** (when the Library holds entries for this block type): recall a saved setting, with **Into all channels** to fill every channel at once.
 - **Bypass mode:** what the block does when bypassed (see [Bypass modes](/manual/the-grid#bypass-modes)).
 
-The right side holds the controls. Some blocks have a panel of their own on top (the Cab's microphones, the Parametric EQ's curve, the Amp NAM's capture, the IR Player, Tone Match, Pitch). Below it, the block's knobs, switches and choices are grouped into pages listed on the left (**Basic**, **Tone**, **Advanced**…); the page you last opened is remembered for each block type. The **Output** group on the right holds the block's level, mix, balance and pan.
+The right side holds the controls. Some blocks have a panel of their own on top (the Cab's microphones, the Amp NAM's capture, the IR Player, Tone Match, Pitch). Below it, the block's knobs, switches and choices are grouped into pages, listed as tabs down the panel's left edge (**Basic**, **Tone**, **Advanced**…); the page you last opened is remembered for each block type. The **Output** group on the right holds the block's level, mix, balance and pan.
+
+Some pages also draw a chart at their right, among the knobs:
+
+- **EQ curves:** the Parametric EQ's curve, whose handles you can drag; the Graphic EQ's response, which also appears on the Drive's **Graphic EQ** page and the Amp's **EQ** page. Cathode measures these on the engine's own equaliser, so the passive layouts show how their real circuits behave.
+- **Dynamics:** the Compressor's transfer curve with its gain-reduction meter, and the gain-reduction meters of the Gate and the Multiband Compressor.
 
 Every knob, switch and choice is documented on the block's own page in this manual, for example [the Amp](/manual/blocks/circuitamp).
 
@@ -102,7 +108,7 @@ Every knob, switch and choice is documented on the block's own page in this manu
 - **Drag** up and down to turn a knob. Hold **⇧** for fine steps.
 - **Scroll** over a knob to turn it (you can reverse or turn this off in Preferences).
 - With a knob focused, the **arrow keys** move it by 1 % of its travel (0.1 % with ⇧), **Page Up** and **Page Down** by 10 %, **Home** and **End** to the ends.
-- **Double-click** a knob or its value to type a value.
+- **Double-click** a knob or its value to type a value. The current value is selected, so typing replaces it.
 - **⌥-click** (Alt-click) resets it to its default.
 - **Right-click** a knob for **Add modifier…**, **Learn MIDI controller**, **Add to the preset's Perform page**, **Add to the global Perform page** and **Set in other presets…**. Switches and choices offer the last three.
 

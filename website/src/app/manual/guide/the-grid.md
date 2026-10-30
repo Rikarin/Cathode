@@ -108,7 +108,7 @@ To remove a cable, click it (it turns to the highlight colour), then press **Del
 
 ### Shunts
 
-Select an empty cell and press **⌘U**, or right-click it and choose **Add shunt**, to place a shunt by hand. Cable into and out of it like any block. Shunts are drawn as a dashed cell with a line through it. Delete one like a block.
+Select an empty cell and press **⌘U**, or right-click it and choose **Add shunt**, to place a shunt by hand. Cable into and out of it like any block. A shunt is drawn as a plain wire across its cell, like a cable; its cell's outline shows only when you hover over it or select it. Delete one like a block.
 
 ## Parallel paths
 
@@ -154,7 +154,7 @@ If an engaged stereo effect sits **before** a block that sums to mono, its width
 
 ## Bypassing blocks
 
-Select a block and press **Space**, or use its **Engaged** switch in the drawer, or right-click it and choose **Bypass** or **Engage**. A bypassed block is greyed out on the grid.
+Select a block and press **Space**, or use its **Engaged** switch in the drawer, or right-click it and choose **Bypass** or **Engage**. A bypassed block turns grey on the grid. In the bypass modes that let the signal through (**Thru**, **Mute FX In** and **Mute FX Out**), the cable runs on through the block and arches over its icon, so you can see the signal skipping it; the muting modes show just the grey tile.
 
 Bypass state belongs to the scene: bypassing a block changes it in the current scene only. To set it in every scene, right-click the block and choose **Engage in all scenes** (⇧Space) or **Bypass in all scenes** (⇧⌘Space). See [Scenes](/manual/presets-and-scenes#scenes).
 

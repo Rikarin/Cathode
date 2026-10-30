@@ -15,6 +15,9 @@ what the amp's preamp distorts, which is a different (and also useful) job: cutt
 the Frequency until the problem jumps out, then turn the boost into a modest cut (−3 to −6 dB) and widen the Q a little.
 **Solo** lets you hear just that band's region while you search.
 
+**The chart:** at the right of the Basic page is the EQ's curve, with a handle for each band on it. Drag a handle to
+set its band's frequency and gain, and scroll over it to change its Q; the knobs follow.
+
 **Common moves after the cab:**
 - Band 1 as **Blocking** at 70 to 100 Hz to clear sub-bass rumble.
 - Band 5 as **Blocking** at 6 to 8 kHz, or a High Shelf cut, to tame fizz.

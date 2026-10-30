@@ -23,13 +23,14 @@ compressor.
 **Parallel compression:** set Mix around 50 %: you keep the natural attack of your playing and add a sustained,
 compressed layer under it.
 
-**Reading the meter:** the block's page has a **GR** (gain reduction) meter above the knobs. The bar hangs down from
+**Reading the meter:** at the right of the Basic page, beside the Output, is a tile with the curve (below) and a **GR**
+(gain reduction) meter beside it. The bar hangs down from
 0 dB as the compressor turns the level down, on a scale to −24 dB, and follows the attack and release you set. A mark
 stays at the deepest reduction for a second, and the number under the bar shows it. With the Compander type the meter
 includes what the expander takes off between notes. The Sustainer, and the Dynamics type at negative values, raise the
 level rather than lower it, so the meter stays at 0 on them. It also reads 0 while the block is bypassed.
 
-**Reading the curve:** next to the meter is a small chart of what the compressor does to each level. The level going
+**Reading the curve:** the chart beside the meter shows what the compressor does to each level. The level going
 in runs left to right and the level coming out runs bottom to top, both from −60 to 0 dB with a line every 12 dB. The
 faint dashed diagonal is "no change": a signal on it comes out as loud as it went in. The coloured line is your
 settings. Below the threshold it runs along the diagonal (lifted by any makeup gain); at the threshold it bends, and

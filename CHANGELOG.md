@@ -4,6 +4,60 @@ Cathode follows [semantic versioning](https://semver.org). From 1.0 on, a preset
 in every later one: the preset format carries a schema version (`schemaVersion`, now 2), and a release that changes
 the format upgrades older presets as it reads them.
 
+## 1.0.0-rc.5 — unreleased
+
+### Added
+
+- **Setlists** (#28): a Setlists page makes them from the library, each song a preset on its starting scene with an
+  optional name, reordered by drag or ⌥↑ and ⌥↓. The Perform page plays the chosen setlist song by song, showing the
+  current and next song; ⇧⌘PgUp and ⇧⌘PgDn and the new `songPrevious` and `songNext` MIDI actions step through it,
+  stopping at either end and passing over a missing preset. The setlist being played survives loading other presets
+  and restarts.
+- **Gain reduction you can see** (#29): the Compressor, Multiband Compressor and Gate show how much they turn the level
+  down, with a one-second peak hold; the Multiband Compressor has a meter per band.
+- **The Compressor's transfer curve**: a chart of what it does to each level, beside its meter on the Basic page, with
+  a dot riding the line where your playing is right now.
+- **EQ response charts**: the Graphic EQ, the Drive's Graphic EQ page and the Amp's Output EQ draw their frequency
+  response, measured on the engine's own equaliser, so the passive layouts show how their circuits really behave. The
+  Server gives it at `GET /api/v1/live/blocks/{id}/response`.
+- **A strobe tuner**, tunings with per-string offsets (Standard, drops, opens, 7- and 8-string, bass) and the A4
+  reference (430–450 Hz) in the tuner's dialog; the reference also reaches the engine's pitch detection.
+- **Engage modifiers** have a **Moving** mode (on as soon as the source leaves where it rested), a threshold and an
+  off delay, so an auto-engaging wah comes on at a touch and stops flickering. Presets without them work as before.
+- **The Controllers page** marks the sequencer's stage as it plays, and the LFOs and ADSRs show where they are.
+- **A bank menu beside the preset**: it names the bank next and previous step through, and choosing another bank
+  loads its first preset and plays on from there.
+
+### Changed
+
+- **A new look**: the editor takes a Logic Pro style theme. Graphite panes with header bars, bezelled buttons,
+  macOS-style menus, pop-up buttons, switches, checkboxes and alerts, an LCD preset and scene display, knobs with a
+  turned-metal dial, and blocks drawn like Logic regions. Shunts are plain wires, and a block bypassed in a mode that
+  lets the signal through shows the cable arching over it. The Library, Scenes, Controllers, Perform, Setlists, Global
+  and Manage presets pages, the Cab's microphone and Align charts and the Analyser follow it.
+- **A new app icon**: a glowing blue C with a waveform.
+- **Block pages** list their pages as tabs down the panel's edge and fit eight knobs to a row on a 1440-pixel window
+  instead of six. The Parametric EQ's curve and the dynamics meters sit beside the knobs instead of above them.
+- **Typing a value** selects the current one, so typing replaces it: double-clicking a knob, and clicking the tempo.
+- **The tuner's** strobe and needle are larger.
+
+### Fixed
+
+- **Knobs and the sequencer's steps** stop following the pointer when the button comes up over the desktop app's
+  title bar.
+- **Reloading the editor** no longer warns that it is not connected to a Cathode server while it connects.
+- **The block picker:** Escape closes it at once, so Enter can reopen it straight away; and typing no longer
+  highlights the tile that happens to land under a pointer that has not moved.
+- **The Server** counts a client's socket before its handshake completes, so an editor that reconnects keeps its tuner,
+  scope or RTA on.
+- **Manage presets** marks the bank shown before you pick one, and its Library list and the Setlists page's no longer
+  scroll sideways with a long preset name.
+- **The New from template and Snapshots dialogs** no longer push their buttons past the dialog's edge.
+
+### Internal
+
+- **Telemetry** (layout version 8) carries the controllers' state and up to four meters per block.
+
 ## 1.0.0-rc.4 — 2026-10-27
 
 ### Added

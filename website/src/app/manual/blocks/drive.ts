@@ -103,7 +103,8 @@ Fuzz Faces) it adds a gentle high-pass at 10 Hz times the setting instead.`,
 
     eq2: `Graphic EQ page: where the ten-band EQ sits. **Pre** shapes what the clipping hears, so cutting bass there
 tightens the distortion and boosting mids makes it break up sooner. **Post** shapes the result, after the Tone page.
-**Off** removes it. The clean side of a partial Mix passes neither EQ.`,
+**Off** removes it. The clean side of a partial Mix passes neither EQ. The chart at the page's right shows this EQ's
+curve (flat while it is off).`,
 
     'geq#': `Graphic EQ page: one band of the ten-band EQ (2/3 octave wide, ±12 dB), centred on the frequency in its name.
 Active only when **EQ 2** is Pre or Post. A band at 0 dB does nothing.`,

@@ -17,7 +17,12 @@ break up sooner.
 down) is the classic scooped metal rhythm; a mid hump (500 Hz to 2 kHz up) helps a lead cut through.
 
 The band sliders keep their ids on every layout but are renamed (and the unused ones hidden) when you change Type, so a
-slider's label always tells you its frequency.`,
+slider's label always tells you its frequency.
+
+**Reading the chart:** at the right of the page is the EQ's frequency response, from 20 Hz to 20 kHz, with faint lines
+at the layout's band centres. Cathode measures it on the block's own equaliser after each change, so it shows what you
+hear, Level included: on the passive layouts the bands interact as the real circuits' do, so one slider moves its
+neighbours' regions too, and the tone stacks are not flat even with every knob at noon.`,
 
   params: {
     g31: `The first band. On 10 Band it is 31 Hz (sub-bass: mostly rumble on guitar, usually best cut). On the other layouts
