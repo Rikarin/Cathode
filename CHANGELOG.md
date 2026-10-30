@@ -30,6 +30,8 @@ the format upgrades older presets as it reads them.
 - **Footswitch layouts can be deleted** and **views renamed** (Global ▸ Footswitches). Deleting a layout makes the
   first one left active and unlinks switches that went on to it.
 - **⌘K resets every clip light** at once: the blocks' on the grid and the top bar's meters.
+- **The looper's dialog** says which looper it drives, the Looper block in the preset or the rig's own.
+- **Input 1's calibration** can be reset to the 1 V default from Audio setup.
 
 ### Changed
 
@@ -48,6 +50,12 @@ the format upgrades older presets as it reads them.
   instead of six. The Parametric EQ's curve and the dynamics meters sit beside the knobs instead of above them.
 - **Typing a value** selects the current one, so typing replaces it: double-clicking a knob, and clicking the tempo.
 - **The tuner's** strobe and needle are larger.
+- **The looper's dialog** groups its buttons as Logic's transport: Record, Play and Stop as symbols lit in their colour,
+  then Overdub and Undo, then Reverse and Half speed.
+- **Audio setup** shows the engine and latency readings on LCD glass, and its cards span the dialog. The Settings
+  dialog is taller, and each tab's scrollbar sits at its edge instead of against the cards.
+- **The editor's address keeps the access token**, so a page saved to an iPad's Home Screen or bookmarked opens
+  connected. Treat such a link like the token itself.
 
 ### Fixed
 
@@ -70,6 +78,9 @@ the format upgrades older presets as it reads them.
 - **Footswitches:** the Sends message select is no longer squeezed, and a select's list grows to show its entries
   whole.
 - **The navigation bar** no longer cuts off the focus ring of its first and last page.
+- **Input 1's interface maximum level** field always shows the value in use, also after a reset or a measurement.
+- **No MIDI output** is no longer an engine error: with no output chosen and none connected, scene MIDI and footswitch
+  LEDs have nowhere to go, and Audio setup stopped showing "MIDI output is not available." for it.
 
 ### Internal
 
