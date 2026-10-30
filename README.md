@@ -8,7 +8,7 @@ playing live. It runs on your Mac or PC, or on a small Linux computer in your ri
 
 Cathode is free and open source (GPL-3.0-or-later).
 
-> **Status: release candidate.** 1.0.0-rc.4 is the fourth release candidate; see the [changelog](CHANGELOG.md). Presets
+> **Status: release candidate.** 1.0.0-rc.5 is the fifth release candidate; see the [changelog](CHANGELOG.md). Presets
 > saved from 1.0 on keep loading in later releases.
 
 ## What it does
