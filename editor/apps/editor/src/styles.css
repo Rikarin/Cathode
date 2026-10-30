@@ -214,6 +214,14 @@ xui-segmented-control [role='radio'][aria-checked='true'] {
   }
 }
 
+/* A destructive outline button (xUI marks it border-error): the same bezel, its label in red, as macOS's. */
+[xuiButton].text-foreground.border-error:not(.border-none, .text-link) {
+  &,
+  &:hover:not(:disabled) {
+    color: var(--color-error);
+  }
+}
+
 /* Filled buttons: macOS's default-button gloss over their colour. */
 [xuiButton]:is(.bg-primary, .bg-secondary, .bg-success, .bg-error, .bg-warning, .bg-info) {
   background-image: linear-gradient(to bottom, rgb(255 255 255 / 0.16), rgb(255 255 255 / 0));
