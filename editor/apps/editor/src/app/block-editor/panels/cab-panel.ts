@@ -82,7 +82,7 @@ const sameReferences = (a: readonly string[], b: readonly string[]): boolean =>
     <div class="flex flex-wrap items-start gap-6">
       <div class="flex w-[480px] max-w-full shrink-0 flex-col gap-3">
         <div
-          class="bg-surface-sunken border-border rounded-xl border p-3 shadow-[inset_0_1px_3px_rgb(0_0_0/0.35)]"
+          class="border-hairline-strong rounded-lg border bg-(--well) p-3 shadow-[inset_0_1px_3px_rgb(0_0_0/0.6),0_1px_0_var(--highlight)]"
           data-testid="cab-cone"
         >
           <cth-speaker-cone

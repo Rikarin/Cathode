@@ -28,8 +28,12 @@ export interface ConeMove {
   readonly distance: number;
 }
 
-/** The plot area inside the 360 × 252 view box: position runs left to right, distance top (grille) to bottom. */
-export const ConePlot = { left: 44, right: 344, top: 70, bottom: 214 } as const;
+/**
+ * The plot area inside the 360 × 252 view box, under the speaker and the grille (y 64): position runs left to right,
+ * distance top (grille) to bottom. It leaves room at the sides for a mic's ring at either end and below for its body;
+ * there are no scale labels.
+ */
+export const ConePlot = { left: 16, right: 344, top: 70, bottom: 224 } as const;
 
 /** Mic colours by slot, readable on the dark surface and under the slot's dark number. */
 export const MicColors = ['#f5b041', '#5dade2', '#ec7063', '#58d68d'] as const;
@@ -106,10 +110,25 @@ export function coneDescription(mic: ConeMic): string {
 }
 
 /**
- * A speaker cone seen from the side, as the Axe-Fx DynaCab draws it (the Cab block's mic placement): the cone from its dust cap (left) to its edge (right) behind
- * the grille, and below it the space in front where each mic sits, across the cone horizontally and away from the
- * grille vertically. Drag a mic to move it; it is also an ARIA slider (←/→ across, ↑/↓ nearer or further, ⇧ for big
- * steps, Home/End to cap or edge). A mic's body leans by its angle; muted mics are hollow.
+ * The speaker from its axis (`left`) to its edge (`right`), in view-box units above the grille (y 64): the cone's body
+ * sloping from the cap to the edge (and a highlight along its top), the dust cap's dome and the surround's roll at the
+ * edge.
+ */
+export function speakerPaths(left: number, right: number) {
+  return {
+    cone: `M ${left} 22 Q ${left + 170} 30 ${right} 54 L ${right} 58 L ${left} 58 Z`,
+    rim: `M ${left + 50} 25.5 Q ${left + 170} 30.5 ${right - 2} 54`,
+    cap: `M ${left} 22 Q ${left + 26} 8 ${left + 52} 26 L ${left} 26 Z`,
+    surround: `M ${right - 10} 55 Q ${right - 2} 44 ${right + 6} 56`
+  };
+}
+
+/**
+ * A speaker cone seen from the side, as the Axe-Fx DynaCab draws it (the Cab block's mic placement), in the theme's
+ * metals: the cone from its dust cap (left) to its edge (right) behind the grille, and below it the space in front
+ * where each mic sits, across the cone horizontally and away from the grille vertically. Drag a mic to move it; it is
+ * also an ARIA slider (←/→ across, ↑/↓ nearer or further, ⇧ for big steps, Home/End to cap or edge). A mic's body
+ * leans by its angle; muted mics are hollow.
  */
 @Component({
   selector: 'cth-speaker-cone',
@@ -126,51 +145,74 @@ export function coneDescription(mic: ConeMic): string {
       (pointercancel)="release($event)"
     >
       <defs>
+        <!-- The cone dark graphite fading down, the cap a dome lit from the upper left; the mics in brushed metal. -->
         <linearGradient [attr.id]="coneId" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#2b2f36" />
-          <stop offset="100%" stop-color="#16181c" />
+          <stop offset="0%" style="stop-color: var(--color-surface-raised)" />
+          <stop offset="100%" style="stop-color: var(--color-surface-sunken)" />
         </linearGradient>
         <radialGradient [attr.id]="capId" cx="30%" cy="35%" r="80%">
-          <stop offset="0%" stop-color="#6b717c" />
-          <stop offset="100%" stop-color="#25282e" />
+          <stop offset="0%" style="stop-color: var(--dial-top)" />
+          <stop offset="100%" style="stop-color: var(--color-surface-raised)" />
+        </radialGradient>
+        <linearGradient [attr.id]="bodyId" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" style="stop-color: var(--knob-bottom)" />
+          <stop offset="45%" style="stop-color: var(--knob-top)" />
+          <stop offset="100%" style="stop-color: var(--knob-bottom)" />
+        </linearGradient>
+        <radialGradient [attr.id]="glossId" cx="38%" cy="30%" r="65%">
+          <stop offset="0%" stop-color="white" stop-opacity="0.55" />
+          <stop offset="100%" stop-color="white" stop-opacity="0" />
         </radialGradient>
       </defs>
 
-      <!-- The speaker: cone from the cap to the surround, the grille cloth in front of it. -->
+      <!-- The speaker: cone from the cap to the surround, the grille in front of it. -->
       <g aria-hidden="true">
-        <path [attr.d]="conePath" [attr.fill]="'url(#' + coneId + ')'" class="stroke-border" stroke-width="1" />
-        <path [attr.d]="capPath" [attr.fill]="'url(#' + capId + ')'" stroke="rgb(255 255 255 / 0.15)" />
-        <path [attr.d]="surroundPath" fill="none" class="stroke-foreground-muted" stroke-width="2" />
+        <rect
+          [attr.x]="plot.left"
+          [attr.y]="plot.top"
+          [attr.width]="plot.right - plot.left"
+          [attr.height]="plot.bottom - plot.top"
+          rx="3"
+          fill="rgb(0 0 0 / 0.25)"
+        />
+        <path
+          [attr.d]="speaker.cone"
+          [attr.fill]="'url(#' + coneId + ')'"
+          style="stroke: var(--dial-rim)"
+          stroke-width="1"
+        />
+        <path [attr.d]="speaker.rim" fill="none" style="stroke: var(--highlight)" stroke-width="1" />
+        <path
+          [attr.d]="speaker.cap"
+          [attr.fill]="'url(#' + capId + ')'"
+          style="stroke: var(--dial-rim)"
+          stroke-width="1"
+        />
+        <path
+          [attr.d]="speaker.surround"
+          fill="none"
+          style="stroke: var(--dial-top)"
+          stroke-width="3"
+          stroke-linecap="round"
+        />
         <line
-          [attr.x1]="plot.left - 4"
-          [attr.x2]="plot.right + 8"
+          [attr.x1]="plot.left"
+          [attr.x2]="plot.right"
           [attr.y1]="plot.top - 6"
           [attr.y2]="plot.top - 6"
-          class="stroke-foreground-muted"
+          style="stroke: var(--well-line-strong)"
           stroke-width="1"
-          stroke-dasharray="2 3"
+          stroke-dasharray="3 3"
         />
-        <text [attr.x]="plot.left" y="12" class="fill-foreground-muted text-[9px]">Cap</text>
-        <text [attr.x]="plot.right" y="12" text-anchor="end" class="fill-foreground-muted text-[9px]">Edge</text>
-        <text [attr.x]="plot.right + 10" [attr.y]="plot.top - 3" class="fill-foreground-muted text-[8px]">grille</text>
-
         @for (tick of positionTicks; track tick) {
           <line
             [attr.x1]="x(tick)"
             [attr.x2]="x(tick)"
             [attr.y1]="plot.top"
             [attr.y2]="plot.bottom"
-            class="stroke-border"
-            stroke-width="0.5"
+            style="stroke: var(--well-line)"
+            stroke-width="1"
           />
-          <text
-            [attr.x]="x(tick)"
-            [attr.y]="plot.bottom + 32"
-            text-anchor="middle"
-            class="fill-foreground-muted text-[9px]"
-          >
-            {{ tick }}%
-          </text>
         }
         @for (tick of distanceTicks(); track tick) {
           <line
@@ -178,17 +220,9 @@ export function coneDescription(mic: ConeMic): string {
             [attr.x2]="plot.right"
             [attr.y1]="y(tick)"
             [attr.y2]="y(tick)"
-            class="stroke-border"
-            stroke-width="0.5"
+            style="stroke: var(--well-line)"
+            stroke-width="1"
           />
-          <text
-            [attr.x]="plot.left - 6"
-            [attr.y]="y(tick) + 3"
-            text-anchor="end"
-            class="fill-foreground-muted text-[9px]"
-          >
-            {{ tick }}{{ tick === maxDistance() ? ' in' : '' }}
-          </text>
         }
       </g>
 
@@ -225,21 +259,26 @@ export function coneDescription(mic: ConeMic): string {
               width="9"
               height="18"
               rx="3"
-              fill="#3a3e46"
-              [attr.stroke]="mic.color"
+              [attr.fill]="'url(#' + bodyId + ')'"
+              stroke="rgb(0 0 0 / 0.55)"
               stroke-width="1"
             />
+            <rect x="-4.5" y="20" width="9" height="1.5" [attr.fill]="mic.color" opacity="0.9" />
           </g>
           @if (mic.slot === selected()) {
             <circle r="15" fill="none" [attr.stroke]="mic.color" stroke-width="1.5" opacity="0.6" />
           }
+          <circle r="11.5" fill="rgb(0 0 0 / 0.45)" cy="1.5" style="filter: blur(1.5px)" />
           <circle
             r="10.5"
-            [attr.fill]="mic.muted ? '#16181c' : mic.color"
-            [attr.stroke]="mic.color"
-            stroke-width="2"
+            [attr.fill]="mic.muted ? 'var(--well)' : mic.color"
+            [attr.stroke]="mic.muted ? mic.color : 'rgb(0 0 0 / 0.55)'"
+            stroke-width="1.5"
             [attr.stroke-dasharray]="mic.muted ? '3 2' : null"
           />
+          @if (!mic.muted) {
+            <circle r="10.5" [attr.fill]="'url(#' + glossId + ')'" />
+          }
           <text
             text-anchor="middle"
             y="4"
@@ -260,6 +299,8 @@ export class CthSpeakerCone {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   protected readonly coneId = `cth-cone-${this.instance}`;
   protected readonly capId = `cth-cone-cap-${this.instance}`;
+  protected readonly bodyId = `cth-cone-body-${this.instance}`;
+  protected readonly glossId = `cth-cone-gloss-${this.instance}`;
   protected readonly plot = ConePlot;
   protected readonly positionTicks = [0, 25, 50, 75, 100];
   private dragging: number | null = null;
@@ -291,9 +332,7 @@ export class CthSpeakerCone {
   );
 
   // The cone in profile: deepest at the cap, rising to the surround at the baffle.
-  protected readonly conePath = `M ${ConePlot.left} 22 Q ${ConePlot.left + 170} 30 ${ConePlot.right} 54 L ${ConePlot.right} 58 L ${ConePlot.left} 58 Z`;
-  protected readonly capPath = `M ${ConePlot.left} 22 Q ${ConePlot.left + 26} 8 ${ConePlot.left + 52} 26 L ${ConePlot.left} 26 Z`;
-  protected readonly surroundPath = `M ${ConePlot.right - 10} 55 Q ${ConePlot.right - 2} 44 ${ConePlot.right + 6} 56`;
+  protected readonly speaker = speakerPaths(ConePlot.left, ConePlot.right);
 
   protected x(position: number): number {
     return conePoint(position, 0, this.maxDistance()).x;
