@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signa
 import { type LatencyInfo, type SystemInfo, unwrap } from '@cathode/api-client';
 import { XuiButtonImports } from '@xui/button';
 import { XuiCalloutImports } from '@xui/callout';
+import { XuiCardImports } from '@xui/card';
 import { XuiInputImports } from '@xui/input';
 import { XuiSegmentedControlImports } from '@xui/segmented-control';
 import { XuiSelectImports } from '@xui/select';
@@ -35,6 +36,7 @@ const BufferSizes = [32, 64, 128, 256, 512];
     ServerTargetForm,
     XuiButtonImports,
     XuiCalloutImports,
+    XuiCardImports,
     XuiInputImports,
     XuiSegmentedControlImports,
     XuiSelectImports,
@@ -43,11 +45,13 @@ const BufferSizes = [32, 64, 128, 256, 512];
   ],
   host: { class: 'block h-full overflow-auto p-6' },
   template: `
-    <div class="flex max-w-4xl flex-col gap-8">
-      <section class="flex flex-col gap-4" aria-labelledby="engine-heading">
+    <div class="flex max-w-4xl flex-col gap-4">
+      <section xuiCard class="flex flex-col gap-4 p-4" aria-labelledby="engine-heading">
         <h1 xuiHeading id="engine-heading" class="text-lg">Engine</h1>
         @if (system(); as s) {
-          <div class="flex flex-wrap gap-10">
+          <div
+            class="bg-surface-inset flex flex-wrap gap-x-10 gap-y-3 rounded-md border border-(--hairline) px-4 py-3 shadow-[inset_0_1px_2px_rgb(0_0_0/0.3)]"
+          >
             <xui-statistic title="Backend" [value]="s.engine.connected ? (s.engine.backend ?? '–') : 'disconnected'" />
             <xui-statistic title="Sample rate" [value]="s.engine.sampleRate / 1000" [precision]="1" suffix=" kHz" />
             <xui-statistic title="Buffer" [value]="s.engine.bufferFrames" suffix=" frames" />
@@ -76,7 +80,7 @@ const BufferSizes = [32, 64, 128, 256, 512];
           </div>
           @if (engineLog(); as log) {
             <pre
-              class="border-border max-h-80 overflow-auto rounded-md border p-3 text-xs whitespace-pre-wrap"
+              class="bg-surface-inset max-h-80 overflow-auto rounded-md border border-(--hairline) p-3 text-xs whitespace-pre-wrap shadow-[inset_0_1px_2px_rgb(0_0_0/0.3)]"
               role="log"
               aria-label="Engine log"
               >{{ log }}</pre>
@@ -85,8 +89,10 @@ const BufferSizes = [32, 64, 128, 256, 512];
         @if (latencyReport(); as l) {
           @if (l.connected) {
             <div class="flex flex-col gap-2" data-testid="latency-report">
-              <h2 xuiHeading class="text-base">Latency</h2>
-              <div class="flex flex-wrap gap-10">
+              <h3 class="section-label">Latency</h3>
+              <div
+                class="bg-surface-inset flex flex-wrap gap-x-10 gap-y-3 rounded-md border border-(--hairline) px-4 py-3 shadow-[inset_0_1px_2px_rgb(0_0_0/0.3)]"
+              >
                 <xui-statistic title="Device input" [value]="ms(l.inputFrames, l)" [precision]="2" suffix=" ms" />
                 <xui-statistic title="Device output" [value]="ms(l.outputFrames, l)" [precision]="2" suffix=" ms" />
                 <xui-statistic title="Buffer" [value]="ms(l.bufferFrames, l)" [precision]="2" suffix=" ms" />
@@ -107,7 +113,7 @@ const BufferSizes = [32, 64, 128, 256, 512];
         }
       </section>
 
-      <section class="flex flex-col gap-4" aria-labelledby="input-heading">
+      <section xuiCard class="flex flex-col gap-4 p-4" aria-labelledby="input-heading">
         <h2 xuiHeading id="input-heading" class="text-base">Input 1</h2>
         @if (inputClipping()) {
           <xui-callout color="error" title="Input 1 is clipping" data-testid="setup-input-clip">
@@ -168,7 +174,7 @@ const BufferSizes = [32, 64, 128, 256, 512];
       </section>
 
       @if (desktop) {
-        <section class="flex flex-col gap-4" aria-labelledby="audio-heading">
+        <section xuiCard class="flex flex-col gap-4 p-4" aria-labelledby="audio-heading">
           <h2 xuiHeading id="audio-heading" class="text-base">Audio interface</h2>
           @if (remote(); as url) {
             <xui-callout
@@ -307,13 +313,13 @@ const BufferSizes = [32, 64, 128, 256, 512];
           }
         </section>
 
-        <section class="flex flex-col gap-4" aria-labelledby="server-heading">
+        <section xuiCard class="flex flex-col gap-4 p-4" aria-labelledby="server-heading">
           <h2 xuiHeading id="server-heading" class="text-base">Server</h2>
           <cth-server-target />
         </section>
 
         @if (!remote() && desktop.network) {
-          <section class="flex flex-col gap-4" aria-labelledby="network-heading">
+          <section xuiCard class="flex flex-col gap-4 p-4" aria-labelledby="network-heading">
             <h2 xuiHeading id="network-heading" class="text-base">Other devices</h2>
             <cth-network-access />
           </section>
