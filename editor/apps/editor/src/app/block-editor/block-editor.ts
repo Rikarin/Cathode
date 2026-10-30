@@ -112,7 +112,13 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
     @if (block(); as block) {
       <!-- The block's own column and its controls scroll apart, so a long left column never moves the knobs. -->
       <section class="flex min-h-0 flex-1 gap-5" [attr.aria-label]="title() + ' settings'">
-        <aside class="-me-2 flex min-h-0 w-58 shrink-0 flex-col gap-3 overflow-y-auto pe-2 *:shrink-0">
+        <!--
+          A gutter is kept for the 10 px scrollbar whether or not the column scrolls, 4 px clear of the controls, and the
+          column reaches into the gap by as much, so the scrollbar never narrows them.
+        -->
+        <aside
+          class="-me-3.5 flex min-h-0 w-[calc(14rem+14px)] shrink-0 [scrollbar-gutter:stable] flex-col gap-3 overflow-y-auto pe-1 *:shrink-0"
+        >
           <cth-block-tile
             class="h-20 w-full"
             size="lg"
