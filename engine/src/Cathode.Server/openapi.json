@@ -2489,6 +2489,37 @@
         }
       }
     },
+    "/api/v1/live/blocks/{id}/response": {
+      "get": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "A Graphic EQ\u0027s frequency response on its active channel, measured on the engine\u0027s equaliser (the passive types on their networks): dB at 256 frequencies from 20 Hz to 20 kHz. 400 for another block.",
+        "operationId": "GetBlockResponse",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FrequencyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/presets": {
       "get": {
         "tags": [
@@ -4528,6 +4559,38 @@
           }
         },
         "description": "A preset\u0027s own action for one switch of a footswitch layout: while the preset is loaded, the switch at\n\u0060Index\u0060 of layout \u0060Layout\u0060 does this instead of what the layout says."
+      },
+      "FrequencyResponse": {
+        "required": [
+          "frequencies",
+          "db",
+          "centers"
+        ],
+        "type": "object",
+        "properties": {
+          "frequencies": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "float"
+            }
+          },
+          "db": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "float"
+            }
+          },
+          "centers": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "float"
+            }
+          }
+        },
+        "description": "A block\u0027s frequency response on its active channel (\u0060GET /api/v1/live/blocks/{id}/response\u0060): the gain in\ndB at each frequency in hertz, log-spaced from 20 Hz to 20 kHz, and the centres of the bands that shape it."
       },
       "GlobalBlock": {
         "required": [

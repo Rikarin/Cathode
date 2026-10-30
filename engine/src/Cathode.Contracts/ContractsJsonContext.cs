@@ -49,6 +49,7 @@ namespace Cathode.Contracts;
 [JsonSerializable(typeof(LatencyInfo))]
 [JsonSerializable(typeof(TestToneRequest))]
 [JsonSerializable(typeof(SpeakerResonanceInfo))]
+[JsonSerializable(typeof(FrequencyResponse))]
 [JsonSerializable(typeof(BlockTypeInfo))]
 [JsonSerializable(typeof(BlockTypeInfo[]))]
 [JsonSerializable(typeof(AddBlockRequest))]

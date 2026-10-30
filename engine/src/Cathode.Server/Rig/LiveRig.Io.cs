@@ -4,7 +4,10 @@ using Cathode.Dsp.Parameters;
 
 namespace Cathode.Server.Rig;
 
-/// <summary>Audio I/O helpers (docs/08-blocks-parity.md §2): the cab resonance helper's checks and readings.</summary>
+/// <summary>
+///     Audio I/O helpers (docs/08-blocks-parity.md §2): the cab resonance helper's checks and readings; and the
+///     Graphic EQ's frequency response for its chart.
+/// </summary>
 public sealed partial class LiveRig {
     /// <summary>Throws 404 unless the working copy has block <paramref name="id" />.</summary>
     public Task CheckBlockAsync(string id) =>
@@ -36,6 +39,37 @@ public sealed partial class LiveRig {
         var percent = ValueIn(scene, block, info, CircuitAmpBlock.SpeakerResonance);
         return new(baseHz, percent, baseHz * percent / 100);
     }
+
+    /// <summary>
+    ///     A Graphic EQ's frequency response in its active channel, measured on the engine's own equaliser
+    ///     (<see cref="GraphicEqResponse" />) at <see cref="ResponseFrequencies" />, with its layout's band centres.
+    /// </summary>
+    public async Task<FrequencyResponse> GraphicEqResponseAsync(string id) {
+        var state = await StateAsync();
+        var block = state.Preset.Blocks.Find(b => b.Id == id)
+            ?? throw new RigException(404, $"No block '{id}'.");
+        if (block.Type != GraphicEqBlock.Info.TypeId) {
+            throw new RigException(400, $"'{id}' is not a Graphic EQ.");
+        }
+
+        var scene = state.Preset.Scenes[state.ActiveScene];
+        var info = GraphicEqBlock.Info;
+        var values = new ParamBank(info.Params);
+        values.SetTarget(GraphicEqBlock.Type, ValueIn(scene, block, info, GraphicEqBlock.Type)); // the type first
+        for (var p = 0; p < info.Params.Count; p++) {
+            values.SetTarget(p, ValueIn(scene, block, info, p));
+        }
+
+        values.SnapToTargets();
+        return new(
+            ResponseFrequencies,
+            GraphicEqResponse.Of(values, ResponseFrequencies),
+            GraphicEqResponse.Layout(values).Centers
+        );
+    }
+
+    /// <summary>The frequencies a block's response is given at: 256, log-spaced from 20 Hz to 20 kHz.</summary>
+    static readonly float[] ResponseFrequencies = GraphicEqResponse.Frequencies();
 
     /// <summary>A parameter of a block in the channel <paramref name="scene" /> gives it, or the default.</summary>
     static float ValueIn(Scene scene, PresetBlock of, BlockDescriptor descriptor, int index) {

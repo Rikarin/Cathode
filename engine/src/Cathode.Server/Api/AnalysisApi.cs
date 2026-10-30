@@ -39,6 +39,16 @@ static class AnalysisApi {
                 + "it gives."
             );
 
+        live.MapGet(
+                "/blocks/{id}/response",
+                async (string id, LiveRig rig) => TypedResults.Ok(await rig.GraphicEqResponseAsync(id))
+            )
+            .WithName("GetBlockResponse")
+            .WithSummary(
+                "A Graphic EQ's frequency response on its active channel, measured on the engine's equaliser (the "
+                + "passive types on their networks): dB at 256 frequencies from 20 Hz to 20 kHz. 400 for another block."
+            );
+
         api.MapPut(
                 "/tuner",
                 async (BypassRequest request, AnalysisSubscriptions analysis, string? client) => {

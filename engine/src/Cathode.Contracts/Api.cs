@@ -123,6 +123,12 @@ public sealed record TestToneRequest(bool Enabled, double Frequency = 100, float
 public sealed record SpeakerResonanceInfo(double BaseHz, float Percent, double Hz);
 
 /// <summary>
+///     A block's frequency response on its active channel (<c>GET /api/v1/live/blocks/{id}/response</c>): the gain in
+///     dB at each frequency in hertz, log-spaced from 20 Hz to 20 kHz, and the centres of the bands that shape it.
+/// </summary>
+public sealed record FrequencyResponse(float[] Frequencies, float[] Db, float[] Centers);
+
+/// <summary>
 ///     A block parameter. <c>TypeLabels</c>, where present, names the parameter per value of the block's <c>type</c>
 ///     parameter (an amp model's own name for a generic control), empty where that type lacks the control: hide it
 ///     there. <c>TypeDefaults</c>, where present, is the parameter's default per value of <c>type</c> (a model that

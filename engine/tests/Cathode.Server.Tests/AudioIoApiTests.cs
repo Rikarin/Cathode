@@ -242,6 +242,36 @@ public sealed class AudioIoApiTests : IAsyncLifetime {
             Ok(client.PatchAsJsonAsync($"/api/v1/live/blocks/{block}/params", values, Token));
     }
 
+    [Fact]
+    public async Task A_graphic_eqs_response_follows_its_active_channel() {
+        await Post("/api/v1/live/blocks", new AddBlockRequest("geq", Preset.DefaultRow, 3));
+        await Ok(
+            client.PatchAsJsonAsync(
+                "/api/v1/live/blocks/geq1/params",
+                new Dictionary<string, float> { ["g1k"] = 6 },
+                Token
+            )
+        );
+
+        var boosted = await Response();
+        await Ok(client.PutAsJsonAsync("/api/v1/live/blocks/geq1/channel", new ChannelRequest("B"), Token));
+        var flat = await Response();
+        using var other = await client.GetAsync("/api/v1/live/blocks/drive1/response", Token);
+        using var missing = await client.GetAsync("/api/v1/live/blocks/ghost/response", Token);
+
+        Assert.Equal(256, boosted.Frequencies.Length);
+        Assert.Equal(boosted.Frequencies.Length, boosted.Db.Length);
+        Assert.Equal(GraphicEqBlock.Centers.ToArray(), boosted.Centers);
+        var nearest = boosted.Frequencies.Select(static (f, i) => (Distance: Math.Abs(Math.Log(f / 1_000)), i)).Min().i;
+        Assert.Equal(6f, boosted.Db[nearest], 0.1f);
+        Assert.All(flat.Db, static d => Assert.Equal(0f, d, 1e-4f));
+        Assert.Equal(HttpStatusCode.BadRequest, other.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+
+        async Task<FrequencyResponse> Response() =>
+            (await client.GetFromJsonAsync<FrequencyResponse>("/api/v1/live/blocks/geq1/response", Token))!;
+    }
+
     float Rig(string id) => server.Host.Engine.Rig.GetTarget(RigControls.Descriptor.IndexOf(id));
 
     async Task<GlobalSettings> Global() => (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!;

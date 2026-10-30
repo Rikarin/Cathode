@@ -1175,6 +1175,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/live/blocks/{id}/response': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** A Graphic EQ's frequency response on its active channel, measured on the engine's equaliser (the passive types on their networks): dB at 256 frequencies from 20 Hz to 20 kHz. 400 for another block. */
+    get: operations['GetBlockResponse'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/presets': {
     parameters: {
       query?: never;
@@ -2034,6 +2051,15 @@ export interface components {
       tap: components['schemas']['SwitchAction'];
       hold: null | components['schemas']['SwitchAction'];
       label?: null | string;
+    };
+    /**
+     * @description A block's frequency response on its active channel (`GET /api/v1/live/blocks/{id}/response`): the gain in
+     *     dB at each frequency in hertz, log-spaced from 20 Hz to 20 kHz, and the centres of the bands that shape it.
+     */
+    FrequencyResponse: {
+      frequencies: number[];
+      db: number[];
+      centers: number[];
     };
     /** @description A block shared by presets: linking a preset block to it makes its settings global. */
     GlobalBlock: {
@@ -4583,6 +4609,28 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['SpeakerResonanceInfo'];
+        };
+      };
+    };
+  };
+  GetBlockResponse: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['FrequencyResponse'];
         };
       };
     };
