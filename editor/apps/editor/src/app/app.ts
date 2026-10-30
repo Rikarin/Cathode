@@ -30,6 +30,7 @@ import { XuiTooltipImports } from '@xui/tooltip';
 import { Notify } from './core/notify';
 import { Startup } from './core/startup';
 import { BatchSetDialog } from './shell/batch-set-dialog';
+import { keepDialogFocusOffClose } from './shell/dialog-focus';
 import { EngineMeters } from './shell/engine-meters';
 import { LevelingDialog } from './shell/leveling-dialog';
 import { PresetMenu } from './shell/preset-menu';
@@ -482,6 +483,8 @@ export class App {
     // Started with the shell, so an armed MIDI learn shows (with Cancel) on any page, after a reload too.
     inject(MidiLearnStore);
     inject(DestroyRef).onDestroy(this.registerShortcuts());
+    // A dialog opened from the keyboard starts on itself, not with a focus ring on its Close button.
+    inject(DestroyRef).onDestroy(keepDialogFocusOffClose(document));
   }
 
   /** The remote Server's URL when the desktop app uses one. */

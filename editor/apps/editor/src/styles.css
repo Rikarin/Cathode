@@ -863,3 +863,8 @@ xui-tabs > [role='tablist'] {
     border-top: 1px solid var(--hairline);
   }
 }
+
+/* A dialog focused on itself as it opens (shell/dialog-focus.ts) shows no outline: its controls carry the rings. */
+.cdk-overlay-pane[role='dialog']:focus {
+  outline: none;
+}
