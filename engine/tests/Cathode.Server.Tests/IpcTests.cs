@@ -192,4 +192,27 @@ public sealed class IpcTests : IDisposable {
         await stop.CancelAsync();
         await server;
     }
+
+    [Fact]
+    public async Task Midi_out_with_no_outputs_is_not_an_error_unless_one_was_named() {
+        var token = TestContext.Current.CancellationToken;
+        using var service = new EngineHostService(ProcessSpec.Default, "test");
+        service.NativeMidiSend = static (_, _) => false; // nothing to send to
+        service.NativeMidiPorts = static () => [new("in-1", "Keys", true)];
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(token);
+        var server = new EngineHostServer(service, socketPath).RunAsync(stop.Token);
+        await using var client = new IpcEngineClient(socketPath);
+
+        await client.ConnectAsync(TimeSpan.FromSeconds(5), token);
+        var everyOutput = await client.SendAsync(new() { Type = IpcTypes.MidiOut, Bytes = [0xB0, 30, 127] }, token);
+
+        Assert.Equal(IpcTypes.Ok, everyOutput.Type);
+        var named = await Assert.ThrowsAsync<IpcException>(() =>
+            client.SendAsync(new() { Type = IpcTypes.MidiOut, Destination = "out-1", Bytes = [0xB0, 30, 127] }, token)
+        );
+        Assert.Equal("MIDI output is not available.", named.Message);
+
+        await stop.CancelAsync();
+        await server;
+    }
 }
