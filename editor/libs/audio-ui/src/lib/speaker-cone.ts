@@ -111,15 +111,13 @@ export function coneDescription(mic: ConeMic): string {
 
 /**
  * The speaker from its axis (`left`) to its edge (`right`), in view-box units above the grille (y 64): the cone's body
- * sloping from the cap to the edge (and a highlight along its top), the dust cap's dome and the surround's roll at the
- * edge.
+ * sloping from the cap to the edge (and a highlight along its top) and the dust cap's dome.
  */
 export function speakerPaths(left: number, right: number) {
   return {
     cone: `M ${left} 22 Q ${left + 170} 30 ${right} 54 L ${right} 58 L ${left} 58 Z`,
     rim: `M ${left + 50} 25.5 Q ${left + 170} 30.5 ${right - 2} 54`,
-    cap: `M ${left} 22 Q ${left + 26} 8 ${left + 52} 26 L ${left} 26 Z`,
-    surround: `M ${right - 10} 55 Q ${right - 2} 44 ${right + 6} 56`
+    cap: `M ${left} 22 Q ${left + 26} 8 ${left + 52} 26 L ${left} 26 Z`
   };
 }
 
@@ -165,7 +163,7 @@ export function speakerPaths(left: number, right: number) {
         </radialGradient>
       </defs>
 
-      <!-- The speaker: cone from the cap to the surround, the grille in front of it. -->
+      <!-- The speaker: cone from the cap to the edge, the grille in front of it. -->
       <g aria-hidden="true">
         <rect
           [attr.x]="plot.left"
@@ -187,13 +185,6 @@ export function speakerPaths(left: number, right: number) {
           [attr.fill]="'url(#' + capId + ')'"
           style="stroke: var(--dial-rim)"
           stroke-width="1"
-        />
-        <path
-          [attr.d]="speaker.surround"
-          fill="none"
-          style="stroke: var(--dial-top)"
-          stroke-width="3"
-          stroke-linecap="round"
         />
         <line
           [attr.x1]="plot.left"

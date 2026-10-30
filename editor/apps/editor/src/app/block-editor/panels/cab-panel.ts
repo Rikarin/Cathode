@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, si
 import { type AssetInfo, type ParameterInfo, type PresetBlock, unwrap } from '@cathode/api-client';
 import { type ConeMove, CthMeter, CthSpeakerCone, micColor, onAnimationFrame } from '@cathode/audio-ui';
 import { XuiButtonImports } from '@xui/button';
-import { XuiCalloutImports } from '@xui/callout';
 import { XuiEChartImports } from '@xui/echarts';
 import { XuiSegmentedControlImports } from '@xui/segmented-control';
 import type { EChartsOption } from 'echarts';
@@ -74,7 +73,6 @@ const sameReferences = (a: readonly string[], b: readonly string[]): boolean =>
     CthSpeakerCone,
     ParamControl,
     XuiButtonImports,
-    XuiCalloutImports,
     XuiEChartImports,
     XuiSegmentedControlImports
   ],
@@ -162,15 +160,6 @@ const sameReferences = (a: readonly string[], b: readonly string[]): boolean =>
           />
           <span class="size-3 rounded-full" [style.background]="color()" aria-hidden="true"></span>
         </div>
-
-        @if (muted()) {
-          <xui-callout class="max-w-xl" minimal compact color="warning" data-testid="cab-muted">
-            <div class="flex flex-wrap items-center gap-3">
-              <span class="flex-1">Mic {{ selected() + 1 }} is muted. Editing it turns it on.</span>
-              <button xuiButton size="sm" variant="outline" type="button" (click)="unmute()">Unmute</button>
-            </div>
-          </xui-callout>
-        }
 
         <div class="flex flex-wrap gap-x-3 gap-y-5">
           @if (param('source'); as p) {
@@ -267,7 +256,6 @@ export class CabPanel {
   });
 
   protected readonly source = computed(() => sourceOf(this.selected(), this.value()));
-  protected readonly muted = computed(() => isMuted(this.selected(), this.value()));
 
   /** The cuts and IR length, then proximity (not on a DynaCab, whose Distance sets it) and smoothing. */
   protected readonly filters = computed<readonly SlotKey[]>(() => [
@@ -428,10 +416,6 @@ export class CabPanel {
       const block = this.block();
       this.live.setParam(block.id, this.live.channelOf(block.id), mute, 0);
     }
-  }
-
-  protected unmute(): void {
-    this.edited('level');
   }
 
   protected move(move: ConeMove): void {
