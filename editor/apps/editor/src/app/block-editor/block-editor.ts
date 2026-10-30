@@ -429,16 +429,16 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
               @if (mainParams().length > 0) {
                 <div
                   role="tabpanel"
-                  class="grid min-w-26 flex-1 grid-flow-row-dense grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] content-start justify-items-center gap-x-3 gap-y-5"
+                  class="grid min-w-[5.125rem] flex-1 grid-flow-row-dense grid-cols-[repeat(auto-fill,minmax(5.125rem,1fr))] content-start justify-items-center gap-x-3 gap-y-5"
                   [attr.aria-label]="page()"
                 >
                   @for (param of pageParams(); track param.id) {
                     <cth-param-control [block]="block" [param]="param" [accent]="accent()" />
                   }
                   @if (block.type === 'compressor' && onFirstPage()) {
-                    <!-- The transfer curve: two knobs wide and two high at the page's right, beside the Output; the
+                    <!-- The transfer curve: three knobs wide and two high at the page's right, beside the Output; the
                          knobs flow around it (the grid packs densely). -->
-                    <cth-compressor-curve-tile class="[grid-column:span_2/-1] [grid-row:1/span_2]" [block]="block" />
+                    <cth-compressor-curve-tile class="[grid-column:span_3/-1] [grid-row:1/span_2]" [block]="block" />
                   } @else if ((block.type === 'mbcomp' || block.type === 'gate') && onFirstPage()) {
                     <!-- Gain reduction at the page's right, two rows high: one column for the gate, two for three bands. -->
                     <cth-dynamics-panel

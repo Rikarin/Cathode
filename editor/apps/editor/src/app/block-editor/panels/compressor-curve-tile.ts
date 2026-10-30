@@ -47,14 +47,14 @@ export function describeCurve(curve: CompressorCurve): string {
 }
 
 /**
- * The Compressor's transfer curve, as a tile two knobs wide and two high at the right of its Basic page: output
+ * The Compressor's transfer curve, as a tile three knobs wide and two high at the right of its Basic page: output
  * against input level, drawn by the engine's gain computer ported to `compressor-curve.ts` with the values its knobs
  * hold right now (a drag's included), and a dot riding the curve at the block's `detector` meter, where the signal is
  * on it. Its gain-reduction meter stands to the right, as tall as the chart.
  *
- * The tile fills the grid area it is given, two knob columns by two rows: it measures that area and makes the plot the
- * largest square that fits, centred. Its content is laid over the area rather than in it, so it never sets the rows' height itself and
- * cannot feed back on its own size.
+ * The tile fills the grid area it is given, three knob columns by two rows: it measures that area and makes the plot
+ * the largest square that fits, centred. Its content is laid over the area rather than in it, so it never sets the
+ * rows' height itself and cannot feed back on its own size.
  */
 @Component({
   selector: 'cth-compressor-curve-tile',
