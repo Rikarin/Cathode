@@ -513,8 +513,8 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
               <span class="text-foreground-muted text-xs">Views</span>
               @for (view of views(); track $index; let i = $index) {
                 <!--
-                  The view, and while it is the one edited its rename key and (when it is not the only one) its red
-                  remove key joined to it. Renaming swaps the view's button for a field: ↵ or
+                  The view, and while it is the one edited its rename key and (when it is not the only one) its remove
+                  key joined to it, red only under the pointer. Renaming swaps the view's button for a field: ↵ or
                   leaving it renames, Esc does not.
                 -->
                 <span xuiButtonGroup>
@@ -560,6 +560,7 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
                       type="button"
                       xuiButton
                       size="sm"
+                      variant="outline"
                       color="error"
                       [attr.aria-label]="'Remove view ' + view"
                       (click)="dropView(layout, i)"

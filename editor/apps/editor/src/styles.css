@@ -214,11 +214,18 @@ xui-segmented-control [role='radio'][aria-checked='true'] {
   }
 }
 
-/* A destructive outline button (xUI marks it border-error): the same bezel, its label in red, as macOS's. */
+/*
+ * A destructive outline button (xUI marks it border-error): the same bezel with its label or icon in red, turning red
+ * under the pointer, with the filled buttons' gloss, so the colour comes only as it is about to be used.
+ */
 [xuiButton].text-foreground.border-error:not(.border-none, .text-link) {
-  &,
+  color: var(--color-error);
+
   &:hover:not(:disabled) {
-    color: var(--color-error);
+    border-color: rgb(0 0 0 / 0.45);
+    background-color: var(--color-error);
+    background-image: linear-gradient(to bottom, rgb(255 255 255 / 0.16), rgb(255 255 255 / 0));
+    color: #fff;
   }
 }
 
