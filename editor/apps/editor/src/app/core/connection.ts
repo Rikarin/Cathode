@@ -9,7 +9,9 @@ const TokenKey = 'cathode.token:';
  * Where the Server is. In the desktop app the preload says (its sidecars, or a remote Server). In a browser: the
  * `server` query parameter; else the page's own origin when the Server served the editor (a headless rig, which marks
  * the page with `<meta name="cathode-server" content="same-origin">`); else a development Server on this machine. The
- * token comes from the `token` query parameter or the one remembered for that Server in this browser.
+ * token comes from the `token` query parameter or the one remembered for that Server in this browser, and the address
+ * keeps it: a Home Screen shortcut or bookmark made from the page opens straight in (an iPad's Home Screen app has
+ * storage of its own, so it cannot find the one Safari remembered).
  */
 @Injectable({ providedIn: 'root' })
 export class ConnectionService {
@@ -32,7 +34,7 @@ export class ConnectionService {
       : fromLocation(window.location, servedByServer(document), storedToken);
     if (!this.desktop && connection.token) {
       rememberToken(connection.baseUrl, connection.token);
-      forgetTokenInAddress(window);
+      showTokenInAddress(window, connection.token);
     }
 
     this.api = createCathodeClient(connection);
@@ -62,6 +64,7 @@ export class ConnectionService {
     const baseUrl = this.connection()?.baseUrl;
     if (baseUrl) {
       rememberToken(baseUrl, token.trim());
+      showTokenInAddress(window, token.trim()); // the address's token wins over the stored one
     }
   }
 }
@@ -82,14 +85,23 @@ function servedByServer(document: Document): boolean {
 }
 
 /**
- * Takes a `token` query parameter (a scanned QR code's) out of the address bar once it is remembered, so it is not
- * left in the history, a bookmark or a shared link.
+ * `href` with `token` as its `token` query parameter, or null when it already has it. The token stays in the address
+ * so a Home Screen shortcut or bookmark made from the page carries it; the hash (the editor's route) is kept.
  */
-function forgetTokenInAddress(window: Window): void {
-  const url = new URL(window.location.href);
-  if (url.searchParams.has('token')) {
-    url.searchParams.delete('token');
-    window.history.replaceState(window.history.state, '', url);
+export function addressWithToken(href: string, token: string): string | null {
+  const url = new URL(href);
+  if (url.searchParams.get('token') === token) {
+    return null;
+  }
+
+  url.searchParams.set('token', token);
+  return url.toString();
+}
+
+function showTokenInAddress(window: Window, token: string): void {
+  const address = addressWithToken(window.location.href, token);
+  if (address) {
+    window.history.replaceState(window.history.state, '', address);
   }
 }
 

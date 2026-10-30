@@ -1,4 +1,4 @@
-import { fromLocation } from './connection';
+import { addressWithToken, fromLocation } from './connection';
 
 const at = (search: string, origin = 'http://rig.local:5180') => ({ search, origin });
 
@@ -17,5 +17,21 @@ describe('fromLocation', () => {
       baseUrl: 'http://other:5180',
       token: 'typed'
     });
+  });
+});
+
+describe('addressWithToken', () => {
+  it('puts the token in the address, keeping the server and the route, so a shortcut made from it opens straight in', () => {
+    expect(addressWithToken('http://rig.local:5180/#/perform', 'kept')).toBe(
+      'http://rig.local:5180/?token=kept#/perform'
+    );
+    expect(addressWithToken('http://localhost:4310/?server=http://rig:5180#/', 'kept')).toBe(
+      'http://localhost:4310/?server=http%3A%2F%2Frig%3A5180&token=kept#/'
+    );
+  });
+
+  it('replaces another token, and leaves an address that has this one alone', () => {
+    expect(addressWithToken('http://rig.local:5180/?token=old#/', 'new')).toBe('http://rig.local:5180/?token=new#/');
+    expect(addressWithToken('http://rig.local:5180/?token=kept#/', 'kept')).toBeNull();
   });
 });
