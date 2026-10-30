@@ -449,6 +449,14 @@ xui-select > button[role='combobox'] {
  * A select's list as a macOS menu: rounded translucent material with a hairline edge and a deep shadow; the row under
  * the pointer or the arrow keys filled with the accent, the chosen one marked with a check rather than coloured.
  */
+/*
+ * The list is as wide as its select (xUI matches the two) unless an entry needs more: a narrow select (a footswitch's
+ * message type) still shows its entries whole, as a macOS pop-up's menu grows past the button.
+ */
+.cdk-overlay-pane[role='listbox'] {
+  min-width: max-content;
+}
+
 .cdk-overlay-pane[role='listbox'] > xui-popover-panel {
   margin-top: 0.25rem;
   border-color: var(--hairline-strong);

@@ -617,7 +617,7 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
                   </div>
                   <div role="cell" class="flex items-center gap-1">
                     <xui-select
-                      class="w-20"
+                      class="w-20 shrink-0"
                       [filterable]="false"
                       [items]="messages"
                       [value]="fs.message"
@@ -630,7 +630,7 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
                       size="sm"
                       type="number"
                       cthSteppers
-                      class="w-16"
+                      class="w-12"
                       [attr.aria-label]="'Switch ' + fs.index + ' number'"
                       [value]="fs.number"
                       (change)="editSwitch(layout, fs, { number: +numberField.value })"
@@ -641,7 +641,7 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
                       size="sm"
                       type="number"
                       cthSteppers
-                      class="w-14"
+                      class="w-10"
                       [attr.aria-label]="'Switch ' + fs.index + ' channel'"
                       [value]="fs.channel"
                       (change)="editSwitch(layout, fs, { channel: +channelField.value })"
