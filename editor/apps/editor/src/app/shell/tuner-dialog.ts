@@ -56,7 +56,7 @@ export const OffsetRange = 20;
       <xui-dialog-body>
         <cth-tuner class="py-4" [source]="reading" [view]="view()" />
         @if (globals.settings(); as s) {
-          <div class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2">
+          <div class="grid grid-cols-[auto_minmax(0,1fr)] items-center justify-items-start gap-x-3 gap-y-2">
             <span class="text-foreground-muted text-xs" id="tuner-view-label">View</span>
             <xui-segmented-control
               size="sm"

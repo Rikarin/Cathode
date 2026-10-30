@@ -71,7 +71,13 @@ export function strobeStep(phase: number, cents: number, dt: number, spacing = S
       }
     </div>
     @if (strobe()) {
-      <svg viewBox="0 0 200 60" class="w-72" role="img" data-testid="tuner-strobe" [attr.aria-label]="description()">
+      <svg
+        viewBox="0 0 200 60"
+        class="w-[22rem] max-w-full"
+        role="img"
+        data-testid="tuner-strobe"
+        [attr.aria-label]="description()"
+      >
         <defs>
           <clipPath [attr.id]="clipId"><rect x="4" y="8" width="192" height="44" rx="4" /></clipPath>
         </defs>
@@ -91,7 +97,7 @@ export function strobeStep(phase: number, cents: number, dt: number, spacing = S
         <line x1="100" x2="100" y1="2" y2="58" class="stroke-foreground-muted" stroke-width="1" />
       </svg>
     } @else {
-      <svg viewBox="0 0 200 60" class="w-72" role="img" [attr.aria-label]="description()">
+      <svg viewBox="0 0 200 60" class="w-[22rem] max-w-full" role="img" [attr.aria-label]="description()">
         @for (tick of ticks; track tick) {
           <line
             [attr.x1]="100 + tick * 1.8"
