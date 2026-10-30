@@ -3,7 +3,16 @@ import { TagColors, pickerEntries, tagColorName } from '../shell/picker-list';
 import { parseSlot } from '../shell/preset-picker';
 import { libraryFolders, wholeBlock } from '../state/block-presets.store';
 import { nextChannel } from '../state/ui.store';
-import { actionText, addView, overrideOf, removeLayout, removeView, viewNames, withOverride } from './footswitches';
+import {
+  actionText,
+  addView,
+  overrideOf,
+  removeLayout,
+  removeView,
+  renameView,
+  viewNames,
+  withOverride
+} from './footswitches';
 import { movedControl, resolveControls, withControl, withLabel, withoutControl } from './perform';
 
 describe('footswitch views and overrides', () => {
@@ -98,6 +107,22 @@ describe('footswitch views and overrides', () => {
     expect(actionText({ action: 'view', value: 0 })).toBe('view 1');
     expect(actionText({ action: 'external', value: 1 })).toBe('external 1');
     expect(actionText({ action: 'bypass', target: 'delay1', value: null })).toBe('bypass delay1');
+  });
+});
+
+describe('renaming a footswitch view', () => {
+  const layout: FootswitchLayout = { id: 'a', name: 'A', switches: [] };
+
+  it('names the view, the implicit Main one too, trimmed', () => {
+    expect(viewNames(renameView(layout, 0, '  Verse  '))).toEqual(['Verse']);
+    const two = renameView(addView(layout), 1, 'Solo');
+    expect(viewNames(two)).toEqual(['Main', 'Solo']);
+  });
+
+  it('leaves the layout as it was for a blank name, the same name or no such view', () => {
+    expect(renameView(layout, 0, '   ')).toBe(layout);
+    expect(renameView(layout, 0, 'Main')).toBe(layout);
+    expect(renameView(layout, 3, 'Solo')).toBe(layout);
   });
 });
 

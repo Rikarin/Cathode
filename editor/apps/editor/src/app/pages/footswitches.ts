@@ -11,6 +11,17 @@ export function addView(layout: FootswitchLayout): FootswitchLayout {
   return { ...layout, views: [...views, `View ${views.length + 1}`] };
 }
 
+/** The layout with view `view` named `name` (trimmed); a blank name leaves it as it was. */
+export function renameView(layout: FootswitchLayout, view: number, name: string): FootswitchLayout {
+  const views = viewNames(layout);
+  const trimmed = name.trim();
+  if (!trimmed || view < 0 || view >= views.length || views[view] === trimmed) {
+    return layout;
+  }
+
+  return { ...layout, views: views.map((v, i) => (i === view ? trimmed : v)) };
+}
+
 /** The layout without view `view`: its switches go too, and later views move down one. */
 export function removeView(layout: FootswitchLayout, view: number): FootswitchLayout {
   const views = viewNames(layout);

@@ -1,4 +1,15 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  type ElementRef,
+  Injector,
+  afterNextRender,
+  computed,
+  inject,
+  signal,
+  viewChild
+} from '@angular/core';
 import {
   type Footswitch,
   type FootswitchLayout,
@@ -14,7 +25,12 @@ import {
 } from '@cathode/api-client';
 import { CthKnob } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
-import { matAddRound, matDeleteRound, matSettingsInputComponentRound } from '@ng-icons/material-icons/round';
+import {
+  matAddRound,
+  matDeleteRound,
+  matEditRound,
+  matSettingsInputComponentRound
+} from '@ng-icons/material-icons/round';
 import { XuiAlertDialogImports } from '@xui/alert-dialog';
 import { XuiButtonImports } from '@xui/button';
 import { XuiButtonGroupImports } from '@xui/button-group';
@@ -43,6 +59,7 @@ import {
   overrideOf,
   removeLayout,
   removeView,
+  renameView,
   shownValue,
   viewNames,
   withOverride
@@ -111,7 +128,7 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
     XuiTableImports,
     XuiTextImports
   ],
-  providers: [provideIcons({ matAddRound, matDeleteRound, matSettingsInputComponentRound })],
+  providers: [provideIcons({ matAddRound, matDeleteRound, matEditRound, matSettingsInputComponentRound })],
   host: { class: 'block h-full overflow-auto p-6' },
   template: `
     @if (settings(); as s) {
@@ -495,18 +512,50 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
             <div class="flex flex-wrap items-center gap-2" data-testid="footswitch-views">
               <span class="text-foreground-muted text-xs">Views</span>
               @for (view of views(); track $index; let i = $index) {
-                <!-- The view, and while it is the one edited (and not the only one) its red remove key joined to it. -->
+                <!--
+                  The view, and while it is the one edited its rename key and (when it is not the only one) its red
+                  remove key joined to it. Renaming swaps the view's button for a field: ↵ or
+                  leaving it renames, Esc does not.
+                -->
                 <span xuiButtonGroup>
-                  <button
-                    type="button"
-                    xuiButton
-                    size="sm"
-                    [variant]="i === editingView() ? 'default' : 'outline'"
-                    (click)="editingView.set(i)"
-                  >
-                    {{ view }}{{ i === s.activeView ? ' (active)' : '' }}
-                  </button>
-                  @if (views().length > 1 && i === editingView()) {
+                  @if (renamingView() === i) {
+                    <input
+                      #viewNameField
+                      xuiInput
+                      size="sm"
+                      class="w-32"
+                      data-testid="view-name"
+                      [attr.aria-label]="'Name of view ' + view"
+                      [value]="view"
+                      (keydown.enter)="renameView(layout, i, viewNameField.value)"
+                      (keydown.escape)="renamingView.set(null)"
+                      (blur)="renameView(layout, i, viewNameField.value)"
+                    />
+                  } @else {
+                    <button
+                      type="button"
+                      xuiButton
+                      size="sm"
+                      [variant]="i === editingView() ? 'default' : 'outline'"
+                      (click)="editingView.set(i)"
+                      (dblclick)="startRenamingView(i)"
+                    >
+                      {{ view }}{{ i === s.activeView ? ' (active)' : '' }}
+                    </button>
+                  }
+                  @if (i === editingView() && renamingView() !== i) {
+                    <button
+                      type="button"
+                      xuiButton
+                      size="sm"
+                      variant="outline"
+                      [attr.aria-label]="'Rename view ' + view"
+                      (click)="startRenamingView(i)"
+                    >
+                      <ng-icon xui name="matEditRound" size="sm" />
+                    </button>
+                  }
+                  @if (views().length > 1 && i === editingView() && renamingView() !== i) {
                     <button
                       type="button"
                       xuiButton
@@ -853,6 +902,36 @@ export class GlobalPage {
   }
 
   protected readonly confirmDeleteLayout = signal(false);
+  /** The view whose name is being typed, if one is. */
+  protected readonly renamingView = signal<number | null>(null);
+  private readonly injector = inject(Injector);
+  private readonly viewNameField = viewChild<ElementRef<HTMLInputElement>>('viewNameField');
+
+  /** Opens view `view`'s name for typing, focused with the name selected, so typing replaces it. */
+  protected startRenamingView(view: number): void {
+    this.editingView.set(view);
+    this.renamingView.set(view);
+    afterNextRender(
+      () => {
+        const field = this.viewNameField()?.nativeElement;
+        field?.focus();
+        field?.select();
+      },
+      { injector: this.injector }
+    );
+  }
+
+  protected renameView(layout: FootswitchLayout, view: number, name: string): void {
+    if (this.renamingView() !== view) {
+      return; // Esc closed the field: the blur its removal fires is not a rename
+    }
+
+    this.renamingView.set(null);
+    const renamed = renameView(layout, view, name);
+    if (renamed !== layout) {
+      this.saveLayout(renamed);
+    }
+  }
 
   /** Deletes the active footswitch layout (removeLayout says what becomes of the rest). */
   protected deleteLayout(): void {
