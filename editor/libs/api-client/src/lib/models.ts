@@ -193,7 +193,8 @@ export interface Telemetry {
    * `preampIn` (the level into its mic preamp, 0 at the onset of clipping) and `motorReduction` (Motor Drive's gain
    * reduction), the Compressor's and the Gate/Expander's `gainReduction`, and the Multiband Compressor's
    * `lowReduction`, `midReduction` and `highReduction`. Reductions are positive dB, 0 when the block takes nothing off
-   * or is bypassed. Each is the highest value since the previous frame.
+   * or is bypassed. The Compressor's `detector` and `output` place it on its transfer curve: the level its gain
+   * computer reads and the level it lets out, -96 at rest. Each is the highest value since the previous frame.
    */
   blocks?: Record<string, Record<string, number>>;
   /** The output's BS.1770 momentary (400 ms) and short-term (3 s) loudness, LUFS. */

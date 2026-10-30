@@ -52,8 +52,8 @@ public class CompressorBlockTests {
     [Fact]
     public void The_gain_reduction_meter_reads_the_reduction_as_positive_dB_and_0_below_the_threshold() {
         using var block = Create(0);
-        var meter = new float[1];
-        Assert.Equal(["gainReduction"], block.MeterIds);
+        var meter = new float[3];
+        Assert.Equal(["gainReduction", "detector", "output"], block.MeterIds);
 
         BlockRender.Mono(block, Signals.Sine(1_000, 48_000, 48_000), 64); // 0 dBFS: 20 dB over at 4:1
         block.ReadMeters(meter);
@@ -72,7 +72,7 @@ public class CompressorBlockTests {
 
     [Fact]
     public void The_meter_counts_the_companders_expander_but_not_the_sustainers_boost() {
-        var meter = new float[1];
+        var meter = new float[3];
         using var compander = Create(CompressorBlock.Compander);
         BlockRender.Mono(compander, Signals.Sine(1_000, 48_000, 48_000, Db(-80)), 64); // 20 dB under its expander
         compander.ReadMeters(meter);

@@ -70,6 +70,9 @@ namespace Cathode.Dsp.Blocks;
 ///     <para>
 ///         Its <c>gainReduction</c> meter (<see cref="IDynamicsBlock" />) is how far the gain cell pulls the signal
 ///         down, in dB (0 or more), the Compander's expander included; the upward types read 0 while they raise it.
+///         <c>detector</c> and <c>output</c> place the signal on the transfer curve (<see cref="CompressorCurve" />):
+///         the level the gain computer reads, after Input Level and the sidechain filters, and the level that leaves
+///         the gain cell on the same scale, makeup included, so a steady signal reads a point on the curve.
 ///     </para>
 /// </summary>
 public sealed class CompressorBlock() : DspBlock(Info), IDynamicsBlock {
@@ -146,13 +149,13 @@ public sealed class CompressorBlock() : DspBlock(Info), IDynamicsBlock {
     /// <summary>The Tube type's grid bias, as an offset into its curve.</summary>
     const float TubeBias = 0.3f;
 
-    /// <summary>The deepest the Compander's expander goes, dB.</summary>
-    const float ExpanderFloorDb = -80f;
+    /// <summary>The <c>detector</c> and <c>output</c> meters' floor: silence, or the block bypassed, in dB.</summary>
+    public const float MeterFloorDb = -96f;
 
     /// <summary>The Look Ahead choices, in ms (a choice, not a knob: each change rebuilds the graph).</summary>
     public static ReadOnlySpan<float> LookAheadMs => [0f, 0.5f, 1f, 2f, 3f, 5f, 10f];
 
-    static readonly string[] Meters = ["gainReduction"];
+    static readonly string[] Meters = ["gainReduction", "detector", "output"];
 
     readonly SidechainSource sidechainSource = new();
     float[] aheadLeft = [];
@@ -161,6 +164,7 @@ public sealed class CompressorBlock() : DspBlock(Info), IDynamicsBlock {
     int aheadPosition;
     double meanSquare;
     float expansion; // the Compander's expander gain, dB (0 or negative)
+    float detectorDb = MeterFloorDb, outputDb = MeterFloorDb; // the last callback's loudest, for the meters
     float dcLeft, dcRight, dcInLeft, dcInRight; // the Tube type's DC blocker
     float mix = 1f;
     float lastGain = 1f;
@@ -248,7 +252,9 @@ public sealed class CompressorBlock() : DspBlock(Info), IDynamicsBlock {
     public float GainReductionDb { get; private set; }
 
     /// <summary>
-    ///     <c>gainReduction</c>: how far the block pulls the signal down, dB, 0 or more (<see cref="ReadMeters" />).
+    ///     <c>gainReduction</c>: how far the block pulls the signal down, dB, 0 or more; <c>detector</c>: the level
+    ///     the gain computer reads, dB; <c>output</c>: where that level comes out of the gain cell, dB
+    ///     (<see cref="ReadMeters" />).
     /// </summary>
     public IReadOnlyList<string> MeterIds => Meters;
 
@@ -321,9 +327,23 @@ public sealed class CompressorBlock() : DspBlock(Info), IDynamicsBlock {
 
     /// <summary>
     ///     Audio thread: the reduction as of the end of the last callback, the compressor's and the Compander's
-    ///     expander's together; the upward types' boost reads 0.
+    ///     expander's together (the upward types' boost reads 0); then the loudest level the gain computer read in that
+    ///     callback and the loudest it let out, makeup included, both at least <see cref="MeterFloorDb" />. On the
+    ///     feedback types the detector hears the output, so <c>detector</c> takes the fed-back gain off again: it is
+    ///     where the input sits on the curve (<see cref="CompressorCurve.Output" />).
     /// </summary>
-    public void ReadMeters(Span<float> values) => values[0] = Math.Max(0f, -(GainReductionDb + expansion));
+    public void ReadMeters(Span<float> values) {
+        values[0] = Math.Max(0f, -(GainReductionDb + expansion));
+        values[1] = detectorDb;
+        values[2] = outputDb;
+    }
+
+    /// <summary>Audio thread, while bypassed: no reduction, and nothing on the curve.</summary>
+    public void ReadRestingMeters(Span<float> values) {
+        values[0] = 0f;
+        values[1] = MeterFloorDb;
+        values[2] = MeterFloorDb;
+    }
 
     /// <summary>Audio thread: keeps the tap the Sidechain parameter selects (<see cref="SidechainSource" />).</summary>
     public void SideInput(SideInputKind kind, int row, in StereoBuffer signal, in StereoBuffer destination) =>
@@ -379,6 +399,7 @@ public sealed class CompressorBlock() : DspBlock(Info), IDynamicsBlock {
         GainReductionDb = 0;
         meanSquare = 0;
         expansion = 0;
+        detectorDb = outputDb = MeterFloorDb;
         dcLeft = dcRight = dcInLeft = dcInRight = 0;
         lastGain = 1f;
         sidechain.Reset();
@@ -395,25 +416,7 @@ public sealed class CompressorBlock() : DspBlock(Info), IDynamicsBlock {
         sidechainSource.OfferHardware(Inputs, (int)Params.GetTarget(Sidechain), io.Length);
         var rate = Spec.SampleRate;
         var type = (int)Params.Current(Type);
-        var threshold = Params.Advance(Threshold, io.Length);
-        var ratio = Params.Advance(Ratio, io.Length);
-        var compression = Params.Advance(Compression, io.Length);
-        if (Params.Current(Controls) >= 0.5f) {
-            (threshold, ratio) = SingleKnob(compression);
-        }
-
-        var expanderThreshold = Params.Advance(ExpanderThreshold, io.Length);
-        var expanderSlope = Params.Advance(ExpanderRatio, io.Length) - 1f;
-        var dynamics = Params.Advance(Dynamics, io.Length);
-        if (type == DynamicsProcessor) {
-            ratio = DynamicsRatio(dynamics);
-        }
-
-        var knee = Params.Advance(Knee, io.Length);
-        if (type == Tube) {
-            knee = Math.Max(knee, TubeKneeDb);
-        }
-
+        var curve = CompressorCurve.Advance(Params, io.Length); // the gain computer, as the editor draws it
         var attackMs = Params.Advance(Attack, io.Length);
         var releaseMs = Params.Advance(Release, io.Length);
         var light = (int)Params.Current(LightType);
@@ -427,15 +430,10 @@ public sealed class CompressorBlock() : DspBlock(Info), IDynamicsBlock {
 
         var attack = Coefficient(attackMs, rate);
         var release = Coefficient(releaseMs, rate);
-        var lineDb = Params.Current(InputLevel) >= 0.5f ? LineLevelDb : 0f;
-        var makeup = Params.Advance(Makeup, io.Length);
-        if (Params.Current(AutoMakeup) >= 0.5f) {
-            makeup += AutoMakeupDb(type, threshold, ratio, knee, lineDb);
-        }
-
-        var upward = type == Sustainer;
-        var boosting = type == DynamicsProcessor && ratio < 1f;
-        var feedback = type is Feedback or Jfet or Tube;
+        var lineDb = CompressorCurve.LineDb(Params);
+        var makeup = curve.Makeup;
+        var boosting = type == DynamicsProcessor && curve.Ratio < 1f;
+        var feedback = curve.Feedback;
         var compander = type == Compander;
         var detector = (int)Params.Current(Detector);
         if (detector == DetectorOfType) {
@@ -501,6 +499,8 @@ public sealed class CompressorBlock() : DspBlock(Info), IDynamicsBlock {
         var sideLeft = sidechainSource.Left;
         var sideRight = sidechainSource.Right;
         var position = aheadPosition;
+        var loudestHeard = MeterFloorDb;
+        var loudestOut = MeterFloorDb;
 
         for (var i = 0; i < io.Length; i++) {
             var left = io.Left[i];
@@ -547,12 +547,8 @@ public sealed class CompressorBlock() : DspBlock(Info), IDynamicsBlock {
             }
 
             levelDb -= lineDb;
-            var target = upward
-                ? Math.Min(MaxSustainDb, -StaticCurve(-levelDb, -threshold, ratio, knee) - levelDb) // >= 0
-                : StaticCurve(levelDb, threshold, ratio, knee) - levelDb; // <= 0 (>= 0 when expanding)
-            if (boosting) {
-                target = Math.Min(MaxSustainDb, target);
-            }
+            var target = curve.Target(levelDb);
+            var heard = feedback ? levelDb - reduction : levelDb; // where the input sits on the curve
 
             var attackCoefficient = attack;
             var releaseCoefficient = release;
@@ -576,9 +572,12 @@ public sealed class CompressorBlock() : DspBlock(Info), IDynamicsBlock {
 
             if (compander) {
                 // The expander: below its threshold, every dB down drops by the expander ratio more.
-                var under = Math.Max(ExpanderFloorDb, Math.Min(0f, expanderSlope * (levelDb - expanderThreshold)));
+                var under = curve.Expansion(levelDb);
                 expansion = under + (expansion - under) * (under > expansion ? attack : release);
             }
+
+            loudestHeard = Math.Max(loudestHeard, heard);
+            loudestOut = Math.Max(loudestOut, heard + reduction + expansion + makeup);
 
             var gain = MathF.Pow(10f, (reduction + expansion + makeup) / 20f);
             var cell = MathF.Pow(10f, reduction / 20f);
@@ -609,6 +608,8 @@ public sealed class CompressorBlock() : DspBlock(Info), IDynamicsBlock {
         aheadPosition = position;
         sidechainSource.Clear();
         GainReductionDb = MathF.Abs(reduction) < 1e-6f ? 0 : reduction;
+        detectorDb = loudestHeard;
+        outputDb = loudestOut;
         sidechain.FlushDenormals();
         emphasisLeft.FlushDenormals();
         emphasisRight.FlushDenormals();

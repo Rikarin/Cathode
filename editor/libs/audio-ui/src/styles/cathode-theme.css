@@ -96,6 +96,9 @@
   --lcd-glare: rgb(255 255 255 / 0.65);
 
   --well: #26262a;
+  /* Marks drawn in a well (a chart's grid and reference lines): it is dark in both themes. */
+  --well-line: rgb(255 255 255 / 0.08);
+  --well-line-strong: rgb(255 255 255 / 0.2);
 
   /* A switch's knob: Anode's fader-cap metal. */
   --knob-top: #ffffff;
@@ -172,6 +175,9 @@
   --lcd-glare: rgb(255 255 255 / 0.06);
 
   --well: #0e0e0f;
+  /* Marks drawn in a well (a chart's grid and reference lines). */
+  --well-line: rgb(255 255 255 / 0.07);
+  --well-line-strong: rgb(255 255 255 / 0.18);
 
   /* A switch's knob: Anode's fader-cap metal. */
   --knob-top: #e9e9ec;

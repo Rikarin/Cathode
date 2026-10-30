@@ -10,6 +10,7 @@ export * from './lib/scope';
 export * from './lib/speaker-cone';
 export * from './lib/step-bars';
 export * from './lib/toggle';
+export * from './lib/transfer-chart';
 export * from './lib/tuner';
 export * from './lib/tuning';
 export * from './lib/values';

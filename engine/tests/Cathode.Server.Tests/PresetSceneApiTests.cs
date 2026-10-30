@@ -407,11 +407,42 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         await Ok(
             client.PutAsJsonAsync("/api/v1/live/blocks/volpan1/test-tone", new TestToneRequest(true, 220, -20), Token)
         );
-        var working = await Reduction(socket, static r => r > 10f);
+        var working = await Meter(socket, "gainReduction", static r => r > 10f);
         Assert.InRange(working, 10f, 30f);
 
         await Put("/api/v1/live/blocks/compressor1/bypass", new BypassRequest(true));
-        Assert.Equal(0f, await Reduction(socket, static r => r == 0f));
+        Assert.Equal(0f, await Meter(socket, "gainReduction", static r => r == 0f));
+        await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", Token);
+    }
+
+    [Fact]
+    public async Task A_compressors_place_on_its_curve_arrives_and_rests_at_the_floor_when_bypassed() {
+        await Post("/api/v1/live/blocks", new AddBlockRequest("volpan", Preset.DefaultRow, 3));
+        await Post("/api/v1/live/blocks", new AddBlockRequest("compressor", Preset.DefaultRow, 4));
+        await Patch(
+            "/api/v1/live/blocks/compressor1/params?channel=A",
+            new Dictionary<string, float> { ["threshold"] = -50, ["knee"] = 0, ["makeup"] = 6 }
+        );
+        using var socket = await server.Server.CreateWebSocketClient()
+            .ConnectAsync(new(server.Server.BaseAddress, "ws"), Token);
+
+        // A -20 dBFS tone into the Pedal type (a peak detector), 30 dB over at 4:1: -42.5 dB, and 6 dB of makeup.
+        await Ok(
+            client.PutAsJsonAsync("/api/v1/live/blocks/volpan1/test-tone", new TestToneRequest(true, 220, -20), Token)
+        );
+        // Once the attack has caught the tone (the frames as it lands hold levels the gain had not yet met), the point
+        // is on the curve: -50 + (detector + 50) / 4 + 6.
+        var meters = await Meters(
+            socket,
+            static m => m["detector"]!.GetValue<float>() > -30f && m["output"]!.GetValue<float>() < -34f
+        );
+        var detector = meters["detector"]!.GetValue<float>();
+        Assert.InRange(detector, -24f, -16f);
+        Assert.Equal(-44f + (detector + 50f) / 4f, meters["output"]!.GetValue<float>(), 2f);
+
+        await Put("/api/v1/live/blocks/compressor1/bypass", new BypassRequest(true));
+        Assert.Equal(CompressorBlock.MeterFloorDb, await Meter(socket, "detector", static d => d <= -96f));
+        Assert.Equal(CompressorBlock.MeterFloorDb, await Meter(socket, "output", static d => d <= -96f));
         await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", Token);
     }
 
@@ -573,29 +604,41 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
     }
 
     /// <summary>
-    ///     The Compressor's <c>gainReduction</c> from the first telemetry frame where it meets
+    ///     The Compressor's meter <paramref name="id" /> from the first telemetry frame where it meets
     ///     <paramref name="until" />; fails after 10 s.
     /// </summary>
-    static async Task<float> Reduction(WebSocket socket, Func<float, bool> until) {
+    static async Task<float> Meter(WebSocket socket, string id, Func<float, bool> until) =>
+        (await Meters(socket, meters => until(meters[id]!.GetValue<float>())))[id]!.GetValue<float>();
+
+    /// <summary>
+    ///     The Compressor's meters, by id, from the first telemetry frame that has them all and where they meet
+    ///     <paramref name="until" />; fails after 10 s.
+    /// </summary>
+    static async Task<JsonNode> Meters(WebSocket socket, Func<JsonNode, bool> until) {
         var buffer = new byte[256 * 1024];
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Token);
         deadline.CancelAfter(TimeSpan.FromSeconds(10));
-        float? last = null;
+        JsonNode? last = null;
         while (true) {
             WebSocketReceiveResult result;
             try {
                 result = await socket.ReceiveAsync(buffer, deadline.Token);
             } catch (OperationCanceledException) when (!Token.IsCancellationRequested) {
-                Assert.Fail($"No telemetry with the gain reduction expected within 10 s; the last read {last}.");
+                Assert.Fail(
+                    $"No telemetry with the Compressor's meters as expected within 10 s; the last read {last}."
+                );
                 throw;
             }
 
             var frame = JsonNode.Parse(Encoding.UTF8.GetString(buffer, 0, result.Count))!;
             if (frame["type"]!.GetValue<string>() == "telemetry"
-                && frame["blocks"]?["compressor1"]?["gainReduction"] is { } meter) {
-                last = meter.GetValue<float>();
-                if (until(last.Value)) {
-                    return last.Value;
+                && frame["blocks"]?["compressor1"] is { } meters
+                && meters["gainReduction"] is not null
+                && meters["detector"] is not null
+                && meters["output"] is not null) {
+                last = meters;
+                if (until(meters)) {
+                    return meters;
                 }
             }
         }

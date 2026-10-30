@@ -27,7 +27,21 @@ compressed layer under it.
 0 dB as the compressor turns the level down, on a scale to −24 dB, and follows the attack and release you set. A mark
 stays at the deepest reduction for a second, and the number under the bar shows it. With the Compander type the meter
 includes what the expander takes off between notes. The Sustainer, and the Dynamics type at negative values, raise the
-level rather than lower it, so the meter stays at 0 on them. It also reads 0 while the block is bypassed.`,
+level rather than lower it, so the meter stays at 0 on them. It also reads 0 while the block is bypassed.
+
+**Reading the curve:** next to the meter is a small chart of what the compressor does to each level. The level going
+in runs left to right and the level coming out runs bottom to top, both from −60 to 0 dB with a line every 12 dB. The
+faint dashed diagonal is "no change": a signal on it comes out as loud as it went in. The coloured line is your
+settings. Below the threshold it runs along the diagonal (lifted by any makeup gain); at the threshold it bends, and
+above it, it climbs more slowly: one dB for every two at 2:1, and not at all at ∞:1. A wider Knee rounds that bend off.
+Turn a knob and the line moves with it. The dot is your playing: it sits where the signal is right now and shows the
+level that actually comes out, so on a held note it rests on the line, and on a hard pick attack it jumps above it for
+a moment until the attack catches up. Because the dot measures the real output, it also shows what the line can only
+approximate: the Opto type's slow, level-dependent release, and the Feedback, JFET and Tube types, whose line is
+already drawn softer than their Ratio because they listen to their own output. On the Sustainer the line rises above
+the diagonal below the threshold, where it lifts quiet notes; the Compander's also drops away below its expander
+threshold. With **Input Level** on Line the chart shows what the compressor hears, 12 dB lower than the input, so the
+dot sits further left. The dot disappears when the signal is quieter than −60 dB or the block is bypassed.`,
 
   params: {
     type: `The compressor's design: how it measures the level and how it reacts. See the list below.`,

@@ -384,8 +384,8 @@ public unsafe struct TelemetryLayout {
 
     /// <summary>
     ///     Block meter values: a peak per graph slot (a 6 x 14 grid at most) plus each block's own meters (at most
-    ///     three, the Multiband Compressor's). The compiler refuses a graph with more (<c>GraphCompiler</c>), so none
-    ///     is ever cut off.
+    ///     three, the Compressor's and the Multiband Compressor's). The compiler refuses a graph with more
+    ///     (<c>GraphCompiler</c>), so none is ever cut off.
     /// </summary>
     public const int BlockMeters = 6 * 14 * 4;
 
