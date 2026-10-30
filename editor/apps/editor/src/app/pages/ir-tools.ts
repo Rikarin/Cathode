@@ -7,6 +7,7 @@ import { XuiInputImports } from '@xui/input';
 import { XuiSelectImports } from '@xui/select';
 import { XuiSwitchImports } from '@xui/switch';
 import { XuiTableImports } from '@xui/table';
+import { NumberSteppers } from '../controls/number-steppers';
 import { ConnectionService } from '../core/connection';
 import { Notify } from '../core/notify';
 import { type IrImportOptions, LibraryStore } from '../state/library.store';
@@ -57,7 +58,7 @@ export class IrImportSettings {
 @Component({
   selector: 'cth-ir-import-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [XuiButtonImports, XuiDialogImports, XuiInputImports, XuiSelectImports, XuiSwitchImports],
+  imports: [NumberSteppers, XuiButtonImports, XuiDialogImports, XuiInputImports, XuiSelectImports, XuiSwitchImports],
   template: `
     <xui-dialog title="IR import settings" class="w-[min(32rem,calc(100vw-2rem))] max-w-none" [(open)]="open">
       <xui-dialog-body class="flex flex-col gap-4">
@@ -94,6 +95,7 @@ export class IrImportSettings {
               #maxLengthMsField
               xuiInput
               type="number"
+              cthSteppers
               min="0"
               max="10000"
               class="w-28"
@@ -177,6 +179,7 @@ interface MixRow {
                     xuiInput
                     size="sm"
                     type="number"
+                    cthSteppers
                     step="0.5"
                     class="w-24"
                     [attr.aria-label]="'IR ' + (i + 1) + ' level'"
@@ -190,6 +193,7 @@ interface MixRow {
                     xuiInput
                     size="sm"
                     type="number"
+                    cthSteppers
                     step="0.01"
                     min="0"
                     class="w-24"
@@ -241,6 +245,7 @@ interface MixRow {
                 #lengthMsField
                 xuiInput
                 type="number"
+                cthSteppers
                 min="5"
                 max="2000"
                 class="w-24"
@@ -367,6 +372,7 @@ export class IrMixerDialog {
               #sweepSecondsField
               xuiInput
               type="number"
+              cthSteppers
               min="1"
               max="30"
               class="w-20"
@@ -381,6 +387,7 @@ export class IrMixerDialog {
               #sweepLevelField
               xuiInput
               type="number"
+              cthSteppers
               min="-60"
               max="0"
               class="w-20"
@@ -395,6 +402,7 @@ export class IrMixerDialog {
               #captureLengthField
               xuiInput
               type="number"
+              cthSteppers
               min="20"
               max="2000"
               class="w-24"

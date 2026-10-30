@@ -15,6 +15,7 @@ import { XuiDialogImports } from '@xui/dialog';
 import { XuiInputImports } from '@xui/input';
 import { XuiSegmentedControlImports } from '@xui/segmented-control';
 import { XuiSelectImports } from '@xui/select';
+import { NumberSteppers } from '../controls/number-steppers';
 import { ConnectionService } from '../core/connection';
 import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
@@ -50,7 +51,7 @@ export const OffsetRange = 20;
 @Component({
   selector: 'cth-tuner-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CthTuner, XuiDialogImports, XuiInputImports, XuiSegmentedControlImports, XuiSelectImports],
+  imports: [CthTuner, NumberSteppers, XuiDialogImports, XuiInputImports, XuiSegmentedControlImports, XuiSelectImports],
   template: `
     <xui-dialog title="Tuner" icon="matTuneRound" [(open)]="open">
       <xui-dialog-body>
@@ -86,6 +87,7 @@ export const OffsetRange = 20;
                   xuiInput
                   size="sm"
                   type="number"
+                  cthSteppers
                   class="w-20"
                   step="0.1"
                   data-testid="tuner-reference"
@@ -120,6 +122,7 @@ export const OffsetRange = 20;
                         xuiInput
                         size="sm"
                         type="number"
+                        cthSteppers
                         class="w-14 text-center"
                         step="0.5"
                         [min]="-offsetRange"

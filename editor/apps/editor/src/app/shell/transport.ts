@@ -30,6 +30,7 @@ import { XuiIconImports } from '@xui/icon';
 import { XuiInputImports } from '@xui/input';
 import { XuiTagImports } from '@xui/tag';
 import { XuiTooltipImports } from '@xui/tooltip';
+import { NumberSteppers } from '../controls/number-steppers';
 import { ConnectionService } from '../core/connection';
 import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
@@ -51,7 +52,15 @@ const LooperColors: Record<string, 'error' | 'warning' | 'success' | 'none'> = {
 @Component({
   selector: 'cth-transport',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [XuiButtonImports, XuiDialogImports, XuiIconImports, XuiInputImports, XuiTagImports, XuiTooltipImports],
+  imports: [
+    NumberSteppers,
+    XuiButtonImports,
+    XuiDialogImports,
+    XuiIconImports,
+    XuiInputImports,
+    XuiTagImports,
+    XuiTooltipImports
+  ],
   providers: [
     provideIcons({
       matDownloadRound,
@@ -74,6 +83,7 @@ const LooperColors: Record<string, 'error' | 'warning' | 'success' | 'none'> = {
         xuiInput
         size="sm"
         type="number"
+        cthSteppers
         class="w-20"
         aria-label="Tempo in BPM"
         [value]="tempo()"

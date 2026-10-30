@@ -25,6 +25,7 @@ import { XuiSelectImports } from '@xui/select';
 import { XuiSwitchImports } from '@xui/switch';
 import { XuiTableImports } from '@xui/table';
 import { XuiTextImports } from '@xui/text';
+import { NumberSteppers } from '../controls/number-steppers';
 import { ConnectionService } from '../core/connection';
 import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
@@ -93,6 +94,7 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
   imports: [
     ActionPicker,
     CthKnob,
+    NumberSteppers,
     XuiButtonImports,
     XuiCalloutImports,
     XuiCardImports,
@@ -557,6 +559,7 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
                       xuiInput
                       size="sm"
                       type="number"
+                      cthSteppers
                       class="w-16"
                       [attr.aria-label]="'Switch ' + fs.index + ' number'"
                       [value]="fs.number"
@@ -567,6 +570,7 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
                       xuiInput
                       size="sm"
                       type="number"
+                      cthSteppers
                       class="w-14"
                       [attr.aria-label]="'Switch ' + fs.index + ' channel'"
                       [value]="fs.channel"

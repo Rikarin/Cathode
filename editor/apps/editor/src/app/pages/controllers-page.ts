@@ -10,6 +10,7 @@ import { XuiInputImports } from '@xui/input';
 import { XuiSelectImports } from '@xui/select';
 import { XuiTableImports } from '@xui/table';
 import { XuiTextImports } from '@xui/text';
+import { NumberSteppers } from '../controls/number-steppers';
 import { RigControl } from '../controls/rig-knob';
 import { Coalescer } from '../core/coalescer';
 import { ConnectionService } from '../core/connection';
@@ -78,6 +79,7 @@ export function scopeName(channel: string | null | undefined): string {
   imports: [
     CthKnob,
     CthStepBars,
+    NumberSteppers,
     RigControl,
     XuiButtonImports,
     XuiCardImports,
@@ -152,6 +154,7 @@ export function scopeName(channel: string | null | undefined): string {
                   #channelField
                   xuiInput
                   type="number"
+                  cthSteppers
                   class="w-20"
                   min="1"
                   max="16"
@@ -165,6 +168,7 @@ export function scopeName(channel: string | null | undefined): string {
                   #numberField
                   xuiInput
                   type="number"
+                  cthSteppers
                   class="w-20"
                   min="0"
                   max="127"
@@ -179,6 +183,7 @@ export function scopeName(channel: string | null | undefined): string {
                     #valueField
                     xuiInput
                     type="number"
+                    cthSteppers
                     class="w-20"
                     min="0"
                     max="127"

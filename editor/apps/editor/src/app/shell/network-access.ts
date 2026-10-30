@@ -3,6 +3,7 @@ import { XuiButtonImports } from '@xui/button';
 import { XuiCalloutImports } from '@xui/callout';
 import { XuiInputImports } from '@xui/input';
 import { XuiSwitchImports } from '@xui/switch';
+import { NumberSteppers } from '../controls/number-steppers';
 import { ConnectionService } from '../core/connection';
 import type { NetworkStatus } from '../core/desktop';
 import { Notify } from '../core/notify';
@@ -16,7 +17,7 @@ import { Notify } from '../core/notify';
 @Component({
   selector: 'cth-network-access',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [XuiButtonImports, XuiCalloutImports, XuiInputImports, XuiSwitchImports],
+  imports: [NumberSteppers, XuiButtonImports, XuiCalloutImports, XuiInputImports, XuiSwitchImports],
   host: { class: 'flex flex-col items-start gap-4' },
   template: `
     @if (status(); as s) {
@@ -44,6 +45,7 @@ import { Notify } from '../core/notify';
             #portField
             xuiInput
             type="number"
+            cthSteppers
             min="1024"
             max="65535"
             class="w-28"

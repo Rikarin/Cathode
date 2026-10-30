@@ -908,3 +908,73 @@ xui-tabs > [role='tablist'] {
   /* The ring appears at once: animated from xUI's base outline, it flashed solid blue on its way to the glow. */
   transition-property: color, background-color, border-color, opacity, transform;
 }
+
+/*
+ * Number fields (controls/number-steppers.ts): the browser's spin arrows give way to the preset display's steppers, two
+ * half-height bezelled keys joined to the field's right end.
+ */
+input[xuiInput][type='number'] {
+  appearance: textfield;
+
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button {
+    appearance: none;
+    margin: 0;
+  }
+}
+
+.cth-number-field {
+  position: relative;
+  display: inline-flex;
+  /* Its content's width: a column of a label would stretch it, and leave the steppers at the far end. */
+  width: fit-content;
+  vertical-align: middle;
+  padding-inline-end: 1.125rem;
+  border-radius: var(--radius-control);
+
+  /* The focus ring goes round the field and its steppers together, as one control. */
+  &:has(> input:focus-visible) {
+    outline: 3px solid var(--focus-ring);
+  }
+
+  & > input[xuiInput]:focus-visible {
+    outline-style: none;
+  }
+
+  /* As specific as the text-field rule's corners, which it squares off where the steppers join. */
+  & > input[xuiInput] {
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
+  }
+}
+
+.cth-number-steppers {
+  display: flex;
+  flex-direction: column;
+
+  /* Laid over the end of the group, so the pair is as tall as the field whatever its size: each key half of it. */
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+
+  & > .cth-stepper {
+    width: 1.125rem;
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: hidden;
+    border-inline-start-width: 0;
+  }
+
+  & > .cth-stepper > svg {
+    width: auto;
+    height: min(0.75rem, 100%);
+  }
+
+  & > .cth-stepper:first-child {
+    border-start-end-radius: var(--radius-control);
+  }
+
+  & > .cth-stepper:last-child {
+    border-end-end-radius: var(--radius-control);
+  }
+}

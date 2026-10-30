@@ -8,6 +8,7 @@ import { XuiSegmentedControlImports } from '@xui/segmented-control';
 import { XuiSelectImports } from '@xui/select';
 import { XuiStatisticImports } from '@xui/statistic';
 import { XuiTextImports } from '@xui/text';
+import { NumberSteppers } from '../controls/number-steppers';
 import { InputClipLevel } from '../core/clip';
 import { ConnectionService } from '../core/connection';
 import type { AudioDevice, AudioSettings, LatencyResult } from '../core/desktop';
@@ -33,6 +34,7 @@ const BufferSizes = [32, 64, 128, 256, 512];
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     NetworkAccess,
+    NumberSteppers,
     ServerTargetForm,
     XuiButtonImports,
     XuiCalloutImports,
@@ -133,6 +135,7 @@ const BufferSizes = [32, 64, 128, 256, 512];
                 #maxLevelField
                 xuiInput
                 type="number"
+                cthSteppers
                 step="0.5"
                 class="w-28"
                 aria-label="Interface maximum input level"
@@ -156,6 +159,7 @@ const BufferSizes = [32, 64, 128, 256, 512];
                 #referenceField
                 xuiInput
                 type="number"
+                cthSteppers
                 step="0.05"
                 class="w-28"
                 aria-label="Reference sine level"
