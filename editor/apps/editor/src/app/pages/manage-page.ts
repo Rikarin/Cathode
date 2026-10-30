@@ -62,66 +62,83 @@ export const LibraryEntryHeight = 24;
     </header>
 
     <div class="flex min-h-0 flex-1 gap-4">
-      <aside class="flex w-56 shrink-0 flex-col gap-3">
-        <div class="flex items-center justify-between">
-          <span class="text-foreground-muted text-[11px] font-semibold tracking-wide uppercase">Banks</span>
-          <button type="button" xuiButton size="sm" variant="ghost" aria-label="New bank" (click)="addBank()">
-            <ng-icon xui name="matAddRound" size="sm" />
-          </button>
-        </div>
-        <ul class="flex flex-col gap-0.5 text-sm" aria-label="Banks">
-          @for (bank of banks(); track bank.id) {
-            <li
-              class="hover:bg-active-overlay cursor-pointer truncate rounded px-2 py-1"
-              [class.bg-active-overlay]="bank.id === bankId()"
-              [attr.data-testid]="'bank-' + bank.id"
-              [xuiContextMenuTriggerFor]="bankActions"
-              [xuiContextMenuDisabled]="bank.factory ?? false"
-              [xuiContextMenuTriggerData]="{ id: bank.id }"
-              tabindex="0"
-              (click)="selectBank(bank.id)"
-              (keydown.enter)="selectBank(bank.id)"
-              (keydown.space)="$event.preventDefault(); selectBank(bank.id)"
-              (dblclick)="!bank.factory && openRenameBank(bank.id)"
-              (contextmenu)="selectBank(bank.id)"
-              (dragover)="$event.preventDefault()"
-              (drop)="dropOnBank($event, bank.id)"
-            >
-              {{ bank.name }}
-              @if (bank.factory) {
-                <span class="text-foreground-subtle ms-1 text-[10px] uppercase">read-only</span>
-              }
-            </li>
-          } @empty {
-            <li class="text-foreground-muted text-xs">No banks yet: add one.</li>
-          }
-        </ul>
-        <span class="text-foreground-muted mt-2 text-[11px] font-semibold tracking-wide uppercase">Library</span>
-        <!-- Only the entries in view are rendered. -->
-        <cdk-virtual-scroll-viewport
-          class="min-h-0 flex-1 text-sm"
-          role="list"
-          aria-label="Presets to place"
-          data-testid="library-presets"
-          [itemSize]="entryHeight"
-        >
-          <div
-            *cdkVirtualFor="let p of library.ordered(); trackBy: byId; let i = index; let count = count"
-            role="listitem"
-            class="hover:bg-active-overlay h-6 cursor-grab truncate rounded px-2 py-0.5"
-            draggable="true"
-            [attr.aria-posinset]="i + 1"
-            [attr.aria-setsize]="count"
-            (dragstart)="dragPreset($event, p.id)"
-          >
-            {{ p.name }}
+      <aside class="flex w-56 shrink-0 flex-col gap-4">
+        <div class="pane flex max-h-[45%] shrink-0 flex-col">
+          <div class="pane-header flex h-9 shrink-0 items-center justify-between ps-3 pe-1">
+            <span class="section-label">Banks</span>
+            <button type="button" xuiButton size="sm" variant="ghost" aria-label="New bank" (click)="addBank()">
+              <ng-icon xui name="matAddRound" size="sm" />
+            </button>
           </div>
-        </cdk-virtual-scroll-viewport>
+          <ul class="flex min-h-0 flex-col gap-0.5 overflow-y-auto p-1.5 text-sm" aria-label="Banks">
+            @for (bank of banks(); track bank.id) {
+              <li
+                class="group data-selected:bg-primary not-data-selected:hover:bg-hover-overlay flex h-7 shrink-0 cursor-pointer items-center gap-1.5 rounded-[5px] px-2 data-selected:font-medium data-selected:text-white"
+                [attr.data-selected]="bank.id === shownBankId() || null"
+                [attr.data-testid]="'bank-' + bank.id"
+                [xuiContextMenuTriggerFor]="bankActions"
+                [xuiContextMenuDisabled]="bank.factory ?? false"
+                [xuiContextMenuTriggerData]="{ id: bank.id }"
+                tabindex="0"
+                (click)="selectBank(bank.id)"
+                (keydown.enter)="selectBank(bank.id)"
+                (keydown.space)="$event.preventDefault(); selectBank(bank.id)"
+                (dblclick)="!bank.factory && openRenameBank(bank.id)"
+                (contextmenu)="selectBank(bank.id)"
+                (dragover)="$event.preventDefault()"
+                (drop)="dropOnBank($event, bank.id)"
+              >
+                <span class="min-w-0 flex-1 truncate">{{ bank.name }}</span>
+                @if (bank.factory) {
+                  <!-- A capsule like the presets list's chips; translucent white on the selected (accent) row. -->
+                  <span
+                    class="text-foreground-muted flex h-4.5 shrink-0 items-center rounded-full border border-white/8 bg-white/6 px-1.5 text-[10px] font-medium group-data-selected:border-white/30 group-data-selected:bg-white/18 group-data-selected:text-white"
+                    >read-only</span
+                  >
+                }
+              </li>
+            } @empty {
+              <li class="text-foreground-muted px-2 py-1 text-xs">No banks yet: add one.</li>
+            }
+          </ul>
+        </div>
+        <div class="pane flex min-h-0 flex-1 flex-col">
+          <div class="pane-header flex h-9 shrink-0 items-center px-3">
+            <span class="section-label">Library</span>
+          </div>
+          <!--
+          Only the entries in view are rendered. The rows' wrapper is held to the viewport's width (it would size to the
+          longest name), with the side padding on it.
+        -->
+          <cdk-virtual-scroll-viewport
+            class="min-h-0 flex-1 py-1.5 text-sm [&_.cdk-virtual-scroll-content-wrapper]:w-full [&_.cdk-virtual-scroll-content-wrapper]:px-1.5"
+            role="list"
+            aria-label="Presets to place"
+            data-testid="library-presets"
+            [itemSize]="entryHeight"
+          >
+            <div
+              *cdkVirtualFor="let p of library.ordered(); trackBy: byId; let i = index; let count = count"
+              role="listitem"
+              class="hover:bg-hover-overlay h-6 cursor-grab truncate rounded-[5px] px-2 py-0.5"
+              draggable="true"
+              [attr.aria-posinset]="i + 1"
+              [attr.aria-setsize]="count"
+              (dragstart)="dragPreset($event, p.id)"
+            >
+              {{ p.name }}
+            </div>
+          </cdk-virtual-scroll-viewport>
+        </div>
       </aside>
 
-      <section class="flex min-w-0 flex-1 flex-col gap-3">
-        <div class="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Selected presets">
-          <span class="text-foreground-muted text-sm">{{ selectedIds().length }} selected</span>
+      <section class="pane flex min-w-0 flex-1 flex-col">
+        <div
+          class="pane-header flex min-h-9 shrink-0 flex-wrap items-center gap-2 px-3 py-1"
+          role="toolbar"
+          aria-label="Selected presets"
+        >
+          <span class="text-foreground-subtle readout mr-1 text-xs">{{ selectedIds().length }} selected</span>
           <button
             type="button"
             xuiButton
@@ -188,14 +205,15 @@ export const LibraryEntryHeight = 24;
           </button>
         </div>
         @if (factoryBank()) {
-          <p class="text-foreground-muted text-xs" data-testid="factory-bank-note">
+          <p class="text-foreground-muted shrink-0 px-3 pt-3 text-xs" data-testid="factory-bank-note">
             The factory bank is read-only. Drag its presets onto a bank of your own, or ⇧-drag for a copy you can
             change.
           </p>
         }
         @if (bank(); as b) {
+          <!-- The slots in a sunken well, each a raised tile; a selected one is lit in the accent. -->
           <div
-            class="grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] content-start gap-1.5 overflow-y-auto"
+            class="border-hairline-strong m-3 grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] content-start gap-1.5 overflow-y-auto rounded-lg border bg-(--well) p-2 shadow-[inset_0_1px_3px_rgb(0_0_0/0.6),0_1px_0_var(--highlight)]"
             role="listbox"
             aria-multiselectable="true"
             [attr.aria-label]="b.name"
@@ -203,9 +221,7 @@ export const LibraryEntryHeight = 24;
             @for (slot of slots(); track slot.index) {
               <div
                 role="option"
-                class="border-border-muted relative flex h-12 cursor-pointer flex-col justify-center rounded-md border px-2 text-xs"
-                [class.bg-active-overlay]="selected().has(slot.index)"
-                [class.border-primary]="selected().has(slot.index)"
+                class="bg-surface-raised hover:bg-surface-raised/80 aria-selected:border-primary relative flex h-12 cursor-pointer flex-col justify-center rounded-md border border-(--hairline-strong) px-2 text-xs shadow-[inset_0_1px_0_var(--highlight),0_1px_2px_rgb(0_0_0/0.4)] aria-selected:bg-[color-mix(in_oklab,var(--color-primary)_22%,var(--color-surface-raised))] aria-selected:shadow-[inset_0_1px_0_var(--highlight),0_0_0_1px_var(--color-primary)]"
                 [attr.aria-selected]="selected().has(slot.index)"
                 [attr.data-testid]="'slot-' + slot.index"
                 [attr.draggable]="slot.id !== null"
@@ -216,7 +232,7 @@ export const LibraryEntryHeight = 24;
                 (dragover)="$event.preventDefault()"
                 (drop)="dropOnSlot($event, slot.index)"
               >
-                <span class="text-foreground-subtle tabular-nums">{{ slot.index + 1 }}</span>
+                <span class="text-foreground-subtle readout text-[10px]">{{ slot.index + 1 }}</span>
                 <span class="truncate font-medium">{{ slot.name }}</span>
                 @if (slot.favorite || slot.color) {
                   <span class="absolute top-1 right-1.5 flex items-center gap-1">
@@ -235,7 +251,7 @@ export const LibraryEntryHeight = 24;
             }
           </div>
         }
-        <p class="text-foreground-muted text-xs">
+        <p class="text-foreground-subtle mt-auto shrink-0 border-t border-(--hairline) px-3 py-2 text-xs">
           Drag swaps two slots; ⌘-drag moves, ⇧-drag copies. Drop on a bank in the list for its first empty slot.
         </p>
       </section>
@@ -331,6 +347,8 @@ export class ManagePage {
     return [...this.session().banks];
   });
   protected readonly bank = computed(() => this.banks().find(b => b.id === this.bankId()) ?? this.banks()[0] ?? null);
+  /** The bank shown, which the list marks: the one chosen, or the first before any is. */
+  protected readonly shownBankId = computed(() => this.bank()?.id ?? null);
   /** Whether the bank shown is the read-only factory bank. */
   protected readonly factoryBank = computed(() => this.bank()?.factory ?? false);
   protected readonly slots = computed(() => {
