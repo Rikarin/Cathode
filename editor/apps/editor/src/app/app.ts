@@ -176,7 +176,8 @@ import { UiStore } from './state/ui.store';
           [class.window-drag]="macWindow"
           [class.ps-21]="trafficLights()"
         >
-          <div xuiNavbarGroup class="no-scrollbar min-w-0 gap-1 overflow-x-auto max-lg:h-10 max-lg:w-full">
+          <!-- Room inside the scroller for the links' focus rings, which it would clip at its ends (-mx keeps it in place). -->
+          <div xuiNavbarGroup class="no-scrollbar -mx-1 min-w-0 gap-1 overflow-x-auto px-1 max-lg:h-10 max-lg:w-full">
             @if (!macWindow) {
               <span xuiNavbarHeading class="max-xl:hidden">Cathode</span>
               <div xuiNavbarDivider class="max-xl:hidden"></div>
