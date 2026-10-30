@@ -18,11 +18,9 @@ const FallDbPerSecond = 24;
 const HoldMs = 1_500;
 /** Above this a segment lights amber; at 0 dB and over, red. */
 const HotDb = -12;
-/** Bar thickness and the gap between channels, in CSS pixels. */
-const Bar = 4;
+/** The gap between channels, in CSS pixels. */
 const ChannelGap = 2;
-/** LED segments along the scale: lit length and the dark gap after it. */
-const Segment = 2;
+/** The dark gap after each LED segment along the scale, in CSS pixels. */
 const SegmentGap = 1;
 
 interface ChannelState {
@@ -36,8 +34,9 @@ interface ChannelState {
  * -12 dB, red from 0 dB, with the unlit segments faintly visible so the scale reads at rest, a peak-hold segment and a
  * 0 dB mark. `sources` are read on every animation frame, never through change detection: each returns the linear
  * peak since the previous read (the Server already keeps the maximum per telemetry frame). Instant attack, 24 dB/s
- * fall, 1.5 s peak hold, and a clip light that stays on until clicked. Horizontal meters fill the host's width,
- * vertical ones its height.
+ * fall, 1.5 s peak hold, and a clip light that stays on until clicked; the click goes no further, so a meter laid over
+ * something clickable (a block's tile) is reset without acting on it. Horizontal meters fill the host's width, vertical
+ * ones its height; `bar` and `segment` size the LEDs for where the meter sits.
  */
 @Component({
   selector: 'cth-meter',
@@ -60,15 +59,18 @@ interface ChannelState {
       [style.height.px]="orientation() === 'horizontal' ? thickness() : null"
       [style.width.px]="orientation() === 'vertical' ? thickness() : null"
     ></canvas>
-    <button
-      type="button"
-      class="size-2 shrink-0 self-center rounded-full transition-colors"
-      [class]="
-        clipped() ? 'bg-error shadow-[0_0_6px_var(--color-error)]' : 'bg-surface-sunken ring-border ring-1 ring-inset'
-      "
-      [attr.aria-label]="clipped() ? label() + ' clipped; click to reset' : label() + ' clip indicator'"
-      (click)="clipped.set(false)"
-    ></button>
+    @if (clipped() || clipLight() === 'always') {
+      <button
+        type="button"
+        class="size-2 shrink-0 self-center rounded-full transition-colors"
+        [class]="
+          clipped() ? 'bg-error shadow-[0_0_6px_var(--color-error)]' : 'bg-surface-sunken ring-border ring-1 ring-inset'
+        "
+        [attr.aria-label]="clipped() ? label() + ' clipped; click to reset' : label() + ' clip indicator'"
+        (pointerdown)="$event.stopPropagation()"
+        (click)="$event.stopPropagation(); clipped.set(false)"
+      ></button>
+    }
   `
 })
 export class CthMeter {
@@ -87,13 +89,19 @@ export class CthMeter {
   readonly sources = input.required<readonly (() => number)[]>();
   readonly label = input('Level');
   readonly orientation = input<'horizontal' | 'vertical'>('vertical');
+  /** Each channel's bar thickness, in CSS pixels: thicker where the meter is small and must read at a glance. */
+  readonly bar = input(4);
+  /** Each LED segment's lit length along the scale, in CSS pixels. */
+  readonly segment = input(2);
+  /** Whether the clip light shows at rest (`always`) or only once it has caught a clip (`clipped`), where space is short. */
+  readonly clipLight = input<'always' | 'clipped'>('always');
 
   protected readonly floor = FloorDb;
   protected readonly ceiling = CeilingDb;
   protected readonly clipped = signal(false);
   /** Whole-dB level for assistive technology, updated only when it changes. */
   protected readonly announced = signal(FloorDb);
-  protected readonly thickness = computed(() => this.sources().length * (Bar + ChannelGap) - ChannelGap);
+  protected readonly thickness = computed(() => this.sources().length * (this.bar() + ChannelGap) - ChannelGap);
 
   constructor() {
     // At the user's refresh rate: a lower one costs less on a busy machine. The levels between frames are peaks
@@ -155,43 +163,45 @@ export class CthMeter {
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
     context.clearRect(0, 0, width, height);
     const colors = this.colors(canvas);
+    const bar = this.bar();
+    const segment = this.segment();
     const zone = (db: number) => (db >= 0 ? colors.clip : db >= HotDb ? colors.hot : colors.ok);
     const dbAt = (position: number) => FloorDb + (position / length) * (CeilingDb - FloorDb);
     /** Paints a stretch of the scale (`at` from the floor end) across one channel's bar. */
     const paint = (channel: number, at: number, size: number) => {
-      const across = channel * (Bar + ChannelGap);
+      const across = channel * (bar + ChannelGap);
       if (horizontal) {
-        context.fillRect(at, across, size, Bar);
+        context.fillRect(at, across, size, bar);
       } else {
-        context.fillRect(across, height - at - size, Bar, size);
+        context.fillRect(across, height - at - size, bar, size);
       }
     };
 
-    const pitch = Segment + SegmentGap;
+    const pitch = segment + SegmentGap;
     this.states.forEach((state, channel) => {
       let peakSegment = -1;
-      for (let at = 0; at + Segment <= length; at += pitch) {
-        const db = dbAt(at + Segment / 2);
+      for (let at = 0; at + segment <= length; at += pitch) {
+        const db = dbAt(at + segment / 2);
         if (state.peak > FloorDb && db <= state.peak) {
           peakSegment = at;
         }
 
         context.fillStyle = zone(db);
         context.globalAlpha = db <= state.level ? 1 : 0.2;
-        paint(channel, at, Segment);
+        paint(channel, at, segment);
       }
 
       if (peakSegment >= 0) {
         context.globalAlpha = 1;
-        context.fillStyle = zone(dbAt(peakSegment + Segment / 2));
-        paint(channel, peakSegment, Segment);
+        context.fillStyle = zone(dbAt(peakSegment + segment / 2));
+        paint(channel, peakSegment, segment);
       }
     });
 
     // The 0 dB mark, in the gap before the first segment at or above 0 dB, so it never covers a segment.
     context.globalAlpha = 0.7;
     context.fillStyle = colors.mark;
-    const zero = Math.ceil(((-FloorDb / (CeilingDb - FloorDb)) * length - Segment / 2) / pitch) * pitch - SegmentGap;
+    const zero = Math.ceil(((-FloorDb / (CeilingDb - FloorDb)) * length - segment / 2) / pitch) * pitch - SegmentGap;
     const span = this.thickness();
     if (horizontal) {
       context.fillRect(zero, 0, 1, span);

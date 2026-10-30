@@ -98,7 +98,7 @@ export function blockFace(category: string): string {
     </div>
     <span
       class="truncate bg-black/30 px-1.5 text-center leading-tight font-semibold shadow-[inset_0_1px_0_rgb(0_0_0/0.3)]"
-      [class]="size() === 'lg' ? 'py-1.5 text-[12px]' : 'pt-0.5 pb-[7px] text-[11px]'"
+      [class]="size() === 'lg' ? 'py-1.5 text-[12px]' : 'pt-0.5 pb-[6px] text-[11px]'"
       [class.[text-shadow:0_1px_1px_rgb(0_0_0/0.5)]]="!bypassed()"
     >
       {{ name() }}
