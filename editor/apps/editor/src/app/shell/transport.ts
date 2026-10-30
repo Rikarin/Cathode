@@ -247,6 +247,10 @@ export class Transport {
   }
 
   protected setTempo(text: string): void {
+    if (!this.editing()) {
+      return; // Escape closed the field: the blur its removal fires is not a commit
+    }
+
     this.editing.set(false);
     const bpm = Number(text);
     if (Number.isFinite(bpm) && bpm >= 30 && bpm <= 300) {
