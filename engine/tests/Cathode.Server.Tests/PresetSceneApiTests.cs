@@ -430,11 +430,12 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         await Ok(
             client.PutAsJsonAsync("/api/v1/live/blocks/volpan1/test-tone", new TestToneRequest(true, 220, -20), Token)
         );
-        // Once the attack has caught the tone (the frames as it lands hold levels the gain had not yet met), the point
-        // is on the curve: -50 + (detector + 50) / 4 + 6.
+        // Once the attack has caught the tone (the frames as it lands hold levels the gain had not yet met, and a slow
+        // runner shows a few of them), the point settles on the curve: -50 + (detector + 50) / 4 + 6.
         var meters = await Meters(
             socket,
-            static m => m["detector"]!.GetValue<float>() > -30f && m["output"]!.GetValue<float>() < -34f
+            static m => m["detector"]!.GetValue<float>() > -30f
+                && Math.Abs(-44f + (m["detector"]!.GetValue<float>() + 50f) / 4f - m["output"]!.GetValue<float>()) < 1f
         );
         var detector = meters["detector"]!.GetValue<float>();
         Assert.InRange(detector, -24f, -16f);
