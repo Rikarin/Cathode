@@ -38,15 +38,15 @@ import { ShortcutList } from './shortcut-list';
         >
           <xui-tab id="preferences" title="Preferences">
             <cth-preferences-panel
-              class="-mr-6 h-[min(32rem,60vh)] [scrollbar-gutter:stable] overflow-y-auto pt-4 pr-3.5"
+              class="-mr-6 h-[min(44rem,72vh)] [scrollbar-gutter:stable] overflow-y-auto pt-4 pr-3.5"
             />
           </xui-tab>
           <xui-tab id="setup" title="Audio setup">
-            <cth-setup-page class="-mr-6 !h-[min(32rem,60vh)] [scrollbar-gutter:stable] !pt-4 !pr-3.5 !pb-0 !pl-0" />
+            <cth-setup-page class="-mr-6 !h-[min(44rem,72vh)] [scrollbar-gutter:stable] !pt-4 !pr-3.5 !pb-0 !pl-0" />
           </xui-tab>
           <xui-tab id="shortcuts" title="Keyboard shortcuts">
             <cth-shortcut-list
-              class="-mr-6 h-[min(32rem,60vh)] [scrollbar-gutter:stable] overflow-y-auto pt-4 pr-3.5"
+              class="-mr-6 h-[min(44rem,72vh)] [scrollbar-gutter:stable] overflow-y-auto pt-4 pr-3.5"
             />
           </xui-tab>
         </xui-tabs>
