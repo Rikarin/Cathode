@@ -61,6 +61,20 @@ export function shape(curve: string, s: number): number {
 const EngageDefaults = { threshold: 0.5, offDelayMs: 0 };
 
 /**
+ * The theme's colours the preview chart needs, read from the document as they stand (a canvas chart cannot resolve
+ * CSS variables itself): the accent for the curve, the well's lines for the grid, and the subtle text for the labels.
+ */
+function themeColors(): { accent: string; line: string; label: string } {
+  const style = typeof document === 'undefined' ? null : getComputedStyle(document.documentElement);
+  const read = (name: string, fallback: string) => style?.getPropertyValue(name).trim() || fallback;
+  return {
+    accent: read('--color-primary', '#0071e3'),
+    line: read('--well-line', 'rgb(255 255 255 / 0.06)'),
+    label: read('--color-foreground-subtle', '#98989f')
+  };
+}
+
+/**
  * When an engage modifier engages its block, to follow "Engaged": "at 50 % and above", "as soon as it moves, off
  * after 300 ms below 5 %".
  */
@@ -205,7 +219,11 @@ export function sparseEngage(m: PresetModifier): PresetModifier {
               <span class="text-foreground-muted text-[11px]">Engaged {{ engagedWhen() }}.</span>
             </div>
           }
-          <xui-echart class="h-40 w-full" aria-label="Source to value" [option]="preview()" />
+          <div
+            class="border-hairline-strong rounded-lg border bg-(--well) p-1 shadow-[inset_0_1px_3px_rgb(0_0_0/0.6),0_1px_0_var(--highlight)]"
+          >
+            <xui-echart class="h-40 w-full" aria-label="Source to value" [option]="preview()" />
+          </div>
         </div>
       </xui-dialog-body>
       <xui-dialog-footer align="between">
@@ -264,26 +282,47 @@ export class ModifierDialog {
         this.log() && d.min > 0 && d.max > 0 ? d.min * Math.pow(d.max / d.min, s) : d.min + (d.max - d.min) * s;
       return [i / 40, value];
     });
+    // The chart draws on a canvas, which cannot resolve CSS variables: the theme's colours as they stand now.
+    const theme = themeColors();
+    const label = { color: theme.label, fontSize: 10 };
+    const grid = { lineStyle: { color: theme.line } };
     return {
-      grid: { left: 64, right: 12, top: 12, bottom: 28 },
-      xAxis: { type: 'value', min: 0, max: 1, name: 'source', nameGap: 4 },
+      backgroundColor: 'transparent',
+      grid: { left: 60, right: 14, top: 12, bottom: 22 },
+      // Across: how far the source is through its range; up: the knob's value in its own unit.
+      xAxis: {
+        type: 'value',
+        min: 0,
+        max: 1,
+        interval: 0.5,
+        axisLabel: { ...label, formatter: (v: number) => `${Math.round(v * 100)} %` },
+        axisLine: { show: false },
+        axisTick: { show: false },
+        splitLine: { show: true, ...grid }
+      },
       yAxis: {
         type: this.log() && d.min > 0 && d.max > 0 ? 'log' : 'value',
-        axisLabel: { formatter: (v: number) => formatValue(v, this.param().unit) }
+        axisLabel: { ...label, formatter: (v: number) => formatValue(v, this.param().unit) },
+        axisLine: { show: false },
+        axisTick: { show: false },
+        splitLine: grid
       },
       series: [
         {
           type: 'line',
           showSymbol: false,
           data: points,
+          lineStyle: { color: theme.accent, width: 2 },
+          itemStyle: { color: theme.accent },
+          areaStyle: { color: theme.accent, opacity: 0.12 },
           // The engage threshold: the block is off below it.
           ...(this.engage()
             ? {
                 markLine: {
                   silent: true,
                   symbol: 'none',
-                  label: { formatter: 'threshold', position: 'insideEndTop' },
-                  lineStyle: { type: 'dashed' },
+                  label: { formatter: 'threshold', position: 'insideEndTop', ...label },
+                  lineStyle: { type: 'dashed', color: theme.label },
                   data: [{ yAxis: this.threshold() }]
                 }
               }

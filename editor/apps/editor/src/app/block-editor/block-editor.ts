@@ -378,9 +378,6 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
             @case ('cab') {
               <cth-cab-panel [block]="block" />
             }
-            @case ('peq') {
-              <cth-peq-panel [block]="block" />
-            }
             @case ('irplayer') {
               <cth-ir-player-panel [block]="block" />
             }
@@ -445,6 +442,9 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
                     <!-- The transfer curve: three knobs wide and two high at the page's right, beside the Output; the
                          knobs flow around it (the grid packs densely). -->
                     <cth-compressor-curve-tile class="[grid-column:span_3/-1] [grid-row:1/span_2]" [block]="block" />
+                  } @else if (block.type === 'peq' && onFirstPage()) {
+                    <!-- The EQ curve: four knobs wide and two high at the page's right, beside the Output. -->
+                    <cth-peq-panel class="[grid-column:span_4/-1] [grid-row:1/span_2]" [block]="block" />
                   } @else if ((block.type === 'mbcomp' || block.type === 'gate') && onFirstPage()) {
                     <!-- Gain reduction at the page's right, two rows high: one column for the gate, two for three bands. -->
                     <cth-dynamics-panel
