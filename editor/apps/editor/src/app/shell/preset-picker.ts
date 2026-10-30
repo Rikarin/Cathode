@@ -151,6 +151,24 @@ export class PresetPicker {
   }
 
   /**
+   * Loads the first filled slot of a bank, remembering it, so next and previous go on through that bank: how the
+   * bank menu beside the preset chooses the bank to play from.
+   */
+  async loadBank(bankId: string): Promise<void> {
+    const bank = this.library.banks().find(b => b.id === bankId);
+    // Empty slots are null or missing, whatever the generated type says.
+    const slot = bank?.slots.findIndex(Boolean) ?? -1;
+    const id = bank?.slots[slot];
+    if (!bank || !id) {
+      this.notify.error(`${bank?.name ?? 'That bank'} has no presets.`);
+      return;
+    }
+
+    const name = this.library.presets().find(p => p.id === id)?.name ?? id;
+    await this.switcher.load(id, name, false, { presetId: id, scene: null, position: { bank: bank.id, slot } });
+  }
+
+  /**
    * Steps to the next or previous preset as a footswitch's preset next/previous does: in bank order (on into the next
    * bank), or through the setlist the preset was loaded from. The Server says which; this asks about unsaved edits.
    */

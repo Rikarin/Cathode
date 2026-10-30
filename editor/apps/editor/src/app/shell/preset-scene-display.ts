@@ -11,8 +11,9 @@ import {
 } from '@angular/core';
 import type { PresetPosition } from '@cathode/api-client';
 import { provideIcons } from '@ng-icons/core';
-import { matKeyboardArrowDownRound, matKeyboardArrowUpRound } from '@ng-icons/material-icons/round';
+import { matExpandMoreRound, matKeyboardArrowDownRound, matKeyboardArrowUpRound } from '@ng-icons/material-icons/round';
 import { XuiIconImports } from '@xui/icon';
+import { XuiMenuImports } from '@xui/menu';
 import { XuiTooltipImports } from '@xui/tooltip';
 import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
@@ -48,16 +49,37 @@ export function presetPlace(
 }
 
 /**
+ * The bank the loaded preset stands in, by the same rule as {@link presetPlace}: the bank it was loaded from, or else
+ * the first holding it in bank order. Null when it was loaded from a setlist or is in no bank.
+ */
+export function presetBank(
+  position: PresetPosition | null | undefined,
+  id: string | undefined,
+  banks: readonly { id: string; slots: readonly (string | null)[] }[]
+): string | null {
+  if (position?.setlist != null && position.entry != null) {
+    return null;
+  }
+
+  if (position?.bank != null && position.slot != null) {
+    return banks.some(b => b.id === position.bank) ? position.bank : null;
+  }
+
+  return (id && banks.find(b => b.slots.includes(id))?.id) || null;
+}
+
+/**
  * The preset and scene readout, as Axe-Edit has it: two lines, each with up/down steppers, a number and a name. The
  * preset line steps through the presets in bank order, or through the setlist the preset was loaded from (its number
  * is the bank slot or setlist entry), and opens the preset picker on a click; the scene line steps through the eight scenes, wrapping, and renames the scene on a
- * click.
+ * click. Beside the preset, the bank it stands in: choosing another bank loads that bank's first preset, and next and
+ * previous go on from there.
  */
 @Component({
   selector: 'cth-preset-scene-display',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [XuiIconImports, XuiTooltipImports],
-  providers: [provideIcons({ matKeyboardArrowDownRound, matKeyboardArrowUpRound })],
+  imports: [XuiIconImports, XuiMenuImports, XuiTooltipImports],
+  providers: [provideIcons({ matExpandMoreRound, matKeyboardArrowDownRound, matKeyboardArrowUpRound })],
   host: { class: 'flex min-w-0 flex-col gap-1' },
   template: `
     <div class="flex h-6 min-w-0 items-stretch gap-1" aria-label="Preset">
@@ -100,7 +122,36 @@ export function presetPlace(
           }
         </span>
       </button>
+      @if (library.banks().length > 0) {
+        <button
+          type="button"
+          class="lcd-glass flex max-w-32 shrink-0 items-center gap-1 ps-2 pe-1 text-xs hover:brightness-110 max-lg:max-w-24"
+          data-testid="bank-menu"
+          [attr.aria-label]="'Bank: ' + (bankName() ?? 'none')"
+          [xuiTooltip]="'Bank: choose one to start from its first preset'"
+          [xuiMenuTriggerFor]="bankMenu"
+        >
+          <span class="truncate" [class.text-lcd-muted]="!bankName()">{{ bankName() ?? 'No bank' }}</span>
+          <ng-icon xui name="matExpandMoreRound" size="xs" class="text-lcd-muted shrink-0" />
+        </button>
+      }
     </div>
+    <ng-template #bankMenu>
+      <xui-menu>
+        @for (bank of library.banks(); track bank.id) {
+          <button
+            type="button"
+            xuiMenuItem
+            [selected]="bank.id === bankId()"
+            [disabled]="!hasPresets(bank)"
+            [attr.data-testid]="'bank-choice-' + bank.id"
+            (click)="chooseBank.emit(bank.id)"
+          >
+            {{ bank.name }}
+          </button>
+        }
+      </xui-menu>
+    </ng-template>
     <div class="flex h-6 min-w-0 items-stretch gap-1" aria-label="Scene name">
       <div class="flex flex-col">
         <button type="button" class="cth-stepper rounded-t" aria-label="Next scene" (click)="stepScene(1)">
@@ -142,10 +193,12 @@ export function presetPlace(
 export class PresetSceneDisplay {
   protected readonly live = inject(LiveStore);
   protected readonly ui = inject(UiStore);
-  private readonly library = inject(LibraryStore);
+  protected readonly library = inject(LibraryStore);
 
   /** Next (1) or previous (-1) preset; the shell steps in bank order as ⌘PgDn/⌘PgUp do. */
   readonly stepPreset = output<1 | -1>();
+  /** A bank chosen from the bank menu, by id; the shell loads its first preset. */
+  readonly chooseBank = output<string>();
 
   protected readonly renaming = signal(false);
   private readonly nameInput = viewChild<ElementRef<HTMLInputElement>>('name');
@@ -153,6 +206,12 @@ export class PresetSceneDisplay {
   protected readonly place = computed(() =>
     presetPlace(this.live.state()?.position, this.live.preset()?.id, this.library.banks())
   );
+  /** The bank the preset stands in (null: loaded from a setlist, or in no bank), and its name. */
+  protected readonly bankId = computed(() =>
+    presetBank(this.live.state()?.position, this.live.preset()?.id, this.library.banks())
+  );
+  protected readonly bankName = computed(() => this.library.banks().find(b => b.id === this.bankId())?.name ?? null);
+  protected readonly hasPresets = (bank: { slots: readonly (string | null)[] }) => bank.slots.some(Boolean);
   protected readonly sceneNumber = computed(() => `S${String(this.live.activeScene() + 1).padStart(2, '0')}`);
   protected readonly sceneName = computed(() => this.live.preset()?.scenes[this.live.activeScene()]?.name ?? '');
 
