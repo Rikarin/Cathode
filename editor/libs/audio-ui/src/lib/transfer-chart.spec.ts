@@ -58,37 +58,30 @@ describe('transferPath', () => {
 
 describe('the live dot', () => {
   const hidden: TransferDot = { input: 0, output: 0, visible: false };
+  const curve = (input: number) => (input > -20 ? -20 + (input + 20) / 4 : input); // 4:1 above -20 dB
 
-  it('appears where the first reading puts it', () => {
-    expect(stepTransferDot(hidden, { input: -20, output: -26 }, 16, false, -60, 0)).toEqual({
-      input: -20,
-      output: -26,
-      visible: true
-    });
+  it('appears on the curve where the first reading puts it', () => {
+    expect(stepTransferDot(hidden, -8, 16, false, -60, 0, curve)).toEqual({ input: -8, output: -17, visible: true });
   });
 
-  it('eases toward a new reading, and jumps there with reduced motion', () => {
+  it('glides along the curve to a new reading, and jumps there with reduced motion', () => {
     const shown: TransferDot = { input: -40, output: -40, visible: true };
-    const eased = stepTransferDot(shown, { input: -20, output: -26 }, 16, false, -60, 0);
+    const eased = stepTransferDot(shown, -8, 16, false, -60, 0, curve);
     expect(eased.input).toBeGreaterThan(-40);
-    expect(eased.input).toBeLessThan(-20);
-    expect(eased.output).toBeLessThan(-26);
-    expect(eased.output).toBeGreaterThan(-40);
-    const later = stepTransferDot(eased, { input: -20, output: -26 }, 1_000, false, -60, 0);
-    expect(later.input).toBeCloseTo(-20, 6);
+    expect(eased.input).toBeLessThan(-8);
+    expect(eased.output).toBe(curve(eased.input)); // on the line between readings, never cutting across it
+    const later = stepTransferDot(eased, -8, 1_000, false, -60, 0, curve);
+    expect(later.input).toBeCloseTo(-8, 6);
+    expect(later.output).toBe(curve(later.input));
 
-    expect(stepTransferDot(shown, { input: -20, output: -26 }, 16, true, -60, 0)).toEqual({
-      input: -20,
-      output: -26,
-      visible: true
-    });
+    expect(stepTransferDot(shown, -8, 16, true, -60, 0, curve)).toEqual({ input: -8, output: -17, visible: true });
   });
 
-  it('hides without a reading or with an input off the chart', () => {
+  it('hides without a reading or with a level off the chart', () => {
     const shown: TransferDot = { input: -40, output: -40, visible: true };
-    expect(stepTransferDot(shown, null, 16, false, -60, 0).visible).toBe(false);
-    expect(stepTransferDot(shown, { input: -96, output: -96 }, 16, false, -60, 0).visible).toBe(false);
-    expect(stepTransferDot(shown, { input: Number.NaN, output: 0 }, 16, false, -60, 0).visible).toBe(false);
+    expect(stepTransferDot(shown, null, 16, false, -60, 0, curve).visible).toBe(false);
+    expect(stepTransferDot(shown, -96, 16, false, -60, 0, curve).visible).toBe(false);
+    expect(stepTransferDot(shown, Number.NaN, 16, false, -60, 0, curve).visible).toBe(false);
   });
 });
 

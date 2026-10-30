@@ -11,13 +11,7 @@ import {
 import { onAnimationFrame } from './animation';
 import { CTH_METER_PREFERENCES, frameDue } from './preferences';
 
-/** Where a signal sits on a transfer curve: the level going in and the level coming out, dB. */
-export interface TransferPoint {
-  input: number;
-  output: number;
-}
-
-/** The live dot as drawn: where it is (dB) and whether it shows. */
+/** The live dot as drawn: its input level, the curve's output there (dB), and whether it shows. */
 export interface TransferDot {
   input: number;
   output: number;
@@ -49,12 +43,18 @@ export function transferTicks(min: number, max: number, step: number): number[] 
 }
 
 /**
- * The SVG path of `curve` (output dB for input dB) across a `size` px square spanning `min` to `max` dB on both axes,
- * input to the right and output up. Outputs far off the chart are held just past its edge, so the line leaves the
+ * The SVG path of `curve` (output dB for input dB) across a plot `width` by `height` px (square unless `height` is
+ * given) spanning `min` to `max` dB on both axes, input to the right and output up. Outputs far off the chart are held just past its edge, so the line leaves the
  * plot at the right angle and the well clips it.
  */
-export function transferPath(curve: (inputDb: number) => number, min: number, max: number, size: number): string {
-  if (max <= min || size <= 0) {
+export function transferPath(
+  curve: (inputDb: number) => number,
+  min: number,
+  max: number,
+  width: number,
+  height = width
+): string {
+  if (max <= min || width <= 0 || height <= 0) {
     return '';
   }
 
@@ -65,8 +65,8 @@ export function transferPath(curve: (inputDb: number) => number, min: number, ma
     const input = min + (span * i) / steps;
     const raw = curve(input);
     const output = Number.isFinite(raw) ? Math.max(min - span, Math.min(max + span, raw)) : min - span;
-    const x = transferFraction(input, min, max) * size;
-    const y = (1 - transferFraction(output, min, max)) * size;
+    const x = transferFraction(input, min, max) * width;
+    const y = (1 - transferFraction(output, min, max)) * height;
     parts.push(`${i === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`);
   }
 
@@ -74,47 +74,40 @@ export function transferPath(curve: (inputDb: number) => number, min: number, ma
 }
 
 /**
- * The dot's next state for a reading `target` (null: nothing to show) after `dt` ms. It eases toward the reading with
- * a {@link GlideMs} time constant, so it moves as smoothly as a meter between telemetry frames; with `reduced` motion,
- * or when it was hidden, it jumps there. A reading off the chart's input range (`min` to `max`) hides it.
+ * The dot's next state for an input level `target` (dB; null: nothing to show) after `dt` ms. Only the input level
+ * glides, easing toward the reading with a {@link GlideMs} time constant so it moves as smoothly as a meter between
+ * telemetry frames (with `reduced` motion, or when it was hidden, it jumps there); its height is always `curve` at that
+ * level, so it rides the line rather than cutting across it. A level off the chart's input range (`min` to `max`)
+ * hides it.
  */
 export function stepTransferDot(
   state: TransferDot,
-  target: TransferPoint | null,
+  target: number | null,
   dt: number,
   reduced: boolean,
   min: number,
-  max: number
+  max: number,
+  curve: (inputDb: number) => number
 ): TransferDot {
-  if (
-    !target ||
-    !Number.isFinite(target.input) ||
-    !Number.isFinite(target.output) ||
-    target.input < min ||
-    target.input > max
-  ) {
+  if (target === null || !Number.isFinite(target) || target < min || target > max) {
     return { ...state, visible: false };
   }
 
-  if (reduced || !state.visible) {
-    return { input: target.input, output: target.output, visible: true };
-  }
-
-  const k = 1 - Math.exp(-Math.max(0, dt) / GlideMs);
-  return {
-    input: state.input + (target.input - state.input) * k,
-    output: state.output + (target.output - state.output) * k,
-    visible: true
-  };
+  const input =
+    reduced || !state.visible
+      ? target
+      : state.input + (target - state.input) * (1 - Math.exp(-Math.max(0, dt) / GlideMs));
+  return { input, output: curve(input), visible: true };
 }
 
 /**
  * A transfer chart: output level against input level in dB, the same scale on both axes (−60 to 0 dB by default,
  * a grid line every 12 dB), as a compressor's page shows how it maps levels. A faint diagonal marks unity; `curve`
  * (output dB for input dB) is drawn in `accent` and redrawn whenever it changes, so it follows a knob while it turns.
- * `source` is read on animation frames, never through change detection: where the signal is now, or null when there is
- * none. The dot eases toward each reading (it jumps under prefers-reduced-motion) and hides when the input is off the
- * chart. `size` is the plot's side in px; the scale sits outside the well, to its left and below.
+ * `source` is read on animation frames, never through change detection: the input level now, or null when there is
+ * none. The dot, in `dotColor` so it stands out from the curve, rides the curve at that level, gliding to each reading
+ * (it jumps under prefers-reduced-motion), and hides when the level is off the chart. `size` is the plot's width in px,
+ * `height` its height when it is not square; the scale sits outside the well, to its left and below.
  */
 @Component({
   selector: 'cth-transfer-chart',
@@ -124,18 +117,18 @@ export function stepTransferDot(
     <div class="flex gap-1">
       <div
         class="text-foreground-muted relative w-5 text-[9px] leading-none tabular-nums"
-        [style.height.px]="size()"
+        [style.height.px]="plotHeight()"
         aria-hidden="true"
       >
         @for (tick of ticks(); track tick) {
           <span class="absolute right-0 -translate-y-1/2" [style.top.%]="(1 - fraction(tick)) * 100">{{ tick }}</span>
         }
       </div>
-      <div class="well relative overflow-hidden rounded-md" [style.width.px]="size()" [style.height.px]="size()">
+      <div class="well relative overflow-hidden rounded-md" [style.width.px]="size()" [style.height.px]="plotHeight()">
         <svg
           class="absolute inset-0 size-full"
           role="img"
-          [attr.viewBox]="'0 0 ' + size() + ' ' + size()"
+          [attr.viewBox]="'0 0 ' + size() + ' ' + plotHeight()"
           [attr.aria-label]="label()"
         >
           @for (line of grid(); track $index) {
@@ -151,7 +144,7 @@ export function stepTransferDot(
           }
           <line
             x1="0"
-            [attr.y1]="size()"
+            [attr.y1]="plotHeight()"
             [attr.x2]="size()"
             y2="0"
             style="stroke: var(--well-line-strong)"
@@ -169,8 +162,8 @@ export function stepTransferDot(
             data-testid="transfer-curve"
           />
           <g #dot opacity="0" data-testid="transfer-dot">
-            <circle r="7" [style.fill]="accent()" opacity="0.25" />
-            <circle r="3.5" [style.fill]="accent()" style="stroke: var(--well)" stroke-width="1" />
+            <circle r="8" [style.fill]="dotColor()" opacity="0.22" />
+            <circle r="4" [style.fill]="dotColor()" stroke="rgb(0 0 0 / 0.6)" stroke-width="1" />
           </g>
         </svg>
       </div>
@@ -195,30 +188,40 @@ export class CthTransferChart {
 
   /** The curve: the output level for an input level, dB. */
   readonly curve = input.required<(inputDb: number) => number>();
-  /** Where the signal is now, read on every frame; null (or a level off the chart) when there is none. */
-  readonly source = input<() => TransferPoint | null>(() => null);
+  /** The input level now, dB, read on every frame; null (or a level off the chart) when there is none. */
+  readonly source = input<() => number | null>(() => null);
   readonly label = input('Transfer curve');
   /** The scale's ends and grid spacing, dB, the same on both axes. */
   readonly min = input(-60);
   readonly max = input(0);
   readonly step = input(12);
-  /** The plot's side, px. */
+  /** The plot's width, px, and its height too unless `height` is set. */
   readonly size = input(160);
-  /** The curve's and the dot's colour: any CSS colour, the block's accent on a block page. */
+  /** The plot's height, px, for a plot that is not square (a tile filling the space it is given); null: square. */
+  readonly height = input<number | null>(null);
+  /** The curve's colour: any CSS colour, the block's accent on a block page. */
   readonly accent = input('var(--color-primary)');
+  /** The live dot's colour, set apart from the curve's so it shows on it. */
+  readonly dotColor = input('var(--color-foreground)');
 
   protected readonly ticks = computed(() => transferTicks(this.min(), this.max(), this.step()));
-  protected readonly path = computed(() => transferPath(this.curve(), this.min(), this.max(), this.size()));
+  /** The plot's height, px: `height` when given, else square. */
+  protected readonly plotHeight = computed(() => this.height() ?? this.size());
+  protected readonly path = computed(() =>
+    transferPath(this.curve(), this.min(), this.max(), this.size(), this.plotHeight())
+  );
   /** The grid's lines as x1, y1, x2, y2, both ways, without the edges the well already draws. */
   protected readonly grid = computed(() => {
-    const size = this.size();
-    return this.ticks()
-      .map(tick => Math.round(this.fraction(tick) * size) + 0.5)
-      .filter(at => at > 1 && at < size - 1)
-      .flatMap(at => [
-        [at, 0, at, size],
-        [0, size - at, size, size - at]
-      ]);
+    const width = this.size();
+    const height = this.plotHeight();
+    return this.ticks().flatMap(tick => {
+      const x = Math.round(this.fraction(tick) * width) + 0.5;
+      const y = Math.round((1 - this.fraction(tick)) * height) + 0.5;
+      return [
+        ...(x > 1 && x < width - 1 ? [[x, 0, x, height]] : []),
+        ...(y > 1 && y < height - 1 ? [[0, y, width, y]] : [])
+      ];
+    });
   });
 
   constructor() {
@@ -240,16 +243,15 @@ export class CthTransferChart {
   private draw(dt: number): void {
     const min = this.min();
     const max = this.max();
-    this.state = stepTransferDot(this.state, this.source()(), dt, this.reducedMotion, min, max);
+    this.state = stepTransferDot(this.state, this.source()(), dt, this.reducedMotion, min, max, this.curve());
     const dot = this.dot().nativeElement;
     if (!this.state.visible) {
       dot.setAttribute('opacity', '0');
       return;
     }
 
-    const size = this.size();
-    const x = transferFraction(this.state.input, min, max) * size;
-    const y = (1 - Math.max(-0.1, Math.min(1.1, transferFraction(this.state.output, min, max)))) * size;
+    const x = transferFraction(this.state.input, min, max) * this.size();
+    const y = (1 - Math.max(-0.1, Math.min(1.1, transferFraction(this.state.output, min, max)))) * this.plotHeight();
     dot.setAttribute('transform', `translate(${x.toFixed(2)} ${y.toFixed(2)})`);
     dot.setAttribute('opacity', '1');
   }

@@ -46,6 +46,7 @@ import { AmpPanel } from './panels/amp-panel';
 import { isCabSlotParam } from './panels/cab';
 import { CabPanel } from './panels/cab-panel';
 import { CabResonanceHelper } from './panels/cab-resonance-helper';
+import { CompressorCurveTile } from './panels/compressor-curve-tile';
 import { isCustomTableParam } from './panels/custom-shifter';
 import { DynamicsPanel } from './panels/dynamics-panel';
 import { IrPlayerPanel } from './panels/ir-player-panel';
@@ -71,6 +72,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
     CabResonanceHelper,
     CthBlockTile,
     CabPanel,
+    CompressorCurveTile,
     DynamicsPanel,
     IrPlayerPanel,
     ModifierDialog,
@@ -382,9 +384,6 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
             @case ('pitch') {
               <cth-pitch-panel [block]="block" />
             }
-            @case ('compressor') {
-              <cth-dynamics-panel [block]="block" />
-            }
             @case ('mbcomp') {
               <cth-dynamics-panel [block]="block" />
             }
@@ -436,11 +435,16 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
               @if (mainParams().length > 0) {
                 <div
                   role="tabpanel"
-                  class="grid min-w-26 flex-1 grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] content-start justify-items-center gap-x-3 gap-y-5"
+                  class="grid min-w-26 flex-1 grid-flow-row-dense grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] content-start justify-items-center gap-x-3 gap-y-5"
                   [attr.aria-label]="page()"
                 >
                   @for (param of pageParams(); track param.id) {
                     <cth-param-control [block]="block" [param]="param" [accent]="accent()" />
+                  }
+                  @if (block.type === 'compressor' && page() === pages()[0]) {
+                    <!-- The transfer curve: two knobs wide and two high at the page's right, beside the Output; the
+                         knobs flow around it (the grid packs densely). -->
+                    <cth-compressor-curve-tile class="[grid-column:span_2/-1] [grid-row:1/span_2]" [block]="block" />
                   }
                 </div>
               }
