@@ -23,6 +23,9 @@ the format upgrades older presets as it reads them.
 
 ### Fixed
 
+- **The high-gain factory presets** close their noise gate at the end of a note: their gates ran at the default 2:1
+  ratio, which the amp's gain undid, so a single note's tail and the guitar's hiss came out as a crackling fizz,
+  nearly as loud as the note on some. They now use 10:1 at the same thresholds.
 - **AIDA-X models** apply their `in_gain`, as the AIDA-X plugin does: Cathode read it but left the input unscaled.
 
 ## 1.0.0-rc.5 — 2026-10-30
