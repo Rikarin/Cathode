@@ -110,6 +110,8 @@ public class CaptureResamplerTests {
 
         public double? Loudness => null;
 
+        public double? InputLevelDbu => null;
+
         public void Reset(double sampleRate, int maxFrames) {
             ResetRate = sampleRate;
             this.maxFrames = maxFrames;

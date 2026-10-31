@@ -9207,6 +9207,14 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 12,
         default: 0,
         unit: 'dB'
+      },
+      {
+        id: 'calibrate',
+        name: 'Calibrated Input',
+        kind: 'switch',
+        min: 0,
+        max: 1,
+        default: 1
       }
     ]
   },

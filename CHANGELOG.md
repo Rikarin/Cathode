@@ -4,6 +4,20 @@ Cathode follows [semantic versioning](https://semver.org). From 1.0 on, a preset
 in every later one: the preset format carries a schema version (`schemaVersion`, now 2), and a release that changes
 the format upgrades older presets as it reads them.
 
+## 1.0.0-rc.6 — unreleased
+
+### Changed
+
+- **Amp NAM uses the capture's input level** (#13): a NAM file that records the level it was made at
+  (`input_level_dbu`) is driven by the difference to Input 1's calibration, as the NAM plugin's Calibrate Input does,
+  so it reacts to your guitar as the real amp did. The new **Calibrated Input** switch is on by default. Presets with
+  such a capture now drive it at the calibrated level: at the default 1 V calibration a file made at +12 dBu gets
+  about 13 dB less drive than before. Turn the switch off, or raise **Input**, for the old drive.
+
+### Fixed
+
+- **AIDA-X models** apply their `in_gain`, as the AIDA-X plugin does: Cathode read it but left the input unscaled.
+
 ## 1.0.0-rc.5 — 2026-10-30
 
 ### Added

@@ -36,7 +36,7 @@ You can calibrate in two ways:
 
 > **Warning:** If you change the interface's gain knob after calibrating, the calibration is wrong: every amp gets more (or less) drive than it should. Recalibrate after any change, or mark the knob's position.
 
-> **Note:** The **Amp NAM** block does not use the calibration. A neural capture reacts to the level it gets, so set its own **Input** knob (see [Neural captures and impulse responses](/manual/nam-and-irs#input-and-output-levels)).
+> **Note:** The **Amp NAM** block uses the calibration for NAM files that record the input level they were made at (its **Calibrated Input** switch). For other captures, set its own **Input** knob (see [Neural captures and impulse responses](/manual/nam-and-irs#input-and-output-levels)).
 
 ## Input 1 Gain, and the Input block
 

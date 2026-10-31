@@ -33,6 +33,8 @@ public sealed unsafe class NamModel : ICaptureModel {
 
     public double? Loudness => Info.Loudness;
 
+    public double? InputLevelDbu => Info.InputLevel;
+
     /// <summary>Version of the bundled NeuralAmpModelerCore.</summary>
     public static string CoreVersion => Marshal.PtrToStringUTF8((nint)NamNative.CoreVersion()) ?? "unknown";
 

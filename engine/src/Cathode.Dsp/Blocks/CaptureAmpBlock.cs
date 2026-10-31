@@ -5,11 +5,11 @@ using Cathode.Dsp.Parameters;
 namespace Cathode.Dsp.Blocks;
 
 /// <summary>
-///     The capture tier of the Amp block: a neural capture (<see cref="ICaptureModel" />) with input trim, loudness
-///     normalisation, a post-EQ (bass, middle, treble, presence) and output level. Mono in (left), mono out copied to
-///     both channels. Without a model the gains are skipped and only the EQ runs. A model trained at another rate than
-///     the engine's runs at its own rate inside a <see cref="CaptureResampler" />, whose delay the block reports as its
-///     latency.
+///     The capture tier of the Amp block: a neural capture (<see cref="ICaptureModel" />) with input calibration and
+///     trim, loudness normalisation, a post-EQ (bass, middle, treble, presence) and output level. Mono in (left), mono
+///     out copied to both channels. Without a model the gains are skipped and only the EQ runs. A model trained at
+///     another rate than the engine's runs at its own rate inside a <see cref="CaptureResampler" />, whose delay the
+///     block reports as its latency.
 /// </summary>
 /// <remarks>
 ///     This base only reads AIDA-X models, which run in managed code. <c>NamAmpBlock</c> in Cathode.Dsp.Native replaces
@@ -23,9 +23,16 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
     public const int Middle = 4;
     public const int Treble = 5;
     public const int Presence = 6;
+    public const int Calibrate = 7;
 
     /// <summary>Loudness that normalised models are brought to, matching the NAM plugin.</summary>
     public const double TargetLoudnessDb = -18;
+
+    /// <summary>
+    ///     A full-scale sine's level in dBu when full scale is 1 V peak (Input 1's default calibration): 0.707 V RMS
+    ///     against dBu's 0.775 V. NAM's <c>input_level_dbu</c> is measured with such a sine.
+    /// </summary>
+    public const double FullScaleDbuAt1V = -0.7918;
 
     public const string ModelSlot = "model";
 
@@ -43,6 +50,7 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
     readonly SvfState[] tone = new SvfState[ToneBands.Length];
     float inputGain = 1f;
     float outputGain = 1f;
+    float calibrationDb; // Input 1's, from the last callback (0 = 1 V at full scale, the default)
     bool prepared;
     CaptureResampler? resampler;
 
@@ -63,7 +71,8 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
             ParamDescriptor.Float("bass", "Bass", -12f, 12f, 0f, "dB"),
             ParamDescriptor.Float("middle", "Middle", -12f, 12f, 0f, "dB"),
             ParamDescriptor.Float("treble", "Treble", -12f, 12f, 0f, "dB"),
-            ParamDescriptor.Float("presence", "Presence", -12f, 12f, 0f, "dB")
+            ParamDescriptor.Float("presence", "Presence", -12f, 12f, 0f, "dB"),
+            ParamDescriptor.Switch("calibrate", "Calibrated Input", true)
         ],
         maxInstances: 2
     );
@@ -123,11 +132,21 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
         return resampling;
     }
 
+    /// <summary>
+    ///     The gain in dB that drives the capture as the real amp was driven: a model that records the dBu that
+    ///     reached full scale when it was made gets the difference to Input 1's full scale, as the NAM plugin's
+    ///     Calibrate Input does. 0 for a model without that level, or with Calibrated Input off.
+    /// </summary>
+    public double CalibrationGainDb(double inputCalibrationDb) =>
+        Params.Current(Calibrate) >= 0.5f && CaptureModel?.InputLevelDbu is double recorded
+            ? inputCalibrationDb + FullScaleDbuAt1V - recorded
+            : 0;
+
     (float Input, float Output) TargetGains() {
         var normalisation = Params.Current(Normalize) >= 0.5f && CaptureModel?.Loudness is double loudness
             ? TargetLoudnessDb - loudness
             : 0;
-        return (Decibels.ToGain(Params.Current(Input)),
+        return ((float)(Decibels.ToGain(Params.Current(Input)) * Decibels.ToGain(CalibrationGainDb(calibrationDb))),
             (float)(Decibels.ToGain(Params.Current(Output)) * Decibels.ToGain(normalisation)));
     }
 
@@ -164,6 +183,7 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         Params.Advance(Input, io.Length);
         Params.Advance(Output, io.Length);
+        calibrationDb = context.InputCalibrationDb;
         var (input, output) = TargetGains();
 
         if (CaptureModel is not null) {

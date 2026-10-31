@@ -12,7 +12,8 @@ namespace Cathode.Dsp.Capture;
 ///     <c>[in][G·H]</c>, the recurrent kernel <c>[H][G·H]</c> and the bias, with gates in the order i, f, c, o (LSTM)
 ///     or z, r, h (GRU, <c>reset_after</c>, so its bias is <c>[2][3·H]</c>). <c>in_skip</c> adds the input to the
 ///     output,
-///     <c>in_gain</c> is the model's input level and <c>out_gain</c> its output gain in dB (loudness = -18 - out_gain).
+///     <c>in_gain</c> is a gain in dB the model applies to its input (as the AIDA-X plugin does, before the layers and
+///     the skip) and <c>out_gain</c> its output gain in dB (loudness = -18 - out_gain).
 ///     Weights live in native memory, so loading even a large model leaves nothing on the large object heap.
 /// </remarks>
 public sealed class AidaModel : ICaptureModel {
@@ -23,6 +24,7 @@ public sealed class AidaModel : ICaptureModel {
     readonly NativeBuffer input = new(1);
     readonly float headBias;
     readonly bool skip;
+    readonly float inputGain;
 
     public string Format => "AIDA-X";
 
@@ -32,8 +34,11 @@ public sealed class AidaModel : ICaptureModel {
 
     public double? Loudness { get; }
 
-    /// <summary>The input level the model was trained for (<c>in_gain</c>), in dB, when the file records it.</summary>
-    public double? InputLevel { get; }
+    /// <summary>The gain the model applies to its input (<c>in_gain</c>), in dB, when the file records it.</summary>
+    public double? InputGainDb { get; }
+
+    /// <summary>AIDA-X files record no analog input level.</summary>
+    public double? InputLevelDbu => null;
 
     AidaModel(
         RecurrentLayer[] layers,
@@ -42,7 +47,7 @@ public sealed class AidaModel : ICaptureModel {
         bool skip,
         double sampleRate,
         double? loudness,
-        double? inputLevel
+        double? inputGainDb
     ) {
         this.layers = layers;
         this.head = head;
@@ -50,7 +55,8 @@ public sealed class AidaModel : ICaptureModel {
         this.skip = skip;
         ExpectedSampleRate = sampleRate;
         Loudness = loudness;
-        InputLevel = inputLevel;
+        InputGainDb = inputGainDb;
+        inputGain = inputGainDb is { } db ? (float)Decibels.ToGain(db) : 1f;
         var type = layers[0] is LstmLayer ? "LSTM" : "GRU";
         Architecture = layers.Length == 1
             ? $"{type}-{layers[0].HiddenSize}"
@@ -140,7 +146,7 @@ public sealed class AidaModel : ICaptureModel {
         var x = this.input.Span;
         var weights = head.Span;
         for (var n = 0; n < input.Length; n++) {
-            var sample = input[n];
+            var sample = input[n] * inputGain;
             x[0] = sample;
             ReadOnlySpan<float> state = x;
             foreach (var layer in layers) {

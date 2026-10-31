@@ -36,14 +36,21 @@ off to hear the capture's raw output level.`,
 
     treble: `A treble shelf at 2.5 kHz after the capture, ±12 dB.`,
 
-    presence: `A peak at 5 kHz after the capture, ±12 dB: upper bite without touching the treble below it.`
+    presence: `A peak at 5 kHz after the capture, ±12 dB: upper bite without touching the treble below it.`,
+
+    calibrate: `Drives the capture as hard as the real amp was driven by the same guitar. Many NAM files record the
+level, in dBu, that reached full scale on the interface they were made with; with this on, the block adds the
+difference between that and Input 1's calibration (Settings ▸ Audio setup) before the *Input* knob, as the NAM plugin's
+Calibrate Input does. A file made at +12 dBu played through an input calibrated to 1 V (-0.8 dBu) gets 12.8 dB less.
+Files without the level, and AIDA-X models, are not changed. Turn it off to drive the capture at the level it gets.`
   },
 
   tips: `**The EQ is after the capture.** The four tone knobs are a plain EQ on the capture's output: they do not change
 how the capture distorts, as an amp's tone stack would. For that, put an EQ block before the capture.
 
-**Matching the input.** Many NAM files state the input level they were made at. If yours does not, start at 0 dB and
-adjust *Input* until a hard strum gives the amount of break-up you expect from that amp at that setting.
+**Matching the input.** Many NAM files record the input level they were made at, and with *Calibrated Input* on the
+block matches it for you once Input 1 is calibrated. If yours does not record it, start at 0 dB and adjust *Input* until
+a hard strum gives the amount of break-up you expect from that amp at that setting.
 
 **CPU.** Large NAM models are heavy. If you hear dropouts with two captures in a preset, try smaller ("lite" or
 "feather") versions of the files. See [troubleshooting](/manual/troubleshooting).`

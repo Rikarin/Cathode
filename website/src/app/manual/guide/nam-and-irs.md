@@ -44,12 +44,15 @@ Pedal captures (an overdrive, a boost) go in front of an amp, like a Drive block
 
 ### Input and output levels
 
-A capture reacts to the level it gets, like the real amp. Two things set that level:
+A capture reacts to the level it gets, like the real amp. Three things set that level:
 
 - Your interface's input gain.
+- **Calibrated Input** (on by default), for files that record their input level.
 - The block's **Input** knob (-24 to +24 dB).
 
-The Amp NAM block does **not** use Input 1's calibration (which the Circuit Amp and Drive blocks use), and Cathode does not read the input level that some capture files record. So match the drive by ear:
+Many NAM files record the level, in dBu, that reached full scale on the interface the capture was made with. With **Calibrated Input** on, the block compares it with Input 1's calibration (see [Gain staging](/manual/gain-staging)) and adds the difference, as the NAM plugin's Calibrate Input does. The capture then gets as much drive from your guitar as the real amp got from the same guitar, so calibrate Input 1 first. AIDA-X models apply their own input gain, if the file has one, and record no such level.
+
+For a file without the level, match the drive by ear:
 
 1. Start with **Input** at 0 dB.
 2. Play hard. If the capture is much cleaner or much dirtier than you expect from its description, move **Input** in steps of 3 dB.

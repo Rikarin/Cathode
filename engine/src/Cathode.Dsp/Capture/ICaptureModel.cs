@@ -22,6 +22,13 @@ public interface ICaptureModel : IDisposable {
     double? Loudness { get; }
 
     /// <summary>
+    ///     The analog level in dBu that reached full scale on the interface the capture was made with (NAM's
+    ///     <c>input_level_dbu</c>), when the file records it. The amp scales its input by the difference to Input 1's
+    ///     calibration, so the capture is driven as hard as the real amp was by the same guitar.
+    /// </summary>
+    double? InputLevelDbu { get; }
+
+    /// <summary>
     ///     Control thread: allocate for blocks of up to <paramref name="maxFrames" />, clear the state and pre-warm.
     /// </summary>
     void Reset(double sampleRate, int maxFrames);

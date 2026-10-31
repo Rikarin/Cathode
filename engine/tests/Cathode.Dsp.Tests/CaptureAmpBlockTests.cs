@@ -37,13 +37,14 @@ public class CaptureAmpBlockTests : IDisposable {
     }
 
     [Fact]
-    public void Aida_metadata_sets_loudness_and_input_level() {
+    public void Aida_metadata_sets_loudness_and_input_gain() {
         var json = SyntheticModel.Create("lstm", 4, 1, false, 1).Json.TrimEnd('}')
             + ""","in_gain":-6.5,"out_gain":4,"samplerate":44100}""";
         using var model = AidaModel.Parse(JsonDocument.Parse(json).RootElement);
 
         Assert.Equal(-22, model.Loudness);
-        Assert.Equal(-6.5, model.InputLevel);
+        Assert.Equal(-6.5, model.InputGainDb);
+        Assert.Null(model.InputLevelDbu);
         Assert.Equal(44_100, model.ExpectedSampleRate);
         Assert.Equal("AIDA-X", model.Format);
     }
@@ -104,6 +105,62 @@ public class CaptureAmpBlockTests : IDisposable {
         reference.Process(input, raw);
         Assert.Equal(left, right);
         Assert.InRange(Analysis.ToDb(Analysis.Rms(left) / Analysis.Rms(raw)), 5.9, 6.1);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Aida_in_gain_scales_the_input_before_the_layers_and_the_skip(bool skip) {
+        var spec = SyntheticModel.Create("lstm", 8, 1, skip, 11);
+        using var plain = AidaModel.Parse(JsonDocument.Parse(spec.Json).RootElement);
+        using var gained = AidaModel.Parse(
+            JsonDocument.Parse(spec.Json.TrimEnd('}') + ""","in_gain":-6}""").RootElement
+        );
+        var input = Signals.Noise(2_000, 4, 0.5f);
+        var scaled = input.Select(static x => x * (float)Decibels.ToGain(-6.0)).ToArray();
+
+        var expected = new float[input.Length];
+        plain.Process(scaled, expected);
+        var actual = new float[input.Length];
+        gained.Process(input, actual);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(0f, -12.7918)] // 1 V at full scale (-0.79 dBu) into a capture made at +12 dBu
+    [InlineData(6f, -6.7918)]
+    public void A_capture_that_records_its_input_level_is_driven_at_input_1s_calibration(
+        float calibrationDb,
+        double db
+    ) {
+        using var block = new CaptureAmpBlock(static _ => new IdentityModel(12));
+        block.LoadAsset(CaptureAmpBlock.ModelSlot, "capture.nam");
+        block.Prepare(new(48_000, 64));
+        var input = Signals.Noise(4_800, 6, 0.3f);
+
+        var output = BlockRender.Stereo(block, input, input, static _ => 64, inputCalibrationDb: calibrationDb).Left;
+
+        Assert.Equal(db, block.CalibrationGainDb(calibrationDb), 3);
+        // After the first callback's ramp from the reset's gain, the output is the input at that gain.
+        var steady = Analysis.ToDb(
+            Analysis.Rms(output.AsSpan(256).ToArray()) / Analysis.Rms(input.AsSpan(256).ToArray())
+        );
+        Assert.InRange(steady, db - 0.05, db + 0.05);
+    }
+
+    [Fact]
+    public void Calibrated_input_off_or_no_recorded_level_leaves_the_input_alone() {
+        using var off = new CaptureAmpBlock(static _ => new IdentityModel(12));
+        off.LoadAsset(CaptureAmpBlock.ModelSlot, "capture.nam");
+        off.Params.SetTarget(CaptureAmpBlock.Calibrate, 0f);
+        off.Prepare(new(48_000, 64));
+        using var unrecorded = new CaptureAmpBlock(static _ => new IdentityModel(null));
+        unrecorded.LoadAsset(CaptureAmpBlock.ModelSlot, "capture.nam");
+        unrecorded.Prepare(new(48_000, 64));
+
+        Assert.Equal(0, off.CalibrationGainDb(6));
+        Assert.Equal(0, unrecorded.CalibrationGainDb(6));
     }
 
     [Theory]
@@ -262,5 +319,24 @@ public class CaptureAmpBlockTests : IDisposable {
                     .Select(c => ((float)m[row, c]).ToString("R", CultureInfo.InvariantCulture))
             )
             + "]";
+    }
+
+    /// <summary>A capture that passes its input through, recording <paramref name="inputLevelDbu" />.</summary>
+    sealed class IdentityModel(double? inputLevelDbu) : ICaptureModel {
+        public string Format => "fake";
+
+        public string Architecture => "identity";
+
+        public double ExpectedSampleRate => 48_000;
+
+        public double? Loudness => null;
+
+        public double? InputLevelDbu => inputLevelDbu;
+
+        public void Reset(double sampleRate, int maxFrames) { }
+
+        public void Process(ReadOnlySpan<float> input, Span<float> output) => input.CopyTo(output);
+
+        public void Dispose() { }
     }
 }

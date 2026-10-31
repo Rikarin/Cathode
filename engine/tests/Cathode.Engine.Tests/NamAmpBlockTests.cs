@@ -144,6 +144,26 @@ public class NamAmpBlockTests {
     }
 
     [Fact]
+    public void A_model_that_records_its_input_level_is_driven_at_input_1s_calibration() {
+        RequireNative();
+        var input = Signals.Noise(4_800, 3, 0.2f);
+        using var calibrated = CreateBlock("lstm", false);
+        calibrated.Params.SetTarget(Cathode.Dsp.Blocks.CaptureAmpBlock.Calibrate, 1);
+        calibrated.Reset();
+        using var raw = CreateBlock("lstm", false);
+
+        // lstm.nam was made at +18.3 dBu; Input 1's default full scale is 1 V peak, -0.79 dBu: 19.09 dB less drive.
+        Assert.Equal(18.3, calibrated.Model!.InputLevel!.Value, 4);
+        var gain = (float)Cathode.Dsp.Decibels.ToGain(Cathode.Dsp.Blocks.CaptureAmpBlock.FullScaleDbuAt1V - 18.3);
+        var expected = Render(raw, [..input.Select(x => x * gain)], static _ => Block);
+        var actual = Render(calibrated, input, static _ => Block);
+
+        for (var i = 0; i < input.Length; i++) {
+            Assert.True(Math.Abs(actual[i] - expected[i]) < 1e-5, $"sample {i}: {actual[i]} vs {expected[i]}");
+        }
+    }
+
+    [Fact]
     public void Normalize_brings_the_model_to_the_target_loudness() {
         RequireNative();
         var input = Signals.Noise(4_800, 2, 0.2f);
@@ -169,7 +189,8 @@ public class NamAmpBlockTests {
                     Type = "nam",
                     Row = 0,
                     Column = 1,
-                    Parameters = { ["normalize"] = 0 },
+                    // Against the core's own render, which knows no calibration.
+                    Parameters = { ["normalize"] = 0, ["calibrate"] = 0 },
                     Assets = { ["model"] = "lstm.nam" }
                 },
                 new() { Id = "out", Type = NodeTypes.Output, Row = 0, Column = 2 }
@@ -251,6 +272,7 @@ public class NamAmpBlockTests {
         }
 
         block.Params.SetTarget(Cathode.Dsp.Blocks.CaptureAmpBlock.Normalize, normalize ? 1 : 0);
+        block.Params.SetTarget(Cathode.Dsp.Blocks.CaptureAmpBlock.Calibrate, 0); // the references know no calibration
         block.Prepare(Spec);
         return block;
     }
