@@ -14,6 +14,13 @@ the format upgrades older presets as it reads them.
   such a capture now drive it at the calibrated level: at the default 1 V calibration a file made at +12 dBu gets
   about 13 dB less drive than before. Turn the switch off, or raise **Input**, for the old drive.
 
+### Internal
+
+- **The factory presets are files** (`engine/src/Cathode.Server/Factory`): one `.cthpreset` each, as the editor
+  exports it, with `bank.json` giving the order and each scene's loudness lift. They are embedded in the Server, so the
+  app and the headless package carry them. A preset changes by replacing its file with an exported one; the leveling
+  test rewrites the levels in the files. The C# recipes are gone.
+
 ### Fixed
 
 - **AIDA-X models** apply their `in_gain`, as the AIDA-X plugin does: Cathode read it but left the input unscaled.

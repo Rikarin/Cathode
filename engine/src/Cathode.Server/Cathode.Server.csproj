@@ -11,6 +11,12 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi"/>
   </ItemGroup>
+  <!-- The factory bank (Stores/FactoryPresets.cs): one preset file each, and the bank's order, built into the Server. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Factory/bank.json" LogicalName="factory/bank.json"/>
+    <EmbeddedResource Include="Factory/presets/*.cthpreset" LogicalName="factory/presets/%(Filename)%(Extension)"/>
+    <Content Remove="Factory/**"/>
+  </ItemGroup>
   <!-- No engine host, audio or native code: the Server talks to cathode-host over IPC (docs/02-architecture.md §3).
        Cathode.Engine (managed, over Cathode.Dsp) is here for the rig parameters, the modifier names and the
        shared-memory telemetry layout it reads; Cathode.Dsp for the block descriptors, IR tools and analysis. -->

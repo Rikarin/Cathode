@@ -26,7 +26,7 @@ public sealed class FactoryPresetTests : IAsyncLifetime {
 
     static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    static List<Preset> Presets => FactoryPresets.Build(Catalog).Presets;
+    static List<Preset> Presets => FactoryPresets.Load(Catalog).Presets;
 
     public async ValueTask InitializeAsync() => client = await server.ConnectedClientAsync();
 
@@ -36,8 +36,8 @@ public sealed class FactoryPresetTests : IAsyncLifetime {
     }
 
     [Fact]
-    public void Every_recipe_builds_from_known_blocks_and_in_range_values() {
-        var (presets, problems) = FactoryPresets.Build(Catalog);
+    public void Every_file_loads_with_known_blocks_and_in_range_values() {
+        var (presets, problems) = FactoryPresets.Load(Catalog);
 
         Assert.True(problems.Count == 0, string.Join("\n", problems));
         Assert.InRange(presets.Count, 60, 100);
@@ -80,7 +80,7 @@ public sealed class FactoryPresetTests : IAsyncLifetime {
             );
 
             // The main row runs Input 1 to Output 1 through every column, block or shunt.
-            var row = preset.Blocks.Where(static b => b.Row == FactoryRecipe.MainRow)
+            var row = preset.Blocks.Where(static b => b.Row == Preset.DefaultRow)
                 .OrderBy(static b => b.Column)
                 .ToList();
             Assert.Equal(14, row.Count);

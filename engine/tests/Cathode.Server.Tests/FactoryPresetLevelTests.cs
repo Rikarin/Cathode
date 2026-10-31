@@ -7,20 +7,18 @@ using Cathode.Engine.Rig;
 using Cathode.Server.Rig;
 using Cathode.Server.Stores;
 using System.Collections.Concurrent;
-using System.Globalization;
-using System.Text;
 
 namespace Cathode.Server.Tests;
 
 /// <summary>
-///     Every scene of every factory preset, rendered through the engine with a guitar-like phrase (and any expression
+///     Every planned scene of every factory preset (as many as <c>Factory/bank.json</c> gives lifts), rendered through
+///     the engine with a guitar-like phrase (and any expression
 ///     pedal half way): no NaN, no output at or above -1 dBFS (the editor's clip warning), even with the phrase
 ///     played as hot as an input takes (peaking at full scale), and a loudness within
 ///     <see cref="Tolerance" /> of the bank's target
 ///     plus the scene's lift, measured as the editor's Preset Leveling measures (BS.1770 momentary loudness, gated and
-///     integrated). With <c>CATHODE_UPDATE_FACTORY_LEVELS=1</c> it writes the trims that bring every scene to its
-///     target instead (<see cref="FactoryLevels" />); run it twice, as the second pass corrects what the amps' and
-///     effects' nonlinearity left over.
+///     integrated). With <c>CATHODE_UPDATE_FACTORY_LEVELS=1</c> it levels the bank instead: it rewrites the preset
+///     files' amp Levels and scene levels (<see cref="FactoryLevels" />), then rebuild and run it again to check.
 /// </summary>
 public sealed class FactoryPresetLevelTests {
     const int Rate = 48_000;
@@ -32,25 +30,28 @@ public sealed class FactoryPresetLevelTests {
 
     static readonly ProcessSpec Spec = new(Rate, 64);
 
+    /// <summary>Each preset's planned scenes' lifts over the bank's loudness, by id (<c>bank.json</c>).</summary>
+    static readonly Dictionary<string, float[]> Lifts =
+        FactoryPresets.Entries().ToDictionary(static e => e.Id, static e => e.Lifts);
+
     [Fact]
     public void Every_scene_renders_clean_at_the_bank_loudness() {
         var catalog = new BlockCatalog(BlockRegistry.CreateDefault());
-        var recipes = FactoryRecipes.All.ToDictionary(static r => r.Id);
         var input = Phrase();
+        var (presets, problems) = FactoryPresets.Load(catalog);
         if (Environment.GetEnvironmentVariable("CATHODE_UPDATE_FACTORY_LEVELS") == "1") {
-            Level(catalog, recipes, input);
-            return; // the table just written is checked on the next build
+            Level(catalog, presets, input);
+            return; // the files just written are embedded, and checked, on the next build
         }
 
-        var (presets, problems) = FactoryPresets.Build(catalog);
         Assert.Empty(problems);
         var measured = Measure(presets, input);
         // The hottest a guitar gets: peaking at full scale, about 9 dB over the phrase. It may be louder, never clip.
         var hot = Measure(presets, [..input.Select(static v => v / HumbuckerPeak)]);
         var failures = new List<string>();
         foreach (var preset in presets) {
-            var lifts = recipes[preset.Id].Lifts;
-            for (var s = 0; s < lifts.Count; s++) {
+            var lifts = Lifts[preset.Id];
+            for (var s = 0; s < lifts.Length; s++) {
                 var (loudness, peak, finite) = measured[(preset.Id, s)];
                 var target = FactoryLevels.TargetLufs + lifts[s];
                 var name = $"{preset.Name} / {preset.Scenes[s].Name}";
@@ -78,10 +79,7 @@ public sealed class FactoryPresetLevelTests {
         List<Preset> presets,
         float[] input
     ) {
-        var jobs = presets.SelectMany(static p => FactoryRecipes.All.First(r => r.Id == p.Id)
-                .Lifts.Select((_, s) => (Preset: p, Scene: s))
-            )
-            .ToList();
+        var jobs = presets.SelectMany(static p => Lifts[p.Id].Select((_, s) => (Preset: p, Scene: s))).ToList();
         var results = new ConcurrentDictionary<(string, int), (float, float, bool)>();
         Parallel.ForEach(
             jobs,
@@ -201,49 +199,51 @@ public sealed class FactoryPresetLevelTests {
     }
 
     /// <summary>
-    ///     Preset Leveling for the whole bank (<see cref="FactoryLevels" />): measures every scene; moves each amp
-    ///     channel's Level by the error of the first scene on it, as far as the Level's range allows, and each scene's
-    ///     level by what is left; and repeats until all are within 0.15 dB (an amp's output stage limits near full
-    ///     scale, so an untrimmed hot amp reads low at first). Then writes the table.
+    ///     Preset Leveling for the whole bank (<see cref="FactoryLevels" />): measures every planned scene; moves each
+    ///     amp channel's Level by the error of the first scene on it, as far as the Level's range allows, and each
+    ///     scene's level by what is left (all of it in a preset without an amp); and repeats until all are within
+    ///     0.15 dB (an amp's output stage limits near full scale, so an untrimmed hot amp reads low at first). Then
+    ///     writes the preset files.
     /// </summary>
-    static void Level(BlockCatalog catalog, Dictionary<string, FactoryRecipe> recipes, float[] input) {
-        var trims = new Dictionary<string, FactoryLevels.Trim>(StringComparer.Ordinal);
-        foreach (var recipe in recipes.Values) {
-            trims[recipe.Id] = FactoryLevels.Of(recipe.Id) is { } stored && stored.Scenes.Length == recipe.Lifts.Count
-                ? stored
-                : new(new float[Preset.ChannelNames.Length], new float[recipe.Lifts.Count]);
-        }
-
+    static void Level(BlockCatalog catalog, List<Preset> presets, float[] input) {
+        var output = catalog.Descriptor("circuitamp")!;
+        var range = output.Params[output.IndexOf("level")];
         for (var pass = 0; pass < 8; pass++) {
-            var (presets, _) = FactoryPresets.Build(catalog, id => trims.GetValueOrDefault(id));
             var measured = Measure(presets, input);
             var worst = 0f;
             foreach (var preset in presets) {
-                var lifts = recipes[preset.Id].Lifts;
+                var lifts = Lifts[preset.Id];
                 var error = lifts
                     .Select((lift, s) => FactoryLevels.TargetLufs + lift - measured[(preset.Id, s)].Loudness)
                     .ToArray();
                 worst = Math.Max(worst, error.Max(Math.Abs));
-                var trim = trims[preset.Id];
-                var channel = lifts.Select((_, s) =>
-                        Preset.ChannelNames.IndexOf(preset.Scenes[s].StateOf("circuitamp1").Channel)
-                    )
-                    .ToArray();
-                var amp = trim.Amp.ToArray();
-                for (var c = 0; c < amp.Length; c++) {
-                    if (Array.IndexOf(channel, c) is var first and >= 0) {
-                        amp[c] = MathF.Round(Math.Clamp(trim.Amp[c] + error[first], -60f, 20f), 1);
+                var amp = preset.Blocks.FirstOrDefault(static b => b.Type == "circuitamp");
+                var moved = new float[Preset.ChannelNames.Length];
+                if (amp is not null) {
+                    var channel = lifts.Select((_, s) => Preset.ChannelNames.IndexOf(
+                                preset.Scenes[s].StateOf(amp.Id).Channel
+                            )
+                        )
+                        .ToArray();
+                    for (var c = 0; c < moved.Length; c++) {
+                        if (Array.IndexOf(channel, c) is not (var first and >= 0)
+                            || !amp.Channels.TryGetValue(Preset.ChannelNames[c], out var values)) {
+                            continue;
+                        }
+
+                        var was = values.GetValueOrDefault("level", range.Default);
+                        values["level"] = MathF.Round(Math.Clamp(was + error[first], range.Min, range.Max), 1);
+                        moved[c] = values["level"] - was;
+                    }
+
+                    for (var s = 0; s < lifts.Length; s++) {
+                        error[s] -= moved[channel[s]];
                     }
                 }
 
-                trims[preset.Id] = new(
-                    amp,
-                    [
-                        ..error.Select((e, s) =>
-                            MathF.Round(trim.Scenes[s] + e - (amp[channel[s]] - trim.Amp[channel[s]]), 1)
-                        )
-                    ]
-                );
+                for (var s = 0; s < lifts.Length; s++) {
+                    preset.Scenes[s].Level = MathF.Round(preset.Scenes[s].Level + error[s], 1);
+                }
             }
 
             if (worst < 0.15f) {
@@ -251,42 +251,8 @@ public sealed class FactoryPresetLevelTests {
             }
         }
 
-        static string Number(float value) => value.ToString("0.0", CultureInfo.InvariantCulture) + "f";
-
-        static string List(float[] values) => $"[{string.Join(", ", values.Select(Number))}]";
-
-        var lines = recipes.Keys.Select(id =>
-            $"        [\"{id}\"] = new({List(trims[id].Amp)}, {List(trims[id].Scenes)})"
-        );
-        var text = new StringBuilder();
-        text.Append(
-            """
-            // <auto-generated>
-            //     Generated by FactoryPresetLevelTests (CATHODE_UPDATE_FACTORY_LEVELS=1); do not edit by hand.
-            // </auto-generated>
-
-            namespace Cathode.Server.Stores;
-
-            public static partial class FactoryLevels {
-                static readonly Dictionary<string, Trim> Table = new(StringComparer.Ordinal) {
-
-            """
-        );
-        text.Append(string.Join(",\n", lines));
-        text.Append("\n    };\n}\n");
-        File.WriteAllText(
-            Path.Combine(EngineRoot(), "src", "Cathode.Server", "Stores", "FactoryLevels.Table.g.cs"),
-            text.ToString()
-        );
-    }
-
-    static string EngineRoot() {
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent) {
-            if (File.Exists(Path.Combine(dir.FullName, "Cathode.slnx"))) {
-                return dir.FullName;
-            }
+        foreach (var preset in presets) {
+            FactoryFiles.Write(preset);
         }
-
-        throw new DirectoryNotFoundException("Could not find the engine folder.");
     }
 }
