@@ -13,7 +13,8 @@ sealed class CommandLine {
     ///     instead.
     /// </summary>
     public static readonly FrozenSet<string> Commands = new[] {
-        "version", "self-test", "devices", "audio-test", "latency-test", "ir-capture", "bench-nam", "serve", "help"
+        "version", "self-test", "devices", "audio-test", "latency-test", "ir-capture", "bench-nam", "render", "serve",
+        "help"
     }.ToFrozenSet(StringComparer.Ordinal);
 
     readonly Dictionary<string, string?> options = new(StringComparer.Ordinal);

@@ -797,6 +797,28 @@ public sealed partial class LiveRig(
         return Changed(eventType);
     }
 
+    /// <summary>
+    ///     What an offline render of the working copy takes (<see cref="Reamp" />): the graph the engine is given and
+    ///     the rig and global values sent after it, as <see cref="SyncGraphAsync" /> sends them, but with the rig
+    ///     unmuted and the metronome off: a render is the preset's sound, whatever the rig is doing at the moment.
+    /// </summary>
+    public Task<(GraphDefinition Graph, List<ParamValue> Values)> RenderStateAsync() =>
+        Locked(() => {
+                var global = globals.Get();
+                return Task.FromResult<(GraphDefinition, List<ParamValue>)>(
+                    (
+                        PresetGraph.Build(preset, activeScene, assets, held, global.Oversampling),
+                        [
+                            ..RigValues(),
+                            ..GlobalValues(global),
+                            new(IpcBlocks.Rig, "mute", 0),
+                            new(IpcBlocks.Rig, "metronome", 0)
+                        ]
+                    )
+                );
+            }
+        );
+
     async Task SyncGraphAsync() {
         generation++;
         var oversampling = globals.Get().Oversampling;
@@ -972,7 +994,7 @@ public sealed partial class LiveRig(
         return to.Column == from.Column + 1;
     }
 
-    async Task<LiveState> Locked(Func<Task<LiveState>> operation) {
+    async Task<T> Locked<T>(Func<Task<T>> operation) {
         // Not cancellable: every rig operation is queued for the lock and runs to completion once it has it.
         await gate.WaitAsync(CancellationToken.None);
         try {

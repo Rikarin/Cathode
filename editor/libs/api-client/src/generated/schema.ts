@@ -272,6 +272,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/live/render': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Reamp: plays a WAV recording (a DI track) into Input 1 of the working copy, offline and faster than real time, and answers with Output 1 as a stereo float WAV at the recording's sample rate, in time with it. ?tail= adds up to 60 seconds for delays and reverbs to ring out. The rig that is playing is not interrupted; its mute and the metronome are left out of the render. */
+    post: operations['RenderLive'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/live/save': {
     parameters: {
       query?: never;
@@ -3271,6 +3288,30 @@ export interface operations {
       cookie?: never;
     };
     requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  RenderLive: {
+    parameters: {
+      query?: {
+        tail?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'audio/wav': components['schemas']['Stream'];
+      };
+    };
     responses: {
       /** @description OK */
       200: {

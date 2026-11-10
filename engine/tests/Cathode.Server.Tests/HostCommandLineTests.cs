@@ -49,6 +49,27 @@ public sealed class HostCommandLineTests {
     }
 
     [Fact]
+    public async Task Render_is_a_command_that_needs_a_job_it_can_read() {
+        var job = Path.Combine(Path.GetTempPath(), $"cathode-job-{Guid.NewGuid():n}.json");
+        await File.WriteAllTextAsync(
+            job,
+            """{ "graph": {}, "input": "/no/such/recording.wav", "output": "" }""",
+            Token
+        );
+        try {
+            var (missing, missingOutput) = await RunHostAsync("--render");
+            var (unreadable, unreadableOutput) = await RunHostAsync("--render", "--job", job);
+
+            Assert.Equal(1, missing);
+            Assert.Contains("--job <job.json> is required", missingOutput, StringComparison.Ordinal);
+            Assert.Equal(1, unreadable);
+            Assert.Contains("error:", unreadableOutput, StringComparison.Ordinal);
+        } finally {
+            File.Delete(job);
+        }
+    }
+
+    [Fact]
     public async Task An_unknown_command_is_an_error_but_plain_usage_is_not() {
         var (unknown, output) = await RunHostAsync("--no-such-command");
         Assert.Equal(2, unknown);

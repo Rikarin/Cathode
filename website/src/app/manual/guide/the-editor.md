@@ -60,6 +60,7 @@ Under the navigation bar is a second bar for the preset you are playing.
   - **Save as…** (⇧⌘S)
   - **New from template…** and **Save as template…**
   - **Take a snapshot** and **Snapshots…**
+  - **Reamp a recording…**
   - **Revert to saved**
   - **Clear preset…**
   - **Manage presets…**

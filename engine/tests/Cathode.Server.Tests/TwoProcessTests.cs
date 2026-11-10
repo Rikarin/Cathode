@@ -162,6 +162,37 @@ public sealed class TwoProcessTests : IAsyncDisposable {
         }
     }
 
+    /// <summary>
+    ///     A reamp starts a cathode-host of its own (<c>--render</c>), beside the one that plays: the recording comes
+    ///     back through the working copy, and the playing host is still connected and on its graph afterwards.
+    /// </summary>
+    [Fact]
+    public async Task A_reamp_runs_in_a_host_process_of_its_own() {
+        StartHost();
+        await using var server = new ServerFixture(socketPath);
+        using var client = await server.ConnectedClientAsync();
+        await Ok(client.PostAsJsonAsync("/api/v1/live/new", new { }, Token));
+        await Ok(client.PatchAsJsonAsync("/api/v1/live/scenes/0", new SceneUpdateRequest(Level: -6), Token));
+        var di = Cathode.Testing.Signals.Sine(440, 48_000, 24_000, 0.25f);
+
+        using var response = await client.PostAsync(
+            "/api/v1/live/render",
+            new ByteArrayContent(ReampApiTests.Wav(di, 48_000)),
+            Token
+        );
+
+        Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync(Token));
+        var rendered = Cathode.Dsp.IO.WavFile.Read(
+            new MemoryStream(await response.Content.ReadAsByteArrayAsync(Token))
+        );
+        Assert.Equal((48_000, 2, di.Length), (rendered.SampleRate, rendered.Channels.Length, rendered.Frames));
+        var gain = MathF.Pow(10, -6 / 20f);
+        Assert.InRange(rendered.Channels[0].Zip(di, (a, b) => MathF.Abs(a - gain * b)).Max(), 0, 1e-3);
+        var system = await System(client);
+        Assert.True(system.Engine.Connected);
+        Assert.Null(system.Engine.LastError);
+    }
+
     void StartHost(string[]? extra = null) {
         var dll = Path.Combine(
             AppContext.BaseDirectory.Replace(

@@ -58,9 +58,23 @@ All in the **Preset** menu, except where noted:
 | **New from template…** | Starts a new preset from a template. The dialog also deletes templates.                                        |
 | **Take a snapshot**    | Stores the working copy as it is now, unsaved changes included, with a time stamp. One click, nothing to name. |
 | **Snapshots…**         | Lists this preset's snapshots, to **Load** one into the working copy or delete it.                             |
+| **Reamp a recording…** | Plays a recorded DI track through the preset and saves the result. See [Reamping](#reamping-a-recording).      |
 | **Manage presets…**    | Opens the page for organising banks. See [Banks](/manual/library#banks-and-manage-presets).                    |
 
 **Templates** are starting points: a favourite routing with your usual gate, amp, cab and delay, ready to build on. **Snapshots** are save points while you experiment: take one before trying something drastic, and load it if you change your mind. Both are stored with your other data and shared by every editor connected to the same engine.
+
+### Reamping a recording
+
+Reamping plays a dry guitar recording (a DI track) through a preset, so you can choose or change the sound after the take. Cathode does it without a DAW and without the interface: it renders the file offline, much faster than real time, and the rig keeps playing while it does.
+
+1. Record the dry guitar. The [DI out](/manual/audio-setup#routing-inputs-and-outputs) gives you exactly the signal Cathode gets, so a recording of it reamps at the level you played at.
+2. Load the preset and choose the scene. The render uses the preset as it is now: unsaved changes, the active scene and each block's channel included.
+3. Choose **Preset ▸ Reamp a recording…**, pick the WAV file and a **Tail** (silence added after the recording so delays and reverbs ring out), and click **Render**.
+4. Save the file Cathode offers: the recording's name with "(reamped)" added.
+
+The result is what **Output 1** would play: a stereo 32-bit float WAV at the recording's sample rate, the same length as the recording plus the tail. It starts in time with the recording, so it lines up in your DAW when you put both at the same position. A mono recording feeds both sides of Input 1.
+
+The global settings apply as when you play (Input 1 Gain and calibration, the output EQ and level), but the rig's mute and the metronome are left out. Pedal and controller positions are not known to a render: expression-driven parameters stay where they rest. Recordings can be up to 256 MB, at 44.1 to 96 kHz.
 
 ### A/B compare
 

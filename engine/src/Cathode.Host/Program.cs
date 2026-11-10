@@ -20,6 +20,7 @@ try {
         "latency-test" => AudioCommands.LatencyTest(options),
         "ir-capture" => AudioCommands.IrCapture(options),
         "bench-nam" => NamBenchmark.Run(options),
+        "render" => RenderCommand.Run(options),
         "serve" => await ServeCommand.RunAsync(options).ConfigureAwait(false),
         _ => Usage()
     };
@@ -68,6 +69,8 @@ int Usage() {
             --bench-nam --model <file.nam|file.aidax> | --graph <graph.json> [options]
                                             CPU cost of a capture model or a whole graph through the engine (offline)
                   --buffer 64  --seconds 10  --size <0..1 for slimmable models>  --exact-tanh  --ftz  --silent-input
+            --render --job <job.json>       render a WAV file through a graph offline (the Server's reamp: the job names
+                                            the graph, the rig values, the input and the output file)
             --version
           """
     );

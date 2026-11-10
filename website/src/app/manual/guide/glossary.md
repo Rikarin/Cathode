@@ -182,7 +182,7 @@ The words used in this manual and in amp and effects talk, in alphabetical order
 
 ## R
 
-**Re-amping.** Playing a recorded dry guitar (DI) back through an amp or processor later, to change the sound after recording.
+**Re-amping.** Playing a recorded dry guitar (DI) back through an amp or processor later, to change the sound after recording. Cathode does it for you: see [Reamping a recording](/manual/presets-and-scenes#reamping-a-recording).
 
 **Round trip.** The total delay from the input jack, through the computer, to the output jack.
 

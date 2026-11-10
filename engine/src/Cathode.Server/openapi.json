@@ -487,6 +487,40 @@
         }
       }
     },
+    "/api/v1/live/render": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Reamp: plays a WAV recording (a DI track) into Input 1 of the working copy, offline and faster than real time, and answers with Output 1 as a stereo float WAV at the recording\u0027s sample rate, in time with it. ?tail= adds up to 60 seconds for delays and reverbs to ring out. The rig that is playing is not interrupted; its mute and the metronome are left out of the render.",
+        "operationId": "RenderLive",
+        "parameters": [
+          {
+            "name": "tail",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "audio/wav": {
+              "schema": {
+                "$ref": "#/components/schemas/Stream"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/live/save": {
       "post": {
         "tags": [

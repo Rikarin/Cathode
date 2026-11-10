@@ -282,4 +282,5 @@ public sealed class HostTunerReading {
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
 )]
 [JsonSerializable(typeof(IpcMessage))]
+[JsonSerializable(typeof(RenderJob))]
 public sealed partial class IpcJsonContext : JsonSerializerContext;

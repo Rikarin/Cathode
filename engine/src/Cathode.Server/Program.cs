@@ -74,6 +74,8 @@ builder.Services.AddSingleton<SnapshotStore>();
 builder.Services.AddSingleton<TemplateStore>();
 builder.Services.AddSingleton<PresetTools>();
 builder.Services.AddSingleton<LibraryBackup>();
+builder.Services.AddSingleton<IOfflineRenderer, HostOfflineRenderer>();
+builder.Services.AddSingleton<Reamp>();
 
 var app = builder.Build();
 if (bool.TryParse(builder.Configuration["Cathode:WatchStdin"], out var watchStdin) && watchStdin) {

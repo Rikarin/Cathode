@@ -412,12 +412,16 @@ export class Sidecars {
    */
   private serverCommand(): Command & { env: NodeJS.ProcessEnv } {
     const server = engine.server();
+    const host = engine.host();
     return {
       command: server.command,
       args: [
         ...server.args,
         `--urls=http://127.0.0.1:${this.port}${this.onNetwork() ? `;http://0.0.0.0:${this.network.port}` : ''}`,
         `--Cathode:Engine:SocketPath=${this.socket}`,
+        // The Server starts a host of its own for an offline render (reamp). A packaged app has it beside the Server,
+        // where the Server looks anyway; a development checkout has each in its own build folder.
+        `--Cathode:Engine:HostPath=${host.args[0] ?? host.command}`,
         '--Cathode:WatchStdin=true',
         ...(this.onNetwork() ? [`--Cathode:EditorDirectory=${this.editorDirectory}`] : []),
         ...(this.dataDirectory ? [`--Cathode:DataDirectory=${this.dataDirectory}`] : [])

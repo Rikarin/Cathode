@@ -114,7 +114,7 @@ By default Cathode reads **Input 1** from the interface's channel 1 and plays **
 
 **Outputs 1-4 (first channel each)** takes up to four numbers separated by commas: the first device channel of each output's stereo pair, or 0 to leave an output unused. For example `1,3,0,0` plays Output 1 on channels 1 and 2 and Output 2 on channels 3 and 4. Output 1 is the main output. Outputs 2 to 4 play whatever reaches an **Output 2**, **Output 3** or **Output 4** block on the grid.
 
-**DI out** sends the dry guitar, before any processing and before Input 1 Gain, to one or two device channels, for example `5,6`. Record it next to the processed sound and you can re-amp it later.
+**DI out** sends the dry guitar, before any processing and before Input 1 Gain, to one or two device channels, for example `5,6`. Record it next to the processed sound and you can re-amp it later: [Preset ▸ Reamp a recording…](/manual/presets-and-scenes#reamping-a-recording) plays the recording through a preset for you.
 
 **FX loop send** and **FX loop return** are the device channels the [FX Loop block](/manual/blocks/fxloop) sends to and returns from, for example `3,4`. One channel makes the loop mono.
 

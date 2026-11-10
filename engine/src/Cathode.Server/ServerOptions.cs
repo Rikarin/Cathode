@@ -28,4 +28,11 @@ public sealed class ServerOptions {
 public sealed class EngineOptions {
     /// <summary>The host's Unix domain socket.</summary>
     public string SocketPath { get; set; } = Path.Combine(Path.GetTempPath(), "cathode-host.sock");
+
+    /// <summary>
+    ///     The cathode-host program the Server starts for an offline render (Engine/OfflineRenderer.cs), or null for
+    ///     the one beside the Server, where the packages put it. A <c>.dll</c> (a development build) is run through
+    ///     <c>dotnet</c>.
+    /// </summary>
+    public string? HostPath { get; set; }
 }
