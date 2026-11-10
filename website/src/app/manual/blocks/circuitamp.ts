@@ -176,7 +176,9 @@ same parts the real switch does.`,
     switch3: `A model's third switch, where it has one: *Spongy* on the Rectifiers (a lower supply voltage, modelled as
 90 % mains, for a softer, saggier feel), *Bass Shift* on the Mark IIC+, *Bite Down* on the Prometheus, *Mid Boost*
 on the Mark IV, *Bright* on the Mark V, *Bass Cut* on the SVT, *Voice* on the BE-100, *Low Power* on the Silver
-Jubilee, *Tone Shift* on the DSL100, *3rd Gear* on the Quick Rod.`,
+Jubilee, *Tone Shift* on the DSL100, *3rd Gear* on the Quick Rod, *Smooth* on the Savage 120 (its second lead voice:
+less gain into the tone stack and one more tube stage after it, so the sound is rounder and the tone knobs do less;
+off is Rough).`,
 
     control1: `A model's own extra knob, where it has one: a second volume (*Normal Vol* on Plexis and Bassmans,
 *Mic Vol* on the Tweed Deluxe, *Loudness 2*, *Volume II*), a lead drive (*Lead Drive* on the Mark IIC+ and IV,
@@ -532,7 +534,7 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
         'Mesa/Boogie Triple Rectifier: built as the three-channel Dual Rectifier with six 6L6s, as no schematic was found.',
       Powerball:
         'Engl Powerball channel 2 (lead), Lo and Hi modes, with its Open and Focused middle. Tight modern metal. Two supply filter nodes are assumed (not on the drawing) to stop it motorboating.',
-      'Savage 120': 'Engl Savage 120 lead channel: aggressive, mid-forward high gain.',
+      'Savage 120': 'Engl Savage 120 lead channel, Rough and (Switch 3) Smooth: aggressive, mid-forward high gain.',
       SVT: 'Ampeg SVT: the classic tube bass amp, with Ultra Hi, Ultra Lo and Bass Cut.',
       'Portaflex B-15N': 'Ampeg B-15N Portaflex: warm, round vintage bass.',
       'JC-120':

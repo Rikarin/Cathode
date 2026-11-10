@@ -201,16 +201,17 @@ public sealed class AmpChannel {
 
     /// <summary>
     ///     Whether a stage of <paramref name="design" /> is a tone stack: a stack stage, a network with stack caps, or
-    ///     a switch between two single passive such networks (no triode, pentode or op-amp: the JC-120's stack with and
-    ///     without its distortion diodes; a switched channel whose network holds its gain stage stays put).
+    ///     a switch between two single such networks of which the stock one is passive (no triode, pentode or op-amp:
+    ///     the JC-120's stack with and without its distortion diodes, the Savage 120's stack with and without Smooth's
+    ///     V3A after it; a switched channel whose network holds its gain stage stays put).
     /// </summary>
     public static bool IsStack(AmpStageDesign design) =>
         design is ToneStackStageDesign
         || (design is NetworkStageDesign network
             && network.Netlist.Elements.Any(static e => e.CapacitorRole == CapacitorRole.Stack))
-        || (design is ChannelSwitchStageDesign { Off: [var off], On: [var on] }
+        || (design is ChannelSwitchStageDesign { Off: [var off], On: [NetworkStageDesign on] }
             && IsPassiveStack(off)
-            && IsPassiveStack(on));
+            && IsStack(on));
 
     static bool IsPassiveStack(AmpStageDesign design) =>
         design is NetworkStageDesign network

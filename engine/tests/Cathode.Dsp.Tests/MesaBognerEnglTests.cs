@@ -13,26 +13,44 @@ namespace Cathode.Dsp.Tests;
 ///     Measured, with a few dB of margin: these cascades already clip at 2 mV, so even the small-signal rows test the
 ///     cuts under grid current. The Savage's four network stages agree to -87 dB at 2 mV; driven hard, its V2B (330k
 ///     plate, unbypassed 3.3k) into V3B's grid current is the cuts' known weak spot (-8 dB), as the Rect-o-Verb's cold
-///     clipper with a plate bypass cap is (-13 dB).
+///     clipper with a plate bypass cap is (-13 dB). The Savage's Smooth path, through its stack and V3A (five stages),
+///     agrees to -42 dB at 2 mV and -32 dB at 50 mV: its pad keeps V3B's grid current small.
 /// </remarks>
 public partial class AmpStageTests {
-    public static TheoryData<string, double, double> MesaEnglChains =>
+    /// <summary>Model, Switch 3, the number of stages from the input, the drive in volts, the limit in dB.</summary>
+    public static TheoryData<string, bool, int, double, double> MesaEnglChains =>
         new() {
-            { "Mark V", 0.002, -16 },
-            { "Mark V", 0.05, -16 },
-            { "Rect-o-Verb", 0.002, -15 },
-            { "Rect-o-Verb", 0.05, -9 },
-            { "Powerball", 0.0005, -25 },
-            { "Powerball", 0.05, -10 },
-            { "Savage 120", 0.002, -80 },
-            { "Savage 120", 0.05, -5 }
+            { "Mark V", false, 4, 0.002, -16 },
+            { "Mark V", false, 4, 0.05, -16 },
+            { "Rect-o-Verb", false, 4, 0.002, -15 },
+            { "Rect-o-Verb", false, 4, 0.05, -9 },
+            { "Powerball", false, 4, 0.0005, -25 },
+            { "Powerball", false, 4, 0.05, -10 },
+            { "Savage 120", false, 4, 0.002, -80 },
+            { "Savage 120", false, 4, 0.05, -5 },
+            { "Savage 120", true, 5, 0.002, -35 },
+            { "Savage 120", true, 5, 0.05, -25 }
         };
 
+    /// <summary>
+    ///     The first <paramref name="count" /> stages of the path Switch 3 selects (a channel switch's stages are those
+    ///     of the channel that plays).
+    /// </summary>
     [Theory]
     [MemberData(nameof(MesaEnglChains))]
-    public void Mesa_and_Engl_chains_match_the_reference(string type, double amplitude, double limitDb) {
-        var designs = AmpDesign.All.Single(a => a.Name == type).Preamp.Take(4).ToArray();
-        var controls = new AmpControls(0.5, 0.5, 0.5, 0.5, 1, false);
+    public void Mesa_and_Engl_chains_match_the_reference(
+        string type,
+        bool switch3,
+        int count,
+        double amplitude,
+        double limitDb
+    ) {
+        var controls = new AmpControls(0.5, 0.5, 0.5, 0.5, 1, false, Switch3: switch3);
+        var designs = AmpDesign.All.Single(a => a.Name == type)
+            .Preamp
+            .SelectMany(s => s is ChannelSwitchStageDesign c ? controls.IsOn(c.Switch) ? c.On : c.Off : [s])
+            .Take(count)
+            .ToArray();
 
         var stages = designs.Select(static d => d.Create(Rate)).ToArray();
         var (rest, resistance) = (0.0, 0.0);
@@ -101,7 +119,9 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
             { "Powerball", 0, 0, 0 },
             { "Powerball", 1, 1, 0 },
             { "Savage 120", 0, 0, 0 },
-            { "Savage 120", 1, 1, 0 }
+            { "Savage 120", 1, 1, 0 },
+            { "Savage 120", 0, 0, 1 },
+            { "Savage 120", 1, 1, 1 }
         };
 
     [Fact]
@@ -132,8 +152,8 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         Assert.Equal("Mid Open", Label("middle", "Powerball"));
         Assert.Equal("Mid Focused", Label("control1", "Powerball"));
         Assert.Equal(
-            ["Contour", "Lead Boost"],
-            new[] { "switch1", "switch2" }.Select(static id => Label(id, "Savage 120"))
+            ["Contour", "Lead Boost", "Smooth"],
+            new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "Savage 120"))
         );
         Assert.Equal("Lead", Label("control1", "Savage 120"));
         Assert.Equal(6, AmpDesign.All.Single(static a => a.Name == "Triple Rectifier").Power.TubesPerSide * 2);
@@ -158,6 +178,58 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         var (silicon, tube) = (Supply(false), Supply(true));
         output.WriteLine($"B+ under drive: silicon {silicon:0.0} V, 5U4G {tube:0.0} V");
         Assert.True(tube < silicon - 10);
+    }
+
+    /// <summary>
+    ///     The Savage's Smooth (Switch 3) pads V3B's grid and makes the level up after the stack in V3A: far less gain
+    ///     below clipping (measured -27.5 dB at gain 3), within a few dB driven hard (-8.6 dB), and, as Engl's manual
+    ///     says of Smooth, tone knobs that do noticeably less, because V3A clips what the stack shaped (the treble
+    ///     knob moves a driven note's highs by 6.9 dB in Rough, 3.7 dB in Smooth).
+    /// </summary>
+    [Fact]
+    public void Savage_Smooth_pads_the_cascade_and_clips_after_the_stack() {
+        static CircuitAmpBlock Amp(bool smooth, float gain, float treble = 5f) =>
+            Create(
+                "Savage 120",
+                (CircuitAmpBlock.Switch3, smooth ? 1f : 0f),
+                (CircuitAmpBlock.Gain, gain),
+                (CircuitAmpBlock.Treble, treble),
+                (CircuitAmpBlock.Master, 3f)
+            );
+
+        static double Small(bool smooth) {
+            using var block = Amp(smooth, 3f);
+            return Level(block, 1_000, 1e-6f);
+        }
+
+        static double Driven(bool smooth) {
+            using var block = Amp(smooth, 8f);
+            return Level(block, 220, 0.1f);
+        }
+
+        // The treble knob's reach on a driven note's upper harmonics (2.2 to 6.6 kHz against the fundamental).
+        static double TrebleReach(bool smooth) {
+            double Tilt(float treble) {
+                using var block = Amp(smooth, 8f, treble);
+                var rendered = BlockRender.Mono(block, Signals.Sine(220, Rate, 48_000, 0.1f), 64).AsSpan(24_000);
+                var high = 0.0;
+                foreach (var harmonic in new[] { 11, 15, 21, 25, 29 }) {
+                    high += Math.Pow(Analysis.MagnitudeAt(rendered, 220.0 * harmonic, Rate), 2);
+                }
+
+                return Analysis.ToDb(Math.Sqrt(high)) - Analysis.ToDb(Analysis.MagnitudeAt(rendered, 220, Rate));
+            }
+
+            return Math.Abs(Tilt(10f) - Tilt(0f));
+        }
+
+        var (small, driven) = (Small(true) - Small(false), Driven(true) - Driven(false));
+        var (rough, smoothed) = (TrebleReach(false), TrebleReach(true));
+        output.WriteLine($"Smooth against Rough: {small:0.0} dB below clipping, {driven:0.0} dB driven");
+        output.WriteLine($"Treble 0 to 10 on a driven note's highs: Rough {rough:0.0} dB, Smooth {smoothed:0.0} dB");
+        Assert.InRange(small, -60, -20);
+        Assert.InRange(driven, -12, 3);
+        Assert.True(smoothed < rough - 2,$"Smooth's treble reaches {smoothed:0.0} dB, Rough's {rough:0.0} dB");
     }
 
     /// <summary>

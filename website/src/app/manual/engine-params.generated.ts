@@ -10786,7 +10786,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           'Spongy',
           '',
-          '',
+          'Smooth',
           'Bass Cut',
           '',
           '',
