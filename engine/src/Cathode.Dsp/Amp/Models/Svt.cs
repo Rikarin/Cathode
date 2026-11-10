@@ -37,9 +37,22 @@ namespace Cathode.Dsp.Amp.Models;
 ///         curves: the library has no 12BH7), the 6C4 (one 12AU7 half), the output transformer (2k plate to plate, from
 ///         300 W at 680 V), the feedback tap (the 4 Ω one), the supply's source resistance and the reservoir (100 µF
 ///         and 70 µF stacked: 41 µF). The separate screen winding is a stand-in: a dropping resistor from B+ into a
-///         very large cap, which holds 350 V through a note as the real winding would. Channel two (12AX7 stages, its
-///         own stack, mixed after the midrange loop) loads the mix node as 100k into 150k and is not modelled; nor is
-///         the input jacks' switching beyond Bright.
+///         very large cap, which holds 350 V through a note as the real winding would.
+///     </para>
+///     <para>
+///         Not modelled: the input jacks' switching beyond Bright; the 120 pF across the 47k feedback resistor
+///         (<see cref="FeedbackDesign" /> has no cap there: it rolls the power amp's closed-loop gain off from 28 kHz,
+///         about −0.5 dB at 10 kHz); and channel two, which loads the mix node as 100k into 150k. The block has no
+///         control left to select it with (the SVT's panel uses the bright switch and all three model switches), so it
+///         needs a type of its own or a fourth switch. What the same redraw shows of it, for whoever builds it: V2
+///         (12AX7), the same input network as channel one into a first half on 220k and 3.3k unbypassed; 0.1 µF from
+///         its plate to a node N; from N, 10M ‖ 1 nF into the 1M linear volume and 0.1 µF + 68k + 1M to ground; the
+///         Ultra Low switch (two poles) shorts the 10M ‖ 1 nF and the 1M at once, as drawn; 500 pF from the volume's
+///         top to its wiper on the Ultra High switch; the second half on 100k and 3.3k unbypassed; 0.1 µF into the
+///         same Baxandall as channel one's (220k, 47 pF, 1 nF, 10 nF, 22k, 470 pF, 120k, 1M pots); 100k from the
+///         treble wiper to the mix node. Read that way Ultra Low gives about +3 dB at 40 Hz and −9 dB at 500 Hz against
+///         the other position (a divider estimate with 140k behind the plate), which is the manual's +2 dB and −10 dB:
+///         those figures fit channel two better than channel one's twin-T (see <c>BassAmpTests</c>).
 ///     </para>
 /// </remarks>
 public static class Svt {
