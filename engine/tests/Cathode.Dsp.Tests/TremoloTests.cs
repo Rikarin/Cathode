@@ -11,7 +11,8 @@ namespace Cathode.Dsp.Tests;
 ///     Stream T: the amps' own tremolos. The phase-shift oscillator against the textbook ladder and each model's rate
 ///     range against an independent solve of its drawing's ladder; the depth at full intensity and the rate it runs at;
 ///     intensity 0 leaving every model exactly as it is without its tremolo; a smooth onset; the panel's names; no
-///     allocation; the cost.
+///     allocation; the cost. The Bluesbreaker's chopper, whose drawing gives a slower range than the others', has its
+///     own tests of the oscillator and the switch.
 /// </summary>
 public class TremoloTests(ITestOutputHelper output) {
     const double Rate = 48_000;
@@ -22,15 +23,29 @@ public class TremoloTests(ITestOutputHelper output) {
         "Tremolux AA763", "Vibro-King", "18 W 1974X"
     ];
 
-    static readonly string[] KindNames = ["Deluxe 6G3", "Vibrolux 6G11", "Deluxe Reverb", "Vibro-King", "18 W 1974X"];
+    const string Bluesbreaker = "Bluesbreaker 1962";
 
-    /// <summary>The models with a tremolo of their own.</summary>
+    static readonly string[] KindNames = [
+        "Deluxe 6G3", "Vibrolux 6G11", "Deluxe Reverb", "Vibro-King", "18 W 1974X", Bluesbreaker
+    ];
+
+    /// <summary>The models with a tremolo of their own whose rates lie in the usual range.</summary>
     public static TheoryData<string> Models => new(Names);
 
+    /// <summary>Every model with a tremolo of its own.</summary>
+    public static TheoryData<string> AllModels => new([..Names, Bluesbreaker]);
+
     /// <summary>
-    ///     One model of each kind: bias (direct and through a follower), optical, the 18 W's oscillating tube.
+    ///     One model of each kind: bias (direct and through a follower), optical, the 18 W's oscillating tube, the
+    ///     Bluesbreaker's chopper.
     /// </summary>
     public static TheoryData<string> Kinds => new(KindNames);
+
+    /// <summary>
+    ///     The kinds whose oscillator is solved at control rate. The Bluesbreaker's chopper is not one: while it is on
+    ///     its first stage runs twice (the switch open and closed), about 1.3 times the model's cost.
+    /// </summary>
+    public static TheoryData<string> BehaviouralKinds => new(KindNames.Where(static k => k != Bluesbreaker));
 
     /// <summary>
     ///     Three equal sections (R, C) from an ideal source into an open grid oscillate at 1 / (2π RC √6): the textbook
@@ -154,12 +169,75 @@ public class TremoloTests(ITestOutputHelper output) {
     }
 
     /// <summary>
+    ///     The 1962 reissue's oscillator from its drawing ("1962 STD" issue 4, #291): its ladder of 22 nF caps on legs
+    ///     of 68k to 2M, 503k and 1.47M runs slower than the Fenders', about 2 to 4.7 Hz; at each end the loop inverts
+    ///     the phase, by an independent nodal solve; with its unbypassed 560 Ω cathode it stalls at the very top of
+    ///     the Speed knob, where the first leg is the 68k alone. The J174's gate rests at the pinch-off voltage, the
+    ///     channel just off, and the plate's trough closes it.
+    /// </summary>
+    [Fact]
+    public void The_bluesbreakers_oscillator_and_switch_follow_the_drawing() {
+        var chopper = (ChopperTremoloDesign)((NetworkStageDesign)Design(Bluesbreaker).Preamp[0]).Tremolo!;
+        var oscillator = chopper.Oscillator;
+        var (slowest, fastest) = oscillator.RateRange();
+        var (from, to) = oscillator.RunningRange();
+        output.WriteLine(
+            $"{slowest:0.00} to {fastest:0.00} Hz (Speed {from * 10:0.0} to {to * 10:0.0}); plate at "
+            + $"{oscillator.RestPlate:0} V swinging {oscillator.PlateSwing(0.5):0} V"
+        );
+        Assert.False(oscillator.CathodeBypassed);
+        Assert.InRange(slowest, 1.8, 2.3);
+        Assert.InRange(fastest, 4.4, 5.1);
+        Assert.Equal(0, from);
+        Assert.InRange(to, 0.8, 0.99);
+        foreach (var speed in new[] { from, to }) {
+            var phase = Loop(oscillator, oscillator.Rate(speed), speed).Phase;
+            Assert.True(Math.Abs(Math.Abs(phase) - Math.PI) < 1e-6, $"phase {phase}");
+        }
+
+        var fet = (JfetChopperDesign)chopper.Switch;
+        var rest = fet.Rest(oscillator.RestPlate);
+        var swing = fet.Tap(oscillator.RestPlate) * oscillator.PlateSwing(0.5);
+        Assert.Equal(fet.PinchOff, rest, 1e-9);
+        Assert.True(fet.Tap(oscillator.RestPlate) < fet.MostTap); // within the preset's travel
+        Assert.InRange(fet.PinchOff - fet.Knee, 0.1, 0.14);
+        Assert.Equal(10e-9 / JfetChopperDesign.ThermalVoltage, fet.Conductance(rest), 1e-8); // the data sheet's cut-off
+        Assert.InRange(chopper.Weight(rest), 0, 0.05);
+        Assert.Equal(0, chopper.Weight(rest + swing), 1e-9);
+        Assert.InRange(chopper.Weight(rest - swing), 0.99, 1.01);
+        Assert.Equal(1 / 85.0, fet.Conductance(0), 1e-12);
+    }
+
+    /// <summary>
+    ///     The Bluesbreaker's tremolo chops Channel II (#291): played alone, a steady note dips deeply at the rate
+    ///     asked for and is steady at Intensity 0; the dip grows with Intensity, from the 100k under the pot to the
+    ///     whole chain; jumpered, Channel I plays on through it, so the tremolo is shallower.
+    /// </summary>
+    [Fact]
+    public void The_bluesbreakers_tremolo_chops_channel_ii() {
+        var (still, _) = Envelope(Bluesbreaker, 0, 4, CircuitAmpBlock.Switch2);
+        var (low, _) = Envelope(Bluesbreaker, 2, 4, CircuitAmpBlock.Switch2);
+        var (full, rate) = Envelope(Bluesbreaker, 100, 4, CircuitAmpBlock.Switch2);
+        var (jumpered, _) = Envelope(Bluesbreaker, 100, 4);
+        output.WriteLine(
+            $"Channel II: {still:0.000} dB at 0, {low:0.0} dB at 2 %, {full:0.0} dB at 100 % ({rate:0.00} Hz); "
+            + $"jumpered {jumpered:0.0} dB"
+        );
+        Assert.True(still < 0.05, $"{still:0.000} dB at Intensity 0");
+        Assert.True(low > 0.3, $"only {low:0.0} dB at 2 %");
+        Assert.True(full > low + 3, $"{full:0.0} dB at 100 % against {low:0.0} dB at 2 %");
+        Assert.InRange(rate, 0.85 * 4, 1.15 * 4);
+        Assert.True(jumpered < full, $"{jumpered:0.0} dB jumpered against {full:0.0} dB on Channel II alone");
+        Assert.True(jumpered > 1, $"only {jumpered:0.0} dB jumpered");
+    }
+
+    /// <summary>
     ///     At intensity 0 each model renders sample for sample what the same model without its tremolo renders (its
     ///     oscillator stopped, its photocell dark: the netlists keep the Intensity pot's track, which with the wiper at
     ///     ground is all the pot does), whatever the rate: the tremolo leaves no trace when it is off.
     /// </summary>
     [Theory]
-    [MemberData(nameof(Models))]
+    [MemberData(nameof(AllModels))]
     public void Intensity_zero_is_the_model_without_its_tremolo(string model) {
         var design = Design(model);
         var stripped = Strip(design);
@@ -256,6 +334,9 @@ public class TremoloTests(ITestOutputHelper output) {
         Assert.Equal("Intensity", Label("tremdepth", "Deluxe 6G3"));
         Assert.Equal("Depth", Label("tremdepth", "Scout GA-17RVT"));
         Assert.Equal("Depth", Label("tremdepth", "18 W 1974X"));
+        Assert.Equal("Intensity", Label("tremdepth", Bluesbreaker));
+        Assert.Equal("Speed", Label("tremrate", Bluesbreaker));
+        Assert.True(new AmpChannel(Design(Bluesbreaker), 96_000).HasTremolo);
         Assert.Equal("Bias Trem Rate", Label("tremrate", "Plexi 100W"));
         Assert.Equal("Bias Trem Depth", Label("tremdepth", "Plexi 100W"));
         foreach (var name in Names) {
@@ -301,7 +382,7 @@ public class TremoloTests(ITestOutputHelper output) {
     ///     median of the per-block ratios taken, which a pre-empted block cannot move.
     /// </summary>
     [Theory]
-    [MemberData(nameof(Kinds))]
+    [MemberData(nameof(BehaviouralKinds))]
     public void The_tremolo_costs_little(string model) {
         var input = CircuitAmpBlockTests.Chord(48_000, 0.25f);
         using var off = Create(model, (CircuitAmpBlock.Switch1, 1f));
@@ -367,7 +448,11 @@ public class TremoloTests(ITestOutputHelper output) {
         Complex[] caps = [new(0, omega * d.Ladder1), new(0, omega * d.Ladder2), new(0, omega * d.Ladder3)];
         var (_, plateVolts, cathode) =
             OperatingPoint.CommonCathode(d.Tube, 0, d.Supply, d.PlateResistor, d.CathodeResistor);
-        var (rp, _) = OperatingPoint.SmallSignal(d.Tube, -cathode, plateVolts - cathode);
+        var (rp, mu) = OperatingPoint.SmallSignal(d.Tube, -cathode, plateVolts - cathode);
+        if (!d.CathodeBypassed) {
+            rp += (mu + 1) * d.CathodeResistor; // the plate looks back through the cathode's own resistor
+        }
+
         var source = d.PlateResistor * rp / (d.PlateResistor + rp);
 
         // Nodes: 0 the plate, 1 to 3 the ladder's (3 the grid).
@@ -411,11 +496,16 @@ public class TremoloTests(ITestOutputHelper output) {
     ///     <paramref name="depth" /> % and <paramref name="hertz" />: the swing of its envelope (three periods of the
     ///     note per window) in dB, and the rate of that envelope's swell (from its upward crossings of its mean).
     /// </summary>
-    static (double Swing, double Hertz) Envelope(string model, float depth, double hertz) {
+    static (double Swing, double Hertz) Envelope(
+        string model,
+        float depth,
+        double hertz,
+        int channel = CircuitAmpBlock.Switch1
+    ) {
         using var block = Create(
             model,
             (CircuitAmpBlock.Gain, 3f),
-            (CircuitAmpBlock.Switch1, 1f),
+            (channel, 1f),
             (CircuitAmpBlock.TremoloDepth, depth),
             (CircuitAmpBlock.TremoloRate, (float)hertz)
         );
@@ -483,6 +573,9 @@ public class TremoloTests(ITestOutputHelper output) {
                     break;
                 case GridDriveTremoloDesign drive:
                     yield return drive.Oscillator;
+                    break;
+                case ChopperTremoloDesign chopper:
+                    yield return chopper.Oscillator;
                     break;
             }
         }

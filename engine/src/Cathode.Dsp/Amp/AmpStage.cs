@@ -55,7 +55,7 @@ public enum PotRole {
 
     /// <summary>
     ///     The tremolo's Intensity knob (<see cref="AmpControls.TremoloDepth" />), for an Intensity pot that sits in a
-    ///     stage's netlist (the Marshall 18 W's cathode rheostat).
+    ///     stage's netlist (the Marshall 18 W's cathode rheostat, the pot the 1962 reissue's tremolo FET grounds).
     /// </summary>
     TremoloDepth
 }

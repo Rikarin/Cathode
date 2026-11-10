@@ -17,13 +17,18 @@ namespace Cathode.Dsp.Amp.Models;
 /// <remarks>
 ///     <para>
 ///         The amp's own tremolo is not built (#291; Bias Trem Rate and Depth run the Circuit Amp's generic bias
-///         tremolo here): the transistor's type and its base network are illegible on the scan, and the library's
-///         stage tremolos (<see cref="StageTremoloDesign" />) have no switched shunt inside a stage's netlist. The
-///         transistor is taken as off, so the normal volume carries the 0.1 µF and 93k of the Intensity chain as a
-///         fixed load, which is what sets this amp's normal channel apart from the 1959 Super Lead
-///         (<see cref="SuperLead100" />) at the same settings (about 6 dB less at noon, where the wiper's source
-///         resistance, about 90k, meets the load's 93k). With the tremolo on, the transistor would chop that load's
-///         lower part at the oscillator's rate.
+///         tremolo here). The library has the circuit's kind (<see cref="ChopperTremoloDesign" />, the Bluesbreaker's),
+///         and most of this one is legible on the scan: the oscillator (100k to the plate and 150k from the plate to
+///         ground, 2.7k with 50 µF; 0.022 µF to 100k and the 2M Speed, 0.01 µF to 1M, 0.01 µF to the grid and 1M) and
+///         the transistor's base network (680k and a cap marked "1" from the plate, 4.3k to ground). What is not: the
+///         transistor's type, and the node the oscillator's 100k hangs on. The base gets about 0.6 % of the plate's
+///         swing, which this oscillator solved on a 300 to 460 V node puts at 0.06 to 0.47 V: at or under the turn-on
+///         of a silicon junction, so whether the switch closes at all, and for how much of each cycle, is set by
+///         exactly the two things the scan does not give. The transistor is taken as off, so the normal volume
+///         carries the 0.1 µF and 93k of the Intensity chain as a fixed load, which is what sets this amp's normal
+///         channel apart from the 1959 Super Lead (<see cref="SuperLead100" />) at the same settings (about 6 dB less
+///         at noon, where the wiper's source resistance, about 90k, meets the load's 93k). With the tremolo on, the
+///         transistor would chop that load's lower part at the oscillator's rate.
 ///     </para>
 ///     <para>
 ///         The feedback resistor is taken as 47k (the drawing's first value; the 1959SLP reissue drawing also has 47k

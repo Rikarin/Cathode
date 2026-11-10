@@ -1,4 +1,5 @@
 using Cathode.Dsp.Wdf;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace Cathode.Dsp.Amp;
@@ -589,5 +590,256 @@ public sealed class GridDriveTremoloStage : PairedAmpStage {
         (stepSine, stepCosine) = Math.SinCos(2 * Math.PI * Frequency / sampleRate);
         smoothing = 1 - Math.Exp(-1 / (GridDriveTremoloDesign.SmoothingTime * sampleRate));
         fadeStep = 1 / (GridDriveTremoloDesign.CrossfadeTime * sampleRate);
+    }
+}
+
+/// <summary>
+///     The switch of a <see cref="ChopperTremoloDesign" />: how the oscillator's plate reaches its control terminal,
+///     and what the switch's channel conducts for a control voltage.
+/// </summary>
+public abstract record ChopperSwitchDesign {
+    /// <summary>
+    ///     The control voltage with the oscillator stopped, its plate resting at <paramref name="restPlate" /> volts.
+    /// </summary>
+    public abstract double Rest(double restPlate);
+
+    /// <summary>
+    ///     Control volts per volt of the plate's swing at <paramref name="frequency" />, the plate resting at
+    ///     <paramref name="restPlate" /> volts.
+    /// </summary>
+    public abstract Complex Drive(double frequency, double restPlate);
+
+    /// <summary>The channel's conductance at control voltage <paramref name="control" />, siemens.</summary>
+    public abstract double Conductance(double control);
+}
+
+/// <summary>
+///     A P-channel JFET as the switch (the 1962 reissue's J174), its gate on the wiper of a preset across the foot of
+///     the divider a cathode follower on the oscillator's plate drives: the gate follows the plate, scaled by the
+///     preset. At small drain voltages the channel conducts <c>(1 − V_GS / V_K) / r_DS(on)</c> between 0 V and a knee
+///     V_K, and beyond the knee what is left falls by e for each thermal voltage, as a junction FET's does below
+///     threshold. The knee lies where that tail passes the data sheet's definition of the cut-off: a drain current of
+///     <paramref name="CutoffCurrent" /> at <paramref name="PinchOff" />, a conductance of that current over the
+///     thermal voltage. For the J174 it is 0.12 V under the cut-off voltage.
+/// </summary>
+/// <remarks>
+///     The preset's setting is not on the drawing. It is taken where the gate rests at the cut-off voltage with the
+///     oscillator stopped (the channel off), so the switch is open at rest and closes for the half of each cycle in
+///     which the plate is below its rest (guess), up to <paramref name="MostTap" />, the most the preset can pass.
+/// </remarks>
+/// <param name="PinchOff">The gate voltage at which the channel is cut off, V_GS(off).</param>
+/// <param name="OnResistance">The channel's resistance with the gate at 0 V, r_DS(on).</param>
+/// <param name="MostTap">The preset's share of the follower's voltage with its wiper at the top.</param>
+/// <param name="CutoffCurrent">The drain current that defines V_GS(off) on the data sheet.</param>
+public sealed record JfetChopperDesign(double PinchOff, double OnResistance, double MostTap, double CutoffCurrent)
+    : ChopperSwitchDesign {
+    /// <summary>The thermal voltage at room temperature, volts.</summary>
+    public const double ThermalVoltage = 0.02585;
+
+    /// <summary>The gate voltage where the channel's straight line ends and its tail begins.</summary>
+    public double Knee { get; } = PinchOff
+        - ThermalVoltage
+        * Math.Log(ThermalVoltage * ThermalVoltage / (PinchOff * OnResistance * CutoffCurrent));
+
+    /// <summary>
+    ///     The share of the plate's voltage on the gate, for a plate resting at <paramref name="restPlate" /> volts.
+    /// </summary>
+    public double Tap(double restPlate) => Math.Min(PinchOff / restPlate, MostTap);
+
+    public override double Rest(double restPlate) => Tap(restPlate) * restPlate;
+
+    public override Complex Drive(double frequency, double restPlate) => Tap(restPlate);
+
+    public override double Conductance(double control) {
+        // ln(1 + e^x) joins the line (x large) to the tail (x negative) with no corner.
+        var x = (Knee - control) / ThermalVoltage;
+        var soft = x > 30 ? x : Math.Log(1 + Math.Exp(x));
+        return Math.Min(soft * ThermalVoltage / Knee, 1) / OnResistance;
+    }
+}
+
+/// <summary>
+///     Marshall's chopper tremolo (the 1962 reissue): a switch from the Intensity pot's wiper to ground,
+///     worked by a phase-shift oscillator, shunts a channel's signal at a node inside the stage.
+///     <paramref name="Closed" /> is the stage's netlist with the switch closed: the Intensity pot (turned by
+///     <see cref="PotRole.TremoloDepth" />) with <paramref name="ClosedResistance" /> from its wiper to ground, where
+///     the stage the design builds has the pot's whole chain as one resistor (the switch open).
+/// </summary>
+/// <remarks>
+///     <para>
+///         Both netlists run and the output is a blend of the two. For a resistive node that is the circuit with the
+///         switch at any conductance g in between: the output moves from the open circuit's to the closed one's as
+///         <c>gZ / (1 + gZ)</c>, Z the resistance the switch sees (<paramref name="NodeResistance" />; the caps
+///         around the node are short at audio). The switch is far below Z when on and far above when off, so Z only
+///         shapes the edges. The control voltage is the oscillator's plate wave (its first harmonics, from the solved
+///         table) through the switch's drive network, per sample.
+///     </para>
+///     <para>
+///         At depth 0 the oscillator is stopped and the stage the design builds plays alone, bit for bit. Above 0 the
+///         oscillation builds up over <see cref="SmoothingTime" /> (the closed netlist reset at the operating point),
+///         and the depth is the Intensity pot's rotation; back at 0 it dies away and the closed netlist stops.
+///     </para>
+/// </remarks>
+public sealed record ChopperTremoloDesign(
+    NetworkStageDesign Closed,
+    PhaseShiftOscillatorDesign Oscillator,
+    ChopperSwitchDesign Switch,
+    double NodeResistance,
+    double ClosedResistance
+) : StageTremoloDesign {
+    public const double SmoothingTime = 0.03;
+
+    /// <summary>
+    ///     The closed netlist's share of the output with the switch's control at <paramref name="control" /> volts: 0
+    ///     with the switch open, 1 at <see cref="ClosedResistance" />.
+    /// </summary>
+    public double Weight(double control) {
+        var g = Switch.Conductance(control) * NodeResistance;
+        return g / (1 + g) * (1 + ClosedResistance / NodeResistance);
+    }
+
+    internal override AmpStage Wrap(NetworkStageDesign design, AmpStage stage, double sampleRate) =>
+        new ChopperTremoloStage(this, stage, Closed.Create(sampleRate), sampleRate);
+}
+
+/// <summary>The runtime of a <see cref="ChopperTremoloDesign" />.</summary>
+public sealed class ChopperTremoloStage : PairedAmpStage {
+    readonly AmpStage open;
+    readonly AmpStage closed;
+    readonly OscillatorTable table;
+    readonly double restPlate;
+    readonly double rest; // the control voltage with the oscillator stopped
+    Complex first; // the control's harmonics at full swing, volts
+    Complex second;
+    Complex third;
+    double sampleRate;
+    double restInput;
+    double smoothing;
+    double level; // the oscillation's share of its full swing
+    double target;
+    double sine;
+    double cosine = 1;
+    double stepSine;
+    double stepCosine = 1;
+    double rate = double.NaN;
+    bool running;
+
+    public ChopperTremoloDesign Design { get; }
+
+    /// <summary>The oscillator's rate, hertz.</summary>
+    public double Frequency { get; private set; }
+
+    /// <summary>Whether the oscillator runs (or is dying away) and both netlists play.</summary>
+    public bool Running => running;
+
+    /// <summary>The closed netlist's share of the output at the last sample.</summary>
+    public double Weight { get; private set; }
+
+    public override double OutputResistance => open.OutputResistance;
+
+    public override double RestOutput => open.RestOutput;
+
+    public override NewtonSolver? Newton => open.Newton;
+
+    public override bool IsGainStage => open.IsGainStage;
+
+    internal ChopperTremoloStage(ChopperTremoloDesign design, AmpStage open, AmpStage closed, double sampleRate)
+        : base(open, closed) {
+        Design = design;
+        this.open = open;
+        this.closed = closed;
+        table = design.Oscillator.Table;
+        restPlate = design.Oscillator.RestPlate;
+        rest = design.Switch.Rest(restPlate);
+        this.sampleRate = sampleRate;
+        Step();
+    }
+
+    protected override void OnSampleRate(double sampleRate) {
+        this.sampleRate = sampleRate;
+        Step();
+    }
+
+    protected override void OnUpdate(in AmpControls controls) {
+        if (controls.TremoloRate != rate) {
+            rate = controls.TremoloRate;
+            var position = table.Position(rate);
+            Frequency = OscillatorTable.At(table.Rates, position);
+            first = table.PlateAt(1, position) * Design.Switch.Drive(Frequency, restPlate);
+            second = table.PlateAt(2, position) * Design.Switch.Drive(2 * Frequency, restPlate);
+            third = table.PlateAt(3, position) * Design.Switch.Drive(3 * Frequency, restPlate);
+            Step();
+        }
+
+        target = controls.TremoloDepth > 0 ? 1 : 0;
+        if (target > 0 && !running) {
+            // Engage: the closed netlist at the operating point; the swing grows from nothing.
+            closed.Reset(restInput);
+            running = true;
+        }
+    }
+
+    public override void Retune(double restInput) {
+        this.restInput = restInput;
+        open.Retune(restInput);
+        closed.Retune(restInput);
+    }
+
+    public override void Reset(double restInput) {
+        this.restInput = restInput;
+        open.Reset(restInput);
+        closed.Reset(restInput);
+        sine = 0;
+        cosine = 1;
+        level = target;
+        running = target > 0;
+        Weight = 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public override double Tick(double input) {
+        var dry = open.Tick(input);
+        if (!running) {
+            return dry;
+        }
+
+        level += smoothing * (target - level);
+        var s = sine * stepCosine + cosine * stepSine;
+        var c = cosine * stepCosine - sine * stepSine;
+        var norm = 1.5 - 0.5 * (s * s + c * c);
+        sine = s * norm;
+        cosine = c * norm;
+        var z = new Complex(cosine, sine);
+        var z2 = z * z;
+        var swing = Real(first, z) + Real(second, z2) + Real(third, z2 * z);
+
+        // The closed netlist fades in and out with the oscillation: a switch resting at its cut-off still leaks a
+        // little, which would otherwise step in when the tremolo engages.
+        Weight = level * Design.Weight(rest + level * swing);
+        var wet = closed.Tick(input);
+        if (target == 0 && level < 1e-4) {
+            // Died away: the open netlist alone again.
+            running = false;
+            level = 0;
+            sine = 0;
+            cosine = 1;
+            Weight = 0;
+            return dry;
+        }
+
+        return dry + Weight * (wet - dry);
+    }
+
+    public override void FlushDenormals() {
+        open.FlushDenormals();
+        closed.FlushDenormals();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    static double Real(Complex a, Complex b) => a.Real * b.Real - a.Imaginary * b.Imaginary;
+
+    void Step() {
+        (stepSine, stepCosine) = Math.SinCos(2 * Math.PI * Frequency / sampleRate);
+        smoothing = 1 - Math.Exp(-1 / (ChopperTremoloDesign.SmoothingTime * sampleRate));
     }
 }
