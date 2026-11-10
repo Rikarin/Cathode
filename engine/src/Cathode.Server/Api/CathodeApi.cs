@@ -1,4 +1,5 @@
 using Cathode.Contracts;
+using Cathode.Server.Rig;
 using Cathode.Server.Stores;
 using Microsoft.AspNetCore.Http.HttpResults;
 using System.Globalization;
@@ -59,11 +60,25 @@ public static class CathodeApi {
         return TypedResults.Ok(state);
     }
 
-    /// <summary>The revision from <c>If-Match</c>, if the client sent one.</summary>
+    /// <summary>
+    ///     The revision from <c>If-Match</c>, if the client sent one. The header is optional: without it, or with
+    ///     <c>*</c> (any revision), the edit applies to whatever the state is. A value that is not one revision (a weak
+    ///     tag, a list, anything else) is refused with 400, so a client that meant to guard its edit never has it
+    ///     applied unguarded.
+    /// </summary>
     internal static long? Expected(HttpContext http) {
-        var header = http.Request.Headers.IfMatch.ToString().Trim().Trim('"');
-        return long.TryParse(header, NumberStyles.Integer, CultureInfo.InvariantCulture, out var revision)
+        var header = http.Request.Headers.IfMatch.ToString().Trim();
+        if (header.Length == 0 || header == "*") {
+            return null;
+        }
+
+        var quoted = header.Length >= 2 && header[0] == '"' && header[^1] == '"';
+        var tag = quoted ? header.AsSpan(1, header.Length - 2) : header;
+        return long.TryParse(tag, NumberStyles.None, CultureInfo.InvariantCulture, out var revision)
             ? revision
-            : null;
+            : throw new RigException(
+                400,
+                $"If-Match must be a revision as GET answers it in ETag (\"{{revision}}\"), or *; got '{header}'."
+            );
     }
 }

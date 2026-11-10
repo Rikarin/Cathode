@@ -82,6 +82,62 @@ public sealed class ConcurrencyApiTests : IAsyncLifetime {
         Assert.False(volpan.Channels.TryGetValue("A", out var values) && values.ContainsKey("level"));
     }
 
+    [Theory]
+    [InlineData("W/\"1\"")] // a weak tag never matches If-Match
+    [InlineData("\"1\", \"2\"")]
+    [InlineData("\"latest\"")]
+    [InlineData("1.5")]
+    public async Task An_If_Match_that_is_not_one_revision_is_refused_with_400_and_changes_nothing(string header) {
+        var before = await Live();
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/live/blocks");
+        request.Content = JsonContent.Create(new AddBlockRequest("volpan", 2, 1));
+        Assert.True(request.Headers.TryAddWithoutValidation("If-Match", header));
+        using var refused = await client.SendAsync(request, Token);
+
+        Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+        Assert.Equal("application/problem+json", refused.Content.Headers.ContentType?.MediaType);
+        var after = await Live();
+        Assert.Equal(before.Revision, after.Revision);
+        Assert.DoesNotContain(after.Preset.Blocks, static b => b.Id == "volpan1");
+
+        // The global settings read the header the same way.
+        using var global = new HttpRequestMessage(HttpMethod.Put, "/api/v1/global");
+        global.Content = JsonContent.Create(await Global());
+        Assert.True(global.Headers.TryAddWithoutValidation("If-Match", header));
+        using var refusedGlobal = await client.SendAsync(global, Token);
+        Assert.Equal(HttpStatusCode.BadRequest, refusedGlobal.StatusCode);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("*")]
+    public async Task Without_If_Match_or_with_a_star_an_edit_applies_to_any_revision(string? header) {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/live/blocks");
+        request.Content = JsonContent.Create(new AddBlockRequest("volpan", 2, 1));
+        if (header is not null) {
+            Assert.True(request.Headers.TryAddWithoutValidation("If-Match", header));
+        }
+
+        using var response = await client.SendAsync(request, Token);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains((await Live()).Preset.Blocks, static b => b.Id == "volpan1");
+    }
+
+    [Fact]
+    public async Task A_stale_If_Match_on_a_live_edit_is_refused_with_412_quoted_or_bare() {
+        var before = await Live();
+        await Post("/api/v1/live/blocks", new AddBlockRequest("volpan", 2, 1));
+        foreach (var header in new[] { $"\"{before.Revision}\"", $"{before.Revision}" }) {
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/live/blocks");
+            request.Content = JsonContent.Create(new AddBlockRequest("volpan", 2, 2));
+            Assert.True(request.Headers.TryAddWithoutValidation("If-Match", header));
+            using var refused = await client.SendAsync(request, Token);
+
+            Assert.Equal(HttpStatusCode.PreconditionFailed, refused.StatusCode);
+        }
+    }
+
     async Task<GlobalSettings> Global() => (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!;
 
     async Task<LiveState> Live() => (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!;
