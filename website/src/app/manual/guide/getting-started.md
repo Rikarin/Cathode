@@ -19,7 +19,7 @@ Get the latest build from the [Releases page](https://github.com/Rikarin/cathode
 | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
 | `Cathode-<version>-mac-arm64.dmg`                      | macOS on Apple Silicon (M1 and later). A `.zip` of the same app is there too.                             |
 | `Cathode-<version>-win-x64.exe`                        | Windows 10 and 11                                                                                         |
-| `Cathode-<version>-linux-x86_64.AppImage`              | Linux desktops (x64)                                                                                      |
+| `Cathode-<version>-linux-x86_64.AppImage`              | Linux desktops (x64) with glibc 2.39 or newer: Ubuntu 24.04, Debian 13, Fedora 40 and later.              |
 | `cathode-server-<version>-linux-<x64 or arm64>.tar.gz` | The headless server, for a computer without a screen. See [The headless server](/manual/headless-server). |
 
 Each release also lists a `SHA256SUMS` file. If you want to check that your download is complete and unchanged, compare the file's SHA-256 checksum with the line for it there.

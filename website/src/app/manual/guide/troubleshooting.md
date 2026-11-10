@@ -13,6 +13,7 @@ The installer is not signed yet. Click **More info**, then **Run anyway**.
 ### The Linux AppImage does not start
 
 - Make it executable: `chmod +x Cathode-<version>-linux-x86_64.AppImage`.
+- It needs glibc 2.39 or newer (Ubuntu 24.04, Debian 13, Fedora 40 and later). On an older system the engine does not start.
 - Run it from a terminal to see any error. AppImages need FUSE; some recent distributions do not install the version they need by default, and the error message names what is missing.
 
 ### "Cannot reach the Cathode server"

@@ -5,6 +5,7 @@ The headless server runs Cathode's engine on a small Linux computer that lives i
 ## What you need
 
 - **A small Linux computer** with a 64-bit system: a Raspberry Pi 5 (ARM64), or a mini PC or NUC (x64). The installer needs **systemd**, which most distributions use, including Raspberry Pi OS and Ubuntu.
+- **A recent system:** glibc 2.39 or newer, which means Ubuntu 24.04, Debian 13, Raspberry Pi OS based on Debian 13 ("trixie"), Fedora 40, or later. The engine does not start on older ones, such as Debian 12 ("bookworm") or Ubuntu 22.04.
 - **A USB audio interface** that works on Linux without special drivers (most class-compliant ones do).
 - **A network** shared with the device you will edit from: Ethernet, or the same Wi-Fi.
 - Optionally a USB MIDI foot controller. It plugs into the rig, not into the device you edit from.
@@ -20,7 +21,7 @@ The headless server runs Cathode's engine on a small Linux computer that lives i
    sudo ./install.sh
    ```
 
-The installer checks that the package matches the computer, then:
+The installer checks that the package matches the computer and that the engine starts on this system (if not, it says what is missing and changes nothing), then:
 
 - installs the program in `/opt/cathode`;
 - creates a system user `cathode` in the `audio` group;
@@ -75,12 +76,12 @@ Then open the editor and check **Settings ▸ Audio setup**: **Backend** should 
 
 | Option                    | Example   | Meaning                                                                                                                                               |
 | ------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--input-map`             | `"1;2"`   | Device channels for Input 1, Input 2, Input 3, Input 4, USB 5/6 and USB 7/8, separated by `;`. `3,4` is a stereo pair. Default: Input 1 on channel 1. |
+| `--input-map`             | `1;2`     | Device channels for Input 1, Input 2, Input 3, Input 4, USB 5/6 and USB 7/8, separated by `;`. `3,4` is a stereo pair. Default: Input 1 on channel 1. |
 | `--outputs`               | `1,3,0,0` | The first device channel of Outputs 1 to 4; 0 leaves one unused. Default: Output 1 on channels 1 and 2.                                               |
 | `--loop-in`, `--loop-out` | `3,4`     | Device channels for the FX Loop block's return and send; one channel makes that side mono.                                                            |
 | `--di-out`                | `5,6`     | Device channels for the dry DI out.                                                                                                                   |
 
-For example: `CATHODE_HOST_ARGS=--input-map "1;2" --outputs 1,3,0,0`. See [Routing inputs and outputs](/manual/audio-setup#routing-inputs-and-outputs) for what each does.
+For example: `CATHODE_HOST_ARGS=--input-map 1;2 --outputs 1,3,0,0`. Separate the options with spaces and write them without quotes: the line is not read by a shell. See [Routing inputs and outputs](/manual/audio-setup#routing-inputs-and-outputs) for what each does.
 
 ## Connect from a browser
 

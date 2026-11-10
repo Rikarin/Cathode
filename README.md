@@ -44,7 +44,7 @@ Get the latest build from the [Releases page](https://github.com/Rikarin/cathode
 |---|---|---|
 | `Cathode-<version>-mac-arm64.dmg` | macOS on Apple Silicon | Not notarised yet: on first launch, right-click the app and choose Open. |
 | `Cathode-<version>-win-x64.exe` | Windows 10 and 11 | Not signed yet: SmartScreen asks you to confirm. |
-| `Cathode-<version>-linux-x86_64.AppImage` | Linux desktops | Make it executable (`chmod +x`) and run it. |
+| `Cathode-<version>-linux-x86_64.AppImage` | Linux desktops (x64) with glibc 2.39 or newer: Ubuntu 24.04, Debian 13, Fedora 40 and later | Make it executable (`chmod +x`) and run it. |
 | `cathode-server-<version>-linux-<x64\|arm64>.tar.gz` | A small Linux computer in your rig, with no display | See [the headless rig](#a-headless-rig). |
 
 Each release lists `SHA256SUMS` to check the downloads against. Every file and `SHA256SUMS` itself carry a signed
@@ -86,7 +86,9 @@ cd cathode-server-<version>-linux-arm64
 sudo ./install.sh
 ```
 
-The installer starts Cathode at every boot and prints the address to open and an access token. See
+The rig needs systemd and glibc 2.39 or newer (Ubuntu 24.04, Debian 13, Raspberry Pi OS based on Debian 13, and
+later); the installer checks before it changes anything. It starts Cathode at every boot and prints the address to
+open and an access token. See
 [packaging/headless/README.md](packaging/headless/README.md) for choosing the audio interface, updates and logs.
 
 ## Licence and trademarks

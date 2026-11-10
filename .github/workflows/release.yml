@@ -71,6 +71,11 @@ jobs:
             exit 1
           fi
           echo "release=true" >> "$GITHUB_OUTPUT"
+      # CI installs exactly the SDK engine/global.json names, and the server and the host carry that SDK's .NET
+      # runtime and ASP.NET Core. A release does not ship last month's: servicing releases are mostly security fixes,
+      # and the server listens on the network (docs/10-releases.md, "The .NET runtime in a release").
+      - name: The .NET SDK is the current servicing release
+        run: .github/actions/setup-dotnet/sdk-is-current.sh
 
   desktop:
     needs: tag
@@ -82,7 +87,8 @@ jobs:
         include:
           - { os: macos-latest, name: macos-arm64 }
           - { os: windows-latest, name: windows-x64 }
-          - { os: ubuntu-latest, name: linux-x64 }
+          # Not ubuntu-latest: the runner's C library is the oldest the engine in the AppImage runs on (glibc 2.39).
+          - { os: ubuntu-24.04, name: linux-x64 }
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60 # notarisation waits on Apple
     permissions:
@@ -124,6 +130,11 @@ jobs:
           # Without a certificate, do not let electron-builder pick one up from the runner's keychain.
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ needs.tag.outputs.release == 'true' && secrets.CSC_LINK != '' }}
         run: pnpm dist
+      - name: The C library the Linux engine needs
+        if: runner.os == 'Linux'
+        working-directory: editor/dist/engine
+        run: |
+          "$GITHUB_WORKSPACE/packaging/glibc-floor.sh" 2.39 cathode-host libcth_audio.so libcth_nam.so
       # The app as packaged, started from where electron-builder left it unpacked beside the installers: it runs the
       # engine it carries (resources/engine), serves its own editor and stops cleanly, and the sidecar tests pass
       # against it on this OS. editor.yml runs those tests on Linux only, against a development build.
@@ -209,8 +220,20 @@ jobs:
           cache-dependency-path: editor/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
         working-directory: editor
+      - name: The host's start script
+        run: packaging/headless/tests/run-host.test.sh
       - name: Build the package
         run: packaging/headless/build.sh
+      # The minimum system the README, docs/10 and the manual name: glibc 2.39, this runner's. The host and the shims
+      # bind to the C library they were linked against, and the NAM shim carries its own C++ runtime.
+      - name: The C library it needs
+        run: |
+          cd dist/headless/cathode-server-*/bin
+          "$GITHUB_WORKSPACE/packaging/glibc-floor.sh" 2.39 cathode-host libcth_audio.so libcth_nam.so
+          if objdump -p libcth_nam.so | grep -E 'NEEDED +lib(stdc\+\+|gcc_s)'; then
+            echo "::error::libcth_nam.so needs the system's C++ runtime; it should carry its own"
+            exit 1
+          fi
       - name: Install it and check it runs
         run: |
           package=$(ls dist/headless/*.tar.gz)
@@ -218,6 +241,10 @@ jobs:
           cd /tmp/cathode/cathode-server-*
           ./bin/cathode-host --self-test
           sudo ./install.sh
+          # Channel options as cathode.env.example writes them, input map included: its ";" must reach the host
+          # inside the option (it once ended the start script's command, and the host restarted for ever).
+          sudo sed -i 's/^CATHODE_HOST_ARGS=.*/CATHODE_HOST_ARGS=--input-map 1;2 --outputs 1,3,0,0/' /etc/cathode/cathode.env
+          sudo systemctl restart cathode-host cathode-server
           token=$(sudo sed -n 's/^Cathode__Token=//p' /etc/cathode/cathode.env)
           # A minute at most: it starts in seconds, and unpacks itself on its first start. A slow start fails here.
           for i in $(seq 1 30); do
@@ -233,9 +260,14 @@ jobs:
           echo "The server answered after about $((i * 2)) s."
           cat /tmp/system.json
           grep -q '"connected":true' /tmp/system.json
+          sudo cat "/proc/$(pgrep -x cathode-host)/cmdline" | tr '\0' ' ' | grep -F -- '--input-map 1;2 --outputs 1,3,0,0'
           curl -fs http://127.0.0.1:5180/ | grep -q 'name="cathode-server" content="same-origin"'
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5180/api/v1/system)" = 401
           sudo ./uninstall.sh --purge
+          # A purge leaves nothing: not the settings, the data, the server's unpacked bundle or the socket folder.
+          for left in /opt/cathode /etc/cathode /var/lib/cathode /var/cache/cathode /run/cathode; do
+            if [ -e "$left" ]; then echo "::error::uninstall.sh --purge left $left"; exit 1; fi
+          done
       - if: failure()
         run: |
           sudo systemctl status cathode-host cathode-server --no-pager || true

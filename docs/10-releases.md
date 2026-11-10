@@ -19,7 +19,8 @@ and builds nothing if it does not. Then it:
    serves the editor, and quitting leaves no engine process behind.
 2. Builds the headless package on Linux x64 and Linux ARM64 runners (`packaging/headless/build.sh`), installs it on the
    runner with `install.sh` and checks it: the host passes `--self-test`, the services start, the server reports the
-   engine connected, the web editor loads and the API refuses a request without the token. Then it uninstalls it.
+   engine connected, the web editor loads and the API refuses a request without the token. Then it uninstalls it
+   with `--purge` and checks that nothing is left.
 3. Runs the tagged commit's tests: [`engine.yml`](../.github/workflows/engine.yml) (the engine tests on three OSes and
    the NativeAOT host's self-test) and [`editor.yml`](../.github/workflows/editor.yml) (the generated API client,
    type-check, lint, unit tests, Storybook and the desktop app's Playwright tests), called as reusable workflows.
@@ -106,6 +107,21 @@ Also before tagging, move Electron to the newest patch of its line (`pnpm outdat
 `pnpm update electron`): `package.mjs` packages the version the lockfile resolves, and Electron's patch releases are
 how Chromium and Node security fixes reach the app.
 
+### The .NET runtime in a release
+
+CI installs exactly the SDK that [`engine/global.json`](../engine/global.json) names: `dotnet-install --jsonfile`
+reads `sdk.version` and ignores `rollForward`, which only chooses among the SDKs on a developer's machine.
+cathode-server is published self-contained and cathode-host as NativeAOT, so both carry the .NET runtime and ASP.NET
+Core that SDK came with. Microsoft's monthly servicing releases are mostly security fixes, many of them in Kestrel,
+and cathode-server listens on the network, so a release is built with the current one:
+
+- Before tagging, set `sdk.version` in `engine/global.json` to the latest SDK of its .NET version
+  (<https://dotnet.microsoft.com/download/dotnet/10.0>). Dependabot opens a pull request when one is out
+  ([`.github/dependabot.yml`](../.github/dependabot.yml), the `dotnet-sdk` ecosystem).
+- `release.yml` checks it on a tag
+  ([`sdk-is-current.sh`](../.github/actions/setup-dotnet/sdk-is-current.sh)): a tag whose `global.json` is behind
+  the latest SDK is not published, and the message names the version to set.
+
 ### The preset format
 
 Presets carry `schemaVersion` (`Preset.CurrentSchemaVersion`: 1 in 1.0.0-rc.1 to rc.3, 2 since rc.4). Every place that
@@ -135,6 +151,23 @@ user's guide (install, choose the interface, connect, logs). In short:
 - `cathode-server` listens on every interface (`ASPNETCORE_URLS`), so it needs the token, and serves the editor's web
   build at the root (`Cathode:EditorDirectory`, `Api/EditorHosting.cs`). The page is marked same-origin, so the editor
   talks to the server that served it; it asks for the token on a 401 and remembers it in that browser.
+
+### The oldest Linux it runs on
+
+The NativeAOT host and the native shims bind to the C library of the machine that links them, so the build runner sets
+the minimum: **glibc 2.39**, Ubuntu 24.04's (also Debian 13 and Raspberry Pi OS based on it). Both Linux builds in
+`release.yml`, the headless package and the AppImage, run on `ubuntu-24.04` runners for that reason, not on
+`ubuntu-latest`. `cth_nam` links its C++ runtime statically, so no `libstdc++` version comes on top, and
+cathode-server uses Microsoft's own prebuilt runtime, which asks for less.
+
+- [`packaging/glibc-floor.sh`](../packaging/glibc-floor.sh) reads the newest glibc version the built binaries ask for
+  and fails the release when it is above 2.39.
+- `install.sh` runs `cathode-host --version` and `ldd` on the shims before it installs anything, and says what is
+  missing.
+
+To support an older distribution (Debian 12 has glibc 2.36, Ubuntu 22.04 has 2.35), link the engine on that
+distribution, for example in a container, and lower the number in the workflow, `install.sh`, the READMEs and the
+manual. To move to a newer runner, raise it in the same places.
 
 Audio on the rig needs the Linux backend of the native shim (`engine/native/cth_audio`). Without a device the engine
 runs on the null backend, which is how CI checks the package.
