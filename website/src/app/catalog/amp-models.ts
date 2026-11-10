@@ -102,6 +102,7 @@ export const AMP_MODELS: Record<string, { family: AmpFamily; basedOn: string }> 
   'SLO-100': { family: 'highgain', basedOn: 'Soldano SLO-100' },
   '5150': { family: 'highgain', basedOn: 'Peavey 5150' },
   '5150III': { family: 'highgain', basedOn: 'EVH 5150III 100S (Stealth), red channel' },
+  '5150III Clean/Crunch': { family: 'highgain', basedOn: 'EVH 5150III 100 W head, green and blue channels' },
   'Legacy VL100': { family: 'highgain', basedOn: 'Carvin Legacy VL100' },
   Powerball: { family: 'highgain', basedOn: 'Engl Powerball' },
   'Savage 120': { family: 'highgain', basedOn: 'Engl Savage 120' },

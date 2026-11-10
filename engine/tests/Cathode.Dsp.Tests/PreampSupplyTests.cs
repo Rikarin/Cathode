@@ -171,6 +171,7 @@ public class PreampSupplyTests {
     [InlineData("Savage 120")]
     [InlineData("SLO-100")] // #296: B+ is the drawing's 497 V, so B2, B4 and B3 rest at its 378, 359 and 350 V
     [InlineData("Powerball")] // #296: the rails are the chain's nodes, not 400 V on three of them
+    [InlineData("5150III Clean/Crunch")] // #306: the service diagram's Y, X and W: 402, 341 and 297 V
     public void Assumed_rails_are_the_chains_rest_voltages(string type) {
         var design = AmpDesign.All.Single(a => a.Name == type);
         var channel = new AmpChannel(design, 2 * Rate);

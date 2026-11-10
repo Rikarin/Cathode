@@ -43,9 +43,10 @@ usually go after the Cab, as they would in an effects loop or a studio. The amp 
 - **Smooth, vocal overdrive:** ODS 97, ODS 70s, Cornford MK50H II, Lone Star, Subway Blues.
 - **Hot-rodded British and modern rock:** Silver Jubilee, JCM900 4100 and 4502, DSL100, JVM410H, BE-100 and
   BE-100 HBE, AFD100, Quick Rod, Laney GH100L, Hot Rod Deluxe.
-- **High gain:** SLO-100, 5150, 5150III, Dual Rectifier, Dual Rectifier 3-Ch, Dual Rectifier 3-Ch Orange, Triple
-  Rectifier, Rect-o-Verb, Mark IIC+ (and its clean rhythm channel, Mark IIC+ Rhythm), Mark IV (and its clean and
-  crunch channels, Mark IV Rhythm 1 and Rhythm 2), Mark V, TriAxis, Legacy VL100, Powerball, Savage 120, Prometheus.
+- **High gain:** SLO-100, 5150, 5150III (and its clean and crunch channels, 5150III Clean/Crunch), Dual Rectifier,
+  Dual Rectifier 3-Ch, Dual Rectifier 3-Ch Orange, Triple Rectifier, Rect-o-Verb, Mark IIC+ (and its clean rhythm
+  channel, Mark IIC+ Rhythm), Mark IV (and its clean and crunch channels, Mark IV Rhythm 1 and Rhythm 2), Mark V,
+  TriAxis, Legacy VL100, Powerball, Savage 120, Prometheus.
 - **Bass:** SVT, Portaflex B-15N, Bassman 135, Bass 400.
 - **Solid state:** JC-120 and Valvestate 8080 (a tube preamp into a transistor power amp). Their tube-only knobs are
   hidden.
@@ -174,6 +175,8 @@ Each switches the real components on the model's schematic. Some worth knowing:
   *Post Gain* are the playing channel's). It is clean and much quieter at the same settings, so turn *Post Gain* up.
   *Crunch* (Switch 2) gives it about 20 dB more gain for a rock rhythm sound, and *Bright* is its bright switch;
   neither does anything on the lead channel.
+- **5150III Clean/Crunch, *Crunch*:** plays the amp's blue channel (channel two) in place of the green one, with its
+  own gain network and tone stack behind the same knobs.
 - **Powerball, *Focused*:** in the lead channel it swaps the open middle pot for the focused one (*Mid Focused*,
   Control 1) and doubles the treble cap; in channel 1 it doubles the treble cap and makes the middle's cap smaller.
 - **Mark V, *IIC+ Mode*:** with *Mark IV Mode* (Switch 2), selects the channel-3 mode; both off is Extreme. The amp
@@ -574,6 +577,8 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
         'Mesa/Boogie Dual Rectifier (two-channel, 1993), red channel, with Modern, Tube Rectifier and Spongy switches. Thick, saturated modern high gain.',
       '5150III':
         'EVH 5150III red channel, modelled from the 100S (Stealth) version of the amp: tight, saturated high gain.',
+      '5150III Clean/Crunch':
+        'EVH 5150III 100 W head, the green channel: a full clean with headroom that breaks up with Gain past halfway. Switch 1 (Crunch) for the blue channel: tighter lows and a hot-rodded crunch. Gain and Volume belong to the playing channel.',
       'Mark IV': 'Mesa/Boogie Mark IV lead channel with its five-band EQ.',
       'Mark IV Rhythm 1':
         'Mesa/Boogie Mark IV Rhythm 1, the clean channel, with its Bright pull, its own master and the five-band EQ.',
