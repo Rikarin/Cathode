@@ -24,7 +24,7 @@
     "@angular/router": "~22.2.0",
     "@angular/ssr": "~22.2.6",
     "@fontsource-variable/inter": "^5.2.8",
-    "@ng-icons/core": "^35.1.0",
+    "@ng-icons/core": "^36.1.0",
     "@ng-icons/material-icons": "^35.1.0",
     "marked": "18.1.0",
     "rxjs": "~7.8.0",
