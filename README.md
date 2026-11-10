@@ -92,8 +92,8 @@ The installer starts Cathode at every boot and prints the address to open and an
 ## Licence and trademarks
 
 Cathode is free software: you can redistribute it and modify it under the terms of the GNU General Public License,
-version 3 or (at your option) any later version. See [LICENSE](LICENSE). The third-party code built into its native
-libraries, and the licence each is used under (the Windows ASIO backend uses Steinberg's ASIO SDK under GPLv3), is
+version 3 or (at your option) any later version. See [LICENSE](LICENSE). The third-party code in its released
+binaries, and the licence each is used under (the Windows ASIO backend uses Steinberg's ASIO SDK under GPLv3), is
 listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 Cathode is not affiliated with or endorsed by Fractal Audio Systems. Axe-Fx is their trademark. Amplifier, speaker and

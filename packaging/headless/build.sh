@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Builds the headless rig package for this machine (no cross-compiling: NativeAOT cannot), into
 # dist/headless/cathode-server-<version>-<os>-<arch>.tar.gz at the repository root: the engine host and the server
-# (as the desktop app ships them), the editor's web build, the systemd services and the install scripts.
+# (as the desktop app ships them), the editor's web build, the systemd services, the install scripts and the licence
+# files (LICENSE and licenses/, see THIRD-PARTY-NOTICES.md).
 # Usage: packaging/headless/build.sh [version]   (default: CATHODE_VERSION, else the editor workspace's version)
 # Needs: .NET (engine/global.json), Node with pnpm (editor/package.json), CMake and a C compiler for the native shims.
 set -euo pipefail
@@ -39,9 +40,12 @@ cp -R "$root/editor/dist/engine/." "$stage/bin/"
 cp -R "$root/editor/dist/apps/editor/browser" "$stage/editor"
 cp "$here/run-host.sh" "$stage/bin/"
 cp -R "$here/systemd" "$here/install.sh" "$here/uninstall.sh" "$here/cathode.env.example" "$here/README.md" "$stage/"
-for licence in LICENSE LICENSE.md COPYING; do
-  if [ -f "$root/$licence" ]; then cp "$root/$licence" "$stage/"; fi
-done
+# Cathode's licence, and in licenses/ the notices file, the licences of the libraries in the editor's bundle (collected
+# by the Angular build) and those the engine's publish gathered (.NET and the native code).
+cp "$root/LICENSE" "$stage/"
+mv "$stage/bin/licenses" "$stage/licenses"
+cp "$root/THIRD-PARTY-NOTICES.md" "$stage/licenses/"
+cp "$root/editor/dist/apps/editor/3rdpartylicenses.txt" "$stage/licenses/editor-3rdpartylicenses.txt"
 echo "$version" > "$stage/VERSION"
 echo "$arch" > "$stage/ARCH"
 

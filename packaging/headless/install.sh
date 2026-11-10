@@ -35,10 +35,10 @@ usermod -a -G audio cathode
 # Stop a running copy before its files are replaced.
 systemctl stop cathode-server cathode-host 2>/dev/null || true
 
-rm -rf /opt/cathode/bin /opt/cathode/editor
+rm -rf /opt/cathode/bin /opt/cathode/editor /opt/cathode/licenses
 mkdir -p /opt/cathode
-cp -R "$here/bin" "$here/editor" /opt/cathode/
-cp "$here/VERSION" /opt/cathode/
+cp -R "$here/bin" "$here/editor" "$here/licenses" /opt/cathode/
+cp "$here/VERSION" "$here/LICENSE" /opt/cathode/
 chmod 755 /opt/cathode/bin/cathode-host /opt/cathode/bin/cathode-server /opt/cathode/bin/run-host.sh
 
 mkdir -p /etc/cathode

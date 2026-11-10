@@ -52,6 +52,12 @@ const devServer = process.env['CATHODE_EDITOR_URL']; // `nx serve editor` during
 /** The same build for cathode-server to serve on the network: it cannot read inside the asar archive. */
 const editorFiles = editorRoot.replace(`${sep}app.asar${sep}`, `${sep}app.asar.unpacked${sep}`);
 
+/**
+ * Cathode's licence and the notices and licences of the third-party code in the app (THIRD-PARTY-NOTICES.md), which
+ * the package carries in its resources (scripts/package.mjs). Not there when run from the source tree.
+ */
+const licences = join(process.resourcesPath, 'licenses');
+
 protocol.registerSchemesAsPrivileged([
   { scheme: Scheme, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }
 ]);
@@ -374,7 +380,8 @@ function validTarget(value: unknown): ServerTarget {
 
 /**
  * The application menu: Electron's default menus, with Settings… (⌘,) where a Mac app keeps it, in the app menu
- * (and in File elsewhere). It asks the editor to open its Settings dialog.
+ * (and in File elsewhere). It asks the editor to open its Settings dialog. Help opens the folder of licences the
+ * package carries.
  */
 function buildMenu(): void {
   const settings: MenuItemConstructorOptions = {
@@ -382,6 +389,20 @@ function buildMenu(): void {
     accelerator: 'CmdOrCtrl+,',
     click: () => window?.webContents.send('cathode:openSettings')
   };
+  const help: MenuItemConstructorOptions[] = existsSync(licences)
+    ? [
+        {
+          role: 'help',
+          submenu: [
+            {
+              label: 'Open Source Licences',
+              click: () =>
+                void shell.openPath(licences).then(error => error && console.error('Cathode: licences:', error))
+            }
+          ]
+        }
+      ]
+    : [];
   const template: MenuItemConstructorOptions[] =
     process.platform === 'darwin'
       ? [
@@ -404,13 +425,15 @@ function buildMenu(): void {
           { role: 'fileMenu' },
           { role: 'editMenu' },
           { role: 'viewMenu' },
-          { role: 'windowMenu' }
+          { role: 'windowMenu' },
+          ...help
         ]
       : [
           { label: 'File', submenu: [settings, { type: 'separator' }, { role: 'quit' }] },
           { role: 'editMenu' },
           { role: 'viewMenu' },
-          { role: 'windowMenu' }
+          { role: 'windowMenu' },
+          ...help
         ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
