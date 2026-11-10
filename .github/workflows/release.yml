@@ -64,7 +64,8 @@ jobs:
         include:
           - { os: macos-latest, name: macos-arm64 }
           - { os: windows-latest, name: windows-x64 }
-          - { os: ubuntu-latest, name: linux-x64 }
+          # Not ubuntu-latest: the runner's C library is the oldest the engine in the AppImage runs on (glibc 2.39).
+          - { os: ubuntu-24.04, name: linux-x64 }
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
@@ -104,6 +105,11 @@ jobs:
           # Without a certificate, do not let electron-builder pick one up from the runner's keychain.
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
         run: pnpm dist
+      - name: The C library the Linux engine needs
+        if: runner.os == 'Linux'
+        working-directory: editor/dist/engine
+        run: |
+          "$GITHUB_WORKSPACE/packaging/glibc-floor.sh" 2.39 cathode-host libcth_audio.so libcth_nam.so
       # Hashed here, where they were built: the release job checks what it downloads against these and publishes
       # them as SHA256SUMS. "<sha256>  <name>" per line (Git Bash marks binary mode with "*"; that is dropped).
       - name: Checksums
@@ -170,6 +176,16 @@ jobs:
         run: packaging/headless/tests/run-host.test.sh
       - name: Build the package
         run: packaging/headless/build.sh
+      # The minimum system the README, docs/10 and the manual name: glibc 2.39, this runner's. The host and the shims
+      # bind to the C library they were linked against, and the NAM shim carries its own C++ runtime.
+      - name: The C library it needs
+        run: |
+          cd dist/headless/cathode-server-*/bin
+          "$GITHUB_WORKSPACE/packaging/glibc-floor.sh" 2.39 cathode-host libcth_audio.so libcth_nam.so
+          if objdump -p libcth_nam.so | grep -E 'NEEDED +lib(stdc\+\+|gcc_s)'; then
+            echo "::error::libcth_nam.so needs the system's C++ runtime; it should carry its own"
+            exit 1
+          fi
       - name: Install it and check it runs
         run: |
           package=$(ls dist/headless/*.tar.gz)

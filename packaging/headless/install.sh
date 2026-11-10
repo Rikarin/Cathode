@@ -25,6 +25,25 @@ case "$arch:$expected" in
     ;;
 esac
 
+# The engine is built on Ubuntu 24.04 and needs that system's C library or a newer one (README.md, "What it needs").
+# Find out here, before anything is installed, and not from a service that restarts for ever with a loader error.
+needs="This package needs glibc 2.39 or newer (Ubuntu 24.04, Debian 13, Raspberry Pi OS based on Debian 13)"
+if ! output=$("$here/bin/cathode-host" --version 2>&1); then
+  echo "The engine does not start on this system:" >&2
+  echo "$output" | sed 's/^/  /' >&2
+  echo "$needs; this system has $(getconf GNU_LIBC_VERSION 2>/dev/null || echo "another C library")." >&2
+  exit 1
+fi
+if command -v ldd >/dev/null 2>&1; then
+  missing=$(ldd "$here/bin/libcth_audio.so" "$here/bin/libcth_nam.so" 2>&1 | grep 'not found' || true)
+  if [ -n "$missing" ]; then
+    echo "The engine's audio and NAM libraries do not load on this system:" >&2
+    echo "$missing" >&2
+    echo "$needs, and the ALSA library (libasound2)." >&2
+    exit 1
+  fi
+fi
+
 echo "Installing Cathode $(cat "$here/VERSION") for linux-$expected"
 
 if ! id cathode >/dev/null 2>&1; then

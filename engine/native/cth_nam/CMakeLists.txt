@@ -32,6 +32,12 @@ if(MSVC)
 else()
   target_compile_options(cth_nam PRIVATE -Wall -Wextra -Werror $<$<CONFIG:Release>:-O3>)
 endif()
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND NOT CTH_RTSAN)
+  # The C++ runtime goes inside the library, and none of it is exported: a released library then needs no
+  # libstdc++.so as new as the build machine's compiler on the user's system, only the C library
+  # (packaging/headless/README.md, "What it needs").
+  target_link_options(cth_nam PRIVATE -static-libstdc++ -static-libgcc -Wl,--exclude-libs,ALL)
+endif()
 cth_output_to_artifacts(cth_nam)
 
 # Upstream example models, used by the tests and benchmarks (MIT, NeuralAmpModelerCore).

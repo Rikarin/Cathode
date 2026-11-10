@@ -93,5 +93,22 @@ user's guide (install, choose the interface, connect, logs). In short:
   build at the root (`Cathode:EditorDirectory`, `Api/EditorHosting.cs`). The page is marked same-origin, so the editor
   talks to the server that served it; it asks for the token on a 401 and remembers it in that browser.
 
+### The oldest Linux it runs on
+
+The NativeAOT host and the native shims bind to the C library of the machine that links them, so the build runner sets
+the minimum: **glibc 2.39**, Ubuntu 24.04's (also Debian 13 and Raspberry Pi OS based on it). Both Linux builds in
+`release.yml`, the headless package and the AppImage, run on `ubuntu-24.04` runners for that reason, not on
+`ubuntu-latest`. `cth_nam` links its C++ runtime statically, so no `libstdc++` version comes on top, and
+cathode-server uses Microsoft's own prebuilt runtime, which asks for less.
+
+- [`packaging/glibc-floor.sh`](../packaging/glibc-floor.sh) reads the newest glibc version the built binaries ask for
+  and fails the release when it is above 2.39.
+- `install.sh` runs `cathode-host --version` and `ldd` on the shims before it installs anything, and says what is
+  missing.
+
+To support an older distribution (Debian 12 has glibc 2.36, Ubuntu 22.04 has 2.35), link the engine on that
+distribution, for example in a container, and lower the number in the workflow, `install.sh`, the READMEs and the
+manual. To move to a newer runner, raise it in the same places.
+
 Audio on the rig needs the Linux backend of the native shim (`engine/native/cth_audio`). Without a device the engine
 runs on the null backend, which is how CI checks the package.

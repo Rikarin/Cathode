@@ -4,6 +4,14 @@ The engine and server for a small Linux computer in your rig (a Raspberry Pi 5, 
 interface and no display. You play and edit it remotely: from any browser on the network (a phone, a tablet, a laptop)
 or from the Cathode desktop app's remote-server connection.
 
+## What it needs
+
+- A 64-bit Linux with **systemd**, on x64 or ARM64 (the package's name says which).
+- **glibc 2.39 or newer**: Ubuntu 24.04, Debian 13, Raspberry Pi OS based on Debian 13 ("trixie"), Fedora 40, and
+  later. The engine is built on Ubuntu 24.04 and does not load on an older C library, such as Debian 12's or Ubuntu
+  22.04's. `install.sh` checks this first and changes nothing when the engine cannot start.
+- The ALSA library (`libasound2`), which those systems install by default.
+
 ## Install
 
 On the rig, as root:
