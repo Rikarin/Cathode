@@ -34,6 +34,7 @@ import { XuiMenuImports } from '@xui/menu';
 import { XuiNonIdealStateImports } from '@xui/non-ideal-state';
 import { XuiSelectImports } from '@xui/select';
 import { XuiTagImports } from '@xui/tag';
+import { LongPressMenu } from '../controls/long-press-menu';
 import { Notify } from '../core/notify';
 import { LibraryStore } from '../state/library.store';
 import { SetlistPlayer } from '../state/setlist-player';
@@ -60,6 +61,7 @@ const PresetMime = 'application/x-cathode-preset';
     XuiAlertDialogImports,
     XuiButtonImports,
     XuiCalloutImports,
+    LongPressMenu,
     XuiContextMenuImports,
     XuiDialogImports,
     XuiFormFieldImports,
@@ -122,6 +124,7 @@ const PresetMime = 'application/x-cathode-preset';
               tabindex="0"
               [attr.aria-selected]="s.id === setlist()?.id"
               [attr.data-testid]="'setlist-' + s.id"
+              cthLongPressMenu
               [xuiContextMenuTriggerFor]="setlistActions"
               [xuiContextMenuTriggerData]="{ id: s.id }"
               (click)="select(s.id)"

@@ -35,6 +35,7 @@ import { XuiSelectImports } from '@xui/select';
 import { XuiSwitchImports } from '@xui/switch';
 import { XuiTagImports } from '@xui/tag';
 import { XuiTextImports } from '@xui/text';
+import { LongPressMenu } from '../controls/long-press-menu';
 import { ModifierDialog, engagedWhen } from '../controls/modifier-dialog';
 import { BlockPresetsStore } from '../state/block-presets.store';
 import { CatalogStore } from '../state/catalog.store';
@@ -77,6 +78,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
     DynamicsPanel,
     EqResponse,
     IrPlayerPanel,
+    LongPressMenu,
     ModifierDialog,
     XuiContextMenuImports,
     XuiDialogImports,
@@ -151,6 +153,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
 
           @if (!isIo()) {
             <label
+              cthLongPressMenu
               [xuiContextMenuTriggerFor]="engageMenu"
               class="bg-surface-raised border-border flex items-center justify-between gap-3 rounded-lg border px-3 py-1.5 text-sm"
             >

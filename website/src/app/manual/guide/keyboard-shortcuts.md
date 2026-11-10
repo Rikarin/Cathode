@@ -82,7 +82,7 @@ On Windows and Linux, read **⌘** as **Ctrl** and **⌥** as **Alt**. Shortcuts
 | Scroll               | A knob                          | Turns it, unless the mouse wheel is turned off in Preferences. ⇧ for fine steps.    |
 | Double-click         | A knob or its value             | Type a value.                                                                       |
 | ⌥-click              | A knob                          | Back to its default.                                                                |
-| Right-click          | A knob, switch or choice        | Modifiers, MIDI learn, Perform pages, Set in other presets.                         |
+| Right-click          | A knob, switch or choice        | Modifiers, MIDI learn, Perform pages, Set in other presets, Reset to default.       |
 | Double-click         | An empty cell or a shunt        | Add a block.                                                                        |
 | Right-click          | A cell                          | The cell's menu.                                                                    |
 | Drag                 | A block                         | Move it to an empty cell or shunt, or swap it with another block.                   |

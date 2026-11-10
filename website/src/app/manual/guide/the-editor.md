@@ -109,8 +109,8 @@ Every knob, switch and choice is documented on the block's own page in this manu
 - **Scroll** over a knob to turn it (you can reverse or turn this off in Preferences).
 - With a knob focused, the **arrow keys** move it by 1 % of its travel (0.1 % with ⇧), **Page Up** and **Page Down** by 10 %, **Home** and **End** to the ends.
 - **Double-click** a knob or its value to type a value. The current value is selected, so typing replaces it. Type the number with or without its unit, with a point or a comma for decimals; **1.2k** is 1200. Text that holds no value keeps the field open, marked in red: correct it, or press **Esc** to leave the knob as it was.
-- **⌥-click** (Alt-click) resets it to its default.
-- **Right-click** a knob for **Add modifier…**, **Learn MIDI controller**, **Add to the preset's Perform page**, **Add to the global Perform page** and **Set in other presets…**. Switches and choices offer the last three.
+- **⌥-click** (Alt-click) resets it to its default. So does **Reset to default** in its right-click menu.
+- **Right-click** a knob for **Add modifier…**, **Learn MIDI controller**, **Add to the preset's Perform page**, **Add to the global Perform page**, **Set in other presets…** and **Reset to default**. Switches and choices offer the Perform pages and **Set in other presets…**. On a touch screen, touch and hold the control instead.
 
 A small dot beside a knob means a modifier drives it. While it runs, the knob turns with the value it is getting, and a mark on its track shows the value you set.
 

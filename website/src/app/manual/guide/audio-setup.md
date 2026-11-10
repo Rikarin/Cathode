@@ -204,7 +204,7 @@ The browser remembers the token, so next time the address alone is enough. In Sa
 
 The first time you turn it on, macOS may ask whether **cathode-server** may accept incoming network connections. Choose **Allow**; if you chose Deny, allow it in **System Settings ▸ Network ▸ Firewall ▸ Options**. If the iPad still cannot connect, check that both are on the same Wi-Fi (not a guest network, which often keeps devices apart) and try the address with the numbers rather than the `.local` name.
 
-On a touch screen, double-tap an empty cell to add a block, touch and hold a block for its menu, and drag knobs up and down. Interface settings, the latency test and IR capture stay in the desktop app.
+On a touch screen, double-tap an empty cell to add a block, touch and hold a block for its menu, and drag knobs up and down. Touch and hold also opens the right-click menu of a knob, switch or choice on a block's page (a knob's has **Reset to default**), of the **Engaged** switch, and of a bank or a setlist in its list. Interface settings, the latency test and IR capture stay in the desktop app.
 
 - **New token** makes a new token and signs every other device out.
 - The setting stays on until you turn it off, also after a restart of the app. It is off by default, and it applies only while the app uses its own engine (not a remote one).
