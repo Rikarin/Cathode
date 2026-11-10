@@ -88,7 +88,8 @@ const DRIVE_GROUP: Record<string, 'distortion' | 'fuzz' | 'boost' | 'lofi'> = {
   'FET Preamp': 'boost',
   'Integral Pre': 'boost',
   'Tape Distortion': 'lofi',
-  'Bit Crusher': 'lofi'
+  'Bit Crusher': 'lofi',
+  'Heavy Metal': 'distortion'
 };
 
 const DRIVE_GROUPS = [

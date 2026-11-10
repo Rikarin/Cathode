@@ -72,7 +72,9 @@ namespace Cathode.Dsp.Blocks;
 ///             <b>Bass Pot</b>, <b>Middle Pot</b> (5, the pedal as built): the bass and middle pots of a circuit with a
 ///             real tone stack (the Guv'nor's), which its Tone (treble) pot works with; on an active band EQ
 ///             (<see cref="ToneKind.ActiveEq" />: the Metal Zone, the B7K, the Xotic boosters, the 4-knob Tube Driver)
-///             its low and first mid bands. <b>Middle Freq</b> sweeps the Metal Zone's mid; <b>Grunt</b> and
+///             its low and first mid bands; on the Heavy Metal (<see cref="ToneKind.GyratorEq" />) the Bass Pot is
+///             the pedal's Color Mix L and Tone its Color Mix H. <b>Middle Freq</b> sweeps the Metal Zone's mid;
+///             <b>Grunt</b> and
 ///             <b>Attack</b> are the B7K's switches. All stock at their defaults.
 ///         </item>
 ///         <item>
@@ -280,6 +282,7 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
             ParamDescriptor.Float("drive", "Drive", 0f, 10f, 5f),
             ParamDescriptor.Float("tone", "Tone", 0f, 10f, 5f)
                 .RenamedOn(TypeNames.Length, TypeIndex("Transparent OD"), "Treble")
+                .RenamedOn(TypeNames.Length, TypeIndex("Heavy Metal"), "Color Mix H")
                 .HiddenOn(
                     TypeNames.Length,
                     [..Enumerable.Range(0, TypeNames.Length).Where(static t => !HasToneKnob(t))]
@@ -341,7 +344,8 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
                 ParamTaper.Log
             ),
             ForTypes(ParamDescriptor.Float("stackBass", "Bass Pot", 0f, 10f, 5f), HasBassPot)
-                .RenamedOn(TypeNames.Length, TypeIndex("Bosom Boost"), "Bass"),
+                .RenamedOn(TypeNames.Length, TypeIndex("Bosom Boost"), "Bass")
+                .RenamedOn(TypeNames.Length, TypeIndex("Heavy Metal"), "Color Mix L"),
             ForTypes(ParamDescriptor.Float("stackMid", "Middle Pot", 0f, 10f, 5f), HasMiddlePot),
             ParamDescriptor.Choice("oversampling", "Oversampling", ["Global", "1x", "2x", "4x"]) with {
                 Recompile = true
@@ -475,6 +479,7 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
         && DriveCircuits.All[type - CircuitTypes] is { Tone: var tone } circuit
         && (tone.Kind == ToneKind.Stack
             || (tone.Kind == ToneKind.ActiveEq && tone.LowHz > 0)
+            || tone.Kind == ToneKind.GyratorEq
             || circuit.BassShelfHz > 0);
 
     /// <summary>

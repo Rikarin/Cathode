@@ -88,7 +88,7 @@
 | **Amp** | 300+ models, Cygnus X-3 component modelling, Authentic/Ideal knob tapers | Three tiers: **Capture** (NAM/AIDA-X), **Circuit** (own WDF/DK stage library), **Hybrid**. The amp parameter surface is in §4 |
 | **Cab** | 4 IRs per channel with a Cab-Lab-style mixer (level, pan, align, proximity, smoothing), mic-preamp sim, room, air. **DynaCab**: 2048-sample, phase-aligned IRs with continuous mic Position and Distance, 4 mic types | Partitioned convolution, 4 slots, alignment. **DynaCab equivalent** = a grid of our own phase-aligned captures per cab and mic, *interpolated* by position and distance |
 | **IR Player** | 2 IRs, series or parallel, FullRes (up to 1.37 s) | Same block. Long IRs use non-uniform partitioned convolution |
-| **Drive** | 65+ types. Clip type, diode type and count, bass response, dry level, expert params. HM-2 added in fw 32 | WDF circuit library with exposed "expert" components (diodes, caps) |
+| **Drive** | 65+ types. Clip type, diode type and count, bass response, dry level, expert params. HM-2 added in fw 32 | WDF circuit library with exposed "expert" components (diodes, caps); the HM-2 is the Heavy Metal type |
 | **Dynamic Distortion** | Frequency-dependent dynamic saturation for mastering | Multiband dynamic waveshaper |
 | **Delay** | 27+ types: digital, analog/BBD, tape, dual tape, reverse; up to 16 s; diffusion | Shared delay core with fractional interpolation, BBD/tape colouring, diffusion allpasses |
 | **Multi-Delay / Megatap / Plex / Ten-Tap** | 34+, 20, 44 and 2 types: multi-tap, rhythm, band, diffusors, 8-line feedback matrix with pitch | Built on the same delay-line core plus an FDN matrix (Plex) |
