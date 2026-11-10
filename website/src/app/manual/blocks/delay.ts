@@ -112,10 +112,11 @@ playing. Set it just below the level of your picked notes so the repeats come ba
 releases (100 to 200 ms) let the repeats pop back in between phrases; longer ones (500 ms to 1 s) give a slow bloom. The
 ducker always pulls down within about 5 ms.`,
 
-    hold: `Freezes the repeats. **Hold** sets the feedback to exactly 100 %, closes the input and turns off drive and
-saturation, so whatever is in the line loops forever while you play over it. **Stack** does the same with the input
-open, so you can keep layering; a limiter stops the stack from clipping. Any Low Cut, High Cut, EQ or type darkening
-still acts every pass, so a held loop slowly loses lows or highs unless those filters are off.`,
+    hold: `Freezes the repeats. **Hold** sets the feedback to exactly 100 %, closes the input and takes the drive, the
+saturation and the loop filters (Low Cut, High Cut, EQ and the type's own darkening) out of the loop, so whatever is in
+the line loops as it is while you play over it, on every type. The filters come back when you switch Hold off. **Stack**
+sets the feedback to 100 % with the input open, so you can keep layering; a limiter stops the stack from clipping. Stack
+keeps the filters, so its layers still lose lows or highs on every pass unless those filters are off.`,
 
     phaseReverse: `Inverts the polarity of the repeats on the left, right or both sides. Inverting one side makes the
 echoes sound wide and diffuse in stereo but makes them thin or disappear when summed to mono, so use it with care.
@@ -328,8 +329,10 @@ top, then the same on the way down.`
       Astable: `An analog oscillator's charge and discharge curve.`
     },
     hold: {
-      Hold: `Feedback at exactly unity, input closed: the current repeats loop forever while you play over them.`,
-      Stack: `Feedback at unity with the input open: what you play keeps layering on top, held under a limiter.`
+      Hold: `Feedback at exactly unity, input closed, loop filters out: the current repeats loop forever while you play
+over them.`,
+      Stack: `Feedback at unity with the input open: what you play keeps layering on top, held under a limiter and
+still passing the loop filters.`
     },
     depthRange: {
       'Low (×0.1)': `LFO 1 and 2 depths are a tenth of what the knobs show: up to 1 ms, for very subtle movement.`,

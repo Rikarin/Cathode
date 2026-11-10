@@ -514,10 +514,57 @@ public class DelayBlockTests {
         Assert.Equal(0.25f, output[1_000 + 480 * 5], 1e-5f);
     }
 
+    [Theory]
+    [InlineData(DelayBlock.Analog, 0.5)]
+    [InlineData(DelayBlock.VintageDigital, 0.5)]
+    [InlineData(DelayBlock.Tape, 2.0)] // wow and flutter keep the read between samples: a little interpolation loss
+    [InlineData(DelayBlock.MonoTape, 2.0)]
+    public void Hold_keeps_the_level_and_the_highs_of_the_coloured_types(int type, double toleranceDb) {
+        // 4 kHz is above Analog's 2.8 kHz loop high cut and well into Tape's and Vintage Digital's: filtered on every
+        // pass it would be gone within a few of the 65 passes of this render. A user High Cut of 1 kHz is on too.
+        using var delay = Create(
+            (DelayBlock.Type, type),
+            (DelayBlock.Time, 300f),
+            (DelayBlock.Mix, 100f),
+            (DelayBlock.HighCut, 1_000f),
+            (DelayBlock.Head2Ratio, 0f)
+        );
+        BlockRender.Mono(delay, Signals.Sine(4_000, 48_000, 9_600, 0.25f), 64);
+        delay.Params.SetTarget(DelayBlock.Hold, DelayBlock.HoldOn);
+
+        var held = BlockRender.Mono(delay, new float[950_400], 64);
+
+        var first = Analysis.ToDb(Analysis.Rms(held.AsSpan(14_400, 14_400)));
+        var last = Analysis.ToDb(Analysis.Rms(held.AsSpan(held.Length - 14_400)));
+        Assert.True(first > -60, $"nothing held: {first:0.0} dB");
+        Assert.Equal(first, last, toleranceDb);
+    }
+
+    [Fact]
+    public void Leaving_hold_brings_the_loop_filters_back() {
+        using var delay = Create(
+            (DelayBlock.Time, 10f),
+            (DelayBlock.Feedback, 100f),
+            (DelayBlock.Mix, 100f),
+            (DelayBlock.HighCut, 1_000f),
+            (DelayBlock.Hold, DelayBlock.HoldOn)
+        );
+        BlockRender.Mono(delay, new float[4_800], 64); // long enough for the filters to fade out
+        delay.Params.SetTarget(DelayBlock.Hold, DelayBlock.HoldOff);
+
+        // 4 kHz through a 1 kHz high cut on every pass of a 10 ms loop: gone within a few passes.
+        var input = Signals.Concat(Signals.Sine(4_000, 48_000, 4_800, 0.25f), new float[24_000]);
+        var output = BlockRender.Mono(delay, input, 64);
+
+        var tail = Analysis.MagnitudeAt(output.AsSpan(output.Length - 4_800), 4_000, 48_000) / 2_400; // the amplitude
+        Assert.True(Analysis.ToDb(tail) < -80, $"4 kHz is still at {Analysis.ToDb(tail):0.0} dB");
+    }
+
     [Fact]
     public void Hold_through_a_boosting_feedback_eq_stays_bounded() {
-        // Hold loops at unity; a +12 dB band and a resonant high cut in the loop then add gain on every pass. The
-        // limiter must take over, or the repeats grow until they overflow.
+        // Hold loops at unity; a +12 dB band and a resonant high cut in the loop add gain on every pass while they
+        // fade out (5 ms, a whole pass of this loop). The limiter must take over, or the repeats grow until they
+        // overflow.
         using var delay = Create(
             (DelayBlock.Time, 5f),
             (DelayBlock.Mix, 50f),

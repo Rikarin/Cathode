@@ -23,9 +23,10 @@ namespace Cathode.Dsp.Blocks;
 ///     slope and resonance, two peaking bands) that filters every repeat, the first included, drive and bit reduction,
 ///     two time LFOs and a level/pan/spread LFO, a diffuser, a ducker on the wet signal, echo pan, a right post delay,
 ///     input gain (what the lines hear, not the dry) and Hold or Stack, which loop the repeats at unity with the input
-///     closed or open. The mix follows the Axe-Fx delay law: the wet reaches full level at 50 % while the dry stays at
-///     full level, then the dry fades out. Reads use cubic Hermite interpolation, so integer delays are exact and time
-///     changes glide instead of clicking.
+///     closed or open. Hold also takes the loop's filters, drive and saturation out, so what it holds stays as it is;
+///     Stack keeps the filters. The mix follows the Axe-Fx delay law: the wet reaches full level at 50 % while the dry
+///     stays at full level, then the dry fades out. Reads use cubic Hermite interpolation, so integer delays are exact
+///     and time changes glide instead of clicking.
 /// </summary>
 /// <remarks>
 ///     Reverse: a new chunk starts every Time (or on a new note with Trigger Restart); the head reading
@@ -160,6 +161,9 @@ public sealed class DelayBlock() : DspBlock(Info) {
     const int SweepHop = 16;
     const float MaxDepthMs = 10f;
     const float RunFadeMs = 5f;
+
+    /// <summary>How long the loop filters take to fade out when Hold goes on, and back in when it goes off.</summary>
+    const float HoldFadeMs = 5f;
 
     /// <summary>The tape transport's wow and flutter depths in milliseconds.</summary>
     const float WowMs = 0.6f;
@@ -582,9 +586,15 @@ public sealed class DelayBlock() : DspBlock(Info) {
             type is Analog or Tape or MonoTape && !hold,
             hold ? 0f : drive,
             Quantum(type == VintageDigital ? VintageBits : 24 - bits),
-            // A boosting band or a resonant cut adds gain in the loop: with Hold's unity feedback or a high feedback
-            // the repeats would then grow without bound, so the limiter takes over whenever the loop could pass unity.
-            stack || loopGain * filter.MaxGain > 1
+            // A boosting band or a resonant cut adds gain in the loop: with a high feedback, or with Hold's unity
+            // feedback while its filters fade out, the repeats would then grow without bound, so the limiter takes over
+            // whenever the loop could pass unity.
+            stack || loopGain * filter.MaxGain > 1,
+            // Hold freezes what is in the line: filtering it again on every pass would darken and fade it (the fixed
+            // high cut of Analog, Tape and Vintage Digital most of all), so the filters fade out of the loop. Stack
+            // keeps them, like the limiter, because the input still feeds it.
+            hold && !stack ? 0f : 1f,
+            1f / (HoldFadeMs * 0.001f * sampleRate)
         );
 
         ducker.Configure(
@@ -835,12 +845,24 @@ public sealed class DelayBlock() : DspBlock(Info) {
         output.Apply(io, Params.Advance(Level, n), Params.Advance(Balance, n));
     }
 
-    /// <summary>What the lines' loops do this block.</summary>
-    readonly record struct LoopSettings(LoopFilter Filter, bool Saturate, float Drive, float Quantum, bool Limit);
+    /// <summary>
+    ///     What the lines' loops do this block. <c>FilterMix</c> is how much of the loop filter is in circuit (1
+    ///     normally, 0 while Hold is on) and <c>FilterStep</c> the most a line's own mix moves towards it per sample.
+    /// </summary>
+    readonly record struct LoopSettings(
+        LoopFilter Filter,
+        bool Saturate,
+        float Drive,
+        float Quantum,
+        bool Limit,
+        float FilterMix,
+        float FilterStep
+    );
 
     sealed class Line : IDisposable {
         readonly FractionalDelayLine delay = new();
         LoopFilterState filter;
+        float filterMix = 1f;
 
         public void Allocate(int capacity) => delay.Allocate(capacity);
 
@@ -849,6 +871,7 @@ public sealed class DelayBlock() : DspBlock(Info) {
         public void Reset() {
             delay.Reset();
             filter.Reset();
+            filterMix = 1f;
         }
 
         /// <summary>The repeat <paramref name="samples" /> back, bit-reduced if asked.</summary>
@@ -859,11 +882,20 @@ public sealed class DelayBlock() : DspBlock(Info) {
 
         /// <summary>
         ///     Writes what enters the line, the input plus the fed-back repeats, through the loop's filters, then
-        ///     drive, saturation and the limiter: every pass, the first included, is filtered once.
+        ///     drive, saturation and the limiter: every pass, the first included, is filtered once. The filters
+        ///     crossfade out and in as <see cref="LoopSettings.FilterMix" /> asks; they keep running while they are
+        ///     out, so they come back without a jump.
         /// </summary>
         public void Write(float value, in LoopSettings loop) {
+            if (filterMix != loop.FilterMix) {
+                filterMix = filterMix < loop.FilterMix
+                    ? Math.Min(loop.FilterMix, filterMix + loop.FilterStep)
+                    : Math.Max(loop.FilterMix, filterMix - loop.FilterStep);
+            }
+
             if (loop.Filter.Active) {
-                value = filter.Tick(loop.Filter, value);
+                var filtered = filter.Tick(loop.Filter, value);
+                value = filterMix >= 1f ? filtered : value + (filtered - value) * filterMix;
             }
 
             if (loop.Drive > 0) {
