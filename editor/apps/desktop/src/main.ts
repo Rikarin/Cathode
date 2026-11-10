@@ -12,14 +12,18 @@ import {
 import { existsSync, statSync } from 'node:fs';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { contentSecurityPolicy } from './content-security-policy';
 import { networkStatus, newToken, portFree } from './network';
 import {
-  type AudioSettings,
   type NetworkSettings,
-  type ServerTarget,
+  type Unchecked,
   defaultSettings,
+  fields,
   loadSettings,
-  saveSettings
+  saveSettings,
+  validAudio,
+  validPort,
+  validTarget
 } from './settings';
 import { type Connection, type IrCaptureOptions, Sidecars, listDevices, waitForServer } from './sidecars';
 
@@ -120,26 +124,6 @@ function connection(): Promise<Connection> {
   return sidecars.start();
 }
 
-/** Allows the renderer to reach exactly the Server it uses, and nothing else. */
-function contentSecurityPolicy(): string {
-  const remote = settings.target.mode === 'remote' ? new URL(settings.target.baseUrl) : null;
-  const servers = remote
-    ? `${remote.origin} ${remote.protocol === 'https:' ? 'wss' : 'ws'}://${remote.host}`
-    : 'http://127.0.0.1:* ws://127.0.0.1:*';
-  return [
-    "default-src 'self'",
-    "script-src 'self'",
-    // Angular and the overlay CDK set inline styles.
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob:",
-    "font-src 'self' data:",
-    `connect-src 'self' ${servers}`,
-    "object-src 'none'",
-    "base-uri 'self'",
-    "frame-ancestors 'none'"
-  ].join('; ');
-}
-
 function serveEditor(): void {
   protocol.handle(Scheme, async request => {
     const { pathname } = new URL(request.url);
@@ -155,7 +139,7 @@ function serveEditor(): void {
     const target = inside && isFile(file) ? file : join(editorRoot, 'index.html');
     const response = await net.fetch(pathToFileURL(target).toString());
     const headers = new Headers(response.headers);
-    headers.set('Content-Security-Policy', contentSecurityPolicy());
+    headers.set('Content-Security-Policy', contentSecurityPolicy(settings.target));
     return new Response(response.body, { status: response.status, headers });
   });
 }
@@ -283,45 +267,6 @@ function handleIpc(): void {
   );
 }
 
-/** What the renderer sent for a `T`: an object whose fields are all still to be checked. */
-type Unchecked<T> = { readonly [K in keyof T]?: unknown };
-
-/** The renderer is trusted less than main: everything it sends is checked, starting with its being an object. */
-function fields(value: unknown): Record<string, unknown> {
-  return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {};
-}
-
-function isWholeIn(value: unknown, min: number, max: number): value is number {
-  return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max;
-}
-
-function validAudio(value: unknown): AudioSettings {
-  const audio: Unchecked<AudioSettings> = fields(value);
-  const oneOf = (option: unknown, options: readonly number[], fallback: number) =>
-    options.find(o => o === option) ?? fallback;
-  const device = typeof audio.device === 'string' && audio.device.length < 512 ? audio.device : null;
-  const sampleRate = oneOf(audio.sampleRate, [44_100, 48_000, 88_200, 96_000], 48_000);
-  const bufferFrames = oneOf(audio.bufferFrames, [32, 64, 128, 256, 512], 64);
-  const channels = (list: unknown): number[] =>
-    Array.isArray(list) ? (list as unknown[]).filter(c => isWholeIn(c, 1, 64)).slice(0, 2) : [];
-  // Outputs 1-4: the first channel of each pair, 0 for unmapped.
-  const outputs = Array.isArray(audio.outputs)
-    ? (audio.outputs as unknown[]).map(c => (isWholeIn(c, 0, 63) ? c : 0)).slice(0, 4)
-    : [1];
-  const inputs = Array.isArray(audio.inputs) ? (audio.inputs as unknown[]).slice(0, 6).map(channels) : [];
-  const [first = [], ...rest] = inputs;
-  return {
-    device,
-    sampleRate,
-    bufferFrames,
-    loopIn: channels(audio.loopIn),
-    loopOut: channels(audio.loopOut),
-    outputs,
-    diOut: channels(audio.diOut),
-    inputs: first.length > 0 ? inputs : [[1], ...rest]
-  };
-}
-
 function validCapture(value: unknown): IrCaptureOptions {
   const options: Unchecked<IrCaptureOptions> = fields(value);
   const clamp = (number: unknown, min: number, max: number, fallback: number) =>
@@ -343,7 +288,7 @@ type NetworkRequest = Pick<NetworkSettings, 'enabled' | 'port'> & { renewToken?:
 async function validNetwork(value: unknown): Promise<NetworkSettings> {
   const network: Unchecked<NetworkRequest> = fields(value);
   const enabled = network.enabled === true;
-  const port = isWholeIn(network.port, 1024, 65_535) ? network.port : null;
+  const port = validPort(network.port);
   if (port === null) {
     throw new Error('The port must be a whole number from 1024 to 65535.');
   }
@@ -356,20 +301,6 @@ async function validNetwork(value: unknown): Promise<NetworkSettings> {
 
   const token = network.renewToken === true || !current.token ? newToken() : current.token;
   return { enabled, port, token };
-}
-
-function validTarget(value: unknown): ServerTarget {
-  const target: Unchecked<{ mode: string; baseUrl: string; token: string }> = fields(value);
-  if (target.mode === 'remote') {
-    const url = new URL(typeof target.baseUrl === 'string' ? target.baseUrl : '');
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-      throw new Error('The Server URL must be http or https.');
-    }
-
-    return { mode: 'remote', baseUrl: url.origin, token: typeof target.token === 'string' ? target.token : '' };
-  }
-
-  return { mode: 'local' };
 }
 
 /**

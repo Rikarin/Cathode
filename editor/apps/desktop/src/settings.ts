@@ -3,11 +3,16 @@ import { join } from 'node:path';
 import { type SecretCipher, type Settings, SettingsStore } from './settings-store';
 
 export {
+  defaultSettings,
+  fields,
+  validAudio,
+  validPort,
+  validTarget,
   type AudioSettings,
   type NetworkSettings,
   type ServerTarget,
   type Settings,
-  defaultSettings
+  type Unchecked
 } from './settings-store';
 
 /**

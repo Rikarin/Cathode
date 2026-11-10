@@ -1,4 +1,13 @@
-import { chmodSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -120,6 +129,107 @@ describe('SettingsStore', () => {
     expect(settings.audio).toEqual({ ...defaultSettings().audio, device: 'x' });
     expect(settings.network).toEqual({ enabled: true, port: 5180, token: 't' });
     expect(settings.target).toEqual({ mode: 'local' });
+  });
+
+  it.each(['null', '[]', '"settings"', '7'])('reads the defaults from a file that holds %s', async text => {
+    await store(new FakeCipher()).save(sample());
+    writeFileSync(file, text);
+
+    expect(await store(new FakeCipher()).load()).toEqual(defaultSettings());
+    expect(logs.join('\n')).toContain('does not hold a settings object');
+  });
+
+  it.each([
+    ['no address', { mode: 'remote' }],
+    ['an address that is not a string', { mode: 'remote', baseUrl: 5180 }],
+    ['an address without a scheme', { mode: 'remote', baseUrl: 'rig.local:5180', token: 't' }],
+    ['an address that is not http', { mode: 'remote', baseUrl: 'file:///etc/passwd' }]
+  ])('uses the local engine when the remote Server has %s', async (_what, target) => {
+    await store(new FakeCipher()).save(defaultSettings());
+    writeFileSync(file, JSON.stringify({ audio: { device: 'x' }, target }));
+
+    const settings = await store(new FakeCipher()).load();
+    expect(settings.target).toEqual({ mode: 'local' });
+    expect(settings.audio.device).toBe('x');
+    expect(logs.join('\n')).toContain('using the local engine');
+  });
+
+  it("keeps a remote Server's address as its origin", async () => {
+    await store(new FakeCipher(false)).save(defaultSettings());
+    writeFileSync(file, JSON.stringify({ target: { mode: 'remote', baseUrl: 'http://rig.local:5180/', token: 't' } }));
+
+    const settings = await store(new FakeCipher(false)).load();
+    expect(settings.target).toEqual({ mode: 'remote', baseUrl: 'http://rig.local:5180', token: 't' });
+  });
+
+  it('replaces audio settings of the wrong shape, field by field', async () => {
+    await store(new FakeCipher()).save(defaultSettings());
+    writeFileSync(
+      file,
+      JSON.stringify({
+        audio: { device: 'x', sampleRate: '48000', bufferFrames: 128, loopIn: 3, outputs: 'all', inputs: [[2], 'x'] }
+      })
+    );
+
+    const settings = await store(new FakeCipher()).load();
+    expect(settings.audio).toEqual({
+      device: 'x',
+      sampleRate: 48_000,
+      bufferFrames: 128,
+      loopIn: [],
+      loopOut: [],
+      outputs: [1],
+      diOut: [],
+      inputs: [[2], []]
+    });
+    expect(logs.join('\n')).toContain('sampleRate, loopIn, outputs, inputs');
+  });
+
+  it.each([
+    ['a list', []],
+    ['a string', 'interface-1'],
+    ['null', null]
+  ])('reads the default audio settings when the section is %s', async (_what, audio) => {
+    await store(new FakeCipher()).save(defaultSettings());
+    writeFileSync(file, JSON.stringify({ audio, network: { enabled: true, port: 5181, token: 't' } }));
+
+    const settings = await store(new FakeCipher()).load();
+    expect(settings.audio).toEqual(defaultSettings().audio);
+    expect(settings.network).toEqual({ enabled: true, port: 5181, token: 't' });
+    expect(logs.join('\n')).toContain('"audio"');
+  });
+
+  it.each([['5181'], [80], [70_000], [5180.5], [null]])(
+    'turns control from other devices off when the stored port is %j',
+    async port => {
+      await store(new FakeCipher()).save(defaultSettings());
+      writeFileSync(file, JSON.stringify({ network: { enabled: true, port, token: 't' } }));
+
+      const settings = await store(new FakeCipher()).load();
+      expect(settings.network).toEqual({ enabled: false, port: 5180, token: 't' });
+      expect(logs.join('\n')).toContain('network port');
+    }
+  );
+
+  it('takes only true for the network being on, and survives sections that are not objects', async () => {
+    await store(new FakeCipher()).save(defaultSettings());
+    writeFileSync(file, JSON.stringify({ network: { enabled: 'yes', port: 5181 }, target: 'remote' }));
+
+    const settings = await store(new FakeCipher()).load();
+    expect(settings.network).toEqual({ enabled: false, port: 5181, token: '' });
+    expect(settings.target).toEqual({ mode: 'local' });
+
+    writeFileSync(file, JSON.stringify({ network: [true, 5181], target: null }));
+    expect(await store(new FakeCipher()).load()).toEqual(defaultSettings());
+  });
+
+  it('says nothing about a file it wrote itself', async () => {
+    const cipher = new FakeCipher();
+    await store(cipher).save(sample());
+    logs = [];
+
+    expect(await store(cipher).load()).toEqual(sample());
+    expect(logs).toEqual([]);
   });
 
   it('drops a token it cannot decrypt, and keeps the rest', async () => {
