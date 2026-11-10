@@ -18,8 +18,11 @@ namespace Cathode.Dsp.Amp.Models;
 ///         inputs' 47 nF and 1M, V1A 100k with 1.5k ‖ 15 µF, V1B 150k with 1.2k ‖ 15 µF, 47 nF into the 1M volumes with
 ///         120 pF Bright switches, 1.5M (volume 1) and 470k (volume 2) into the mix node with 470k to ground, the
 ///         volumes' feet on the ground bus (the return docs/06 could not read); V2A 100k with 1000 Ω ‖ 0.15 µF and 15
-///         µF through 33k that Bass Shift shorts; the stack 250 pF (+ 750 pF Treble Shift), 100k, 47 nF, 0.1 µF, 250k
-///         bass, 10k middle; 47 nF into V2B with 3.3M from the 370 V node, 33k cathode, 0.1 µF into 15k; the equaliser:
+///         µF through 33k that Bass Shift shorts; the stack 250 pF (+ 750 pF Treble Shift), 100k, 47 nF to the treble
+///         pot's foot (the bass cap) and 0.1 µF to the bass pot's foot (the middle cap), 250k bass, 10k middle: the two
+///         caps are the other way round from the Mark IIC+, IV and V and the TriAxis, whose bass cap is the 0.1 µF
+///         (re-read for #299: the sheet draws ".047" between the 100k and the junction of the treble and bass pots,
+///         and ".1" between the 100k and the junction of the bass and mid pots); 47 nF into V2B with 3.3M from the 370 V node, 33k cathode, 0.1 µF into 15k; the equaliser:
 ///         a PNP follower (470k / 1M bias), the six 50k sliders between the op-amp's inputs, each wiper through 470 Ω
 ///         (680 Ω on the top band), an inductor and a cap to ground (1 H / 22 µF, 1 H / 2.2 µF, 0.35 H / 1 µF, 0.22 H /
 ///         0.22 µF, 0.068 H / 0.15 µF, 0.033 H / 47 nF: 34, 107, 269, 723, 1,570 and 4,040 Hz), 3.3k on the output, 0.1
@@ -159,8 +162,9 @@ public static class MesaBass400 {
     /// <summary>
     ///     V2A and V2B in one stage (V2B's grid conducts and loads the stack, which a Thévenin cut would miss): V2A's
     ///     100k plate, 1000 Ω ‖ 0.15 µF on its cathode and 15 µF through 33k that Bass Shift (Switch 2) shorts; the
-    ///     Mark stack off the plate (250 pF, 750 pF more with Treble Shift on Switch 3, 100k, 47 nF, 0.1 µF; 250k
-    ///     treble, 250k bass, 10k middle); 47 nF from the treble wiper into V2B, a follower with 3.3M from the rail to
+    ///     Mark stack off the plate (250 pF, 750 pF more with Treble Shift on Switch 3, 100k, 47 nF as the bass cap
+    ///     and 0.1 µF as the middle cap, as drawn: the reverse of the Mark guitar amps; 250k treble, 250k bass, 10k
+    ///     middle); 47 nF from the treble wiper into V2B, a follower with 3.3M from the rail to
     ///     its grid (the only DC path drawn: the grid biases itself by its grid current) and 33k on its cathode; 0.1 µF
     ///     into 15k. Out at the 15k.
     /// </summary>
@@ -182,7 +186,7 @@ public static class MesaBass400 {
             750e-12,
             SwitchRole.Switch3,
             100e3,
-            47e-9,
+            47e-9, // the bass cap: the smaller one on this amp, as the drawing has it
             0.1e-6,
             new(250e3, PotTaper.Linear),
             new(250e3, PotTaper.Audio),
