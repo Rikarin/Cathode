@@ -90,6 +90,9 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                         && !(index == CircuitAmpBlock.StackFrequency && !StockPath(design).Any(HasStack))
                         && !(index == CircuitAmpBlock.BrightCap && design.Panel.Bright is null)
                         && !(index == CircuitAmpBlock.PresenceFrequency && design.Panel.Presence is null)
+                        // Nor has a presence without a cap a corner to move (the Fireball's rheostat in series with
+                        // the feedback): Presence Freq is hidden there.
+                        && !(index == CircuitAmpBlock.PresenceFrequency && !design.Power.Feedback.HasPresenceCap)
                         && !(index == CircuitAmpBlock.SpeakerCurve
                             && SpeakerDesign.Presets[(int)value - 1] == design.Power.Speaker)
                         && !(index == CircuitAmpBlock.Rectifier
@@ -561,8 +564,10 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                 hasPresence == (presence[type] == "Presence Freq"),
                 $"{design.Name}: Presence Freq '{presence[type]}'"
             );
+            // A Presence knob turns a network with a cap, or a rheostat in series with the feedback (the Fireball's has
+            // no cap: the knob is the amount of feedback, and there is no corner for Presence Freq to move).
             if (design.Panel.Presence is not null && !design.Power.Brilliance && design.Panel.HasTubes) {
-                Assert.True(hasPresence, $"{design.Name} has a Presence knob");
+                Assert.True(hasPresence || feedback.Series is not null, $"{design.Name} has a Presence knob");
             }
         }
 

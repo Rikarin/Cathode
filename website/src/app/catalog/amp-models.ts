@@ -105,6 +105,7 @@ export const AMP_MODELS: Record<string, { family: AmpFamily; basedOn: string }> 
   'Legacy VL100': { family: 'highgain', basedOn: 'Carvin Legacy VL100' },
   Powerball: { family: 'highgain', basedOn: 'Engl Powerball' },
   'Savage 120': { family: 'highgain', basedOn: 'Engl Savage 120' },
+  'Fireball 60': { family: 'highgain', basedOn: 'Engl Fireball 60' },
   'Quick Rod': { family: 'highgain', basedOn: 'Splawn Quickrod' },
   Prometheus: { family: 'highgain', basedOn: 'Lichtlaerm Audio Prometheus, lead channel' },
   'Prometheus Clean': { family: 'highgain', basedOn: 'Lichtlaerm Audio Prometheus, clean channel' },

@@ -47,7 +47,7 @@ public class PreampSupplyTests {
 
     public static TheoryData<string> Motorboating => [
         "5150", "SLO-100", "Dual Rectifier", "Dual Rectifier 3-Ch", "Triple Rectifier", "Rect-o-Verb", "TriAxis Rhythm",
-        "Savage 120", "Powerball"
+        "Savage 120", "Powerball", "Fireball 60"
     ];
 
     /// <summary>
@@ -83,9 +83,9 @@ public class PreampSupplyTests {
     }
 
     /// <summary>
-    ///     The nine at the settings that showed it (gain 10, master 8, 0.1 V), and the user's 5150 settings; the
+    ///     The ten at the settings that showed it (gain 10, master 8, 0.1 V), and the user's 5150 settings; the
     ///     Powerball also at gain 1 and master 5 after a 0.4 V chord, where its drawn supply latched, and in its
-    ///     channel 1.
+    ///     channel 1; the Fireball also at gain 1 with the master full, and in its clean channel.
     /// </summary>
     [Theory]
     [MemberData(nameof(Motorboating))]
@@ -104,6 +104,15 @@ public class PreampSupplyTests {
                 0.5
             );
             Assert.True(crunch < -120, $"Powerball channel 1, Crunch: {crunch:0.0} dB two seconds after the stop");
+        }
+
+        if (type == "Fireball 60") {
+            // As drawn it latched in both channels, and at gain 1 with the master full: the gain pot is ahead of
+            // three of the four stages on the node.
+            var low = TailDb(type, new() { ["gain"] = 1, ["master"] = 10 }, 0.4, 0.503);
+            Assert.True(low < -120, $"Fireball at gain 1, master 10: {low:0.0} dB two seconds after the stop");
+            var clean = TailDb(type, new() { ["gain"] = 10, ["master"] = 8, ["switch3"] = 1 }, 0.1, 0.5);
+            Assert.True(clean < -120, $"Fireball clean channel: {clean:0.0} dB two seconds after the stop");
         }
 
         if (type == "5150") {
@@ -171,6 +180,7 @@ public class PreampSupplyTests {
     [InlineData("Savage 120")]
     [InlineData("SLO-100")] // #296: B+ is the drawing's 497 V, so B2, B4 and B3 rest at its 378, 359 and 350 V
     [InlineData("Powerball")] // #296: the rails are the chain's nodes, not 400 V on three of them
+    [InlineData("Fireball 60")]
     public void Assumed_rails_are_the_chains_rest_voltages(string type) {
         var design = AmpDesign.All.Single(a => a.Name == type);
         var channel = new AmpChannel(design, 2 * Rate);

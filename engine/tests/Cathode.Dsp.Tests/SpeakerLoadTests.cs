@@ -86,6 +86,7 @@ public class SpeakerLoadTests(ITestOutputHelper output) {
     [InlineData("TriAxis Rhythm")]
     [InlineData("Powerball")]
     [InlineData("Savage 120")]
+    [InlineData("Fireball 60")]
     [InlineData("Legacy VL100")]
     [InlineData("Prometheus")]
     [InlineData("Prometheus Clean")]

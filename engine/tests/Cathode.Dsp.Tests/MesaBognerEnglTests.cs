@@ -40,11 +40,25 @@ public partial class AmpStageTests {
         };
 
     /// <summary>
+    ///     The Fireball's rows of <see cref="MesaEnglChains" />: Ultra's four stages, and the clean channel's three.
+    ///     V1A's and V2A's cathodes are unbypassed, so the cuts hold far better than on the Powerball: measured -56
+    ///     and -24 dB in Ultra, -55 and -54 dB clean.
+    /// </summary>
+    public static TheoryData<string, bool, int, double, double> FireballChains =>
+        new() {
+            { "Fireball 60", false, 4, 0.002, -50 },
+            { "Fireball 60", false, 4, 0.05, -20 },
+            { "Fireball 60", true, 3, 0.002, -48 },
+            { "Fireball 60", true, 3, 0.05, -48 }
+        };
+
+    /// <summary>
     ///     The first <paramref name="count" /> stages of the path Switch 3 selects (a channel switch's stages are those
     ///     of the channel that plays).
     /// </summary>
     [Theory]
     [MemberData(nameof(MesaEnglChains))]
+    [MemberData(nameof(FireballChains))]
     public void Mesa_and_Engl_chains_match_the_reference(
         string type,
         bool other,
@@ -143,7 +157,9 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
             { "Savage 120", 0, 0, 0 },
             { "Savage 120", 1, 1, 0 },
             { "Savage 120", 0, 0, 1 },
-            { "Savage 120", 1, 1, 1 }
+            { "Savage 120", 1, 1, 1 },
+            { "Fireball 60", 0, 0, 0 },
+            { "Fireball 60", 0, 0, 1 }
         };
 
     /// <summary>
@@ -182,7 +198,6 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
 
     [Fact]
     public void Panels_name_the_real_controls() {
-
         Assert.Equal(
             ["Channel 2", "Drive Mode", "Tube Rectifier"],
             new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "Lone Star"))
@@ -219,6 +234,12 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
             new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "Savage 120"))
         );
         Assert.Equal("Lead", Label("control1", "Savage 120"));
+        Assert.Equal("Clean", Label("switch3", "Fireball 60"));
+        Assert.Equal("Bright", Label("bright", "Fireball 60"));
+        Assert.All(
+            new[] { "depth", "cut", "switch1", "switch2", "control1", "control2" },
+            static id => Assert.Empty(Label(id, "Fireball 60")!)
+        );
         Assert.Equal(6, AmpDesign.All.Single(static a => a.Name == "Triple Rectifier").Power.TubesPerSide * 2);
     }
 
@@ -300,6 +321,78 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
     }
 
     /// <summary>
+    ///     The Fireball's clean channel (Switch 3) leaves V2A out and pads V2B's grid through 1M: far less gain than
+    ///     Ultra. One gain pot serves both channels, so its Bright cap lifts the highs at a low gain setting in both.
+    ///     The presence is a rheostat in series with the feedback and has no cap: turning it up takes feedback out,
+    ///     which raises the level at 200 Hz as it does at 5 kHz (the two differ only by the speaker load's curve).
+    /// </summary>
+    [Fact]
+    public void Fireball_clean_runs_three_stages_and_its_presence_is_the_feedback() {
+        static double At(float clean, float bright, float presence, double frequency) {
+            using var block = Create(
+                "Fireball 60",
+                (CircuitAmpBlock.Switch3, clean),
+                (CircuitAmpBlock.Bright, bright),
+                (CircuitAmpBlock.Presence, presence),
+                (CircuitAmpBlock.Gain, 3f),
+                (CircuitAmpBlock.Master, 3f)
+            );
+            return Level(block, frequency, 1e-5f);
+        }
+
+        var (ultra, clean) = (At(0, 0, 5, 1_000), At(1, 0, 5, 1_000));
+        var bright = At(1, 1, 5, 5_000) - At(1, 0, 5, 5_000);
+        var ultraBright = At(0, 1, 5, 5_000) - At(0, 0, 5, 5_000);
+        var low = At(1, 0, 10, 200) - At(1, 0, 0, 200);
+        var high = At(1, 0, 10, 5_000) - At(1, 0, 0, 5_000);
+        output.WriteLine($"Fireball at 1 kHz: Ultra {ultra:0.0} dB, clean {clean:0.0} dB");
+        output.WriteLine($"Bright at 5 kHz: clean {bright:0.0} dB, Ultra {ultraBright:0.0} dB");
+        output.WriteLine($"Presence 0 to 10: {low:0.0} dB at 200 Hz, {high:0.0} dB at 5 kHz");
+        Assert.True(clean < ultra - 20, $"clean {clean:0.0} dB against Ultra's {ultra:0.0} dB");
+        Assert.True(bright > 3, $"Bright lifts the clean channel's 5 kHz by {bright:0.0} dB");
+        Assert.True(ultraBright > 3, $"Bright lifts Ultra's 5 kHz by {ultraBright:0.0} dB");
+        Assert.True(low > 2, $"Presence raises 200 Hz by {low:0.0} dB");
+        Assert.InRange(high - low, -4, 4);
+    }
+
+    /// <summary>
+    ///     The Fireball's drawing: two 6L6GC at 430 V behind 470 Ω screen resistors, the feedback from the 8 Ω tap
+    ///     through the presence rheostat and 56k into 3.3k with nothing reactive in it, and V1B's, V2A's and V2B's
+    ///     plates at rest in the middle of their rail (the drawing prints no stage voltages to hold them to).
+    /// </summary>
+    [Fact]
+    public void Fireball_power_amp_and_rest_points_follow_the_drawing() {
+        var design = AmpDesign.All.Single(static a => a.Name == "Fireball 60");
+        var power = design.Power;
+        Assert.Equal((1, 430, 470, 60), (power.TubesPerSide, power.Supply, power.ScreenResistor, power.RatedPower));
+        Assert.False(power.Feedback.HasPresenceCap);
+        foreach (var hz in new[] { 100.0, 1_000, 10_000 }) {
+            Assert.Equal(3.3 / 59.3, power.Feedback.Response(hz, 0).Magnitude, 1e-9);
+            Assert.Equal(3.3 / 309.3, power.Feedback.Response(hz, 1).Magnitude, 1e-9);
+        }
+
+        // The stages whose output is a plate, each built at rest behind the one before it, on the rails of the
+        // drawn chain with the assumed filter under CE3.
+        var rails = new Dictionary<string, double> { ["V1B"] = 362, ["V2A"] = 362, ["V2B"] = 385 };
+        var controls = new AmpControls(0.5, 0.5, 0.5, 0.5, 1, false);
+        var (rest, resistance) = (0.0, 0.0);
+        var stages = design.Preamp.SelectMany(static s => s is ChannelSwitchStageDesign c ? c.Off : [s]).Take(4);
+        foreach (var stageDesign in stages) {
+            var stage = stageDesign.Create(2 * Rate);
+            stage.Update(controls);
+            stage.SetSourceResistance(resistance);
+            stage.Reset(rest);
+            (rest, resistance) = (stage.RestOutput, stage.OutputResistance);
+            if (!rails.TryGetValue(stageDesign.Name, out var rail)) {
+                continue;
+            }
+
+            output.WriteLine($"{stageDesign.Name}: plate {rest:0} V on {rail:0} V");
+            Assert.InRange(rest / rail, 0.4, 0.75);
+        }
+    }
+
+    /// <summary>
     ///     The Savage's Smooth (Switch 3) pads V3B's grid and makes the level up after the stack in V3A: far less gain
     ///     below clipping (measured -27.5 dB at gain 3), within a few dB driven hard (-8.6 dB), and, as Engl's manual
     ///     says of Smooth, tone knobs that do noticeably less, because V3A clips what the stack shaped (the treble
@@ -348,7 +441,7 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         output.WriteLine($"Treble 0 to 10 on a driven note's highs: Rough {rough:0.0} dB, Smooth {smoothed:0.0} dB");
         Assert.InRange(small, -60, -20);
         Assert.InRange(driven, -12, 3);
-        Assert.True(smoothed < rough - 2,$"Smooth's treble reaches {smoothed:0.0} dB, Rough's {rough:0.0} dB");
+        Assert.True(smoothed < rough - 2, $"Smooth's treble reaches {smoothed:0.0} dB, Rough's {rough:0.0} dB");
     }
 
     /// <summary>
@@ -478,7 +571,7 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
     ///     A signal small enough to stay below clipping at the knob settings these tests use: the Engl cascades have
     ///     four fully bypassed stages before the stack.
     /// </summary>
-    static float SmallSignal(string type) => type is "Powerball" or "Savage 120" ? 1e-6f : 1e-4f;
+    static float SmallSignal(string type) => type is "Powerball" or "Savage 120" or "Fireball 60" ? 1e-6f : 1e-4f;
 
     /// <summary>Whether a control plays in this channel (some only work in one mode).</summary>
     static bool Plays(string type, int knob, float s1, float s2, float s3) =>

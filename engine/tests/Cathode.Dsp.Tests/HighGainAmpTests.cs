@@ -177,6 +177,7 @@ public class HighGainAmpTests(ITestOutputHelper output) {
     [InlineData("Rect-o-Verb", 10e3)]
     [InlineData("Powerball", 22e3)]
     [InlineData("Savage 120", 22e3)]
+    [InlineData("Fireball 60", 22e3)]
     [InlineData("Mark IIC+", 22e3)]
     [InlineData("Mark IV", 22e3)]
     [InlineData("Blues Junior", 33e3)]
