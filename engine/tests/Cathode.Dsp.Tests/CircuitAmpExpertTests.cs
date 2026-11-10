@@ -390,6 +390,82 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         Assert.True(Math.Abs(Analysis.ToDb(high10) - Analysis.ToDb(high0)) < 2, "and leaves the mids alone");
     }
 
+    /// <summary>
+    ///     On a single-ended amp the idle current's flux sits in the core, and Xfmr Drive brings the knee towards it.
+    ///     That flux follows the inductance (Xfmr Low Freq) and the idle current (Bias, Variac, the tube), so the knee
+    ///     must follow them too: placed from the design's values it fell below the flux at rest, the core sat
+    ///     saturated and every cut-off of the tube spiked the output to 15-70 times full scale.
+    /// </summary>
+    [Theory]
+    [InlineData(false, 25f, 50f, 100f, 0)]
+    [InlineData(false, 25f, 100f, 130f, 0)]
+    [InlineData(false, 100f, 100f, 130f, 0)]
+    [InlineData(false, 100f, 50f, 100f, 7)]
+    [InlineData(true, 25f, 50f, 100f, 0)]
+    [InlineData(true, 25f, 100f, 130f, 0)]
+    [InlineData(true, 100f, 100f, 130f, 0)]
+    public void Transformer_drive_on_a_single_ended_amp_keeps_the_knee_above_the_flux_at_rest(
+        bool princeton,
+        float lowFrequency,
+        float bias,
+        float variac,
+        int tube
+    ) {
+        var design = princeton ? Princeton5F2.Design : Champ.Design;
+        var input = new float[48_000];
+        var chord = CircuitAmpBlockTests.Chord(12_000, 1.2f);
+        var noise = new Random(7);
+        for (var i = 0; i < input.Length; i++) {
+            input[i] = chord[i % chord.Length] + 0.01f * (float)(2 * noise.NextDouble() - 1);
+        }
+
+        (double Peak, double Flux, double Drift) Run(float drive) {
+            using var block = new CircuitAmpBlock();
+            block.Params.SetTarget(CircuitAmpBlock.Type, AmpDesign.All.ToList().IndexOf(design));
+            block.Params.SetTarget(CircuitAmpBlock.TransformerLow, lowFrequency);
+            block.Params.SetTarget(CircuitAmpBlock.Bias, bias);
+            block.Params.SetTarget(CircuitAmpBlock.Variac, variac);
+            block.Params.SetTarget(CircuitAmpBlock.PowerTube, tube);
+            block.Params.SetTarget(CircuitAmpBlock.TransformerDrive, drive);
+            block.Prepare(new(Rate, 64));
+            var rest = block.Channel.Power.Flux;
+            BlockRender.Mono(block, new float[24_000], 64);
+            var drift = Math.Abs(block.Channel.Power.Flux - rest);
+            return (Analysis.Peak(BlockRender.Mono(block, input, 64)), rest, drift);
+        }
+
+        // The same settings reached while playing: the knee follows each of them without a reset.
+        double Live(float drive) {
+            using var block = new CircuitAmpBlock();
+            block.Params.SetTarget(CircuitAmpBlock.Type, AmpDesign.All.ToList().IndexOf(design));
+            block.Prepare(new(Rate, 64));
+            BlockRender.Mono(block, input.AsSpan(0, 12_000).ToArray(), 64);
+            block.Params.SetTarget(CircuitAmpBlock.TransformerLow, lowFrequency);
+            block.Params.SetTarget(CircuitAmpBlock.Bias, bias);
+            block.Params.SetTarget(CircuitAmpBlock.Variac, variac);
+            block.Params.SetTarget(CircuitAmpBlock.TransformerDrive, drive);
+            return Analysis.Peak(BlockRender.Mono(block, input, 64));
+        }
+
+        var linear = Run(0);
+        for (var drive = 2; drive <= 10; drive += 2) {
+            var (peak, rest, drift) = Run(drive);
+            output.WriteLine(
+                $"{design.Name} Xfmr Drive {drive}: peak {peak:0.00} (linear core {linear.Peak:0.00}), "
+                + $"flux at rest {rest:0.000} Vs, drift in silence {drift:0.0000} Vs"
+            );
+            Assert.True(peak < 2 * linear.Peak + 0.1, $"Xfmr Drive {drive}: peak {peak:0.00}");
+            Assert.True(drift < 0.01 * Math.Abs(rest), $"Xfmr Drive {drive}: the core does not start at rest");
+            Assert.True(
+                Math.Abs(rest) > 0.5 * Math.Abs(linear.Flux),
+                $"Xfmr Drive {drive}: the core is saturated at rest ({rest:0.000} Vs of {linear.Flux:0.000} Vs)"
+            );
+            var live = Live(drive);
+            output.WriteLine($"  set while playing: peak {live:0.00}");
+            Assert.True(live < 2 * linear.Peak + 0.1, $"Xfmr Drive {drive} set while playing: peak {live:0.00}");
+        }
+    }
+
     [Fact]
     public void Speaker_presets_peak_at_their_resonance() {
         foreach (var speaker in SpeakerDesign.Presets) {

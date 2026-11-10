@@ -87,7 +87,8 @@ namespace Cathode.Dsp.Blocks;
 ///         </item>
 ///         <item>
 ///             <b>Xfmr Drive</b> (0): core saturation beyond stock, the knee's flux halving every 2: low notes at full
-///             power saturate the core.
+///             power saturate the core. On a single-ended amp the knee comes down towards the flux of the idle
+///             current as the amp is set (Bias, Variac, Xfmr Low Freq, the tube), never below it.
 ///         </item>
 ///         <item>
 ///             <b>Speaker load</b> (Follow Cab; Stock up to 1.0.0-rc.3): the speaker as the electrical load on the
