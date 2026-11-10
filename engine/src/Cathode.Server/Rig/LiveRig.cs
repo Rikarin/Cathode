@@ -177,6 +177,10 @@ public sealed partial class LiveRig(
                     throw RigException.Conflict($"A preset can hold at most {info.MaxInstances} {info.Name} block(s).");
                 }
 
+                if (request.Id is { } chosen) {
+                    CheckBlockId(chosen);
+                }
+
                 var id = request.Id ?? NextId(request.Type);
                 if (preset.Blocks.Exists(b => b.Id == id)) {
                     throw RigException.Conflict($"Block id '{id}' is taken.");

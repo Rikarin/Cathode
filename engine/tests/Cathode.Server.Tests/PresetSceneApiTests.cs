@@ -417,6 +417,8 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task Telemetry_carries_block_meters_by_id_and_the_output_loudness() {
+        // A block that is only called like a shunt has its meter: shunts are told by type.
+        await Post("/api/v1/live/blocks", new AddBlockRequest("delay", 1, 2, "shunt-delay"));
         using var socket = await server.Server.CreateWebSocketClient()
             .ConnectAsync(new(server.Server.BaseAddress, "ws"), Token);
         var buffer = new byte[256 * 1024];
@@ -424,7 +426,7 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         deadline.CancelAfter(TimeSpan.FromSeconds(30)); // generous: a busy machine; frames come every 33 ms
         JsonNode? blocks = null;
         JsonNode? frame = null;
-        while (blocks?["delay1"] is null) {
+        while (blocks?["shunt-delay"] is null) {
             var result = await socket.ReceiveAsync(buffer, deadline.Token);
             frame = JsonNode.Parse(Encoding.UTF8.GetString(buffer, 0, result.Count))!;
             if (frame["type"]!.GetValue<string>() == "telemetry") {
@@ -433,6 +435,7 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         }
 
         Assert.NotNull(blocks["in1"]);
+        Assert.NotNull(blocks["delay1"]);
         Assert.Null(blocks["shunt-r0c1"]); // shunts have no meter
         Assert.NotNull(frame!["loudnessMomentary"]);
         Assert.NotNull(frame["loudnessShortTerm"]);
