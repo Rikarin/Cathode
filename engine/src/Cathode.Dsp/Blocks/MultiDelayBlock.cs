@@ -156,7 +156,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
     readonly float[] chorusRate = new float[Voices];
     readonly float[] chorusDepth = new float[Voices];
     readonly double[] chorusPhase = new double[Voices];
-    readonly float[] combDelay = new float[Voices];
+    readonly SampleGlide[] combGlide = new SampleGlide[Voices];
     readonly float[] combFeedback = new float[Voices];
     readonly float[] ringStep = new float[Voices];
     readonly float[] ringMix = new float[Voices];
@@ -428,8 +428,11 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
 
     static double Wrap(double phase) => phase >= 2 * Math.PI ? phase - 2 * Math.PI : phase;
 
-    /// <summary>A voice's filter, comb and ring modulator.</summary>
-    float Process(int k, float y) {
+    /// <summary>
+    ///     A voice's filter, comb and ring modulator, at sample <paramref name="frame" /> of the block (the comb's time
+    ///     glides across it).
+    /// </summary>
+    float Process(int k, float y, int frame) {
         if (filterType[k] != FilterOff) {
             y = (float)filterState[k].Tick(filterCoefficients[k], y);
         }
@@ -437,7 +440,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
         if (combFeedback[k] != 0) {
             // Normalised feedback comb: the peaks stay at unity whatever the feedback.
             var g = combFeedback[k];
-            y = (1f - MathF.Abs(g)) * y + g * combs[k].Read(combDelay[k]);
+            y = (1f - MathF.Abs(g)) * y + g * combs[k].Read(combGlide[k].At(frame));
             combs[k].Write(y);
         }
 
@@ -492,6 +495,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
         for (var k = 0; k < Voices; k++) {
             lines[k].Reset();
             combs[k].Reset();
+            combGlide[k].Reset();
             loopState[k].Reset();
             filterState[k].Reset();
             chorusPhase[k] = 0;
@@ -617,7 +621,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
             filterGain[k] = Params.Current(Filter1Gain + k);
             chorusRate[k] = Params.Current(Chorus1Rate + k);
             chorusDepth[k] = Params.Current(Chorus1Depth + k) * chorusScale * 0.001f * sampleRate;
-            combDelay[k] = Params.Current(Comb1Time + k) * 0.001f * sampleRate;
+            combGlide[k].Begin(Params.Current(Comb1Time + k) * 0.001f * sampleRate, n);
             combFeedback[k] = Math.Clamp(
                 Params.Current(Comb1Feedback + k) / 100f * combScale,
                 -MaxCombFeedback,
@@ -749,7 +753,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
                 }
 
                 var line = type is QuadTap or QuadTape ? lines[0] : lines[k];
-                voice[k] = Process(k, line.Read(delay));
+                voice[k] = Process(k, line.Read(delay), i);
                 if (type == QuadDiffusor) {
                     continue; // heard once the allpass has been applied, below
                 }

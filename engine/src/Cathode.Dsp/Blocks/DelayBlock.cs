@@ -191,6 +191,9 @@ public sealed class DelayBlock() : DspBlock(Info) {
     float delaySamples;
     float rightSamples;
     float mix;
+    SampleGlide ratioGlide;
+    SampleGlide head2Glide;
+    SampleGlide postGlide;
     Ducker ducker;
     OutputStage output;
     int capacity;
@@ -490,6 +493,9 @@ public sealed class DelayBlock() : DspBlock(Info) {
         onsetArmed = true;
         delaySamples = TargetDelaySamples(Tempo, Params.Current(Time), 120);
         rightSamples = TargetDelaySamples(TempoRight, Params.Current(TimeRight), 120);
+        ratioGlide.Reset();
+        head2Glide.Reset();
+        postGlide.Reset();
         mix = Params.Current(Mix) / 100f;
         output.Reset(Params.Current(Level), Params.Current(Balance));
     }
@@ -664,7 +670,15 @@ public sealed class DelayBlock() : DspBlock(Info) {
         var delayRight = rightSamples;
         var pingPong = type == PingPong;
         var offsetDepth = Math.Max(left1, right1) + Math.Max(left2, right2) + wowDepth + flutterDepth;
+
+        // The other settings that place a read (the right line's ratio, head 2's, the right post delay) glide across
+        // the block like the times, so a pedal or a modifier on them sweeps the read instead of stepping it once per
+        // callback.
+        ratioGlide.Begin(ratio, n);
+        head2Glide.Begin(head2Ratio, n);
+        postGlide.Begin(postDelay, n);
         for (var i = 0; i < n; i++) {
+            ratio = ratioGlide.At(i);
             delay += delayStep;
             delayRight += rightStep;
             gains.Advance();
@@ -700,6 +714,7 @@ public sealed class DelayBlock() : DspBlock(Info) {
             switch (type) {
                 case MonoTape: {
                     var head1 = left.Read(dl, loop);
+                    head2Ratio = head2Glide.At(i);
                     var head2 = head2Ratio > 0 ? left.Read(Math.Max(3f, dl * head2Ratio), loop) : 0f;
                     var fed = feedback * head1 + head2Feedback * head2;
                     left.Write(0.5f * (dryLeft + dryRight) * inputGain + fed, loop);
@@ -822,6 +837,7 @@ public sealed class DelayBlock() : DspBlock(Info) {
             }
 
             postRight.Write(wetRight);
+            postDelay = postGlide.At(i);
             if (postDelay >= 1f) {
                 wetRight = postRight.Read(postDelay + 1f); // a delay of 1 is the sample just written
             }

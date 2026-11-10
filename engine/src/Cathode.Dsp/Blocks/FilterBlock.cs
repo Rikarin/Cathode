@@ -89,6 +89,7 @@ public sealed class FilterBlock() : DspBlock(Info) {
 
     readonly FractionalDelayLine combLeft = new();
     readonly FractionalDelayLine combRight = new();
+    SampleGlide combGlide;
     SvfCoefficients first;
     SvfCoefficients second;
     SvfState left;
@@ -231,7 +232,11 @@ public sealed class FilterBlock() : DspBlock(Info) {
             depth = Math.Clamp(depth, -MaxCombFeedback, MaxCombFeedback);
         }
 
+        // Comb Time glides across the block, so a pedal or a modifier on it sweeps the comb instead of stepping the
+        // read once per callback.
+        combGlide.Begin(delay, io.Length);
         for (var i = 0; i < io.Length; i++) {
+            delay = combGlide.At(i);
             var x = io.Left[i];
             var y = x + depth * combLeft.Read(delay);
             combLeft.Write(feedback ? y : x);
@@ -283,6 +288,7 @@ public sealed class FilterBlock() : DspBlock(Info) {
         secondRight.Reset();
         combLeft.Reset();
         combRight.Reset();
+        combGlide.Reset();
         cuts.Reset();
         lfo.Reset();
         phase = 0;

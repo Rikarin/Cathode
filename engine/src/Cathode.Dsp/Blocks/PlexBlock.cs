@@ -145,6 +145,7 @@ public sealed class PlexBlock() : DspBlock(Info) {
     int activeType = -1;
     int activeLines = -1;
     float mix;
+    SampleGlide preDelayGlide;
     Lfo lfo;
     Lfo filterLfo;
     int filterCounter;
@@ -387,6 +388,7 @@ public sealed class PlexBlock() : DspBlock(Info) {
         activeLines = LineCount();
         ClearState();
         preDelay.Reset();
+        preDelayGlide.Reset();
         foreach (var diffuser in inputDiffusers) {
             diffuser.Clear();
         }
@@ -447,7 +449,11 @@ public sealed class PlexBlock() : DspBlock(Info) {
         var verb = type is PlexVerb or ShimmerVerb;
         var diffusion = Params.Current(Diffusion) / 100f * MaxDiffusionGain * (verb ? 1.1f : 1f);
         var inputDiffusion = Params.Current(InputDiffusion) / 100f * MaxDiffusionGain;
-        var preDelaySamples = MathF.Round(Params.Current(PreDelay) * sampleRate / 1_000f);
+        var preDelaySamples = Params.Current(PreDelay) * sampleRate / 1_000f;
+        if (!Params.IsRamping(PreDelay)) {
+            preDelaySamples = MathF.Round(preDelaySamples); // at rest the pre-delay is a whole number of samples
+        }
+
         var masterPan = Params.Current(MasterPan) / 100f;
         var intensity = Params.Current(ShimmerIntensity) / 100f;
         var reverse = (int)Params.Current(Direction) == 1;
@@ -520,6 +526,10 @@ public sealed class PlexBlock() : DspBlock(Info) {
         var select = (int)Params.Current(InputSelect);
         var mix = Params.Current(Mix) / 100f;
         var mixGains = new MixRamp(MixLaw.Linear, this.mix, mix, n, Params.Current(KillDry) >= 0.5f);
+
+        // Pre-Delay rests on a whole sample and glides between settings, so moving it sweeps the read instead of
+        // stepping it once per callback.
+        preDelayGlide.Begin(preDelaySamples, n);
         for (var s = 0; s < n; s++) {
             mixGains.Advance();
             var dryLeft = io.Left[s];
@@ -527,6 +537,7 @@ public sealed class PlexBlock() : DspBlock(Info) {
             var x = DelayFeed.Input(ref envelope, select, dryLeft, dryRight, inputGain);
 
             preDelay.Write(x);
+            preDelaySamples = preDelayGlide.At(s);
             if (preDelaySamples >= 1f) {
                 x = preDelay.Read(preDelaySamples + 1f); // a delay of 1 is the sample just written
             }
