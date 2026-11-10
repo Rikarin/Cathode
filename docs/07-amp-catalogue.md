@@ -35,7 +35,7 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 
 | Amp | Status | Cathode type | References we have | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Blackface (Deluxe/Twin-style, generic) | ✅ Done | Blackface | — | — | 1x12 / 2x12 open back |
+| Blackface (generic AB763 Super Reverb-style channel: two 6L6GC, 4.2k, with an added master and presence) | ✅ Done | Blackface | — | — | 4x10 open back |
 | Deluxe Reverb AB763 | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Deluxe Reverb | T3K: '68 Custom Deluxe (modified circuit) | Stock AB763 Deluxe, direct out, volume sweep | 1x12 open, Jensen C12K/C12N |
 | Twin Reverb AB763 | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Twin Reverb | GPL: Twin Normal Bright, Twin Vibrato Bright | Settings stated; Normal without Bright | 2x12 open, JBL D120 / Jensen C12N |
 | Super Reverb AB763 | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Super Reverb | T3K: '64 Super Reverb, 5 settings | More volume steps | 4x10 open, Jensen P10R/P10Q |
@@ -82,7 +82,7 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 | AC30 Normal channel | ✅ Done | AC30, Switch 1 "Normal Ch" | — | | 2x12 open, Blue |
 | AC15 (EF86) | ✅ Done (mixing and cut assumed; no vibrato-tremolo: no AC15 drawing could be read) | AC15 | GPL: AC15 Top Boost; T3K: AC15C1 Normal (6 settings) and Top Boost | Vintage EF86 channel captures | 1x12 open, Blue / G12M |
 | Matchless DC-30 | ✅ Done | DC-30 | GPL: Matchless SC30 channel 1 | DC-30 both channels | 2x12 open, G12H30 / Vintage 30 |
-| Dumble Overdrive Special | ✅ Done (a 1997 ODS 100, traced: clean and overdrive) | ODS 97 | GPL: Dumble kit low/high, Dumble clone clean/medium/high (all mapped, knobs fitted) | Real ODS captures with settings; the 1970s ODS (Rock/Jazz, Deep) and HRM circuits | 1x12 / 2x12 open, EV12L |
+| Dumble Overdrive Special | ✅ Done (a 1997 ODS 100, traced: clean and overdrive; the 1970s ODS with Rock/Jazz and Deep is its own type, see the Dumble ODS row in the additions below) | ODS 97, ODS 70s | GPL: Dumble kit low/high, Dumble clone clean/medium/high (all mapped to ODS 97, knobs fitted) | Real ODS captures with settings; an HRM schematic | 1x12 / 2x12 open, EV12L |
 | Two-Rock (Dumble-style) | ⏸ Waiting (no schematic published; the ODS work does not carry over without one) | — | (Dumble captures above) | Schematic or trace | 1x12 / 2x12 open |
 | Bad Cat Hot Cat / Black Cat | ✅ Done (Hot Cat 30, both inputs; its Brilliance on the Presence knob, clockwise brighter; the master read as a divider, the drawing having it as a dead rheostat; Black Cat ⏸: no schematic, Bad Cat never published one) | Hot Cat 30 | — | Hot Cat 30 captures, Gain and Clean inputs | 2x12 open |
 | Dr Z Maz 18 | ⏸ Waiting (searched 2026-10: no schematic or trace; specs only: 2 x EL84 cathode bias, 5AR4) | — | — | Schematic | 1x12 / 2x12 open |
