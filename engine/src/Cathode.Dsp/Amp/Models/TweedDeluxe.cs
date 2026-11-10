@@ -6,11 +6,11 @@ namespace Cathode.Dsp.Amp.Models;
 ///     Fender Tweed Deluxe 5E3 (about 15 W): the Instrument and Microphone channels' V1 halves (12AY7, 100k plates, a
 ///     shared 820 Ω ‖ 25 µF cathode, 34k stoppers), each plate's 0.1 µF into its 1M volume's wiper, the volumes' tops
 ///     tied at V2A's grid (wired "backwards": the volumes are V2A's grid leak, and the channel not played loads the one
-///     played, about 1M with its volume at 0 down to its V1 plate with it at 10), the 500 pF bright cap across the
-///     Instrument volume, the tone control, V2A (12AX7, 100k, 1.5k ‖ 25 µF), 0.1 µF into a cathodyne on V2B (56k plate,
-///     56k cathode, 1.5k bias), two 6V6GT cathode-biased on a shared 250 Ω with no screen resistors, an 8k : 8 Ω
-///     transformer, a 5Y3, and no feedback. Panel: Instrument and Mic volumes, Tone; <b>Mic Input</b> plays the
-///     Microphone channel.
+///     played, about 1M with its volume at 0 down to its V1 plate with it at 10), the tone pot between the 500 pF
+///     bright cap on the Instrument volume's wiper and 0.005 µF to ground with its wiper on that grid, V2A (12AX7,
+///     100k, 1.5k ‖ 25 µF), 0.1 µF into a cathodyne on V2B (56k plate, 56k cathode, 1.5k bias), two 6V6GT
+///     cathode-biased on a shared 250 Ω with no screen resistors, an 8k : 8 Ω transformer, a 5Y3, and no feedback.
+///     Panel: Instrument and Mic volumes, Tone; <b>Mic Input</b> plays the Microphone channel.
 ///     <see cref="Jumped" /> is the same amp with the channels jumpered.
 /// </summary>
 /// <remarks>
@@ -21,8 +21,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///         8k : 8 Ω, no feedback); AmpBooks "Fender Deluxe 5E3" (0.005 µF and 500 pF tone caps, the cathodyne's
 ///         56k/56k/1.5k and 220k grid leaks, 0.1 µF coupling caps); the Fractal forum thread on the 5E3's channel
 ///         interaction (volumes wired input-to-wiper, output from the track's top); the Fender drawing "Deluxe 5E3"
-///         with its layout (schematicheaven.net/fenderamps/deluxe_5e3_schem.pdf, code F-EE) for the supply: three
-///         16 µF caps, 5k from the reservoir to the screen node and 22k on to the preamp node.
+///         with its layout (schematicheaven.net/fenderamps/deluxe_5e3_schem.pdf, code F-EE) for the supply (three
+///         16 µF caps, 5k from the reservoir to the screen node and 22k on to the preamp node) and the tone control's
+///         wiring.
 ///     </para>
 ///     <para>
 ///         With one input played, the other V1 half is linear (its grid at rest): its plate is about 21k from its own
@@ -32,16 +33,21 @@ namespace Cathode.Dsp.Amp.Models;
 ///         stage holds both triodes exactly, at about 5 % more CPU.
 ///     </para>
 ///     <para>
-///         Unverified, reconstructed from those descriptions: the tone control's wiring, taken as a 1M audio pot from
-///         V2A's grid in series with 0.005 µF to ground (up is brighter); the power tubes' cathode bypass (25 µF); the
-///         supply's source resistance. The drawing prints no voltages: B+ is Robinette's 370 V, and the nodes below
-///         it follow from the drawing's droppers and the currents through them. With no screen resistors, the 5k
-///         alone sets how far the screens sag: they rest near 318 V. The preamp node (<see cref="Preamp" />) is
-///         where the 22k and the draw of V1, V2A and the cathodyne at that voltage meet (3.85 mA, 233 V).
-///         The cathodyne's 1M grid leak returns to its bias junction, which follows the grid at about 0.93: V2A's
-///         coupling cap feeds the 10M it amounts to. The power tubes' bias is the drawing's shared 250 Ω (with
-///         its 25 µF, a 6.3 ms bias-shift time constant), which sets the idle current as in the amp; the design's
-///         38 mA (Robinette's) is only its label.
+///         The tone control is the drawing's: a 1M pot with its wiper on V2A's grid, one end through 0.005 µF to
+///         ground and the other through the 500 pF to the Instrument volume's wiper. At 10 the 500 pF is a bright cap
+///         straight across the Instrument volume's upper part and the 0.005 µF is 1M away; turned down, the track
+///         comes in series with the 500 pF (the bright bypass fades out) while the 0.005 µF closes on the grid. The
+///         taper is taken as audio (the drawing gives only "1 MEG").
+///     </para>
+///     <para>
+///         Unverified: the power tubes' cathode bypass (25 µF) and the supply's source resistance. The drawing
+///         prints no voltages: B+ is Robinette's 370 V, and the nodes below it follow from the drawing's droppers and
+///         the currents through them. With no screen resistors, the 5k alone sets how far the screens sag: they rest
+///         near 318 V. The preamp node (<see cref="Preamp" />) is where the 22k and the draw of V1, V2A and the
+///         cathodyne at that voltage meet (3.85 mA, 233 V). The cathodyne's 1M grid leak returns to its bias
+///         junction, which follows the grid at about 0.93: V2A's coupling cap feeds the 10M it amounts to. The power
+///         tubes' bias is the drawing's shared 250 Ω (with its 25 µF, a 6.3 ms bias-shift time constant), which sets
+///         the idle current as in the amp; the design's 38 mA (Robinette's) is only its label.
 ///     </para>
 /// </remarks>
 public static class TweedDeluxe {
@@ -159,20 +165,19 @@ public static class TweedDeluxe {
     }
 
     /// <summary>
-    ///     Each plate's 0.1 µF into its volume's wiper, the volumes' tops tied at V2A's grid, the bright cap across the
-    ///     Instrument volume's upper part, the tone control from the grid; returns the grid.
+    ///     Each plate's 0.1 µF into its volume's wiper, the volumes' tops tied at V2A's grid, which is also the tone
+    ///     pot's wiper; the tone pot's one end through 0.005 µF to ground, its other end through the 500 pF to the
+    ///     Instrument volume's wiper. Returns the grid.
     /// </summary>
     static int Volumes(StageNetlist net, int instrumentPlate, int micPlate) {
-        var grid = net.Node();
+        var (bright, dark) = (net.Node(), net.Node());
+        var grid = net.Pot(bright, dark, new(1e6, PotTaper.Audio), PotRole.Treble);
+        net.Capacitor(dark, StageNetlist.Ground, 5e-9, CapacitorRole.Stack);
         var instrument = net.Pot(grid, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Gain);
         net.Capacitor(instrumentPlate, instrument, 0.1e-6);
-        net.Capacitor(instrument, grid, 500e-12, CapacitorRole.Bright);
+        net.Capacitor(instrument, bright, 500e-12, CapacitorRole.Bright);
         var mic = net.Pot(grid, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Control1);
         net.Capacitor(micPlate, mic, 0.1e-6);
-
-        var tone = net.Node();
-        net.Rheostat(grid, tone, new(1e6, PotTaper.Audio), PotRole.Treble);
-        net.Capacitor(tone, StageNetlist.Ground, 5e-9, CapacitorRole.Stack);
         return grid;
     }
 

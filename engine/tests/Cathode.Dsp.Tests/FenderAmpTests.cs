@@ -139,6 +139,42 @@ public class FenderAmpTests(ITestOutputHelper output) {
     }
 
     [Fact]
+    public void Tweed_deluxe_bright_cap_fades_out_as_tone_is_turned_down() {
+        // The drawing's tone pot has the 500 pF on its far end: at 10 it bypasses the Instrument volume's upper part,
+        // and turned down the pot's track comes in series with it. The Microphone channel is the same circuit without
+        // the cap, so the Instrument channel's extra treble over it is the bright bypass.
+        double Lift(float tone) {
+            return Channel(0f) - Channel(1f);
+
+            double Channel(float mic) => Analysis.ToDb(Level(4_000, mic) / Level(400, mic));
+
+            double Level(double frequency, float mic) {
+                using var block = new CircuitAmpBlock();
+                block.Params.SetTarget(
+                    CircuitAmpBlock.Type,
+                    AmpDesign.All.ToList().FindIndex(static a => a.Name == "Tweed Deluxe 5E3")
+                );
+                block.Params.SetTarget(CircuitAmpBlock.Gain, 3);
+                block.Params.SetTarget(CircuitAmpBlock.Control1, 3);
+                block.Params.SetTarget(CircuitAmpBlock.Treble, tone);
+                block.Params.SetTarget(CircuitAmpBlock.Switch1, mic);
+                block.Prepare(new(Rate, 64));
+                var rendered = BlockRender.Mono(block, Signals.Sine(frequency, Rate, 19_200, 0.01f), 64);
+                return Analysis.Rms(rendered.AsSpan(9_600));
+            }
+        }
+
+        var (full, half, low) = (Lift(10f), Lift(5f), Lift(2f));
+        output.WriteLine(
+            $"Instrument over Microphone, 4 kHz over 400 Hz: {full:0.0} dB at tone 10, {half:0.0} dB at 5, "
+            + $"{low:0.0} dB at 2"
+        );
+        Assert.True(full > 10, $"bright cap at tone 10: {full:0.0} dB");
+        Assert.True(Math.Abs(half) < 3, $"bright cap at tone 5: {half:0.0} dB");
+        Assert.True(Math.Abs(low) < 3, $"bright cap at tone 2: {low:0.0} dB");
+    }
+
+    [Fact]
     public void Tweed_deluxe_supply_has_the_drawings_droppers_and_its_nodes_follow_from_them() {
         // The 5E3 drawing: 5k from the reservoir to the screen node, 22k on to the preamp node. It prints no voltages,
         // so the preamp node is where the 22k and the draw of the stages on it meet.
