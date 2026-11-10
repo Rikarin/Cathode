@@ -67,7 +67,7 @@ export function nextSelection(
 /**
  * Manage Presets' changes, held until Save: banks are edited as working copies (swap, move, copy between slots and
  * banks), and renames, metadata, copies and deletions are queued. Nothing reaches the Server until {@link plan} is
- * carried out; Close discards. Every slot and preset touched is marked changed. The factory bank and its presets are
+ * carried out; Close discards. A Save that fails part-way keeps what it had not stored yet. Every slot and preset touched is marked changed. The factory bank and its presets are
  * read-only: nothing lands in its slots, and its presets are not renamed or deleted (their colour and favourite can
  * change); they can be placed in, or copied into, the user's banks.
  */
@@ -253,6 +253,59 @@ export class ManageSession {
       banks: this.banks.filter(b => changedBanks.has(b.id)).map(b => ({ ...b, slots: trimSlots(b.slots) })),
       deletes: [...this.deleted]
     };
+  }
+
+  /**
+   * A pending copy is now a stored preset. Save reports each step it has carried out ({@link copyStored},
+   * {@link metaStored}, {@link bankStored}, {@link deleteStored}), so when a later step fails the session holds exactly
+   * what is still to do, and Save can be tried again without sending anything twice.
+   */
+  copyStored(id: string): void {
+    const at = this.copies.findIndex(c => c.id === id);
+    if (at < 0) {
+      return;
+    }
+
+    const [copy] = this.copies.splice(at, 1);
+    const source = copy && this.presets.get(copy.source);
+    if (source) {
+      this.presets.set(id, { ...source, id, name: copy.name, factory: false });
+    }
+  }
+
+  /** A preset's pending rename, colour and favourite are now stored. */
+  metaStored(id: string): void {
+    const meta = this.meta.get(id);
+    const preset = this.presets.get(id);
+    if (meta && preset) {
+      this.presets.set(id, { ...preset, ...meta });
+    }
+
+    this.meta.delete(id);
+  }
+
+  /** A bank's slots are now stored as the session has them. */
+  bankStored(id: string): void {
+    for (const key of [...this.changedSlots].filter(k => k.startsWith(`${id}:`))) {
+      this.changedSlots.delete(key);
+    }
+  }
+
+  /** A preset is now deleted. */
+  deleteStored(id: string): void {
+    this.deleted.delete(id);
+    this.presets.delete(id);
+  }
+
+  /** Takes presets back out of the deletions (they stay out of the slots they left). */
+  keep(ids: readonly string[]): void {
+    ids.forEach(id => this.deleted.delete(id));
+  }
+
+  /** The stored presets, read again from the Server; what is pending stays pending. */
+  readPresets(presets: readonly PresetSummary[]): void {
+    this.presets.clear();
+    presets.forEach(p => this.presets.set(p.id, p));
   }
 
   private duplicate(source: string): string {

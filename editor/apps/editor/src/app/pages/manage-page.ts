@@ -14,9 +14,9 @@ import { XuiInputImports } from '@xui/input';
 import { XuiMenuImports } from '@xui/menu';
 import { ConnectionService } from '../core/connection';
 import { newId } from '../core/new-id';
-import { Notify } from '../core/notify';
+import { Notify, errorMessage } from '../core/notify';
 import { TagColors, tagColorName } from '../shell/picker-list';
-import { LibraryStore } from '../state/library.store';
+import { LibraryStore, presetUses } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
 import { ManageSession, type SlotRef, nextSelection } from './manage';
 
@@ -30,7 +30,7 @@ export const LibraryEntryHeight = 24;
  * slots, ⌘-drag moves, ⇧-drag copies, within a bank or onto another bank in the list (its first empty slot). Rename,
  * duplicate, delete, colour and favourite act on the selection. A bank's right-click menu renames or deletes it
  * (double-click renames). Creating, renaming and deleting banks happen at once rather than on Save. Every change is held, and marked, until Save; Close
- * discards them. Reset Amp blocks acts on the stored presets at once, after a confirmation. The factory bank is
+ * discards them. A Save that fails part-way keeps what it had not stored yet. Reset Amp blocks acts on the stored presets at once, after a confirmation. The factory bank is
  * read-only: drag its presets onto a bank of your own (⇧ for a copy you can change); they cannot be renamed or deleted.
  */
 @Component({
@@ -599,47 +599,95 @@ export class ManagePage {
     }
   }
 
-  /** Carries out the session: copies, renames and metadata, banks, then deletions. */
+  /**
+   * Carries out the session: copies, renames and metadata, banks, then deletions. Each step that is stored leaves the
+   * session. When a request fails, what it and the steps after it would have done stays pending, the failure names
+   * the step, and Save can be tried again.
+   *
+   * A preset a setlist holds cannot be deleted (the Server refuses it), so those are found before anything is sent:
+   * they are kept, and named once the rest is saved.
+   */
   protected async save(): Promise<void> {
-    const plan = this.session().plan();
+    const session = this.session();
     const client = this.connection.client;
     this.saving.set(true);
-    const done = await this.notify.run(async () => {
+    const kept = session.deleted.size > 0 ? await this.keepPresetsInSetlists(session) : [];
+    const plan = session.plan();
+    let step = '';
+    try {
       for (const copy of plan.copies) {
+        step = `Copying “${session.nameOf(copy.source)}”`;
         unwrap(
           await client.POST('/api/v1/presets/{id}/duplicate', {
             params: { path: { id: copy.source } },
             body: { id: copy.id, name: copy.name }
           })
         );
+        session.copyStored(copy.id);
       }
 
       for (const [id, meta] of plan.meta) {
+        step = `Changing “${session.presets.get(id)?.name ?? id}”`;
         if (!plan.copies.some(c => c.id === id)) {
           await this.patchPreset(id, meta);
         } else if (meta.color !== undefined || meta.favorite !== undefined) {
           const { name: _copiesKeepTheirName, ...colorAndFavorite } = meta;
           await this.patchPreset(id, colorAndFavorite);
         }
+
+        session.metaStored(id);
       }
 
       for (const bank of plan.banks) {
+        step = `Storing bank “${bank.name}”`;
         // Empty slots are null on the wire (see WorkBank).
         unwrap(await client.PUT('/api/v1/banks/{id}', { params: { path: { id: bank.id } }, body: bank as Bank }));
+        session.bankStored(bank.id);
       }
 
       for (const id of plan.deletes) {
+        step = `Deleting “${session.nameOf(id)}”`;
         unwrap(await client.DELETE('/api/v1/presets/{id}', { params: { path: { id } } }));
+        session.deleteStored(id);
       }
-
-      return true;
-    });
-    this.saving.set(false);
-    if (done) {
-      this.notify.success('Saved.');
+    } catch (error) {
+      this.notify.error(
+        new Error(`${step} failed: ${errorMessage(error)} The changes not saved yet are still here; Save tries again.`)
+      );
+    } finally {
+      this.saving.set(false);
     }
 
-    await this.reload();
+    if (kept.length > 0) {
+      this.notify.error(new Error(`Not deleted: ${kept.join('; ')}. Take a preset out of its setlists to delete it.`));
+    }
+
+    if (session.dirty) {
+      // Show what is stored by now under what is still pending.
+      await Promise.all([this.library.refreshPresets(), this.library.refreshBanks()]);
+      session.readPresets(this.library.presets());
+      this.changed();
+    } else {
+      if (kept.length === 0) {
+        this.notify.success('Saved.');
+      }
+
+      await this.reload();
+    }
+  }
+
+  /**
+   * Takes the presets a setlist holds out of the session's deletions; returns them as “name” (where it is used). The
+   * setlists are read fresh; if that fails, the deletions stay and the Server has the last word.
+   */
+  private async keepPresetsInSetlists(session: ManageSession): Promise<string[]> {
+    await this.library.refreshSetlists();
+    const setlists = this.library.setlists();
+    const held = [...session.deleted]
+      .map(id => ({ id, uses: presetUses(id, [], setlists) }))
+      .filter(preset => preset.uses.length > 0);
+    session.keep(held.map(preset => preset.id));
+    return held.map(preset => `“${session.nameOf(preset.id)}” (${preset.uses.join(', ')})`);
   }
 
   /** Close discards whatever is not saved. */
