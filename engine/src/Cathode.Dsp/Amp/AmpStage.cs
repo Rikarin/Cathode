@@ -51,7 +51,13 @@ public enum PotRole {
     ///     The presence knob, for the part of a presence control that sits in a preamp stage (the Hiwatt's pot, whose
     ///     plate-side half shunts treble off V2B's plate); the power amp's feedback network takes the knob as well.
     /// </summary>
-    Presence
+    Presence,
+
+    /// <summary>
+    ///     The tremolo's Intensity knob (<see cref="AmpControls.TremoloDepth" />), for an Intensity pot that sits in a
+    ///     stage's netlist (the Marshall 18 W's cathode rheostat).
+    /// </summary>
+    TremoloDepth
 }
 
 /// <summary>Which front-panel switch engages a switched element of a stage.</summary>
@@ -136,6 +142,7 @@ public readonly record struct AmpControls(
             PotRole.Equalizer4 => Slider(Equalizer.Band4),
             PotRole.Equalizer5 => Slider(Equalizer.Band5),
             PotRole.Presence => Presence,
+            PotRole.TremoloDepth => TremoloDepth,
             _ => Control2
         };
 

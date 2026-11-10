@@ -406,10 +406,17 @@ public sealed class OpticalTremoloStage : AmpStage {
 ///     channel.
 /// </summary>
 /// <remarks>
-///     At depth 0 the stage the design builds plays (the footswitch's grounded grid), bit for bit. Engaging runs the
-///     modulated netlist, reset at the same operating point, crossfaded in over <see cref="CrossfadeTime" />; the swing
-///     builds up over <see cref="SmoothingTime" /> as the oscillation does. Returning to depth 0, the swing dies away
-///     and the plain netlist, reset, is crossfaded back.
+///     <para>
+///         At depth 0 the stage the design builds plays (the footswitch's grounded grid), bit for bit. Engaging runs
+///         the modulated netlist, reset at the same operating point, crossfaded in over <see cref="CrossfadeTime" />;
+///         the swing builds up over <see cref="SmoothingTime" /> as the oscillation does. Returning to depth 0, the
+///         swing dies away and the plain netlist, reset, is crossfaded back.
+///     </para>
+///     <para>
+///         Where the amp's Intensity control is a part of the modulated netlist (a pot turned by
+///         <see cref="PotRole.TremoloDepth" />), <see cref="FullSwing" /> lets the oscillator run at its full swing at
+///         any depth above 0, as it does in the amp: the netlist's pot then sets how deep the tremolo is.
+///     </para>
 /// </remarks>
 public sealed record GridDriveTremoloDesign(
     NetworkStageDesign Modulated,
@@ -418,6 +425,19 @@ public sealed record GridDriveTremoloDesign(
 ) : StageTremoloDesign {
     public const double CrossfadeTime = 0.01;
     public const double SmoothingTime = 0.03;
+
+    /// <summary>
+    ///     Whether the oscillator swings fully at any depth above 0 (the modulated netlist holds the Intensity
+    ///     control); otherwise the depth scales the swing.
+    /// </summary>
+    public bool FullSwing { get; init; }
+
+    /// <summary>
+    ///     Whether the netlist subtracts the source from the grid's reference (the source on the inverting input of a
+    ///     unity-gain <see cref="StageNetlist.Amplifier" /> whose other input is the node the grid leak returns to), so
+    ///     the source is driven with the swing's negative.
+    /// </summary>
+    public bool Inverted { get; init; }
 
     internal override AmpStage Wrap(NetworkStageDesign design, AmpStage stage, double sampleRate) =>
         new GridDriveTremoloStage(this, stage, Modulated.Create(sampleRate), sampleRate);
@@ -492,7 +512,8 @@ public sealed class GridDriveTremoloStage : PairedAmpStage {
             Step();
         }
 
-        target = depth * OscillatorTable.At(table.Amplitudes, position);
+        var share = Design.FullSwing && depth > 0 ? 1 : depth;
+        target = share * OscillatorTable.At(table.Amplitudes, position);
         if (depth > 0 && direction < 0) {
             direction = 1; // re-engaged while fading out: the modulated netlist is still running
         } else if (depth > 0 && fade == 0 && direction == 0) {
@@ -532,7 +553,8 @@ public sealed class GridDriveTremoloStage : PairedAmpStage {
         var norm = 1.5 - 0.5 * (s * s + c * c);
         sine = s * norm;
         cosine = c * norm;
-        rails.OffsetRail(Design.Source, swing * sine - Math.Max(swing - table.Bias, 0));
+        var grid = swing * sine - Math.Max(swing - table.Bias, 0);
+        rails.OffsetRail(Design.Source, Design.Inverted ? -grid : grid);
         var wet = modulated.Tick(input);
         if (direction == 0) {
             if (depth == 0 && swing < 1e-4) {

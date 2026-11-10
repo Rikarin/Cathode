@@ -123,6 +123,37 @@ public class TremoloTests(ITestOutputHelper output) {
     }
 
     /// <summary>
+    ///     The 18 W's Depth is its Intensity rheostat R32, in the cathode the two halves of V3 share (#330): the
+    ///     running netlist holds R14 820 Ω and the 1k rheostat under it, V3B's grid referred to their junction as its
+    ///     leak is, and the oscillator swings fully at any depth above 0. So a little Depth already gives a tremolo
+    ///     (the amp's does not fade to nothing at the knob's bottom), and it deepens as the knob adds resistance, the
+    ///     way Marshall's handbook says the control turns.
+    /// </summary>
+    [Fact]
+    public void The_18_watts_depth_is_its_intensity_rheostat() {
+        var channel = (ChannelSwitchStageDesign)Design("18 W 1974X").Preamp[0];
+        var drive = (GridDriveTremoloDesign)((NetworkStageDesign)channel.On[0]).Tremolo!;
+        Assert.True(drive.FullSwing);
+        var rheostat = Assert.Single(drive.Modulated.Netlist.Elements, static e => e.Role == PotRole.TremoloDepth);
+        Assert.Equal(1e3, rheostat.Pot.Ohms);
+        Assert.Equal(PotPart.Lower, rheostat.Part); // the knob up puts resistance in
+        Assert.Equal(StageNetlist.Ground, rheostat.B);
+        var shared = Assert.Single(drive.Modulated.Netlist.Elements, static e => e.Cathode);
+        Assert.Equal(820, shared.Value);
+        Assert.Equal(rheostat.A, shared.B); // R14's foot is the rheostat's top
+
+        var (low, _) = Envelope("18 W 1974X", 2, 5);
+        var (half, _) = Envelope("18 W 1974X", 50, 5);
+        var (full, rate) = Envelope("18 W 1974X", 100, 5);
+        output.WriteLine(
+            $"18 W: {low:0.0} dB at Depth 2 %, {half:0.0} dB at 50 %, {full:0.0} dB at 100 % ({rate:0.00} Hz)"
+        );
+        Assert.True(low > 1, $"only {low:0.0} dB with the rheostat at its foot");
+        Assert.True(half > low + 1, $"{half:0.0} dB at 50 % against {low:0.0} dB at 2 %");
+        Assert.True(full > half + 1, $"{full:0.0} dB at 100 % against {half:0.0} dB at 50 %");
+    }
+
+    /// <summary>
     ///     At intensity 0 each model renders sample for sample what the same model without its tremolo renders (its
     ///     oscillator stopped, its photocell dark: the netlists keep the Intensity pot's track, which with the wiper at
     ///     ground is all the pot does), whatever the rate: the tremolo leaves no trace when it is off.

@@ -460,7 +460,9 @@ it is a sine that swings the power tubes' bias.`,
 
     tremdepth: `The tremolo's depth; 0 is off. On models with their own tremolo it is that circuit's *Intensity* (or
 *Depth*) knob. Elsewhere it swings the power tubes' bias around the *Bias* setting, 100 % taking it all the way from
-cold to hot: a bias tremolo, which also changes the tone and break-up as it pulses.`,
+cold to hot: a bias tremolo, which also changes the tone and break-up as it pulses. On the 18 W the knob is the amp's
+Intensity control, which does not go down to nothing: 0 is the footswitch (tremolo off), and the lowest setting above
+it already pulses a little, because in that circuit the running oscillator alone moves the channel.`,
 
     balance: `The left/right balance of the block's stereo output.`,
 
