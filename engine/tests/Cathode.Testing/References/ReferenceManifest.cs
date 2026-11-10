@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -146,9 +147,37 @@ public sealed record CircuitSettings(string Type, IReadOnlyDictionary<string, do
 /// <remarks>
 ///     The harmonic and response distances stay meaningful where a capture includes a cab or its settings are not
 ///     known and the ESR is as large as the signal: a silent or linear model is far from the capture's harmonics, and a
-///     model with the wrong tone from its response.
+///     model with the wrong tone from its response. So an entry guards all four or has no guard yet (a capture nobody
+///     has matched): the capture-match test fails a match whose entry lacks one, and prints the guard to record
+///     (<see cref="Around" />).
 /// </remarks>
-public sealed record MatchTargets(double Esr, double Mrstft, double? HarmonicsDb = null, double? ResponseDb = null);
+public sealed record MatchTargets(double Esr, double Mrstft, double? HarmonicsDb = null, double? ResponseDb = null) {
+    /// <summary>Whether the harmonic and response distances are guarded as well as ESR and MRSTFT.</summary>
+    [JsonIgnore]
+    public bool GuardsEveryMeasure => HarmonicsDb > 0 && ResponseDb > 0;
+
+    /// <summary>
+    ///     The guard to record for a match as it measures now: 15 % above its pre-emphasised ESR, MRSTFT and harmonic
+    ///     distance and half a decibel above its response distance, rounded up (to 0.01, 0.01, 0.5 dB and 0.5 dB).
+    /// </summary>
+    public static MatchTargets Around(MatchReport report) =>
+        new(
+            Up(report.EsrPreEmphasis * 1.15, 0.01),
+            Up(report.Mrstft * 1.15, 0.01),
+            Up(report.HarmonicDistanceDb * 1.15, 0.5),
+            Up(report.ResponseRmsDb + 0.5, 0.5)
+        );
+
+    /// <summary>The guard as the manifest holds it, to paste into the entry.</summary>
+    public string ToManifest() =>
+        string.Create(
+            CultureInfo.InvariantCulture,
+            $"\"targets\": {{ \"esr\": {Esr}, \"mrstft\": {Mrstft}, \"harmonicsDb\": {HarmonicsDb}, \"responseDb\": "
+            + $"{ResponseDb} }}"
+        );
+
+    static double Up(double value, double step) => Math.Round(Math.Ceiling(value / step - 1e-9) * step, 2);
+}
 
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,

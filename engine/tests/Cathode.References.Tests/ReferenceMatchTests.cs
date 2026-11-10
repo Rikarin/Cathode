@@ -5,10 +5,11 @@ namespace Cathode.References.Tests;
 
 /// <summary>
 ///     A drift guard: matches every reference that has circuit settings against the circuit amp, and fails when a
-///     distance grows past the manifest's targets. The targets are what each match measured when its entry was added,
-///     plus a margin; most admit an ESR as large as the signal (silence scores 1.0), so passing here says the model has
-///     not moved away from the capture, not that it matches it. The bar for a match is docs/06 §5.4's
-///     (<see cref="ShipTarget" />), which <see cref="ReportVariable" /> lets a run count.
+///     distance grows past the manifest's targets. The targets are what each match measured, plus a margin
+///     (<see cref="MatchTargets.Around" />); many admit an ESR as large as the signal (silence scores 1.0), so passing
+///     here says the model has not moved away from the capture, not that it matches it. The bar for a match is
+///     docs/06 §5.4's (<see cref="ShipTarget" />), which <see cref="ReportVariable" /> lets a run count. A reference
+///     whose entry does not guard all four measures fails once it is matched: no run passes on ESR and MRSTFT alone.
 /// </summary>
 /// <remarks>
 ///     References not in the local cache are skipped, since tests never download. The nightly workflow fetches the
@@ -66,7 +67,30 @@ public class ReferenceMatchTests(ITestOutputHelper output) {
             );
         }
 
+        // A capture nobody had matched (a local-only one fetched by hand) has no guard, and ESR and MRSTFT alone
+        // guard little: whoever holds the file records all four measures before this can pass.
+        Assert.True(
+            entry.Targets is { GuardsEveryMeasure: true },
+            $"{id} was matched, but its entry does not guard all four measures. Check the match, then record in the "
+            + $"manifest: {MatchTargets.Around(report).ToManifest()}"
+        );
         Assert.True(report.Pass, $"{id} has drifted from its reference: {string.Join(", ", report.Drifted())}");
+    }
+
+    [Fact]
+    public void The_guard_to_record_for_a_new_match_sits_a_margin_above_what_it_measured() {
+        var guard = MatchTargets.Around(Report(0.171, 0.731, 7.6, 1.4, null));
+
+        Assert.Equal(new(0.2, 0.85, 9, 2), guard);
+        Assert.True(guard.GuardsEveryMeasure);
+        Assert.False(new MatchTargets(2.0, 8.0).GuardsEveryMeasure);
+        Assert.Equal(
+            "\"targets\": { \"esr\": 0.2, \"mrstft\": 0.85, \"harmonicsDb\": 9, \"responseDb\": 2 }",
+            guard.ToManifest()
+        );
+
+        // A value already on a step stays there.
+        Assert.Equal(new(1.15, 2.3, 11.5, 3.5), MatchTargets.Around(Report(1.0, 2.0, 10, 3, null)));
     }
 
     [Fact]

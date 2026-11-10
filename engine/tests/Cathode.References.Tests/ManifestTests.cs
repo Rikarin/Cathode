@@ -66,7 +66,6 @@ public class ManifestTests {
             r => {
                 Assert.Contains(r.Circuit!.Type, renderer.Types);
                 Assert.All(r.Circuit.Params?.Keys ?? [], id => Assert.Contains(id, ids));
-                Assert.NotNull(r.Targets);
             }
         );
         Assert.Contains("type", ids);
@@ -75,18 +74,25 @@ public class ManifestTests {
 
     /// <summary>
     ///     ESR and MRSTFT alone guard little where the ESR target is near the signal's own size (silence scores 1.0),
-    ///     so every reference CI can run also guards the harmonic and response distances. The local-only (T3K)
-    ///     captures get theirs from whoever holds the files.
+    ///     so a drift guard holds all four measures or does not exist: no entry carries a placeholder that a run
+    ///     could pass. Every reference CI can run has its guard. A local-only (T3K) capture that nobody has matched
+    ///     has none, and its match fails with the guard to record once someone holds the file.
     /// </summary>
     [Fact]
-    public void Redistributable_references_guard_harmonics_and_response_too() =>
+    public void A_drift_guard_holds_all_four_measures_and_every_redistributable_match_has_one() {
         Assert.All(
-            Manifest.References.Where(static r => r is { Redistributable: true, Targets: not null }),
+            Manifest.References.Where(static r => r.Targets is not null),
             static r => {
-                Assert.True(r.Targets!.HarmonicsDb > 0, $"{r.Id} has no harmonicsDb target");
+                Assert.True(r.Targets!.Esr > 0 && r.Targets.Mrstft > 0, $"{r.Id} has no ESR or MRSTFT target");
+                Assert.True(r.Targets.HarmonicsDb > 0, $"{r.Id} has no harmonicsDb target");
                 Assert.True(r.Targets.ResponseDb > 0, $"{r.Id} has no responseDb target");
             }
         );
+        Assert.All(
+            Manifest.References.Where(static r => r is { Redistributable: true, Circuit: not null }),
+            static r => Assert.True(r.Targets is not null, $"{r.Id} is matched in CI and has no drift guard")
+        );
+    }
 
     [Fact]
     public void Conditioned_models_list_their_knob_values() =>

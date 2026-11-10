@@ -187,10 +187,17 @@ static int Match(ReferenceManifest manifest, ReferenceCache cache, Options optio
         foreach (var warning in report.Warnings) {
             Console.WriteLine($"{string.Empty,-36}   note: {warning}");
         }
+
+        // The entry's own settings with no full guard: a capture matched for the first time.
+        if (type is null && overrides.Count == 0 && entry.Targets is not { GuardsEveryMeasure: true }) {
+            Console.WriteLine(
+                $"{string.Empty,-36}   no drift guard; record {MatchTargets.Around(report).ToManifest()}"
+            );
+        }
     }
 
     Console.WriteLine("* input calibration fitted (the source does not state it)");
-    Console.WriteLine("guard: within the manifest's drift guard, which is not the bar for a match");
+    Console.WriteLine("guard: within the manifest's drift guard, which is not the bar for a match (-: no guard yet)");
     if (reports.Count > 0) {
         Console.WriteLine(ShipTarget.Summary(reports));
     }
