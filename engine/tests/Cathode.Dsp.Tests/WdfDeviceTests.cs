@@ -11,7 +11,7 @@ public class WdfDeviceTests(ITestOutputHelper output) {
     const double Rate = 192_000;
 
     public static TheoryData<string> Devices =>
-        ["diode", "diode-rs", "clipper", "npn", "pnp", "germanium", "triode", "pentode", "opamp", "pair"];
+        ["diode", "diode-rs", "clipper", "npn", "pnp", "germanium", "triode", "pentode", "opamp", "jfet", "pair"];
 
     [Fact]
     public void Junction_limiting_keeps_the_direction_and_limits_only_the_documented_steps() {
@@ -77,6 +77,32 @@ public class WdfDeviceTests(ITestOutputHelper output) {
                 }
             }
         }
+    }
+
+    /// <summary>
+    ///     The JFET's square law: I_DSS = β V_TO² with the gate on the source, nothing below pinch-off, the ohmic
+    ///     region meeting saturation at V_ds = V_gs − V_TO, and the same channel backwards with drain and source
+    ///     exchanged.
+    /// </summary>
+    [Fact]
+    public void Jfet_follows_the_square_law_and_is_symmetric() {
+        var fet = new Jfet(TestFet with { Lambda = 0 });
+        Span<double> current = stackalloc double[2];
+        Span<double> jacobian = stackalloc double[4];
+
+        double Drain(double vgs, double vds, Span<double> i, Span<double> j) {
+            j.Clear();
+            fet.Evaluate([vgs, vds], i, j, 2);
+            return i[1];
+        }
+
+        Assert.Equal(TestFet.Beta * TestFet.Threshold * TestFet.Threshold, Drain(0, 10, current, jacobian), 1e-9);
+        Assert.Equal(2 * TestFet.Beta * -TestFet.Threshold, jacobian[2], 1e-9); // g_m0 = 2 I_DSS / |V_TO|
+        Assert.Equal(0, Drain(-3, 10, current, jacobian), 1e-12);
+        Assert.Equal(Drain(-1, 1.4 - 1e-9, current, jacobian), Drain(-1, 1.4 + 1e-9, current, jacobian), 1e-9);
+        Assert.True(Drain(-1, 0.5, current, jacobian) < Drain(-1, 1.4, current, jacobian));
+        // Reversed: the drain 2 V below the source, the gate 1 V below the drain.
+        Assert.Equal(-Drain(-1, 2, current, jacobian), Drain(-3, -2, current, jacobian), 1e-9);
     }
 
     [Fact]
@@ -385,6 +411,8 @@ public class WdfDeviceTests(ITestOutputHelper output) {
         return new(net, new(new(1e3)), new(model, -4.5, 4.5, Rate));
     }
 
+    static readonly JfetModel TestFet = new(-2.4, 1.7e-3, 0.01);
+
     static INonlinearDevice Create(string name) =>
         name switch {
             "diode" => new Diode(DiodeModel.Silicon),
@@ -396,6 +424,7 @@ public class WdfDeviceTests(ITestOutputHelper output) {
             "triode" => new Triode(TriodeModel.Ecc83),
             "pentode" => new Pentode(PentodeModel.EL34),
             "opamp" => new OpAmp(OpAmpModel.TL072, -4.5, 4.5, Rate),
+            "jfet" => new Jfet(TestFet),
             _ => new Devices<Diode, Triode>(new(DiodeModel.Schottky), new(TriodeModel.Ecc82))
         };
 
@@ -416,6 +445,7 @@ public class WdfDeviceTests(ITestOutputHelper output) {
                 _ => Uniform(10, 450)
             },
             "opamp" => port == 0 ? Uniform(-0.05, 0.05) : Uniform(-4, 4),
+            "jfet" => port == 0 ? Uniform(-3.5, 0.5) : Uniform(-1, 12),
             _ => port == 0 ? Uniform(-0.5, 0.3) : port == 1 ? Uniform(-4, 1) : Uniform(20, 300)
         };
         double Uniform(double low, double high) => low + (high - low) * random.NextDouble();

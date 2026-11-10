@@ -88,9 +88,9 @@ The JC-120 is a glassy, very clean transistor amp: no breakup, so effects stay p
 
 ### Bass and others
 
-**SVT**, **Portaflex B-15N**, **Bassman 135**, **Bass 400**, and the small Gibson **Scout GA-17RVT**.
+**SVT**, **Portaflex B-15N**, **Bassman 135**, **Bass 400**, **GK 800RB**, and the small Gibson **Scout GA-17RVT**.
 
-Bass amps work on guitar too: the SVT and Bass 400 make thick, heavy crunch; the Portaflex is warm and round.
+Bass amps work on guitar too: the SVT and Bass 400 make thick, heavy crunch; the Portaflex is warm and round. The GK 800RB is the solid-state rock bass sound of the 1980s and 1990s: fast, tight and bright, with a growl when **Boost** is up and **Master** is down. Its two mid knobs mostly cut: 10 is flat, so start with **Hi Mid** and **Lo Mid** high and turn down what you do not want. **Contour** scoops the mids around 500 Hz.
 
 ## The front panel
 

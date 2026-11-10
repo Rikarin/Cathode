@@ -174,8 +174,8 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
     [Fact]
     public void Generic_switches_hide_where_the_model_has_its_own() {
         // The generic Fat stands in where the model has no Fat switch, and needs a tone stack in the preamp to move
-        // (the Major's sits in its power amp's loop stage, out of reach).
-        string[] noStack = ["AC15", "Champ 5F1", "JMP-1", "Major 1967", "Tiny Terror"];
+        // (the Major's sits in its power amp's loop stage, out of reach; the GK 800RB's EQ is four active stages).
+        string[] noStack = ["AC15", "Champ 5F1", "JMP-1", "Major 1967", "Tiny Terror", "GK 800RB"];
         var fat = CircuitAmpBlock.Info.Params.Single(static p => p.Id == "fatsw").TypeLabels!;
         var stack = CircuitAmpBlock.Info.Params.Single(static p => p.Id == "stackfreq").TypeLabels!;
         for (var type = 0; type < AmpDesign.All.Count; type++) {
@@ -262,21 +262,25 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
         var marshall = AmpStacks.All.ToList().IndexOf(ToneStackDesign.Marshall) + 1;
         var fender = AmpStacks.All.ToList().IndexOf(ToneStackDesign.Fender) + 1;
         var input = Signals.Sine(440, 48_000, 24_000, 0.05f);
-        double Level(AmpDesign design, int stack) => Analysis.ToDb(
-            Math.Max(
-                Analysis.Rms(
-                    Render(
-                        Index(design),
-                        input,
-                        (CircuitAmpBlock.StackType, stack),
-                        (CircuitAmpBlock.Bass, 0f),
-                        (CircuitAmpBlock.Middle, 0f),
-                        (CircuitAmpBlock.Treble, 0f)
-                    ).AsSpan(12_000)
-                ),
-                1e-9
-            )
-        );
+
+        double Level(AmpDesign design, int stack) =>
+            Analysis.ToDb(
+                Math.Max(
+                    Analysis.Rms(
+                        Render(
+                                Index(design),
+                                input,
+                                (CircuitAmpBlock.StackType, stack),
+                                (CircuitAmpBlock.Bass, 0f),
+                                (CircuitAmpBlock.Middle, 0f),
+                                (CircuitAmpBlock.Treble, 0f)
+                            )
+                            .AsSpan(12_000)
+                    ),
+                    1e-9
+                )
+            );
+
         var (blackface, blackfaceMarshall) = (Level(Blackface.Design, 0), Level(Blackface.Design, marshall));
         var (plexi, plexiFender) = (Level(Plexi.Design, 0), Level(Plexi.Design, fender));
         Assert.True(blackface < -100, $"Blackface, its own stack at 0: {blackface:0.0} dB");
