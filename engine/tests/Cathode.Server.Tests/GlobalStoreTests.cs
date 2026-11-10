@@ -22,6 +22,74 @@ public sealed class GlobalStoreTests : IDisposable {
         Assert.Equal(["global.json"], Directory.EnumerateFiles(folder).Select(Path.GetFileName));
     }
 
+    [Fact]
+    public async Task Live_changes_are_read_at_once_and_written_and_announced_once_for_a_burst() {
+        var path = Path.Combine(folder, "global.json");
+        using var store = new GlobalStore(Options.Create(new ServerOptions { DataDirectory = folder })) {
+            LiveSaveDelay = TimeSpan.FromMilliseconds(400)
+        };
+        store.Update(static g => g.Tempo = 100);
+        var written = File.GetLastWriteTimeUtc(path);
+        var (_, before) = store.Versioned();
+        var announced = new List<float>();
+        store.Changed += g => {
+            lock (announced) {
+                announced.Add(g.Manual[1]);
+            }
+        };
+
+        // A pedal on Manual B: a hundred messages, well inside the delay.
+        for (var step = 1; step <= 100; step++) {
+            var value = step / 100f;
+            store.UpdateLive(g => g.Manual[1] = value);
+        }
+
+        var (now, revision) = store.Versioned();
+        Assert.Equal(1f, now.Manual[1]);
+        Assert.Equal(before + 100, revision); // a stale PUT /global is still refused
+        lock (announced) {
+            Assert.Empty(announced);
+        }
+
+        Assert.Equal(written, File.GetLastWriteTimeUtc(path)); // nothing written per message
+
+        await ServerFixture.Eventually(() => {
+                lock (announced) {
+                    return announced.Count > 0;
+                }
+            }
+        );
+        Assert.Equal([1f], announced);
+        using var reread = new GlobalStore(Options.Create(new ServerOptions { DataDirectory = folder }));
+        Assert.Equal(1f, reread.Get().Manual[1]);
+    }
+
+    [Fact]
+    public void A_live_change_still_waiting_is_written_when_the_store_is_disposed() {
+        var options = Options.Create(new ServerOptions { DataDirectory = folder });
+        using (var store = new GlobalStore(options) { LiveSaveDelay = TimeSpan.FromMinutes(10) }) {
+            store.UpdateLive(static g => g.Manual[3] = 0.25f);
+        }
+
+        using var reread = new GlobalStore(options);
+        Assert.Equal(0.25f, reread.Get().Manual[3]);
+    }
+
+    [Fact]
+    public void A_durable_update_writes_the_live_changes_before_it_and_announces_them_once() {
+        var options = Options.Create(new ServerOptions { DataDirectory = folder });
+        using var store = new GlobalStore(options) { LiveSaveDelay = TimeSpan.FromMinutes(10) };
+        var announced = 0;
+        store.Changed += _ => announced++;
+        store.UpdateLive(static g => g.Manual[0] = 0.5f);
+        store.Update(static g => g.Metronome = true);
+
+        Assert.Equal(1, announced);
+        using var reread = new GlobalStore(options);
+        Assert.Equal(0.5f, reread.Get().Manual[0]);
+        Assert.True(reread.Get().Metronome);
+    }
+
     [Theory]
     [InlineData("""{ "schemaVersion": 2.5 }""")]
     [InlineData("""{ "blocks": {} }""")]

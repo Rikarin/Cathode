@@ -392,10 +392,14 @@ public sealed partial class LiveRig {
             }
         );
 
-    /// <summary>Manual A-D: global modifier sources (a person, a MIDI pedal).</summary>
+    /// <summary>
+    ///     Manual A-D: global modifier sources (a person, a MIDI pedal). The engine gets the value at once; the
+    ///     settings file and <c>globalChanged</c> follow shortly, once for a whole sweep
+    ///     (<see cref="Stores.GlobalStore.UpdateLive" />).
+    /// </summary>
     public void SetManual(int index, float value) {
         var clamped = Math.Clamp(value, 0f, 1f);
-        globals.Update(g => g.Manual[index] = clamped);
+        globals.UpdateLive(g => g.Manual[index] = clamped);
         engine.SetParams(generation, [new(IpcBlocks.Rig, $"manual{(char)('A' + index)}", clamped)]);
     }
 
@@ -406,7 +410,8 @@ public sealed partial class LiveRig {
     /// <summary>
     ///     Global settings changed (EQ, metronome, tempo mode, Manual A-D, the footswitch layout or view), from the
     ///     editor, MIDI or a footswitch: put them into the engine and tell clients with <c>globalChanged</c>, which
-    ///     carries the current revision without raising it (the working copy did not change).
+    ///     carries the current revision without raising it (the working copy did not change). A moving Manual pedal
+    ///     or a dragged knob of a linked global block gets here a few times a second, not once per message.
     /// </summary>
     public void ApplyGlobalSettings(GlobalSettings global) {
         hub.Publish(
