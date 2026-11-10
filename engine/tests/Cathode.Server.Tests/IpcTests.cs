@@ -2,6 +2,7 @@ using Cathode.Dsp;
 using Cathode.Engine.Graph;
 using Cathode.EngineHost;
 using Cathode.Ipc;
+using System.Net.Sockets;
 
 namespace Cathode.Server.Tests;
 
@@ -159,6 +160,34 @@ public sealed class IpcTests : IDisposable {
 
         await stop.CancelAsync();
         await server;
+    }
+
+    [Fact]
+    public async Task Client_forgets_a_request_that_times_out_is_cancelled_or_cannot_be_sent() {
+        var token = TestContext.Current.CancellationToken;
+        // A host that accepts the connection and never answers.
+        using var listener = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        listener.Bind(new UnixDomainSocketEndPoint(socketPath));
+        listener.Listen(1);
+        await using var client = new IpcEngineClient(socketPath) { ReplyTimeout = TimeSpan.FromMilliseconds(200) };
+        await client.ConnectAsync(TimeSpan.FromSeconds(5), token);
+        using var host = await listener.AcceptAsync(token);
+        using var cancel = CancellationTokenSource.CreateLinkedTokenSource(token);
+        using var cancelled = new CancellationTokenSource();
+        await cancelled.CancelAsync();
+
+        var waiting = client.SendAsync(new() { Type = IpcTypes.Hello }, cancel.Token);
+        var pendingWhileWaiting = client.PendingRequests;
+        await cancel.CancelAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => waiting);
+        await Assert.ThrowsAsync<TimeoutException>(() => client.SendAsync(new() { Type = IpcTypes.Hello }, token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            client.SendAsync(new() { Type = IpcTypes.Hello }, cancelled.Token) // fails before it is written
+        );
+
+        Assert.Equal(1, pendingWhileWaiting);
+        Assert.Equal(0, client.PendingRequests);
+        Assert.True(client.IsConnected); // none of this is a lost link
     }
 
     [Fact]
