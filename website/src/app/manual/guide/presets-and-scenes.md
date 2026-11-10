@@ -71,7 +71,7 @@ The **Compare** switch in the preset bar keeps two versions of the working copy:
 3. Click **A** and **B** in turn to hear the difference. Each keeps its own edits.
 4. Save the one you prefer while it is active.
 
-Loading another preset clears both.
+Loading another preset clears both, whether you load it here, from a footswitch, by a MIDI program change or from another editor. So do **Revert**, **Clear preset** and loading a snapshot.
 
 ### Setting a value in other presets
 
