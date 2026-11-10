@@ -332,6 +332,27 @@ public class MarshallModelTests(ITestOutputHelper output) {
         Assert.True(shared.Driven < 0.95 * direct.Driven, "the shared 1k must hold the screen current down");
     }
 
+    /// <summary>
+    ///     Drawing 70-6-11 (#197): "47K (100K)" of feedback into the tail's foot, the 5k presence pot from there to
+    ///     ground with 0.1 µF on its wiper, no 4k7 under the tail; 47k is the 100 W amp's value. The 1959T and the
+    ///     1959SLP model the same power amp, so the three have one network.
+    /// </summary>
+    [Fact]
+    public void The_plexi_100w_has_the_drawings_47k_into_the_presence_pot_as_the_shunt() {
+        var feedback = SuperLead100.Design.Power.Feedback;
+        Assert.Equal(47e3, feedback.FeedbackResistor);
+        Assert.Equal(5e3, feedback.ShuntResistor);
+        Assert.Equal(5e3, feedback.Presence.Ohms);
+        Assert.True(feedback.PresenceIsShunt);
+        Assert.Equal(5.0 / 52, feedback.Beta, 1e-12);
+        Assert.Equal(Marshall1959T.Design.Power.Feedback, feedback);
+        Assert.Equal(Marshall1959Slp.Design.Power.Feedback, feedback);
+        // Presence at 0 leaves the feedback flat; at 10 the cap shorts the whole shunt at high frequencies.
+        Assert.Equal(feedback.PresenceTimes(0).Tau1, feedback.PresenceTimes(0).Tau2, 1e-12);
+        Assert.Equal(0, feedback.PresenceTimes(1).Tau1, 1e-12);
+        Assert.True(feedback.PresenceTimes(1).Tau2 > 0);
+    }
+
     static int TypeOf(string model) => AmpDesign.All.ToList().FindIndex(a => a.Name == model);
 
     static float[] Render(int type, float[] input, params (int Index, float Value)[] settings) {
