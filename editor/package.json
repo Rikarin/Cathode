@@ -85,7 +85,7 @@
     "@tailwindcss/postcss": "^4.3.5",
     "@tailwindcss/vite": "^4.3.5",
     "@types/luxon": "^3.7.6",
-    "@types/node": "^24.0.0",
+    "@types/node": "^26.6.6",
     "@vitest/browser-playwright": "^4.1.12",
     "@vitest/coverage-v8": "^4.0.0",
     "@vitest/ui": "^4.0.0",
