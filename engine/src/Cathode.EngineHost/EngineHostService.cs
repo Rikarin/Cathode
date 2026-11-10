@@ -426,14 +426,15 @@ public sealed class EngineHostService : IDisposable {
     /// <summary>
     ///     Sends a message out. Without a destination it goes to every output, and with none there it has nowhere to
     ///     go: that is not a failure (scene MIDI and footswitch LEDs go out whether or not anything listens), only a
-    ///     named output that is gone or a send that fails is.
+    ///     named output that is gone or a send that fails is. Only one complete short message is sent
+    ///     (<see cref="MidiShortMessage" />): every backend encodes those the same way.
     /// </summary>
     IpcMessage MidiOut(IpcMessage request) {
-        var bytes = (request.Bytes ?? []).Select(static b => (byte)b).ToArray();
-        if (bytes.Length is < 1 or > 3) {
-            return IpcMessage.Fail(request.Id, "A MIDI message is 1 to 3 bytes.");
+        if (MidiShortMessage.Problem(request.Bytes ?? []) is { } problem) {
+            return IpcMessage.Fail(request.Id, problem);
         }
 
+        var bytes = request.Bytes!.Select(static b => (byte)b).ToArray();
         return NativeMidiSend(request.Destination, bytes)
             || (request.Destination is null && NativeMidiPorts().All(static p => p.IsInput))
                 ? IpcMessage.Ok(request.Id)
