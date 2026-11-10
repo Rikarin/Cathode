@@ -11,6 +11,7 @@ import {
 } from '@cathode/api-client';
 import { Subject } from 'rxjs';
 import { ConnectionService } from './connection';
+import { newId } from './new-id';
 
 const MaxBackoffMs = 5_000;
 
@@ -19,11 +20,6 @@ export function clientEventsUrl(url: string, client: string): string {
   const withClient = new URL(url);
   withClient.searchParams.set('client', client);
   return withClient.toString();
-}
-
-/** A random id for this editor (crypto.randomUUID needs a secure context, which a rig on the LAN is not). */
-function newClientId(): string {
-  return Array.from({ length: 4 }, () => Math.random().toString(36).slice(2, 8)).join('');
 }
 
 /** Block `block`'s meter `meter` in a telemetry frame: every block has `peak`; some have their own meters too. */
@@ -65,7 +61,7 @@ export class EventStream {
    * They are rig-wide and run while any client has them on; when this editor's socket closes, what it left on is
    * released, so it turns them on again after a reconnect.
    */
-  readonly clientId = newClientId();
+  readonly clientId = newId();
 
   /** The most recent telemetry frame (null until the first arrives). Not a signal, on purpose. */
   latest: Telemetry | null = null;

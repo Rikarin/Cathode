@@ -34,6 +34,7 @@ import { XuiMenuImports } from '@xui/menu';
 import { XuiNonIdealStateImports } from '@xui/non-ideal-state';
 import { XuiSelectImports } from '@xui/select';
 import { XuiTagImports } from '@xui/tag';
+import { newId } from '../core/new-id';
 import { Notify } from '../core/notify';
 import { LibraryStore } from '../state/library.store';
 import { SetlistPlayer } from '../state/setlist-player';
@@ -630,9 +631,4 @@ export class SetlistsPage {
       { injector: this.injector }
     );
   }
-}
-
-/** A new library id, as the Server makes them (32 hex digits). */
-function newId(): string {
-  return crypto.randomUUID().replaceAll('-', '');
 }

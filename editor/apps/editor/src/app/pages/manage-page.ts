@@ -13,6 +13,7 @@ import { XuiIconImports } from '@xui/icon';
 import { XuiInputImports } from '@xui/input';
 import { XuiMenuImports } from '@xui/menu';
 import { ConnectionService } from '../core/connection';
+import { newId } from '../core/new-id';
 import { Notify } from '../core/notify';
 import { TagColors, tagColorName } from '../shell/picker-list';
 import { LibraryStore } from '../state/library.store';
@@ -425,7 +426,7 @@ export class ManagePage {
   /** Creates a bank on the Server at once, as renaming and deleting one are. */
   protected async addBank(): Promise<void> {
     const bank: Bank = {
-      id: crypto.randomUUID().replaceAll('-', ''),
+      id: newId(),
       name: `Bank ${this.banks().length + 1}`,
       slots: []
     };

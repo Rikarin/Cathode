@@ -1,4 +1,5 @@
 import type { Bank, PresetSummary } from '@cathode/api-client';
+import { newId } from '../core/new-id';
 
 export const SlotCount = 128;
 
@@ -83,7 +84,7 @@ export class ManageSession {
   constructor(
     banks: readonly Bank[],
     presets: readonly PresetSummary[],
-    private readonly newId: () => string = () => crypto.randomUUID().replaceAll('-', '')
+    private readonly makeId: () => string = newId
   ) {
     this.banks = banks.map(b => ({
       ...b,
@@ -256,7 +257,7 @@ export class ManageSession {
 
   private duplicate(source: string): string {
     const original = this.copies.find(c => c.id === source)?.source ?? source;
-    const id = this.newId() || `copy-${this.nextCopy++}`;
+    const id = this.makeId() || `copy-${this.nextCopy++}`;
     this.copies.push({ id, source: original, name: `${this.nameOf(source)} copy` });
     return id;
   }

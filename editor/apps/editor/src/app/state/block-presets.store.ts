@@ -9,6 +9,7 @@ import {
 } from '@cathode/api-client';
 import { ConnectionService } from '../core/connection';
 import { EventStream } from '../core/events';
+import { newId } from '../core/new-id';
 import { Notify } from '../core/notify';
 import { LiveStore } from './live.store';
 
@@ -100,7 +101,7 @@ export class BlockPresetsStore {
     entry: Pick<BlockPreset, 'values'> & Partial<Pick<BlockPreset, 'channels' | 'modifiers' | 'assets' | 'folder'>>
   ): Promise<void> {
     await this.notify.run(async () => {
-      const id = crypto.randomUUID().replaceAll('-', '');
+      const id = newId();
       unwrap(
         await this.connection.client.PUT('/api/v1/block-presets/{id}', {
           params: { path: { id } },
