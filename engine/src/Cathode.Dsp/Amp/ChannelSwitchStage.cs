@@ -69,6 +69,10 @@ public sealed class ChannelSwitchStage : AmpStage {
 
     public override bool IsGainStage => offGainStage >= 0 || onGainStage >= 0;
 
+    /// <summary>Both channels' stages' (a reset settles both).</summary>
+    public override long OperatingPointSteps =>
+        off.Sum(static s => s.OperatingPointSteps) + on.Sum(static s => s.OperatingPointSteps);
+
     /// <summary>The gain stages of the channel that has more of them.</summary>
     public int GainStages => Math.Max(off.Count(static s => s.IsGainStage), on.Count(static s => s.IsGainStage));
 

@@ -212,6 +212,8 @@ public sealed class PowerAmp {
     double chokeInductance; // 0: the screen node is fed through a resistor
     double chokeDecay; // exp(-R T / L)
     double chokeCurrent;
+    OperatingInputs? solvedFor; // what the kept operating point was solved for (SolveOperatingPoint)
+    (double Supply, double Screen, double Cathode, double CathodeB) solvedPoint;
     PowerControls controls = Unset;
     PowerSettings settings = PowerSettings.Stock;
     readonly BiasTremolo? tremolo;
@@ -579,10 +581,9 @@ public sealed class PowerAmp {
     }
 
     /// <summary>
-    ///     The operating point for the current knobs: supply nodes, bias and every state at rest. Allocation-free, and
-    ///     tens of microseconds for the power amp alone (the supply's fixed point over the idle currents); the
-    ///     channel's reset around it (<see cref="AmpChannel.Reset" />) also solves every preamp stage and costs up to
-    ///     ten times that on the larger models.
+    ///     The operating point for the current knobs: supply nodes, bias and every state at rest. Allocation-free. The
+    ///     audio thread calls it (a type change, a tube swap): a few microseconds when the supply's operating point is
+    ///     the one last solved, and what <see cref="SolveOperatingPoint" /> costs when a knob or setting has moved it.
     /// </summary>
     public void Reset() {
         var supply = Design.PowerSupply;
@@ -623,9 +624,31 @@ public sealed class PowerAmp {
 
     /// <summary>
     ///     The supply at idle for the current knobs and settings: B+, the screen node and the cathode voltage.
-    ///     Allocation-free.
+    ///     Allocation-free. The last solution is kept with everything it was solved from, so a reset with nothing moved
+    ///     (a type change back to this amp, Tonestack Location, the Power Amp switch) costs a comparison and returns
+    ///     the same voltages to the last bit: the solve itself is tens of microseconds, and half a millisecond and
+    ///     more where the fixed point does not settle and the bisection takes over (the SVT and the Subway Blues as
+    ///     they come, some thirty models with Bias, Sag and the Variac at their ends). A cathode-biased amp's solve
+    ///     starts from the cathode voltage of the moment, which is then part of what it was solved from: after
+    ///     playing it is solved again.
     /// </summary>
     void SolveOperatingPoint() {
+        var inputs = new OperatingInputs(
+            unloadedSupply * variac,
+            sagScale,
+            rectifier,
+            GridBias,
+            CathodeResistor,
+            law,
+            settings.Triode,
+            settings.Hardness,
+            Design.CathodeBias ? CathodeVoltage : 0
+        );
+        if (inputs == solvedFor) {
+            (Supply, ScreenSupply, CathodeVoltage, cathodeB) = solvedPoint;
+            return;
+        }
+
         Supply = Design.Supply;
         ScreenSupply = Design.Supply;
         var supply = Design.PowerSupply;
@@ -653,7 +676,26 @@ public sealed class PowerAmp {
         if (!converged || !(Supply > 0) || !(ScreenSupply > 0)) {
             SolveSupply(unloaded);
         }
+
+        solvedFor = inputs;
+        solvedPoint = (Supply, ScreenSupply, CathodeVoltage, cathodeB);
     }
+
+    /// <summary>
+    ///     Everything the supply's idle operating point is solved from besides the design; the last, the cathode
+    ///     voltage a cathode-biased amp's secant starts from (0 on fixed bias, whose solve reads no state).
+    /// </summary>
+    readonly record struct OperatingInputs(
+        double Unloaded,
+        double SagScale,
+        RectifierModel? Rectifier,
+        double GridBias,
+        double CathodeResistor,
+        PentodeModel Law,
+        bool Triode,
+        double Hardness,
+        double CathodeStart
+    );
 
     /// <summary>
     ///     The plate current all the tubes draw through the primary at the idle operating point of the current knobs

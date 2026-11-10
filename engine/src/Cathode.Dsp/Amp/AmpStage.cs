@@ -249,6 +249,12 @@ public abstract class AmpStage {
     public virtual NewtonSolver? Newton => null;
 
     /// <summary>
+    ///     The Newton steps (one matrix factorisation each) the stage's operating-point solves have taken so far: what
+    ///     its resets and retunes cost (diagnostics). 0 for a stage that solves its operating point another way.
+    /// </summary>
+    public virtual long OperatingPointSteps => 0;
+
+    /// <summary>
     ///     Whether this is a common-cathode gain stage, which <see cref="PreampSettings.CathodeResistor" /> may bias.
     /// </summary>
     public virtual bool IsGainStage => false;

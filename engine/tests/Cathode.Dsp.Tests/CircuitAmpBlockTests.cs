@@ -296,6 +296,70 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         Assert.Same(MarshallAfd100.Design, block.Channel.Design);
     }
 
+    /// <summary>
+    ///     A type change, a tube swap, Tonestack Location and a channel switch reset the channel on the audio thread,
+    ///     and the reset solves every stage's DC operating point. A network stage keeps the operating point it has
+    ///     with what it was solved for, and the power amp its supply's: a reset with nothing moved since (the reset
+    ///     itself, a type change away and back) solves nothing and leaves both as they are, to the last bit, where
+    ///     each network stage took thirty Newton steps and more.
+    /// </summary>
+    [Theory]
+    [InlineData("SVT")]
+    [InlineData("JVM410H Clean/Crunch")]
+    [InlineData("Subway Blues")]
+    public void A_reset_with_nothing_moved_solves_no_operating_point_again(string name) {
+        var plexi = AmpDesign.All.ToList().IndexOf(Plexi.Design);
+        var type = AmpDesign.All.ToList().FindIndex(d => d.Name == name);
+        Assert.True(type >= 0, name);
+        using var block = Create(plexi);
+        var chord = Chord(4_800, 0.25f);
+        BlockRender.Mono(block, new float[64], 64);
+        block.Params.SetTarget(CircuitAmpBlock.Type, type);
+        block.Refresh(); // the control thread builds the channel, solving every stage from nothing
+        var built = new AmpChannel(AmpDesign.All[type], 96_000).Stages.Sum(static s => s.OperatingPointSteps);
+        BlockRender.Mono(block, new float[64], 64); // the type change, on the audio thread
+        var channel = block.Channel;
+        Assert.Same(AmpDesign.All[type], channel.Design);
+        long Steps() => channel.Stages.Sum(static s => s.OperatingPointSteps);
+
+        var change = Steps() - built;
+        block.Reset();
+        var supply = channel.Power.Supply;
+        var first = BlockRender.Mono(block, chord, 64);
+        var rest = channel.Stages.Select(static s => s.RestOutput).ToArray();
+        var before = Steps();
+        block.Reset();
+        Assert.Equal(rest, channel.Stages.Select(static s => s.RestOutput).ToArray());
+        var second = BlockRender.Mono(block, chord, 64);
+        Assert.Equal(first, second); // the same samples from the operating points kept as from those solved
+
+        // Away to another amp and back.
+        block.Params.SetTarget(CircuitAmpBlock.Type, plexi);
+        BlockRender.Mono(block, new float[64], 64);
+        Assert.Same(Plexi.Design, block.Channel.Design);
+        block.Params.SetTarget(CircuitAmpBlock.Type, type);
+        BlockRender.Mono(block, new float[64], 64);
+        Assert.Same(channel, block.Channel);
+        var again = Steps() - before;
+
+        var times = new double[40];
+        for (var i = 0; i < times.Length; i++) {
+            var start = System.Diagnostics.Stopwatch.GetTimestamp();
+            channel.Reset();
+            times[i] = System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalMicroseconds;
+        }
+
+        Array.Sort(times);
+        output.WriteLine(
+            $"{channel.Design.Name}: {built} Newton steps to build, {change} at the first type change, {again} at two "
+            + $"resets and a type change back; the channel's reset takes {times[times.Length / 2]:0} us (median of "
+            + $"{times.Length})"
+        );
+        Assert.True(built > 0, "no network stage");
+        Assert.Equal(0, again);
+        Assert.Equal(supply, channel.Power.Supply);
+    }
+
     [Fact]
     public void An_expert_setting_finds_cached_tube_tables_while_another_model_is_being_built() {
         // The control thread builds a new channel's tables under the caches' build lock; an expert setting on the
