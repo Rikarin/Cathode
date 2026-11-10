@@ -3,11 +3,15 @@ import type { BlockDoc } from '../types';
 export const doc: BlockDoc = {
   summary: `The Chorus thickens your sound by adding copies of it that are delayed by a few milliseconds and gently pitch-wobbled. Mixed with the dry signal, those copies make one guitar sound like several playing together: shimmering, wide and a little seasick if you push it.
 
-Under the hood each side (left and right) runs a short delay line whose delay time is swept by an LFO. The block can read that line with up to eight voices at once, each sweeping at a different point of the cycle, and it has a Dimension mode modelled on the classic studio "dimension" units, which gives width with almost no audible wobble.`,
+Under the hood each side (left and right) runs a short delay line whose delay time is swept by an LFO. The block can read that line with up to eight voices at once, each sweeping at a different point of the cycle, and it has a Dimension mode modelled on the classic studio "dimension" units, which gives width with almost no audible wobble.
+
+The **JC-120** type is the chorus built into the Roland Jazz Chorus amp, modelled from its circuit: one bucket-brigade delay line with the amp's own filters around it, swept by a triangle. As on the amp, the left side stays dry and the right side carries only the chorused sound, so the effect forms between the two speakers (in mono it is a plain chorus with a notch pattern). It pairs with the [Amp block](/manual/blocks/circuitamp)'s JC-120 type.`,
 
   usage: `**Where it goes:** after the amp and cab is the usual spot, before delay and reverb, so the echoes repeat an already chorused sound. Before the amp it works too, but distortion exaggerates the pitch movement and can make it sound out of tune.
 
 **A starting point:** Rate around 0.5–1 Hz, Depth 30–50 %, Delay 6–10 ms, Mix 50 %. That is a classic stereo chorus. For a subtle thickener on a lead, drop Mix to 25–30 % and Depth to about 20 %.
+
+**The Jazz Chorus sound:** set **Type** to JC-120 and leave its defaults: Rate 1 Hz, a full sweep from 1.5 to 6.4 ms, Mix 100 %. The amp's own Rate knob runs from 1 to about 4 Hz.
 
 **Things to try:**
 - More **Voices** (3–4) for a lusher, more ensemble-like sound with less obvious wobble.
@@ -38,6 +42,7 @@ Under the hood each side (left and right) runs a short delay line whose delay ti
     lfo2Depth: `How much LFO 2 speeds up and slows down the main sweep. A little makes the chorus less regular and more organic, like an old tape machine.`,
     stereoSpread: `Widens or narrows the wet signal's stereo image. 100 % leaves it as it is, 0 % folds it to mono, negative values swap the sides, and values beyond ±100 % push it wider than the speakers.`,
     dimension: `Switches to a dimension-style chorus: one voice per side, the two sweeps in opposite directions, and each side's wet taking an inverted portion of the other side's (30, 50 or 70 % for Low, Medium, High). The parts of the two wets that don't move cancel, so you get width and depth with very little audible pitch movement. Off is the normal chorus.`,
+    type: `**Chorus** is the block's own stereo chorus, with every control here. **JC-120** is the Roland Jazz Chorus amp's chorus: one delay line and one voice, the left side dry and the right side chorus only. On it **Rate**, **Depth**, **Delay**, **LFO Type** and **Mix** start at the amp's values (changing the type sets them), **Mix** below 100 % lets the right side's dry signal back in, and the controls for the second line and the extra voices (Voices, LFO Phase, Dimension, Width, the Right ratios, Phase Reverse, LFO 2, Stereo Spread) are hidden.`,
     globalMix: `When on, this block's Mix follows the global **[Effects Mix](/manual/live-performance#adjusting-to-the-room)** offset, so one setting makes every such effect wetter or drier for the room you are playing in.`
   },
 

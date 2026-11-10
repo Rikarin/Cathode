@@ -33,9 +33,21 @@ namespace Cathode.Dsp.Amp.Models;
 ///         (<see cref="AmpPanel.BehindSwitch" />).
 ///     </para>
 ///     <para>
-///         Not modelled: the chorus and vibrato (the Chorus block), the reverb (its return is silent), the input clamp
-///         diodes, the mute FET, the second power amp (with the chorus off both carry the same signal), the
-///         normal channel (Bright switch, no Hi-Treble). Guessed: the power amp's open-loop gain (80 dB) and
+///         The drawing is of a one-channel amp: High and Low inputs into the one preamp above, with Hi-Treble where
+///         the two-channel combo has Bright switches, a chorus switched Off / Fixed / Manual with Rate and Depth, a
+///         Sub In and two line outputs. It has no normal channel on either sheet (#311 took it to have one), so there
+///         is none to add from this source; the two-channel combo's normal channel needs that amp's own drawing, which
+///         was not found. The 60 W a side and the Hi-Treble fit Roland's 1984 JC-120H head (Wikipedia, "Roland Jazz
+///         Chorus": "1984 JC-120H, 120W head ('Bright' switch changed to 'HI-TREBLE')"); the sheet's title is cut off
+///         in the scan.
+///     </para>
+///     <para>
+///         The chorus is the Chorus block's JC-120 type (<see cref="Modulation.JazzChorusPath" />, from the same
+///         sheet): it needs both of the amp's speakers, one dry and one all chorus, and this block models one power
+///         amp. Not modelled: the reverb (a spring unit between IC1b and IC4b; no amp type here has its reverb built
+///         in, the Reverb block's springs stand in, and its return is silent), the input clamp diodes, the mute FET,
+///         the second power amp (with the chorus off both carry the same signal). Guessed: the power amp's open-loop
+///         gain (80 dB) and
 ///         gain-bandwidth (2 MHz), the rails' source resistance (4 Ω, from the idle and loaded rail voltages at about
 ///         1.2 A of mean draw), the idle current (30 mA) and the output stage's two junctions a side.
 ///     </para>

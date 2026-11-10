@@ -596,7 +596,7 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'Portaflex B-15N Jumped':
         'Ampeg B-15N Portaflex with a cable from channel one to channel two, so both play. Each channel has its own controls: Volume 1, Bass 1, Treble 1, Ultra Hi 1 and Ultra Lo 1; Volume 2 (Control 1), Bass 2 (the Middle knob), Treble 2 (Control 2), Ultra Hi 2 (the Bright switch) and Ultra Lo 2 (Switch 3). Set one channel deep and the other bright and blend them with the volumes.',
       'JC-120':
-        'Roland JC-120 Jazz Chorus (chorus and reverb off): a solid-state clean, very flat and bright, with its diode Distortion on Switch 1.',
+        'Roland JC-120 Jazz Chorus (the 1984 one-channel circuit, reverb off): a solid-state clean, very flat and bright, with its diode Distortion on Switch 1. For its chorus, put a [Chorus block](/manual/blocks/chorus) of type JC-120 after the amp and cab.',
       'Hot Rod Deluxe': 'Fender Hot Rod Deluxe, Normal and Drive channels with More Drive.',
       'Champ 5F1': 'Fender tweed Champ 5F1: single-ended, one knob, breaks up almost at once.',
       'Vibroverb AB763': 'Fender Vibroverb AB763 with its optical vibrato.',
