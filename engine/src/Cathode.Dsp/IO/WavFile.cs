@@ -126,28 +126,8 @@ public static class WavFile {
 
     public static void Write(Stream stream, AudioData audio, WavSampleFormat format = WavSampleFormat.Float32) {
         var channels = audio.Channels.Length;
-        var bytesPerSample = format switch {
-            WavSampleFormat.Pcm16 => 2,
-            WavSampleFormat.Pcm24 => 3,
-            _ => 4
-        };
-        var dataSize = audio.Frames * channels * bytesPerSample;
-
+        WriteHeader(stream, audio.SampleRate, channels, audio.Frames, format);
         using var writer = new BinaryWriter(stream, Encoding.ASCII, true);
-        writer.Write("RIFF"u8);
-        writer.Write(36 + dataSize);
-        writer.Write("WAVE"u8);
-        writer.Write("fmt "u8);
-        writer.Write(16);
-        writer.Write(format == WavSampleFormat.Float32 ? FormatFloat : FormatPcm);
-        writer.Write((ushort)channels);
-        writer.Write(audio.SampleRate);
-        writer.Write(audio.SampleRate * channels * bytesPerSample);
-        writer.Write((ushort)(channels * bytesPerSample));
-        writer.Write((ushort)(bytesPerSample * 8));
-        writer.Write("data"u8);
-        writer.Write(dataSize);
-
         Span<byte> sample = stackalloc byte[4];
         for (var i = 0; i < audio.Frames; i++) {
             for (var c = 0; c < channels; c++) {
@@ -168,6 +148,58 @@ public static class WavFile {
                 }
             }
         }
+    }
+
+    /// <summary>
+    ///     The header of a WAVE file of <paramref name="frames" /> frames. The samples follow, interleaved: this is for
+    ///     a writer that has them a piece at a time (<see cref="WriteFloatFrames" />) instead of in one array.
+    /// </summary>
+    public static void WriteHeader(
+        Stream stream,
+        int sampleRate,
+        int channels,
+        int frames,
+        WavSampleFormat format = WavSampleFormat.Float32
+    ) {
+        var bytesPerSample = format switch {
+            WavSampleFormat.Pcm16 => 2,
+            WavSampleFormat.Pcm24 => 3,
+            _ => 4
+        };
+        var dataSize = frames * channels * bytesPerSample;
+
+        using var writer = new BinaryWriter(stream, Encoding.ASCII, true);
+        writer.Write("RIFF"u8);
+        writer.Write(36 + dataSize);
+        writer.Write("WAVE"u8);
+        writer.Write("fmt "u8);
+        writer.Write(16);
+        writer.Write(format == WavSampleFormat.Float32 ? FormatFloat : FormatPcm);
+        writer.Write((ushort)channels);
+        writer.Write(sampleRate);
+        writer.Write(sampleRate * channels * bytesPerSample);
+        writer.Write((ushort)(channels * bytesPerSample));
+        writer.Write((ushort)(bytesPerSample * 8));
+        writer.Write("data"u8);
+        writer.Write(dataSize);
+    }
+
+    /// <summary>
+    ///     Appends stereo frames as 32-bit float after a <see cref="WriteHeader" /> for two channels.
+    ///     <paramref name="scratch" /> takes the interleaved bytes, 8 per frame, so nothing is allocated.
+    /// </summary>
+    public static void WriteFloatFrames(
+        Stream stream,
+        ReadOnlySpan<float> left,
+        ReadOnlySpan<float> right,
+        Span<byte> scratch
+    ) {
+        for (var i = 0; i < left.Length; i++) {
+            BinaryPrimitives.WriteSingleLittleEndian(scratch[(8 * i)..], left[i]);
+            BinaryPrimitives.WriteSingleLittleEndian(scratch[(8 * i + 4)..], right[i]);
+        }
+
+        stream.Write(scratch[..(8 * left.Length)]);
     }
 
     /// <summary>Scales by 2^(bits-1), matching the reader, and clamps to the representable range.</summary>

@@ -400,17 +400,26 @@ public sealed unsafe class Looper : IDisposable {
     }
 
     /// <summary>
-    ///     Control thread: the loop as it plays (base + layer), for export. Read it while stopped for a clean copy.
+    ///     Control thread: copies the loop as it plays (base + layer) from <paramref name="offset" /> on, for export,
+    ///     and returns how many samples it copied. Read it while stopped for a clean copy.
     /// </summary>
-    public (float[] Left, float[] Right) Snapshot() {
-        var left = new float[Length];
-        var right = new float[Length];
-        for (var i = 0; i < Length; i++) {
-            left[i] = Value(baseLeft, layerLeft, i);
-            right[i] = Value(baseRight, layerRight, i);
+    /// <remarks>
+    ///     The audio thread may change <see cref="Length" /> at any moment, so the caller reads it once and asks for
+    ///     that many samples in all. The range is held inside the capacity, never by the length of the moment: a loop
+    ///     that is erased or recorded during the export gives a useless file, not a read outside the memory.
+    /// </remarks>
+    public int Read(int offset, Span<float> left, Span<float> right) {
+        var count = Math.Min(Math.Min(left.Length, right.Length), Capacity - Math.Max(0, offset));
+        if (offset < 0 || count <= 0) {
+            return 0;
         }
 
-        return (left, right);
+        for (var i = 0; i < count; i++) {
+            left[i] = Value(baseLeft, layerLeft, offset + i);
+            right[i] = Value(baseRight, layerRight, offset + i);
+        }
+
+        return count;
     }
 
     /// <summary>

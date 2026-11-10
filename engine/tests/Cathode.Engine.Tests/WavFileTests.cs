@@ -23,6 +23,28 @@ public class WavFileTests {
         Assert.True(Analysis.NullResidualDb(right, read.Channels[1]) <= maxResidualDb);
     }
 
+    [Fact]
+    public void Frames_written_a_piece_at_a_time_read_back_as_the_whole_file() {
+        var left = Signals.Sine(440, 48_000, 2_500, 0.8f);
+        var right = Signals.Noise(2_500, 4, 0.5f);
+        using var stream = new MemoryStream();
+        var scratch = new byte[8 * 1_024];
+
+        WavFile.WriteHeader(stream, 48_000, 2, left.Length);
+        for (var offset = 0; offset < left.Length; offset += 1_024) {
+            var count = Math.Min(1_024, left.Length - offset);
+            WavFile.WriteFloatFrames(stream, left.AsSpan(offset, count), right.AsSpan(offset, count), scratch);
+        }
+
+        using var whole = new MemoryStream();
+        WavFile.Write(whole, new(48_000, [left, right]));
+        Assert.Equal(whole.ToArray(), stream.ToArray());
+        stream.Position = 0;
+        var read = WavFile.Read(stream);
+        Assert.Equal(left, read.Channels[0]);
+        Assert.Equal(right, read.Channels[1]);
+    }
+
     [Theory]
     [InlineData(0x7FFF_FFF0u)]
     [InlineData(0xFFFF_FFFFu)] // a streaming writer's "unknown length"
