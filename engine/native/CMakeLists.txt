@@ -11,6 +11,11 @@ set(CMAKE_C_VISIBILITY_PRESET hidden)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+# MSVC: the C and C++ runtimes go inside each DLL (/MT), not MSVCP140.dll and VCRUNTIME140.dll beside it (/MD, the
+# default). Those come with the Visual C++ Redistributable, which Windows does not have of its own and the installer
+# does not bring, so on a clean machine the shims would not load. Each shim keeps to a C ABI and frees what it
+# allocates, so a runtime of its own in each is fine. WindowsShimRuntimeTests checks the imports.
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 set(CTH_ARTIFACTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../artifacts/native CACHE PATH
   "Where the libraries go (the .NET build takes them from the default)")
