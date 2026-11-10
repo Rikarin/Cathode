@@ -431,13 +431,14 @@ Shared changes: `Pot` takes an audio taper's midpoint (Fender marks it in the pa
   STD issue 4) put the bass pot's foot on the top of the middle track, the track's bottom on ground and the middle cap
   on the **wiper**, as the 5F6-A does (Yeh and Smith's R3, which stays in the response at any middle setting).
   `ToneStackDesign.MiddleOnWiper` says so, on the Marshall stacks (the Tone Stack block's and the graphic EQ's Marshall
-  stack, Plexi, JCM800, Super Lead, JTM45, the reissues, Bluesbreaker) and the Bassman's; the AB763 Fender stack and
+  stack, Plexi, JCM800, Super Lead, JTM45, the reissues, Bluesbreaker), the Bassman's, the Laney GH100L's (drawing
+  2188: VR6's wiper on VR5's top, C22 on VR5's wiper) and the BE-100's (the rev 1.5 trace: VR7's track from the bass
+  pot's foot to ground, C6 on its wiper); the AB763 Fender stack and
   the Vox keep a variable resistor with the middle cap on the bass pot's foot. Before, every stack was the variable
   resistor: within 0.3 dB at noon, but 2 dB short of low end at Bass and Middle 3, 17 dB short at 100 Hz with both at
   0, and silent with all three knobs at 0, where the amps still play (about −14 dB). A stack stage's netlist always
   holds both halves of the middle track (the upper half at its end stop for a variable resistor), so Tonestack Type
-  can put either kind of stack in any stage. Not checked, and left as variable resistors: the BE-100's trace and the
-  Laney GH100L's drawing.
+  can put either kind of stack in any stage.
 - **JCM800 2203** [7] and **2204** [8], from the factory drawings above (read by eye; they agree with the table). V1A with the High/Low jacks as one network stage (Low on switch 1 takes the guitar past V1A into the 470k/470 pF attenuator, as the jack's contact does), V1B cold clipper, V2A, CF on the JCM800 stack (22k mid), master; PI with its input network and grid current. 2203: 4 × EL34, 1.7k OT, 470 V *(unverified)*; 2204: AmpBooks' 460 V, 40 mA, 3.2k. Preamp rails (#198): the drawings give no voltages, so they follow from the drawn chain, R29 10k from the screens' node to node X (inverter and V2) and R8 10k on to V1, with the stages' idle currents through the model's tubes: 387 V and 374 V on the 2203 (8.25 mA through R29), 378 V and 366 V on the 2204; the 310 V and 290 V the models had cannot come from 10k droppers at these currents. V1 runs on its own decoupling node.
 - **JTM45** [9]: both channels and the jumper (switch 1) and normal input (switch 2), Control 1 the normal volume. The two V1 triodes share a 250 µF-bypassed cathode, so they are one triode driving whichever volumes are active (an idle channel's cap hangs on the idle plate's rest voltage behind 100k ‖ r_p). KT66, GZ34, B+ 440 V, 6.6k OT *(unverified)*, rated 30 W. Since #95: the rating was 45 W
   (the name, not the output; Marshall rates the reissue and the 1962 Bluesbreaker 30 W, and the rating sets the

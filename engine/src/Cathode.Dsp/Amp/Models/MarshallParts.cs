@@ -102,13 +102,29 @@ public static class MarshallParts {
         double load
     ) {
         var net = new StageNetlist();
-        var (rail, cathode, top, slope, bottom, middle) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(),
-            net.Node());
+        var (rail, cathode) = (net.Node(), net.Node());
         net.Supply(rail, supply);
         net.Triode(rail, net.Input, cathode, TriodeModel.Ecc83);
         net.Resistor(cathode, StageNetlist.Ground, cathodeResistor);
-        net.Capacitor(cathode, top, stack.TrebleCap, CapacitorRole.Stack);
-        net.Resistor(cathode, slope, stack.SlopeResistor);
+        var wiper = Stack(net, cathode, stack);
+        if (load > 0) {
+            net.Resistor(wiper, StageNetlist.Ground, load);
+        }
+
+        net.Output = wiper;
+        return new(name, net);
+    }
+
+    /// <summary>
+    ///     A TMB stack on <paramref name="source" /> (a follower's cathode) in a netlist: the treble cap to the treble
+    ///     pot's top, the slope resistor, the bass cap to the treble pot's foot, the bass pot as a variable resistor
+    ///     under it and the middle pot wired as <see cref="ToneStackDesign.MiddleOnWiper" /> says. Returns the treble
+    ///     pot's wiper.
+    /// </summary>
+    public static int Stack(StageNetlist net, int source, ToneStackDesign stack) {
+        var (top, slope, bottom, middle) = (net.Node(), net.Node(), net.Node(), net.Node());
+        net.Capacitor(source, top, stack.TrebleCap, CapacitorRole.Stack);
+        net.Resistor(source, slope, stack.SlopeResistor);
         net.Capacitor(slope, bottom, stack.BassCap, CapacitorRole.Stack);
         var wiper = net.Pot(top, bottom, stack.Treble, PotRole.Treble);
         net.Rheostat(bottom, middle, stack.Bass, PotRole.Bass);
@@ -121,12 +137,7 @@ public static class MarshallParts {
             net.Rheostat(middle, StageNetlist.Ground, stack.Middle, PotRole.Middle);
         }
 
-        if (load > 0) {
-            net.Resistor(wiper, StageNetlist.Ground, load);
-        }
-
-        net.Output = wiper;
-        return new(name, net);
+        return wiper;
     }
 
     /// <summary>

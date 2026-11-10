@@ -31,8 +31,9 @@ namespace Cathode.Dsp.Amp.Models;
 /// </remarks>
 public static class LaneyGH100L {
     /// <summary>
-    ///     The drawing's stack, with the 22 nF bass cap (see the remarks). Its middle pot is a variable resistor here;
-    ///     whether the drawing puts the middle cap on the wiper, as the Marshalls do (#196), was not checked.
+    ///     The drawing's stack, with the 22 nF bass cap (see the remarks). Drawing 2188 wires the middle as the
+    ///     Marshalls do: the bass pot VR6's wiper on the top of the 22k-B middle track VR5, the track's foot on ground
+    ///     and C22 22 nF on VR5's wiper.
     /// </summary>
     public static ToneStackDesign Stack { get; } = new(
         "GH100L",
@@ -43,7 +44,7 @@ public static class LaneyGH100L {
         new(220e3, PotTaper.Linear),
         new(1e6, PotTaper.Audio),
         new(22e3, PotTaper.Linear)
-    );
+    ) { MiddleOnWiper = true };
 
     public static AmpDesign Design { get; } = new(
         "Laney GH100L",

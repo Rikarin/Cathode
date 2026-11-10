@@ -61,6 +61,22 @@ public static class FriedmanBE100 {
         Switch3 = "Voice"
     };
 
+    /// <summary>
+    ///     V3B's stack, from the trace: C4 500 pF, R8 33k, C1 and C6 22 nF; VR6 250k-B treble, VR8 1M-A bass and VR7
+    ///     25k-B middle, wired as Marshall does: VR7's whole track from the bass pot's foot to ground, C6 on its wiper.
+    ///     (Declared before the designs, which read it as they are initialised.)
+    /// </summary>
+    public static ToneStackDesign Stack { get; } = new(
+        "BE-100",
+        500e-12,
+        33e3,
+        22e-9,
+        22e-9,
+        new(250e3, PotTaper.Linear),
+        new(1e6, PotTaper.Audio),
+        new(25e3, PotTaper.Linear)
+    ) { MiddleOnWiper = true };
+
     /// <summary>The BE channel: the guitar straight into V2A's stopper.</summary>
     public static AmpDesign Design { get; } = Build("BE-100", [V2A(true)]);
 
@@ -195,14 +211,13 @@ public static class FriedmanBE100 {
     }
 
     /// <summary>
-    ///     The V3B cathode follower, DC-coupled to V3A's plate, on the stack (500 pF, 33k, 22 nF, 22 nF; 250k-B treble,
-    ///     1M-A bass, 25k-B middle); the treble wiper through 220k onto 1M and the 1M-A master, whose wiper is the
-    ///     output. Sat: 100 nF and 10k from the cathode to the clamp and its 1M. Voice off: 500 pF at the cathode.
+    ///     The V3B cathode follower, DC-coupled to V3A's plate, on <see cref="Stack" />; the treble wiper through 220k
+    ///     onto 1M and the 1M-A master, whose wiper is the output. Sat: 100 nF and 10k from the cathode to the clamp and
+    ///     its 1M. Voice off: 500 pF at the cathode.
     /// </summary>
     static NetworkStageDesign Follower() {
         var net = new StageNetlist();
-        var (rail, cathode, top, slope, bottom, middle) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(),
-            net.Node());
+        var (rail, cathode) = (net.Node(), net.Node());
         var (sat, satResistor, clamp, load) = (net.Node(), net.Node(), net.Node(), net.Node());
         net.Supply(rail, V3Supply);
         net.Triode(rail, net.Input, cathode, TriodeModel.Ecc83);
@@ -213,13 +228,7 @@ public static class FriedmanBE100 {
         net.SwitchedResistor(satResistor, clamp, 0, Closed, SwitchRole.Bright);
         net.Resistor(clamp, StageNetlist.Ground, 1e6);
         net.Diodes(clamp, StageNetlist.Ground, DiodeModel.Led, 4, 4);
-        net.Capacitor(cathode, top, 500e-12, CapacitorRole.Stack);
-        net.Resistor(cathode, slope, 33e3);
-        net.Capacitor(slope, bottom, 22e-9, CapacitorRole.Stack);
-        net.Capacitor(slope, middle, 22e-9, CapacitorRole.Stack);
-        var treble = net.Pot(top, bottom, new(250e3, PotTaper.Linear), PotRole.Treble);
-        net.Rheostat(bottom, middle, new(1e6, PotTaper.Audio), PotRole.Bass);
-        net.Rheostat(middle, StageNetlist.Ground, new(25e3, PotTaper.Linear), PotRole.Middle);
+        var treble = MarshallParts.Stack(net, cathode, Stack);
         net.Resistor(treble, load, 220e3);
         net.Resistor(load, StageNetlist.Ground, 1e6);
         var master = net.Pot(load, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Master);
