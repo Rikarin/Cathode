@@ -1,5 +1,6 @@
 import { app, safeStorage } from 'electron';
 import { join } from 'node:path';
+import { log } from './logs';
 import { type SecretCipher, type Settings, SettingsStore } from './settings-store';
 
 export {
@@ -29,7 +30,11 @@ const cipher: SecretCipher = {
 };
 
 let store: SettingsStore | null = null;
-const settingsStore = () => (store ??= new SettingsStore(join(app.getPath('userData'), 'settings.json'), { cipher }));
+const settingsStore = () =>
+  (store ??= new SettingsStore(join(app.getPath('userData'), 'settings.json'), {
+    cipher,
+    log: message => log.warn(message)
+  }));
 
 /**
  * The desktop app's own settings, in userData/settings.json. Presets and assets belong to the Server. Call it once the

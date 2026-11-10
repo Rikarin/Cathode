@@ -158,4 +158,4 @@ The token was typed wrong, or it changed. Read it on the rig with `sudo grep Cat
 
 ## Still stuck?
 
-Note what you did, what you expected and what happened, your system and interface, and Cathode's version, and open an issue on the [project's GitHub page](https://github.com/Rikarin/cathode/issues).
+Note what you did, what you expected and what happened, your system and interface, and Cathode's version. In the desktop app, **Help ▸ Show Logs** opens the folder with its log files: `main.log` for the app itself, and `host.log` and `server.log` for what the two engine processes printed (each also has an older `.1` file once it has grown past 2 MB). Attach them, and open an issue on the [project's GitHub page](https://github.com/Rikarin/cathode/issues).

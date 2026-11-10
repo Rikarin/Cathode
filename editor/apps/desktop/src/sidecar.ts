@@ -76,7 +76,9 @@ export class Sidecar {
     /** What the process prints once it serves: running (again, after a restart). */
     private readonly ready: RegExp,
     private readonly onStatus: () => void,
-    timing: Partial<SidecarTiming> = {}
+    timing: Partial<SidecarTiming> = {},
+    /** Gets every line the process prints, to keep beyond the last few: the log file. */
+    private readonly onLine: (line: string) => void = () => undefined
   ) {
     this.timing = { ...DefaultTiming, ...timing };
     this.status = { name, state: 'stopped', detail: null, pid: null };
@@ -210,6 +212,7 @@ export class Sidecar {
   }
 
   private remember(line: string): void {
+    this.onLine(line);
     this.log.push(line);
     this.log.splice(0, Math.max(0, this.log.length - LogLines));
   }

@@ -63,11 +63,27 @@ export class Sidecars {
     private network: NetworkSettings,
     private readonly editorDirectory: string,
     private readonly dataDirectory: string | null,
-    onStatus: (statuses: SidecarStatus[]) => void
+    onStatus: (statuses: SidecarStatus[]) => void,
+    /** Gets every line either process prints (the log files); the editor is shown only the last few. */
+    onLine: (name: 'host' | 'server', line: string) => void = () => undefined
   ) {
     const notify = () => onStatus(this.statuses());
-    this.host = new Sidecar('host', () => this.hostCommand(), / serving on /, notify);
-    this.server = new Sidecar('server', () => this.serverCommand(), /Now listening on/, notify);
+    this.host = new Sidecar(
+      'host',
+      () => this.hostCommand(),
+      / serving on /,
+      notify,
+      {},
+      line => onLine('host', line)
+    );
+    this.server = new Sidecar(
+      'server',
+      () => this.serverCommand(),
+      /Now listening on/,
+      notify,
+      {},
+      line => onLine('server', line)
+    );
   }
 
   statuses(): SidecarStatus[] {

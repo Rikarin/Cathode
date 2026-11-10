@@ -13,6 +13,7 @@ import { existsSync, statSync } from 'node:fs';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { contentSecurityPolicy } from './content-security-policy';
+import { log, logSidecar, showLogs } from './logs';
 import { networkStatus, newToken, portFree } from './network';
 import {
   type NetworkSettings,
@@ -25,7 +26,14 @@ import {
   validPort,
   validTarget
 } from './settings';
-import { type Connection, type IrCaptureOptions, Sidecars, listDevices, waitForServer } from './sidecars';
+import {
+  type Connection,
+  type IrCaptureOptions,
+  type SidecarStatus,
+  Sidecars,
+  listDevices,
+  waitForServer
+} from './sidecars';
 
 // Cathode desktop: the editor in a sandboxed window, and the engine (cathode-host + cathode-server) as supervised
 // sidecars on loopback (and, when the user allows control from other devices, on the network too), or a remote Server
@@ -34,7 +42,17 @@ import { type Connection, type IrCaptureOptions, Sidecars, listDevices, waitForS
 app.setName('Cathode');
 if (process.env['CATHODE_USER_DATA']) {
   app.setPath('userData', process.env['CATHODE_USER_DATA']); // tests run with throwaway settings
+  app.setPath('logs', join(process.env['CATHODE_USER_DATA'], 'logs')); // and throwaway logs
 }
+
+// What ends the app, or a process of it, goes to main.log first (logs.ts): nothing else would say why afterwards.
+process.on('uncaughtExceptionMonitor', (error, origin) => log.error(origin, error));
+app.on('render-process-gone', (_event, _contents, details) =>
+  log.error(`the editor's process is gone (${details.reason}, exit code ${details.exitCode})`)
+);
+app.on('child-process-gone', (_event, details) =>
+  log.error(`a ${details.type} process is gone (${details.reason}, exit code ${details.exitCode})`)
+);
 
 /**
  * One Cathode at a time (per settings folder): a second would start a second engine on the same audio interface and a
@@ -119,9 +137,26 @@ function connection(): Promise<Connection> {
     settings.network,
     editorFiles,
     process.env['CATHODE_DATA_DIR'] ?? null,
-    statuses => window?.webContents.send('cathode:sidecars', statuses)
+    statuses => {
+      logStatuses(statuses);
+      window?.webContents.send('cathode:sidecars', statuses);
+    },
+    logSidecar
   );
   return sidecars.start();
+}
+
+/** What main.log last said of each engine process, so each change of state is one line there. */
+const loggedStatus = new Map<string, string>();
+
+function logStatuses(statuses: SidecarStatus[]): void {
+  for (const status of statuses) {
+    const text = `${status.state}${status.detail ? ` (${status.detail})` : ''}`;
+    if (loggedStatus.get(status.name) !== text) {
+      loggedStatus.set(status.name, text);
+      log.info(`${status.name === 'host' ? 'engine host' : 'Server'}: ${text}`);
+    }
+  }
 }
 
 function serveEditor(): void {
@@ -201,7 +236,7 @@ function createWindow(): void {
   });
   window.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https://')) {
-      shell.openExternal(url).catch((error: unknown) => console.error('Cathode: could not open', url, error));
+      shell.openExternal(url).catch((error: unknown) => log.error(`could not open ${url}`, error));
     }
 
     return { action: 'deny' };
@@ -209,7 +244,7 @@ function createWindow(): void {
   window.on('closed', () => (window = null));
   window
     .loadURL(devServer ?? `${Scheme}://editor/index.html`)
-    .catch((error: unknown) => console.error('Cathode: the editor did not load', error));
+    .catch((error: unknown) => log.error('the editor did not load', error));
 }
 
 function handleIpc(): void {
@@ -305,13 +340,18 @@ async function validNetwork(value: unknown): Promise<NetworkSettings> {
 
 /**
  * The application menu: Electron's default menus, with Settings… (⌘,) where a Mac app keeps it, in the app menu
- * (and in File elsewhere). It asks the editor to open its Settings dialog.
+ * (and in File elsewhere). It asks the editor to open its Settings dialog. Help has Show Logs: the files a bug report
+ * needs (logs.ts).
  */
 function buildMenu(): void {
   const settings: MenuItemConstructorOptions = {
     label: 'Settings…',
     accelerator: 'CmdOrCtrl+,',
     click: () => window?.webContents.send('cathode:openSettings')
+  };
+  const help: MenuItemConstructorOptions = {
+    role: 'help',
+    submenu: [{ label: 'Show Logs', click: () => showLogs() }]
   };
   const template: MenuItemConstructorOptions[] =
     process.platform === 'darwin'
@@ -335,13 +375,15 @@ function buildMenu(): void {
           { role: 'fileMenu' },
           { role: 'editMenu' },
           { role: 'viewMenu' },
-          { role: 'windowMenu' }
+          { role: 'windowMenu' },
+          help
         ]
       : [
           { label: 'File', submenu: [settings, { type: 'separator' }, { role: 'quit' }] },
           { role: 'editMenu' },
           { role: 'viewMenu' },
-          { role: 'windowMenu' }
+          { role: 'windowMenu' },
+          help
         ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
@@ -364,6 +406,7 @@ app
       return;
     }
 
+    log.info(`Cathode ${app.getVersion()} starting (Electron ${process.versions.electron}, ${process.platform})`);
     settings = await loadSettings();
 
     // Unpackaged, macOS would show Electron's own icon in the Dock.
@@ -386,7 +429,7 @@ app
       }
     });
   })
-  .catch((error: unknown) => console.error('Cathode: startup failed', error));
+  .catch((error: unknown) => log.error('startup failed', error));
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
