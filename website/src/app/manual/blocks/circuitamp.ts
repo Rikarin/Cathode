@@ -234,7 +234,8 @@ distortion. Around 80 to 120 Hz is a good start for chugging rhythm; push it hig
     pretube: `Replaces every 12AX7 in the preamp with another triode: 12AX7 (the usual high-gain tube), 12AY7 (much
 lower gain, the original tweed tube), 5751 (about 30 % less gain than a 12AX7, smoother), 12AT7 (lower gain, more
 current) or 12AU7 (lowest gain). Lower-gain tubes give a cleaner, more open amp with more headroom. Stages that are not
-12AX7s in the original (a 12AT7 phase inverter or reverb driver) keep their own tube. Stock keeps the schematic's
+12AX7s in the original (a 12AT7 phase inverter or reverb driver) keep their own tube; a stage that runs both halves of a
+12AX7 in parallel gets both halves of the chosen tube. Stock keeps the schematic's
 tubes.`,
 
     brightcap: `The value of the model's bright caps, as a percentage of stock. A larger cap lets lower frequencies

@@ -128,6 +128,7 @@ public sealed class ToneStackStage : AmpStage {
         Design = design;
         this.sampleRate = sampleRate;
         tube = design.Tube;
+        PreampSettings.Prepare(tube);
         cathodeResistor = design.CathodeResistor;
         var net = new WdfNetlist();
         var grid = net.Node();

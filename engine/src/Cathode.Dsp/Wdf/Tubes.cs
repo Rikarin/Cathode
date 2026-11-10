@@ -92,6 +92,15 @@ public readonly record struct TriodeModel(
         this with { Kg1 = Kg1 / count, GridConductance = GridConductance * count };
 
     /// <summary>
+    ///     How many <paramref name="single" /> triodes in parallel this one is (<see cref="Paralleled" />): 1 for
+    ///     <paramref name="single" /> itself, 0 for any other tube.
+    /// </summary>
+    public int SectionsOf(TriodeModel single) {
+        var count = (int)Math.Round(single.Kg1 / Kg1);
+        return count >= 1 && this == single.Paralleled(count) ? count : 0;
+    }
+
+    /// <summary>
     ///     The triode with its cut-off knee K_p multiplied by <paramref name="hardness" />: the knee into cut-off
     ///     sharpens (or softens) while the current well above it stays as it is (there E₁ tends to V_pk (1/μ + V_gk /
     ///     √(K_vb + V_pk²)), free of K_p). The Circuit Amp's Preamp Hardness; 1 is the model itself.

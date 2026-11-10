@@ -357,14 +357,7 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
     const double PreampFullScale = 50;
 
     /// <summary>The Preamp Tube choice after Stock.</summary>
-    static readonly TriodeModel?[] PreampTubes = [
-        null,
-        TriodeModel.Ecc83,
-        TriodeModel.TwelveAY7,
-        TriodeModel.FiveSevenFiveOne,
-        TriodeModel.Ecc81,
-        TriodeModel.Ecc82
-    ];
+    static readonly TriodeModel?[] PreampTubes = [null, ..PreampSettings.Substitutes];
 
     /// <summary>
     ///     Per model, which generic advanced controls act on it (<see cref="AmpFeatures" />), looked up here once so
@@ -464,12 +457,9 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
 
     static CircuitAmpBlock() {
         // Every tube table a setting can ask for, built here (control thread), so that changing one on the audio
-        // thread only looks it up.
-        foreach (var tube in PreampTubes) {
-            if (tube is { } model) {
-                TriodeTables.For(model);
-            }
-        }
+        // thread only looks it up. A stage of paralleled triodes builds its own as it is built
+        // (PreampSettings.Prepare).
+        PreampSettings.Prepare(TriodeModel.Ecc83);
 
         foreach (var tube in PowerTubes) {
             if (tube is { } model) {

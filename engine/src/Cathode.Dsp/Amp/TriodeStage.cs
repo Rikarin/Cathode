@@ -151,6 +151,7 @@ public sealed class TriodeStage : AmpStage {
         Design = design;
         this.sampleRate = sampleRate;
         tube = design.Tube;
+        PreampSettings.Prepare(tube);
         cathodeResistor = design.CathodeResistor;
         var net = new WdfNetlist();
         var input = net.Node();

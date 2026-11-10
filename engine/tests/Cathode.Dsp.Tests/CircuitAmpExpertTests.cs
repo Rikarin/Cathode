@@ -424,6 +424,46 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         Assert.InRange(between, -0.5, 0.5);
     }
 
+    [Fact]
+    public void Preamp_tube_replaces_paralleled_twelve_ax7s_with_both_halves_of_the_chosen_tube() {
+        var paralleled = TriodeModel.Ecc83.Paralleled(2);
+        Assert.Equal(2, paralleled.SectionsOf(TriodeModel.Ecc83));
+        Assert.Equal(1, TriodeModel.Ecc83.SectionsOf(TriodeModel.Ecc83));
+        Assert.Equal(0, TriodeModel.Ecc81.SectionsOf(TriodeModel.Ecc83));
+        Assert.Equal(0, TriodeModel.Ecc81.Paralleled(2).SectionsOf(TriodeModel.Ecc83));
+
+        var swap = new PreampSettings(TriodeModel.TwelveAY7);
+        Assert.Equal(TriodeModel.TwelveAY7, swap.TubeFor(TriodeModel.Ecc83));
+        Assert.Equal(TriodeModel.TwelveAY7.Paralleled(2), swap.TubeFor(paralleled));
+        Assert.Equal(TriodeModel.Ecc81, swap.TubeFor(TriodeModel.Ecc81));
+        Assert.Equal(paralleled, PreampSettings.Stock.TubeFor(paralleled));
+    }
+
+    [Theory]
+    [InlineData("Chieftain")] // both preamp triodes are paralleled 12AX7s
+    [InlineData("18 W 1974X")] // the Normal channel's only preamp stage is one
+    public void Preamp_tube_reaches_a_stage_of_paralleled_twelve_ax7s(string model) {
+        var type = AmpDesign.All.ToList().FindIndex(a => a.Name == model);
+        Assert.True(type >= 0, model);
+        float[] Render(float tube) {
+            using var block = TestBlocks.Create<CircuitAmpBlock>(
+                (CircuitAmpBlock.Type, type),
+                (CircuitAmpBlock.PreampTube, tube)
+            );
+            return BlockRender.Mono(block, CircuitAmpBlockTests.Chord(9_600, 0.1f), 64);
+        }
+
+        var stock = Render(0);
+        Assert.Equal(stock, Render(1)); // a 12AX7 for a 12AX7
+        for (var tube = 2; tube <= 5; tube++) {
+            var changed = Render(tube);
+            var difference = Analysis.NullResidualDb(stock, changed) - Analysis.ToDb(Analysis.Rms(stock));
+            output.WriteLine($"{model}, tube {tube}: {difference:0.0} dB from stock");
+            Assert.True(Analysis.AllFinite(changed));
+            Assert.True(difference > -30, $"tube {tube}: {difference:0.0} dB");
+        }
+    }
+
     /// <summary>
     ///     Whether an expert parameter reaches a solid-state amp: not where its panel hides it (the tube parameters);
     ///     the supply's (Variac, B+ Time Const) only once the rails are loaded hard, which this test's chord does not
@@ -506,10 +546,10 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
 
     static bool HasTwelveAX7(AmpStageDesign stage) =>
         stage switch {
-            TriodeStageDesign triode => triode.Tube == TriodeModel.Ecc83,
-            ToneStackStageDesign stack => stack.Tube == TriodeModel.Ecc83,
+            TriodeStageDesign triode => triode.Tube.SectionsOf(TriodeModel.Ecc83) > 0,
+            ToneStackStageDesign stack => stack.Tube.SectionsOf(TriodeModel.Ecc83) > 0,
             NetworkStageDesign network => network.Netlist.Elements.Any(static e =>
-                e.Kind == ElementKind.Triode && e.Triode == TriodeModel.Ecc83
+                e.Kind == ElementKind.Triode && e.Triode.SectionsOf(TriodeModel.Ecc83) > 0
             ),
             _ => false
         };

@@ -313,6 +313,12 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
             )
             .OrderBy(static e => e.Kind)
             .ToArray();
+        foreach (var device in devices) {
+            if (device.Kind == ElementKind.Triode) {
+                PreampSettings.Prepare(device.Triode);
+            }
+        }
+
         var kinds = string.Concat(
             devices.Select(static e => e.Kind switch {
                     ElementKind.Triode => 'T',

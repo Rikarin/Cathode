@@ -226,9 +226,40 @@ public readonly record struct PreampSettings(
 
     /// <summary>
     ///     The triode a stage built with <paramref name="stock" /> runs: <see cref="Tube" /> in place of a 12AX7, the
-    ///     stock tube otherwise (a 12AT7 or a 12AU7 stays what it is).
+    ///     stock tube otherwise (a 12AT7 or a 12AU7 stays what it is). A stage built from both halves of a 12AX7 in
+    ///     parallel (<see cref="TriodeModel.Paralleled" />) gets both halves of the chosen tube.
     /// </summary>
-    public TriodeModel TubeFor(TriodeModel stock) => Tube is { } tube && stock == TriodeModel.Ecc83 ? tube : stock;
+    public TriodeModel TubeFor(TriodeModel stock) {
+        if (Tube is not { } tube) {
+            return stock;
+        }
+
+        return stock.SectionsOf(TriodeModel.Ecc83) switch {
+            0 => stock,
+            1 => tube,
+            var sections => tube.Paralleled(sections)
+        };
+    }
+
+    /// <summary>The tubes the Circuit Amp's Preamp Tube choice puts in place of a 12AX7, in the choice's order.</summary>
+    public static IReadOnlyList<TriodeModel> Substitutes { get; } = [
+        TriodeModel.Ecc83,
+        TriodeModel.TwelveAY7,
+        TriodeModel.FiveSevenFiveOne,
+        TriodeModel.Ecc81,
+        TriodeModel.Ecc82
+    ];
+
+    /// <summary>
+    ///     Builds the tables of every tube <see cref="TubeFor" /> can put in a stage built with
+    ///     <paramref name="stock" />. A stage calls it as it is built (control thread), so that a Preamp Tube change
+    ///     on the audio thread only looks them up.
+    /// </summary>
+    public static void Prepare(TriodeModel stock) {
+        foreach (var tube in Substitutes) {
+            TriodeTables.For(new PreampSettings(tube).TubeFor(stock));
+        }
+    }
 }
 
 /// <summary>
