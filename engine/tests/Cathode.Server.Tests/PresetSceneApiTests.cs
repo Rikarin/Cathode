@@ -57,6 +57,82 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task Undo_after_save_as_new_keeps_the_new_preset_and_leaves_the_original_alone() {
+        var first = await Post("/api/v1/live/save", new SaveRequest("First", true));
+        await Patch("/api/v1/live/blocks/delay1/params?channel=A", new Dictionary<string, float> { ["time"] = 700 });
+        var second = await Post("/api/v1/live/save", new SaveRequest("Second", true));
+        Assert.NotEqual(first.Preset.Id, second.Preset.Id);
+
+        var undone = await Post("/api/v1/live/undo");
+
+        // The edit is undone; the working copy is still the second preset.
+        Assert.Equal(500f, undone.Preset.Blocks.Single(static b => b.Id == "delay1").Channels["A"]["time"]);
+        Assert.Equal((second.Preset.Id, "Second"), (undone.Preset.Id, undone.Preset.Name));
+
+        await Post("/api/v1/live/save", new SaveRequest());
+        Assert.Equal(500f, await StoredTime(second.Preset.Id)); // the save went to the second preset
+        Assert.Equal("First", (await Stored(first.Preset.Id)).Name);
+
+        // Redo keeps the identity too.
+        var redone = await Post("/api/v1/live/redo");
+        Assert.Equal((second.Preset.Id, "Second"), (redone.Preset.Id, redone.Preset.Name));
+        Assert.Equal(700f, redone.Preset.Blocks.Single(static b => b.Id == "delay1").Channels["A"]["time"]);
+    }
+
+    [Fact]
+    public async Task Undo_does_not_take_back_a_rename_or_a_colour_given_in_the_library() {
+        var saved = await Post("/api/v1/live/save", new SaveRequest("Before", true));
+        await Patch("/api/v1/live/blocks/delay1/params?channel=A", new Dictionary<string, float> { ["time"] = 700 });
+        using var renamed = await client.PatchAsJsonAsync(
+            $"/api/v1/presets/{saved.Preset.Id}/metadata",
+            new PresetMetadataRequest("After", "red", true),
+            Token
+        );
+        Assert.Equal(HttpStatusCode.NoContent, renamed.StatusCode);
+
+        var undone = await Post("/api/v1/live/undo");
+
+        Assert.Equal(("After", "red", true), (undone.Preset.Name, undone.Preset.Color, undone.Preset.Favorite));
+        await Post("/api/v1/live/save", new SaveRequest());
+        Assert.Equal("After", (await Stored(saved.Preset.Id)).Name);
+
+        // A rename made as an edit of the working copy is still undone.
+        await Patch("/api/v1/live/info", new PresetInfoRequest("Edited"));
+        Assert.Equal("After", (await Post("/api/v1/live/undo")).Preset.Name);
+    }
+
+    [Fact]
+    public async Task The_unlocked_bypass_read_is_already_current_in_a_change_event() {
+        // Footswitch LEDs read it from the event's handler, without the rig's lock.
+        var rig = server.Services.GetRequiredService<LiveRig>();
+        var seen = new List<(string, bool)>();
+        rig.Changes += change => {
+            if (change.Type is "bypassChanged" or "undo" or "sceneChanged" or "blockRemoved") {
+                lock (seen) {
+                    seen.Add((change.Type, rig.IsBypassed("delay1")));
+                }
+            }
+        };
+
+        await Put("/api/v1/live/blocks/delay1/bypass", new BypassRequest(true));
+        await Post("/api/v1/live/undo");
+        await Put("/api/v1/live/scenes/1/blocks/delay1", new SceneBlockState(true, "B"));
+        await Put("/api/v1/live/scenes/active", new SceneSelectRequest(1));
+        using var removed = await client.DeleteAsync("/api/v1/live/blocks/delay1", Token);
+
+        Assert.Equal(
+            [("bypassChanged", true), ("undo", false), ("sceneChanged", true), ("blockRemoved", false)],
+            seen
+        );
+        Assert.False(rig.IsBypassed("no such block"));
+    }
+
+    async Task<Preset> Stored(string id) => (await client.GetFromJsonAsync<Preset>($"/api/v1/presets/{id}", Token))!;
+
+    async Task<float> StoredTime(string id) =>
+        (await Stored(id)).Blocks.Single(static b => b.Id == "delay1").Channels["A"]["time"];
+
+    [Fact]
     public async Task Scene_ignore_holds_a_block_across_scenes_until_its_channel_stops_ignoring() {
         await Put("/api/v1/live/scenes/1/blocks/delay1", new SceneBlockState(true, "B"));
         var ignoring = await Put(
@@ -341,6 +417,8 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task Telemetry_carries_block_meters_by_id_and_the_output_loudness() {
+        // A block that is only called like a shunt has its meter: shunts are told by type.
+        await Post("/api/v1/live/blocks", new AddBlockRequest("delay", 1, 2, "shunt-delay"));
         using var socket = await server.Server.CreateWebSocketClient()
             .ConnectAsync(new(server.Server.BaseAddress, "ws"), Token);
         var buffer = new byte[256 * 1024];
@@ -348,7 +426,7 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         deadline.CancelAfter(TimeSpan.FromSeconds(30)); // generous: a busy machine; frames come every 33 ms
         JsonNode? blocks = null;
         JsonNode? frame = null;
-        while (blocks?["delay1"] is null) {
+        while (blocks?["shunt-delay"] is null) {
             var result = await socket.ReceiveAsync(buffer, deadline.Token);
             frame = JsonNode.Parse(Encoding.UTF8.GetString(buffer, 0, result.Count))!;
             if (frame["type"]!.GetValue<string>() == "telemetry") {
@@ -357,6 +435,7 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         }
 
         Assert.NotNull(blocks["in1"]);
+        Assert.NotNull(blocks["delay1"]);
         Assert.Null(blocks["shunt-r0c1"]); // shunts have no meter
         Assert.NotNull(frame!["loudnessMomentary"]);
         Assert.NotNull(frame["loudnessShortTerm"]);

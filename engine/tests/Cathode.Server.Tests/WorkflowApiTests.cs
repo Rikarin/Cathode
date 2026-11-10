@@ -1,4 +1,6 @@
 using Cathode.Contracts;
+using Cathode.Server.Rig;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 
@@ -51,6 +53,33 @@ public sealed class WorkflowApiTests : IAsyncLifetime {
         Assert.Equal(string.Empty, cleared.Preset.Name);
         Assert.Equal(14, cleared.Preset.Blocks.Count); // in, 12 shunts, out
         Assert.True(cleared is { Dirty: true, CanUndo: true });
+    }
+
+    [Fact]
+    public async Task A_working_copy_without_a_name_is_not_saved_until_it_is_given_one() {
+        var before = await Post("/api/v1/live/save", new SaveRequest("Full"));
+        await Post("/api/v1/live/clear", new { });
+
+        // What a footswitch's save action sends, or a client that has no dialog to ask for a name.
+        using var nameless = await client.PostAsJsonAsync("/api/v1/live/save", new SaveRequest(), Token);
+        using var blank = await client.PostAsJsonAsync("/api/v1/live/save", new SaveRequest("  ", true), Token);
+
+        Assert.Equal(HttpStatusCode.BadRequest, nameless.StatusCode);
+        Assert.Contains("needs a name", await nameless.Content.ReadAsStringAsync(Token), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.BadRequest, blank.StatusCode);
+        var presets = await client.GetFromJsonAsync<PresetSummary[]>("/api/v1/presets", Token);
+        Assert.DoesNotContain(presets!, static p => string.IsNullOrWhiteSpace(p.Name));
+        var live = await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token);
+        Assert.Equal((before.Preset.Id, true), (live!.Preset.Id, live.Dirty)); // a refused Save As New changed nothing
+
+        // The MIDI scene level step saves the preset it steps: not a nameless one.
+        var stepped = await server.Services.GetRequiredService<LiveRig>().StepSceneLevelAsync(1f);
+        Assert.Equal((1f, true), (stepped.Preset.Scenes[stepped.ActiveScene].Level, stepped.Dirty));
+        var stored = await client.GetFromJsonAsync<Preset>($"/api/v1/presets/{before.Preset.Id}", Token);
+        Assert.Equal(("Full", 0f), (stored!.Name, stored.Scenes[stepped.ActiveScene].Level));
+
+        var named = await Post("/api/v1/live/save", new SaveRequest("Empty"));
+        Assert.Equal(("Empty", false), (named.Preset.Name, named.Dirty));
     }
 
     [Fact]

@@ -36,12 +36,18 @@ public sealed partial class LiveRig(
 
     bool dirty;
 
+    /// <summary>
+    ///     Counts the names the library has given the working copy: a save under a name, a rename in the Library.
+    ///     Undo and redo do not take such a name back (<see cref="StepAsync" />).
+    /// </summary>
+    long naming;
+
     int generation;
     string compiledOversampling = "minimum";
 
     /// <summary>
     ///     Scene Ignore: blocks whose live bypass and channel differ from the active scene's, because their channel
-    ///     ignored the last scene change. Concurrent: footswitch LEDs read it without the lock.
+    ///     ignored the last scene change.
     /// </summary>
     readonly ConcurrentDictionary<string, SceneBlockState> held = new(StringComparer.Ordinal);
 
@@ -61,6 +67,9 @@ public sealed partial class LiveRig(
             )
     ];
 
+    /// <summary>What a save or a rename that would leave a preset without a name is refused with.</summary>
+    const string NeedsName = "A preset needs a name.";
+
     /// <summary>The longest gesture id a parameter change may carry (<see cref="SetParamsAsync" />).</summary>
     public const int MaxGestureLength = 64;
 
@@ -69,12 +78,29 @@ public sealed partial class LiveRig(
 
     public void Dispose() => gate.Dispose();
 
-    /// <summary>Whether a block is bypassed in the active scene (unlocked read for LED feedback).</summary>
-    public bool IsBypassed(string block) => Live(block).Bypassed;
+    /// <summary>
+    ///     Every block's live state as of the last change, for readers that must not wait for the lock (footswitch
+    ///     LEDs, the MIDI bypass toggle). Never changed once published: each change swaps in a new one
+    ///     (<see cref="PublishLive" />). The scenes' own dictionaries are written under the lock and are not safe to
+    ///     read outside it.
+    /// </summary>
+    Dictionary<string, SceneBlockState> published = new(StringComparer.Ordinal);
 
-    /// <summary>What a block is running now: its held state (Scene Ignore) or the active scene's.</summary>
-    public SceneBlockState Live(string block) =>
-        held.TryGetValue(block, out var state) ? state : Volatile.Read(ref preset).Scenes[ActiveScene].StateOf(block);
+    /// <summary>
+    ///     Whether a block is bypassed now (unlocked read for LED feedback): as of the last change, which a listener
+    ///     to <see cref="Changes" /> already sees.
+    /// </summary>
+    public bool IsBypassed(string block) =>
+        Volatile.Read(ref published).TryGetValue(block, out var state) && state.Bypassed;
+
+    /// <summary>
+    ///     What a block is running now: its held state (Scene Ignore) or the active scene's. Inside the lock only.
+    /// </summary>
+    SceneBlockState Live(string block) =>
+        held.TryGetValue(block, out var state) ? state : preset.Scenes[activeScene].StateOf(block);
+
+    /// <summary>Publishes the live states for the unlocked readers (<see cref="IsBypassed" />).</summary>
+    void PublishLive() => Volatile.Write(ref published, LiveStates());
 
     public Task<LiveState> StateAsync() => Locked(() => Task.FromResult(State()));
 
@@ -124,15 +150,24 @@ public sealed partial class LiveRig(
             }
         );
 
+    /// <summary>
+    ///     Stores the working copy, under the request's name if it has one, as a new preset if it asks. A working copy
+    ///     without a name (after Clear) is refused unless the request names it: the library holds no nameless preset.
+    /// </summary>
     public Task<LiveState> SaveAsync(SaveRequest request, long? expected) =>
         Locked(() => {
                 Check(expected);
+                if (string.IsNullOrWhiteSpace(request.Name) && string.IsNullOrWhiteSpace(preset.Name)) {
+                    throw new RigException(400, NeedsName);
+                }
+
                 if (request.AsNew) {
                     preset.Id = Preset.NewId();
                 }
 
                 if (!string.IsNullOrWhiteSpace(request.Name)) {
                     preset.Name = request.Name.Trim();
+                    naming++; // the library's name now: no undo brings the old one back
                 }
 
                 return Task.FromResult(SaveWorkingCopy());
@@ -151,6 +186,10 @@ public sealed partial class LiveRig(
                 CheckCell(request.Row, request.Column);
                 if (preset.Blocks.Count(b => b.Type == request.Type) >= info.MaxInstances) {
                     throw RigException.Conflict($"A preset can hold at most {info.MaxInstances} {info.Name} block(s).");
+                }
+
+                if (request.Id is { } chosen) {
+                    CheckBlockId(chosen);
                 }
 
                 var id = request.Id ?? NextId(request.Type);
@@ -373,7 +412,23 @@ public sealed partial class LiveRig(
                     throw new RigException(400, $"Slot '{slot}' cannot take a {asset.Kind} asset.");
                 }
 
-                await StructuralAsync(p => p.Blocks.Single(b => b.Id == id).Assets[slot] = request.Asset);
+                // A linked block's assets belong to its global block: the preset's other blocks linked to it take the
+                // asset in the same rebuild, and the global block once the engine has accepted it.
+                await StructuralAsync(p => {
+                        var edited = p.Blocks.Single(b => b.Id == id);
+                        edited.Assets[slot] = request.Asset;
+                        MirrorLinked(edited);
+                    }
+                );
+                if (block.Global is { } link) {
+                    globals.Update(g => {
+                            if (g.Blocks.Find(b => b.Id == link) is { } shared) {
+                                shared.Assets[slot] = request.Asset;
+                            }
+                        }
+                    );
+                }
+
                 return Changed("assetChanged", id);
             }
         );
@@ -787,12 +842,28 @@ public sealed partial class LiveRig(
         load++;
     }
 
+    /// <summary>
+    ///     Undo or redo: the working copy's content goes back to the step's. Which preset of the library it is does
+    ///     not: the id (Save As New, or the copy a save of a factory preset made), the factory flag, the colour tag
+    ///     and the favourite flag stay as they are now, and so does a name the library gave it after the step was
+    ///     recorded. Otherwise an undo after Save As New would turn the working copy back into the original preset,
+    ///     and the next save would overwrite that one.
+    /// </summary>
     async Task<LiveState> StepAsync(Func<Func<UndoSnapshot>, UndoSnapshot?> step, string eventType) {
         if (step(Capture) is not { } target) {
             throw RigException.Conflict($"Nothing to {eventType}.");
         }
 
+        var current = preset;
         Restore(target);
+        preset.Id = current.Id;
+        preset.Factory = current.Factory;
+        preset.Color = current.Color;
+        preset.Favorite = current.Favorite;
+        if (target.Naming != naming) {
+            preset.Name = current.Name;
+        }
+
         await SyncGraphAsync();
         return Changed(eventType);
     }
@@ -854,6 +925,7 @@ public sealed partial class LiveRig(
     }
 
     void Publish(RigEvent change) {
+        PublishLive(); // listeners read the live states from their handlers (footswitch LEDs)
         hub.Publish(change, ContractsJsonContext.Default.RigEvent);
         Changes?.Invoke(change);
     }
@@ -874,7 +946,7 @@ public sealed partial class LiveRig(
     }
 
     UndoSnapshot Capture() =>
-        new(JsonSerializer.SerializeToUtf8Bytes(preset, ContractsJsonContext.Default.Preset), activeScene);
+        new(JsonSerializer.SerializeToUtf8Bytes(preset, ContractsJsonContext.Default.Preset), activeScene, naming);
 
     void Restore(UndoSnapshot snapshot) {
         preset = JsonSerializer.Deserialize(snapshot.Json, ContractsJsonContext.Default.Preset)!;
@@ -978,7 +1050,11 @@ public sealed partial class LiveRig(
         try {
             return await operation();
         } finally {
-            gate.Release();
+            try {
+                PublishLive(); // also after an operation that raised no event, or failed and rolled back
+            } finally {
+                gate.Release();
+            }
         }
     }
 

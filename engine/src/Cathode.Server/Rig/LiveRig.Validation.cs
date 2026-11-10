@@ -1,4 +1,5 @@
 using Cathode.Contracts;
+using Cathode.Server.Stores;
 
 namespace Cathode.Server.Rig;
 
@@ -33,6 +34,23 @@ public sealed partial class LiveRig {
     static void CheckGesture(string? gesture) {
         if (gesture is { Length: 0 or > MaxGestureLength }) {
             throw new RigException(400, $"A gesture id is 1 to {MaxGestureLength} characters.");
+        }
+    }
+
+    /// <summary>
+    ///     An id a client chose for a new block: letters, digits and hyphens (it is a path segment of the block's
+    ///     URLs), and not one of the engine's reserved ids.
+    /// </summary>
+    static void CheckBlockId(string id) {
+        if (!StoreIds.IsValid(id)) {
+            throw new RigException(
+                400,
+                $"A block id is 1 to {PresetShape.MaxBlockIdLength} letters, digits and hyphens."
+            );
+        }
+
+        if (PresetShape.BlockIdProblem(id) is { } problem) {
+            throw new RigException(400, problem);
         }
     }
 

@@ -129,7 +129,7 @@ public sealed partial class EngineConnection(
         }
 
         if (answer.SlotIds is { } ids) {
-            Volatile.Write(ref meterMap, MeterMap.Of(generation, ids, answer.MeterIds));
+            Volatile.Write(ref meterMap, MeterMap.Of(generation, ids, answer.MeterIds, Shunts(graph)));
             Volatile.Write(ref modifierMap, new(generation, answer.ModifierTargets ?? []));
         }
     }
@@ -637,6 +637,12 @@ public sealed partial class EngineConnection(
 
     sealed record Work(IpcMessage Message, TaskCompletionSource<IpcMessage>? Reply);
 
+    /// <summary>The ids of a graph's shunts: by type, whatever a block is called.</summary>
+    static HashSet<string> Shunts(GraphDefinition graph) =>
+        graph.Nodes.Where(static n => n.Type == NodeTypes.Shunt)
+            .Select(static n => n.Id)
+            .ToHashSet(StringComparer.Ordinal);
+
     /// <summary>Which block and parameter each modifier of a graph drives (the telemetry region's order).</summary>
     sealed record ModifierMap(int Generation, List<ModifierTarget> Targets);
 
@@ -648,7 +654,12 @@ public sealed partial class EngineConnection(
         const string Peak = "peak";
 
         /// <summary>Each <c>peak</c> in <paramref name="meterIds" /> starts the next slot's meters.</summary>
-        public static MeterMap Of(int generation, List<string> slotIds, string[]? meterIds) {
+        public static MeterMap Of(
+            int generation,
+            List<string> slotIds,
+            string[]? meterIds,
+            HashSet<string> shunts
+        ) {
             // A host that does not list its meters has only the peak per slot.
             var meters = meterIds ?? [..slotIds.Select(static _ => Peak)];
             var blocks = new string?[meters.Length];
@@ -659,7 +670,7 @@ public sealed partial class EngineConnection(
                 }
 
                 var id = slot >= 0 && slot < slotIds.Count ? slotIds[slot] : null;
-                blocks[i] = id is null || id.StartsWith("shunt", StringComparison.Ordinal) ? null : id;
+                blocks[i] = id is null || shunts.Contains(id) ? null : id;
             }
 
             return new(generation, blocks, meters);

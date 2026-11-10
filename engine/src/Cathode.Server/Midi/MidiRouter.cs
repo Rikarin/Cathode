@@ -91,7 +91,7 @@ public sealed partial class MidiRouter : IDisposable {
             return Task.CompletedTask;
         };
         // The looper changes on its own (a recording fills up): poll its LED state now and then.
-        ledRefresh = new(_ => UpdateLeds(), null, TimeSpan.FromMilliseconds(500), TimeSpan.FromMilliseconds(500));
+        ledRefresh = new(_ => RefreshLeds(), null, TimeSpan.FromMilliseconds(500), TimeSpan.FromMilliseconds(500));
         worker = Task.Run(WorkAsync);
     }
 
@@ -474,6 +474,18 @@ public sealed partial class MidiRouter : IDisposable {
             if (message.Problem() is null) {
                 engine.MidiOut(port, message.Bytes());
             }
+        }
+    }
+
+    /// <summary>
+    ///     The timer's LED refresh. An exception that leaves a timer callback ends the process, so a failure here is
+    ///     logged and the next refresh tries again.
+    /// </summary>
+    void RefreshLeds() {
+        try {
+            UpdateLeds();
+        } catch (Exception e) when (e is not OutOfMemoryException) {
+            ActionFailed(logger, "LED refresh", e.Message);
         }
     }
 

@@ -78,6 +78,65 @@ public sealed class PresetShapeTests : IAsyncLifetime {
         );
     }
 
+    [Theory]
+    [InlineData("rig")]
+    [InlineData("global")]
+    [InlineData("global3")]
+    public async Task A_block_with_one_of_the_engines_reserved_ids_is_refused(string id) {
+        // Its knobs would go to the scene level, the tempo or an output's global EQ instead of to the block.
+        var next = (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!.Preset;
+        next.Blocks.Add(new() { Id = id, Type = "volpan", Row = 0, Column = 3 });
+
+        using var replaced = await client.PutAsJsonAsync("/api/v1/live", next, Token);
+        using var added = await client.PostAsJsonAsync(
+            "/api/v1/live/blocks",
+            new AddBlockRequest("volpan", 0, 3, id),
+            Token
+        );
+
+        Assert.Equal(HttpStatusCode.BadRequest, replaced.StatusCode);
+        Assert.Contains("reserved", await replaced.Content.ReadAsStringAsync(Token), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.BadRequest, added.StatusCode);
+        Assert.Contains("reserved", await added.Content.ReadAsStringAsync(Token), StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!.Preset.Blocks,
+            b => b.Id == id
+        );
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("a/b")]
+    [InlineData("two words")]
+    [InlineData("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")] // 65 characters
+    public async Task A_new_block_with_an_id_that_is_not_a_short_plain_name_is_refused(string id) {
+        using var added = await client.PostAsJsonAsync(
+            "/api/v1/live/blocks",
+            new AddBlockRequest("volpan", 0, 3, id),
+            Token
+        );
+
+        Assert.Equal(HttpStatusCode.BadRequest, added.StatusCode);
+        Assert.Contains("A block id is", await added.Content.ReadAsStringAsync(Token), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_block_may_be_called_like_a_global_eq_or_a_shunt_without_being_one() {
+        using var added = await client.PostAsJsonAsync(
+            "/api/v1/live/blocks",
+            new AddBlockRequest("volpan", 0, 3, "global5"),
+            Token
+        );
+        using var shuntish = await client.PostAsJsonAsync(
+            "/api/v1/live/blocks",
+            new AddBlockRequest("volpan", 0, 4, "shunt-volume"),
+            Token
+        );
+
+        Assert.Equal(HttpStatusCode.OK, added.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, shuntish.StatusCode);
+    }
+
     [Fact]
     public async Task More_modifiers_than_the_telemetry_reports_are_refused() {
         var next = (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!.Preset;

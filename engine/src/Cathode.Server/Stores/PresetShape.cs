@@ -1,4 +1,5 @@
 using Cathode.Contracts;
+using Cathode.Ipc;
 using Cathode.Server.Rig;
 
 namespace Cathode.Server.Stores;
@@ -54,7 +55,7 @@ public static class PresetShape {
 
     /// <summary>
     ///     What is wrong with the grid: its size (1 to <see cref="Preset.MaxRows" /> rows and 1 to
-    ///     <see cref="Preset.MaxColumns" /> columns), blocks without an id or type, with a duplicate id, outside the
+    ///     <see cref="Preset.MaxColumns" /> columns), blocks without an id or type, with a reserved, overlong or duplicate id, outside the
     ///     grid or sharing a cell, and cables between blocks that do not exist, not from one column to the next, from
     ///     an output, into an input, or twice. The engine's compiler checks the same grid rules; here a client's
     ///     document is refused with a 400 before it is stored or replaces the working copy.
@@ -74,6 +75,19 @@ public static class PresetShape {
         return problems;
     }
 
+    /// <summary>The longest block id.</summary>
+    public const int MaxBlockIdLength = 64;
+
+    /// <summary>
+    ///     Why a block cannot have the id, or null. The engine addresses the rig's own parameters and the outputs'
+    ///     global EQs by reserved ids (<see cref="IpcBlocks" />): a block with one of them would send its knobs to the
+    ///     scene level, the tempo or a global EQ instead of to itself.
+    /// </summary>
+    public static string? BlockIdProblem(string id) =>
+        IpcBlocks.IsEngineWide(id) ? $"Block id '{id}' is reserved for the engine's own parameters."
+        : id.Length > MaxBlockIdLength ? $"Block id '{id[..MaxBlockIdLength]}...' is longer than 64 characters."
+        : null;
+
     /// <summary>Adds the blocks' problems to <paramref name="problems" />; returns them by id (first wins).</summary>
     static Dictionary<string, PresetBlock> BlockProblems(Preset preset, List<string> problems) {
         var byId = new Dictionary<string, PresetBlock>(StringComparer.Ordinal);
@@ -82,6 +96,10 @@ public static class PresetShape {
             if (string.IsNullOrWhiteSpace(block.Id)) {
                 problems.Add($"A block at ({block.Row},{block.Column}) has no id.");
                 continue;
+            }
+
+            if (BlockIdProblem(block.Id) is { } problem) {
+                problems.Add(problem);
             }
 
             if (!byId.TryAdd(block.Id, block)) {

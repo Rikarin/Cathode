@@ -168,7 +168,8 @@ public sealed partial class LiveRig {
 
     /// <summary>
     ///     MIDI Vol Inc / Vol Dec: steps the active scene's level by <paramref name="deltaDb" /> and saves the preset,
-    ///     so the change is kept.
+    ///     so the change is kept. A working copy without a name (after Clear) is stepped but not saved: the library
+    ///     holds no nameless preset (<see cref="SaveAsync" />).
     /// </summary>
     public Task<LiveState> StepSceneLevelAsync(float deltaDb) =>
         Locked(() => {
@@ -176,8 +177,8 @@ public sealed partial class LiveRig {
                 var scene = preset.Scenes[activeScene];
                 scene.Level = Math.Clamp(scene.Level + deltaDb, -60f, 12f);
                 engine.SetParams(generation, SceneValues());
-                Changed("sceneUpdated", scene: activeScene);
-                return Task.FromResult(SaveWorkingCopy());
+                var stepped = Changed("sceneUpdated", scene: activeScene);
+                return Task.FromResult(string.IsNullOrWhiteSpace(preset.Name) ? stepped : SaveWorkingCopy());
             }
         );
 
