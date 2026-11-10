@@ -42,7 +42,7 @@ This document turns the feature audit ([01](01-axe-fx-iii-audit.md)) and the DSP
 ┌──────────────▼──────────── Cathode.Host (NativeAOT engine) ─────────┐
 │ Control thread: command handling, graph compiler, model/IR loading,  │
 │                 modifier config, MIDI input, tempo                   │
-│        │  SPSC command ring ▼        ▲ retired-graph / event ring    │
+│        │  SPSC command ring ▼        ▲ retired-graph list            │
 │ Audio thread (owned by OS driver):                                    │
 │   drain commands → evaluate modifiers → run compiled graph → meters   │
 │ Analysis thread: tuner (YIN/MPM), RTA FFT, looper disk I/O            │
@@ -276,8 +276,9 @@ Other optional interfaces a block may add:
 
 - Each block instance has a `ParamBank`: `float target[]`, `float current[]`, and a smoother kind per parameter (one-pole, linear ramp, or step for enums).
 - Continuous knob changes **don't use the queue at all**: the control thread writes the target with `Volatile.Write`. Aligned 32-bit writes are atomic.
-- Discrete events go through the **SPSC command ring** of unmanaged structs: bypass, channel change, scene change, tap tempo, looper transport, graph swap. The audio thread drains it at the start of each block.
-- **Modifiers** (1 or 2 sources per knob, combined with Scale/Operation; min/max, start/mid/end, slope, offset, attack/release damping, auto-engage, PC reset, per-channel enable — the Axe-Fx III surface) are evaluated at **control rate**, every 16–32-sample sub-block, and applied as `target = base + depth·curve(source)` with a per-assignment min, max, slew and curve.
+- Discrete events go through the **SPSC command ring** of unmanaged structs (`EngineCommand`): block bypass, tap tempo, looper transport, MIDI note on/off and all-notes-off, and turning a modifier on or off. The audio thread drains it at the start of each callback. A channel or scene change is not a command of its own: the Server sends it as parameter targets and bypass commands. A new graph does not travel through the ring either; it is published through an `Interlocked.Exchange` slot (§5.5).
+- **Modifiers.** The target is the Axe-Fx III surface: 1 or 2 sources per knob combined with Scale/Operation, min/max, start/mid/end, slope, offset, attack/release damping, auto-engage, PC reset and per-channel enable, evaluated at control rate every 16–32 samples.
+- **Modifiers as built:** a parameter has **one** modifier with **one** source (the compiler rejects a second: "has more than one modifier"). A modifier (`ModifierDefinition`, compiled to a `ModifierBinding`) holds its source, min and max in the parameter's units (following a log taper where the parameter has one), a curve (linear, exp, log or scurve) and attack and release damping in ms. It sets the parameter's target to `min..max` of `curve(source)`, slewed. Scale/Operation, start/mid/end, slope, offset and PC reset are not built. Auto-engage is a modifier on the block's `engage` pseudo-parameter, with a mode (`position` or `moving`), a threshold and an off delay. Modifiers are evaluated once per sub-block, and a sub-block is as long as the device buffer (up to `ProcessSpec.MaxBlockSize`), not 16–32 samples.
 - A modifier may be **scoped to one channel** of its block. The compiler is told which modifiers start enabled; when the block changes channel the server sends `setModifier`, and the audio thread turns the binding on, or off with the channel's value restored, so a modulated value still in flight cannot win (`EngineCommandKind.SetModifier`).
 - Filters smooth the **parameter** (cutoff), then recompute coefficients per sub-block. Any filter whose parameters can move uses a TPT/ZDF state-variable filter. *Confirmed in Phase 1:* the property suite found a direct-form biquad emitting +63 dBFS transients during a fast cutoff and Q sweep, and the SVF, which has the same magnitude response, fixed it.
 - RBJ shelves are limited to Q ≤ 1. Above that they develop a large resonant bump at the corner.
@@ -291,7 +292,7 @@ Other optional interfaces a block may add:
 | Block bypass | 5–20 ms crossfade. All six bypass modes: THRU, MUTE, MUTE IN, MUTE OUT, MUTE FX IN, MUTE FX OUT (the "IN" modes give per-block spillover). A block with latency keeps it while bypassed (its dry signal runs through a delay of the same length), so the compiler's alignment of parallel paths and outputs holds | Click-free |
 | Channel | Crossfade between two param sets on the same instance. For amp/cab, double-buffer the state where needed | Gapless |
 | Scene | Batch of bypass, channel and level changes applied atomically in one audio block | Gapless; delays and reverbs spill over naturally |
-| Preset | New `CompiledGraph` is built and pre-rolled off-thread, then **RCU swap** via `Interlocked.Exchange`, then a 10–30 ms crossfade. The old graph's delay and reverb tails keep running muted at their input until they drop below −90 dB or hit a time cap (**spillover**). Retired graphs return through a ring to the control thread for disposal | Gapless, with tails |
+| Preset | New `CompiledGraph` is built and pre-rolled off-thread, then **RCU swap** via `Interlocked.Exchange`, then a 10–30 ms crossfade. The old graph's delay and reverb tails keep running muted at their input until they drop below −90 dB or hit a time cap (**spillover**). Retired graphs return to the control thread for disposal on a list linked through the graphs themselves (`CathodeEngine.Retire`, `CollectRetired`), so retiring one never allocates and the list has no fixed size | Gapless, with tails |
 
 Budget for **two graphs alive at once** during a preset change, and three for one 20 ms fade when presets change faster than tails decay (the graph still spilling from the change before fades out instead of being cut).
 
@@ -308,7 +309,7 @@ Budget for **two graphs alive at once** during a preset change, and three for on
 - **Looper:** one core (`Cathode.Dsp.Looping.Looper`) serves the rig looper and the `looper` grid block. While the running graph holds a Looper block (`ILooperBlock`, found by `CompiledGraph.Looper`), the looper commands, telemetry and WAV export go to it; otherwise to the rig looper. A grid loop belongs to its preset: a swap stops the outgoing graph's looper (it fades out in the spillover), and a preset that brings a Looper block stops the rig looper. The loop memory (up to 300 s) is zeroed lazily by the OS, so only what is recorded is committed.
 - **Spillover:** the old graph retires after 4.1 s of silence (longer than any delay repeat), or 12 s. With the rig's `spillover` off (global *Preset spillover*) it fades out over the 20 ms swap instead, a clean cut. A grid loop is handed over to the next preset's Looper block when it has one (`ILooperBlock.TakeLoop`: the two blocks swap loopers, no allocation).
 - **Scenes and Scene Ignore** (server): the live state of a block is the active scene's, unless its channel has Scene Ignore on, in which case a scene change leaves it held (`LiveState.held`). Manual changes write the active scene and release the hold. Scene Revert recalls a scene from the last-saved copy on selection; a preset loads on its saved scene or the global default scene.
-- **MIDI** is read by the host (CoreMIDI), stamped with engine sample time, and routed by the Server's `MidiRouter`. The router owns learn, mappings and footswitches, and drives LEDs.
+- **MIDI** is read by the host through the shim, stamped with engine sample time, and routed by the Server's `MidiRouter`. The router owns learn, mappings and footswitches, and drives LEDs (§5.10).
 
 ### 5.6 Audio I/O ⚠
 
@@ -401,7 +402,14 @@ Still to come: RMS, per-block CPU, scene state, and binary frames.
 
 ### 5.10 MIDI and controllers
 
-- MIDI is read in the native shim (RtMidi, or JACK MIDI on Linux). Events are timestamped, then converted to **sample offsets** and pushed into the command ring. That gives sample-accurate tap tempo and CC ramps.
+- **Input.** The `cth_audio` shim reads MIDI with a backend per platform, written against the OS API: CoreMIDI on macOS, WinMM on Windows, the ALSA sequencer on Linux. There is no RtMidi and no JACK MIDI. It queues channel messages and system real-time messages from every input port with the OS timestamp; SysEx is dropped.
+- **Host** (`MidiInput`, Cathode.EngineHost): a thread of its own drains the queue every millisecond and gives each message the engine sample time it arrived at. Three things are handled there and then:
+  - MIDI clock, when following it is on: the tempo is set from the last 24 tick intervals. Clock ticks and active sensing go no further.
+  - Note on/off, All Notes Off and All Sound Off are posted to the engine's command ring (`EngineCommand.Note`, `AllNotesOff`), so blocks that follow a keyboard see the held notes without a trip through the Server.
+  - Everything else, the notes included, is forwarded to the Server over IPC in batches (`IpcTypes.Midi`, a list of `MidiEventMessage` with status, data and sample time).
+- **Server** (`MidiRouter`): applies the MIDI channel filter, MIDI learn, the global mappings and the active footswitch layout, and runs the actions one at a time in the order the MIDI arrived, through the same `LiveRig` calls the REST API uses, so the editor sees every change. It also publishes each message to `/ws` as MIDI monitor activity.
+- **What is sample-accurate.** A tap keeps its sample time all the way: the router passes it to the engine as `EngineCommand.TapTempo(sampleTime)`. Nothing else is placed on a sample. A CC bound to an External or Manual controller reaches the engine as an ordinary `setParams` on the rig bank, at whatever callback follows the IPC round trip, and the modifier's damping smooths it.
+- **Output.** The Server sends footswitch LED states and Scene MIDI to the host (`midiOut`), which writes them to the chosen output port, or to every one (`GET /midi/outputs` lists them; the global `midiOutPort` picks).
 - Mappings cover preset and scene change, block bypass and channel, modifier sources, tap tempo, tuner and looper. They live in global settings, and presets can override them.
 - Foot-controller support (generic MIDI controllers in v1) uses an Axe-Fx-like **layout/view model**: layouts, per-switch tap/hold functions, LED colours sent via MIDI where the controller supports it.
 
