@@ -213,10 +213,19 @@ public static class DualRectifier {
     ///     The cathode follower V3B (DC-coupled to V3A's plate, 100k to ground) driving the stack:
     ///     <paramref name="treble" /> to the 250k linear treble pot (<paramref name="modern" /> more while Switch 1 is
     ///     on), 47k slope, 20 nF to the 1M audio bass rheostat, 20 nF from the slope to the 25k linear middle pot's
-    ///     wiper; on the treble wiper the presence shunt (22k, 3 nF and <paramref name="presence" /> as a rheostat,
-    ///     Control 2) and the 1M audio master.
+    ///     wiper (with <paramref name="middleOnWiper" /> off, to the top of the middle wired as a rheostat, as the
+    ///     Solo 50 / Rectoverb drawing has it); on the treble wiper the presence shunt (22k, 3 nF and
+    ///     <paramref name="presence" /> as a rheostat, Control 2) and the 1M audio master, through
+    ///     <paramref name="masterSeries" /> ohms where the drawing has a resistor ahead of it (0 for none).
     /// </summary>
-    internal static StageNetlist FollowerAndStack(double supply, double treble, double? modern, Pot presence) {
+    internal static StageNetlist FollowerAndStack(
+        double supply,
+        double treble,
+        double? modern,
+        Pot presence,
+        bool middleOnWiper = true,
+        double masterSeries = 0
+    ) {
         var net = new StageNetlist();
         var (rail, follower, slope, trebleTop, trebleFoot, middleTop) =
             (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
@@ -232,14 +241,26 @@ public static class DualRectifier {
         var wiper = net.Pot(trebleTop, trebleFoot, new(250e3, PotTaper.Linear), PotRole.Treble);
         net.Capacitor(slope, trebleFoot, 20e-9, CapacitorRole.Stack);
         net.Rheostat(trebleFoot, middleTop, new(1e6, PotTaper.Audio), PotRole.Bass);
-        var middle = net.Pot(middleTop, StageNetlist.Ground, new(25e3, PotTaper.Linear), PotRole.Middle);
-        net.Capacitor(slope, middle, 20e-9, CapacitorRole.Stack);
+        Pot middlePot = new(25e3, PotTaper.Linear);
+        if (middleOnWiper) {
+            var middle = net.Pot(middleTop, StageNetlist.Ground, middlePot, PotRole.Middle);
+            net.Capacitor(slope, middle, 20e-9, CapacitorRole.Stack);
+        } else {
+            net.Capacitor(slope, middleTop, 20e-9, CapacitorRole.Stack);
+            net.Rheostat(middleTop, StageNetlist.Ground, middlePot, PotRole.Middle);
+        }
 
         var (shunt, shuntCap) = (net.Node(), net.Node());
         net.Resistor(wiper, shunt, 22e3);
         net.Capacitor(shunt, shuntCap, 3e-9);
         net.Rheostat(shuntCap, StageNetlist.Ground, presence, PotRole.Control2);
-        net.Output = net.Pot(wiper, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Master);
+        var masterTop = wiper;
+        if (masterSeries > 0) {
+            masterTop = net.Node();
+            net.Resistor(wiper, masterTop, masterSeries);
+        }
+
+        net.Output = net.Pot(masterTop, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Master);
         return net;
     }
 }

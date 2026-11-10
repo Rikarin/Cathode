@@ -104,8 +104,41 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
             { "Savage 120", 1, 1, 0 }
         };
 
+    /// <summary>
+    ///     The Rect-o-Verb's V3A and follower are the Dual Rectifier's netlists with its own drawing's wiring: the
+    ///     same V3A at 415 V; the middle a rheostat (one track element) where the Dual Rectifier's is a pot with the
+    ///     cap on its wiper (two); a 250k presence rheostat; and 220k ahead of the lead master, which the Dual
+    ///     Rectifier does not have.
+    /// </summary>
+    [Fact]
+    public void Rect_o_Verb_shares_the_Dual_Rectifiers_stages_with_its_own_stack_wiring() {
+        static IReadOnlyList<StageElement> Stage(string type, string name) =>
+            ((NetworkStageDesign)AmpDesign.All.Single(a => a.Name == type).Preamp.Single(s => s.Name == name))
+            .Netlist.Elements;
+
+        static int Tracks(IReadOnlyList<StageElement> stage, PotRole role) =>
+            stage.Count(e => e.Pot.Ohms > 0 && e.Role == role);
+
+        var (verb, dual) = (Stage("Rect-o-Verb", "V3B"), Stage("Dual Rectifier", "V3B"));
+        Assert.Equal(1, Tracks(verb, PotRole.Middle));
+        Assert.Equal(2, Tracks(dual, PotRole.Middle));
+        Assert.Equal(250e3, verb.Single(static e => e.Pot.Ohms > 0 && e.Role == PotRole.Control2).Pot.Ohms);
+        Assert.Contains(verb, static e => e is { Kind: ElementKind.Capacitor, Value: 500e-12 });
+        Assert.Contains(verb, static e => e is { Kind: ElementKind.Resistor, Value: 220e3 } && e.Pot.Ohms == 0);
+        Assert.DoesNotContain(dual, static e => e is { Kind: ElementKind.Resistor, Value: 220e3 } && e.Pot.Ohms == 0);
+
+        var (fourth, dualFourth) = (Stage("Rect-o-Verb", "V3A"), Stage("Dual Rectifier", "V3A"));
+        Assert.Equal(dualFourth.Count, fourth.Count);
+        Assert.Equal(415, fourth.Single(static e => e.Kind == ElementKind.Supply).Value);
+        foreach (var (mine, theirs) in fourth.Zip(dualFourth)) {
+            Assert.Equal(theirs with { Value = mine.Value }, mine);
+            Assert.True(mine.Kind == ElementKind.Supply || mine.Value == theirs.Value);
+        }
+    }
+
     [Fact]
     public void Panels_name_the_real_controls() {
+
         Assert.Equal(
             ["Channel 2", "Drive Mode", "Tube Rectifier"],
             new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "Lone Star"))
