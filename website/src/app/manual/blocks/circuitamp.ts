@@ -33,8 +33,8 @@ usually go after the Cab, as they would in an effects loop or a studio. The amp 
 **Picking a model.** A short guide by family:
 
 - **Fender clean and edge-of-breakup:** Blackface, Deluxe Reverb, Twin Reverb, Super Reverb, Princeton Reverb,
-  Vibroverb, Vibrolux, Bandmaster, Tremolux, the brownface Concert, Super, Deluxe 6G3 and Vibrolux 6G11. A Twin
-  stays clean longest; a Deluxe or Princeton breaks up early and sweetly.
+  Champ AA764, Vibroverb, Vibrolux, Bandmaster, Tremolux, the brownface Concert, Super, Deluxe 6G3 and Vibrolux
+  6G11. A Twin stays clean longest; a Deluxe or Princeton breaks up early and sweetly.
 - **Tweed (raw, compressed, early breakup):** Champ 5F1, Princeton 5F2-A, Tweed Deluxe 5E3, Bassman 5F6-A, Tweed
   Twin. The *Jumped* versions run both channels at once, the classic way to play them.
 - **British crunch and classic rock:** JTM45, Plexi, Plexi 100W, 1959SLP, 1987X, 1959T Tremolo, Bluesbreaker 1962,
@@ -601,6 +601,8 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'Tremolux AA763': 'Fender Tremolux AA763 with its optical vibrato.',
       'Princeton 5F2-A': 'Fender tweed Princeton 5F2-A: tiny, single-ended, raw.',
       'Princeton AA964': 'Fender blackface-era Princeton AA964 (no reverb).',
+      'Champ AA764':
+        'Fender blackface and silverface Champ AA764: the single-ended 6V6 Champ with a Treble and Bass stack and more feedback.',
       'Vibro-King': 'Fender Vibro-King with its optical vibrato and Fat switch.',
       'Blues Junior': 'Fender Blues Junior III: small EL84 combo with a Fat switch.',
       'BE-100': 'Friedman BE-100, BE channel: hot-rodded Marshall crunch and lead, with Sat, C45 and Voice switches.',

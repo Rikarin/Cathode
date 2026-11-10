@@ -45,6 +45,7 @@ Last updated: 2026-11-10 (88 types, through the Quick Rod, AFD100, DSL100 and JM
 | Tweed Deluxe 5E3 | ✅ Done (6V6s on the drawing's shared 250 Ω cathode resistor) | Tweed Deluxe 5E3, Jumped | T3K: 5E3 kit clone | Volume sweep, both inputs | 1x12 open, Jensen P12R/P12Q |
 | Hot Rod Deluxe (III, Fender drawing 0079604000 rev B) | ✅ Done | Hot Rod Deluxe | — | Any direct-out capture (Drive and Normal, More Drive) | 1x12 open, Celestion G12P-80 |
 | Champ 5F1 | ✅ Done | Champ 5F1 | — | Volume sweep, direct out | 1x8 open |
+| Champ AA764 / Vibro Champ AA764 | ✅ Done, the Champ (Fender drawing AA764, code I-FD: the blackface stack with a fixed 15k, 2.7k feedback into V1B's 47 Ω, 6V6 on 470 Ω at 360 V). The Vibro Champ is the same amp with a tremolo that swings V1B's cathode, which the stage library does not have: not built | Champ AA764 | — | Volume sweep, direct out | 1x8 open |
 | Vibroverb AB763 | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Vibroverb AB763 | — | Direct out, both channels | 1x15 open |
 | Vibrolux Reverb AA964 (there is no AB763 Vibrolux Reverb) | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Vibrolux Reverb AA964 | — | Direct out, both channels | 2x10 open |
 | Bandmaster AB763 | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Bandmaster AB763 | — | Direct out | 2x12 closed |
@@ -189,7 +190,7 @@ number of types.
 
 | Status | Rows |
 |---|---|
-| ✅ Done (78, one of them partly), done as a variant of another model (1), or covered by another type (1) | 80 |
+| ✅ Done (79, one of them partly), done as a variant of another model (1), or covered by another type (1) | 81 |
 | 🔨 In progress | 0 |
 | 📋 Planned (schematic found, not built yet) | 0 |
 | ⏸ Waiting on a schematic or better data | 54 |
@@ -197,7 +198,7 @@ number of types.
 
 ### Circuit Amp types by index
 
-The Circuit Amp block has 91 types. The "Cathode type" column above names them; this is their order in the Type list.
+The Circuit Amp block has 93 types. The "Cathode type" column above names them; this is their order in the Type list.
 
 | # | Type | # | Type | # | Type |
 |---|---|---|---|---|---|
@@ -232,8 +233,10 @@ The Circuit Amp block has 91 types. The "Cathode type" column above names them; 
 | 28 | Hot Cat 30 | 58 | 1987X | 88 | Mark IIC+ Rhythm |
 | 29 | ODS 97 | 59 | 1959T Tremolo | 89 | Mark IV Rhythm 1 |
 |  |  |  |  | 90 | Mark IV Rhythm 2 |
+|  |  |  |  | 91 | Dual Rectifier 3-Ch Orange |
+|  |  |  |  | 92 | Champ AA764 |
 
-Types 81 to 90, the newest, are:
+Types 81 to 90 and 92, the newest, are:
 
 | # | Type | Family | Modelled after |
 |---|---|---|---|
@@ -247,6 +250,7 @@ Types 81 to 90, the newest, are:
 | 88 | Mark IIC+ Rhythm | Mesa/Boogie | Mesa/Boogie Mark IIC+, the rhythm channel (the lead channel is type 21) |
 | 89 | Mark IV Rhythm 1 | Mesa/Boogie | Mesa/Boogie Mark IV, Rhythm 1, the clean channel (the lead channel is type 25) |
 | 90 | Mark IV Rhythm 2 | Mesa/Boogie | Mesa/Boogie Mark IV, Rhythm 2, the crunch channel |
+| 92 | Champ AA764 | Fender | Fender Champ AA764 (blackface and silverface, 5 W, one 6V6GT), Volume, Treble and Bass |
 
 Match quality against the references is in `docs/06-amp-modelling-spec.md` (as-built notes per family) and in the
 manifest's targets. Only the Prometheus clean channel reaches the spec's ESR target; captures with stated knob settings

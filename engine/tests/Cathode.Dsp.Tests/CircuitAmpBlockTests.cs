@@ -67,8 +67,12 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         // across 270 Î© (89 mA a tube, about 31 W of plate dissipation at 390 V).
         // The Tweed Deluxe 5E3's 6V6s, on the drawing's shared 250 Ω with their screens straight on its 5k node, idle
         // close to the rating: 37 mA a tube (Robinette measures 38 mA), about 13 W of the 6V6GT's 14 W.
+        // The Champ AA764's one 6V6 sits on the drawing's 470 Ω with its screen 10 V under a 360 V B+: the drawing's
+        // own 19 V and 350 V are 40 mA and about 12.5 W; the model's tube draws 47 mA there (22 V, inside the
+        // drawing's 20 %), which with B+ for the plate's voltage, as here, is 14.6 W.
         var hot = design.CathodeBias && design.Tube == PentodeModel.EL84 ? 1.45
             : design.CathodeBias && design.Tube == PentodeModel.EL34 ? 1.5
+            : AmpDesign.All[type] == ChampAA764.Design ? 1.05
             : design.CathodeBias && design.Tube == PentodeModel.SixV6GT ? 1
             : 0.9;
         var coldest = design.IdleCurrent < 0.02 ? 0.15 : 0.4;

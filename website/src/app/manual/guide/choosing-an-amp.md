@@ -17,7 +17,7 @@ Simple circuits with little negative feedback (or none) and a tone stack that lo
 ### Fender brownface and blackface (1960s)
 
 Brownface: **Concert 6G12**, **Super 6G4**, **Deluxe 6G3**, **Vibrolux 6G11**.
-Blackface and its relatives: **Blackface** (a generic Deluxe and Twin-style model), **Deluxe Reverb**, **Twin Reverb**, **Super Reverb**, **Princeton Reverb**, **Princeton AA964**, **Vibroverb AB763**, **Vibrolux Reverb AA964**, **Bandmaster AB763**, **Tremolux AA763**.
+Blackface and its relatives: **Blackface** (a generic Deluxe and Twin-style model), **Deluxe Reverb**, **Twin Reverb**, **Super Reverb**, **Princeton Reverb**, **Princeton AA964**, **Champ AA764**, **Vibroverb AB763**, **Vibrolux Reverb AA964**, **Bandmaster AB763**, **Tremolux AA763**.
 
 The classic clean platform: scooped mids, sparkling top, and plenty of headroom in the bigger models. The Twin and Bandmaster stay clean loud; the Deluxe Reverb and Princeton break up sooner and sweeter. Many have their own vibrato (the switch to the **Vibrato Ch**, then **Speed** and **Intensity**). Use them for clean, country, funk, jazz, surf, and as a pedal platform.
 

@@ -33,7 +33,8 @@ public static class Champ {
     /// </summary>
     const double CathodeGain = 25;
 
-    public static AmpDesign Design { get; } = Build("Champ 5F1", FirstStage(false, PotTaper.Audio), SpeakerDesign.OpenBack1x8, -10);
+    public static AmpDesign Design { get; } =
+        Build("Champ 5F1", FirstStage(false, PotTaper.Audio), SpeakerDesign.OpenBack1x8, -10);
 
     /// <summary>
     ///     V1B: 100k, 1.5k unbypassed (the feedback's return), with its grid-plate capacitance; the output is the
@@ -68,29 +69,11 @@ public static class Champ {
                 first,
                 SecondStage()
             ],
-            new(
-                "6V6GT",
-                PentodeModel.SixV6GT,
-                1,
+            Power(
                 340,
-                1,
-                0.035,
-                true,
-                25e-6,
-                5,
-                new CathodyneDesign(TriodeModel.Ecc83, 250, 56e3, 56e3, 1.5e3),
-                20e-9,
-                220e3,
-                1,
-                0,
-                new(1e6, PotTaper.Linear),
-                new(CathodeGain / Math.Sqrt(2), 22e3, 1.5e3, new(1e3, PotTaper.Linear), 1e-12),
-                true,
-                new(8e3),
-                speaker,
+                Feedback(CathodeGain, 22e3, 1.5e3),
                 new(150, 16e-6, 10e3, 8e-6, 22e3, 8e-6, 2e-3, RectifierModel.FiveY3),
-                PowerTopology.SingleEnded,
-                CathodeResistor: 470
+                speaker
             ),
             trim
         ) {
@@ -106,6 +89,51 @@ public static class Champ {
                 Bright = null
             }
         };
+
+    /// <summary>
+    ///     The single-ended 6V6GT the 5F1 and the Champ AA764 (<see cref="ChampAA764" />) share, their drawings
+    ///     agreeing: 0.02 µF into the 220k grid leak, 470 Ω ‖ 25 µF at the cathode, no screen resistor, the 8k : 4 Ω
+    ///     transformer; B+ at the reservoir is <paramref name="supply" />. The phase inverter is a placeholder (the
+    ///     amp is single-ended).
+    /// </summary>
+    internal static PowerAmpDesign Power(
+        double supply,
+        FeedbackDesign feedback,
+        PowerSupplyDesign powerSupply,
+        SpeakerDesign speaker
+    ) =>
+        new(
+            "6V6GT",
+            PentodeModel.SixV6GT,
+            1,
+            supply,
+            1,
+            0.035,
+            true,
+            25e-6,
+            5,
+            new CathodyneDesign(TriodeModel.Ecc83, 250, 56e3, 56e3, 1.5e3),
+            20e-9,
+            220e3,
+            1,
+            0,
+            new(1e6, PotTaper.Linear),
+            feedback,
+            true,
+            new(8e3),
+            speaker,
+            powerSupply,
+            PowerTopology.SingleEnded,
+            CathodeResistor: 470
+        );
+
+    /// <summary>
+    ///     The feedback from the 4 Ω speaker (1/√2 of an 8 Ω secondary's voltage) through <paramref name="resistor" />
+    ///     into <paramref name="shunt" /> under V1B's cathode, with V1B's gain from there to its plate
+    ///     (<paramref name="cathodeGain" />) folded into the tap gain. No presence circuit.
+    /// </summary>
+    internal static FeedbackDesign Feedback(double cathodeGain, double resistor, double shunt) =>
+        new(cathodeGain / Math.Sqrt(2), resistor, shunt, new(1e3, PotTaper.Linear), 1e-12);
 
     /// <summary>
     ///     V1A (100k, 1.5k, bypassed by 25 µF when <paramref name="bypassed" />) and its 0.02 µF into the 1M volume of

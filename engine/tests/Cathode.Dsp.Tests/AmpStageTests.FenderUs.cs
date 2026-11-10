@@ -32,7 +32,8 @@ public partial class AmpStageTests {
             { "Vibro-King", "V4B", 1 },
             { "Blues Junior", "V1B", 0.1 },
             { "Blues Junior", "V1A v", 0.3 },
-            { "Blues Junior", "V2B", 1 }
+            { "Blues Junior", "V2B", 1 },
+            { "Champ AA764", "V1B", 1 }
         };
 
     [Theory]
