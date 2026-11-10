@@ -1,4 +1,5 @@
 using Cathode.Dsp.Blocks;
+using Cathode.Dsp.Parameters;
 using Cathode.Dsp.Pitch;
 using Cathode.Testing;
 
@@ -494,6 +495,89 @@ public class PitchBlockTests(ITestOutputHelper output) {
     }
 
     static double Frequency(int note) => 440 * Math.Pow(2, (note - 69) / 12.0);
+
+    /// <summary>A control each type reads, moved off its default: (id, value, the types it is shown on).</summary>
+    static readonly (string Id, float Value, PitchType[] Types)[] TypeControls = [
+        ("voice1Shift", 5f, [PitchType.Chromatic]),
+        ("voice2Shift", -5f, [PitchType.Chromatic]),
+        ("voice1Harmony", 9f, [PitchType.Diatonic]),
+        ("voice2Harmony", 5f, [PitchType.Diatonic]),
+        ("key", 2f, [PitchType.Diatonic, PitchType.CustomShifter]),
+        ("scale", 1f, [PitchType.Diatonic]),
+        ("voice1Level", -12f, VoiceTypes),
+        ("voice2Pan", -50f, VoiceTypes),
+        ("voice1Delay", 40f, VoiceTypes),
+        ("whammyStart", 5f, [PitchType.Whammy]),
+        ("whammyEnd", -12f, [PitchType.Whammy]),
+        ("pedal", 100f, [PitchType.Whammy]),
+        ("octave1Level", 50f, [PitchType.OctaveDivider]),
+        ("octave2Level", 50f, [PitchType.OctaveDivider]),
+        ("capo", 5f, [PitchType.VirtualCapo]),
+        ("crystalsShift", 7f, [PitchType.Crystals]),
+        ("crystalsTime", 150f, [PitchType.Crystals]),
+        ("crystalsFeedback", 80f, [PitchType.Crystals]),
+        ("arpTempo", 5f, [PitchType.Arpeggiator]),
+        ("arpSteps", 1f, [PitchType.Arpeggiator]),
+        ("arpStep1", 5f, [PitchType.Arpeggiator]),
+        ("arpStep2", 5f, [PitchType.Arpeggiator]),
+        ("custom1A", 1f, [PitchType.CustomShifter])
+    ];
+
+    static PitchType[] VoiceTypes =>
+        [PitchType.Detune, PitchType.Chromatic, PitchType.Diatonic, PitchType.CustomShifter];
+
+    [Theory]
+    [MemberData(nameof(Types))]
+    public void A_type_shows_exactly_the_type_controls_it_reads(int type) {
+        // An A, a second long: time for the tracker, three Crystals repeats and eight arpeggiator steps. The pedal
+        // starts half way, so that both ends of the Whammy's range are heard.
+        var reference = Render();
+
+        foreach (var (id, value, types) in TypeControls) {
+            var param = PitchBlock.Info.Params.Single(p => p.Id == id);
+            var shown = param.TypeLabels![type] != string.Empty;
+            var changed = !Render((PitchBlock.Info.IndexOf(id), value)).SequenceEqual(reference);
+            Assert.Equal(types.Contains((PitchType)type), shown);
+            Assert.True(
+                shown == changed,
+                $"{(PitchType)type}: {id} is {(shown ? "shown" : "hidden")}, changed={changed}"
+            );
+        }
+
+        float[] Render(params (int Index, float Value)[] settings) {
+            using var block = Create([(PitchBlock.Type, type), (PitchBlock.Pedal, 50f), ..settings]);
+            var input = Signals.Sine(220, Rate, 48_000, 0.3f);
+            var (left, right) = BlockRender.Stereo(block, input, input, static _ => 64);
+            return [..left, ..right];
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(Types))]
+    public void The_controls_a_type_hides_do_nothing_on_it(int type) {
+        // Every hidden control moved at once must leave the sound as it was. Learn is left out: it is shown on Diatonic
+        // only, but the key it latches also picks the Custom Shifter's table column.
+        var moved = PitchBlock.Info.Params
+            .Select(static (p, index) => (Param: p, Index: index))
+            .Where(x => x.Param.TypeLabels is { } labels && labels[type] == string.Empty && x.Param.Id != "learn")
+            .Select(static x => (x.Index, Moved(x.Param)))
+            .ToArray();
+        Assert.NotEmpty(moved);
+
+        Assert.Equal(Render(), Render(moved));
+
+        float[] Render(params (int Index, float Value)[] settings) {
+            using var block = Create([(PitchBlock.Type, type), ..settings]);
+            var input = Signals.Sine(220, Rate, 24_000, 0.3f);
+            var (left, right) = BlockRender.Stereo(block, input, input, static _ => 64);
+            return [..left, ..right];
+        }
+
+        static float Moved(ParamDescriptor p) =>
+            p.Kind == ParamKind.Float ? p.Default + 0.5f * ((p.Default < p.Max ? p.Max : p.Min) - p.Default)
+            : p.Default < p.Max ? p.Max
+            : p.Min;
+    }
 
     static PitchBlock Create(params (int Index, float Value)[] settings) {
         var block = new PitchBlock();
