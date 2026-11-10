@@ -85,9 +85,11 @@ jobs:
           # Without a certificate, do not let electron-builder pick one up from the runner's keychain.
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ github.ref == 'refs/heads/master' && secrets.CSC_LINK != '' }}
         run: pnpm dist
-      # The app as packaged, started from where electron-builder left it unpacked beside the installers: it runs the
-      # engine it carries (resources/engine), serves its own editor and stops cleanly, and the sidecar tests pass
-      # against it on this OS. editor.yml runs those tests on Linux only, against a development build.
+      # The app as packaged, from where electron-builder left it unpacked beside the installers: its fuses are set, it
+      # runs the engine it carries (resources/engine), serves its own editor and stops cleanly, and the sidecar tests
+      # pass against it on this OS. The tests start a copy that takes --inspect, which Playwright needs and the
+      # shipped binary refuses (e2e/global-setup.ts). editor.yml runs those tests on Linux only, against a
+      # development build.
       - name: Linux libraries for Electron
         if: runner.os == 'Linux'
         run: pnpm exec playwright install-deps chromium

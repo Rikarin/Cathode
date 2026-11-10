@@ -1,7 +1,8 @@
+import { FuseV1Options, getCurrentFuseWire } from '@electron/fuses';
 import { join } from 'node:path';
 import { expect, freePort, test } from './fixtures';
 import { connection, hosts, mainPid, servers, socketExists } from './processes';
-import { packaged } from './target';
+import { drivenFolder, packaged, packagedApp, shippedFolder } from './target';
 
 // The packaged app, as an installer puts it on a user's machine: its own Electron, the editor inside the asar archive
 // and the published engine in resources/engine. The other specs find the same paths through a development checkout
@@ -23,6 +24,25 @@ test.use({
   // On the network too, which is when the Server is given the editor's files to serve.
   // eslint-disable-next-line no-empty-pattern -- Playwright reads a fixture's dependencies from its first parameter's destructuring; this one has none
   desktopSettings: async ({}, use) => use({ network: { enabled: true, port, token: Token } })
+});
+
+// A fuse as @electron/fuses reads it from the binary: the characters '0' and '1'.
+const Off = 0x30;
+const On = 0x31;
+
+test('the app the installers carry runs only its own code, and the copy under test differs by one fuse', async () => {
+  const shipped = await getCurrentFuseWire(packagedApp(shippedFolder).fuses);
+  expect(shipped).toMatchObject({
+    [FuseV1Options.RunAsNode]: Off,
+    [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: Off,
+    [FuseV1Options.EnableNodeCliInspectArguments]: Off,
+    [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: On,
+    [FuseV1Options.OnlyLoadAppFromAsar]: On
+  });
+
+  // Playwright needs --inspect, so global-setup.ts switched that fuse on in the copy these tests start.
+  const driven = await getCurrentFuseWire(packagedApp(drivenFolder).fuses);
+  expect(driven).toEqual({ ...shipped, [FuseV1Options.EnableNodeCliInspectArguments]: On });
 });
 
 test('it starts the engine it carries, serves its own editor and stops cleanly', async ({ app, window }) => {
