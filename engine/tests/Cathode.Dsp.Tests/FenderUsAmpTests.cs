@@ -26,7 +26,8 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
         "Princeton 5F2-A",
         "Princeton AA964",
         "Vibro-King",
-        "Blues Junior"
+        "Blues Junior",
+        "Classic 30"
     ];
 
     public static TheoryData<string> Models => [..Names];
@@ -50,10 +51,10 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
             (CircuitAmpBlock.Switch2, panel.Switch2)
         ];
 
-        // The Hot Rod Deluxe's Volume and Bright belong to its Normal channel; everything else plays on the default
-        // one.
+        // The Hot Rod Deluxe's Volume and Bright and the Classic 30's Volume belong to their Normal channels;
+        // everything else plays on the default one.
         (int, float) Channel(int index) =>
-            model == "Hot Rod Deluxe" && index is CircuitAmpBlock.Control1 or CircuitAmpBlock.Bright
+            model is "Hot Rod Deluxe" or "Classic 30" && index is CircuitAmpBlock.Control1 or CircuitAmpBlock.Bright
                 ? (CircuitAmpBlock.Switch1, 1f)
                 : (CircuitAmpBlock.Level, 0f);
 
