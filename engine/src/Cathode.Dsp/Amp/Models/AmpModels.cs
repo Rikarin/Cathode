@@ -101,6 +101,7 @@ public sealed partial record AmpDesign {
         MarkIV.Rhythm1,
         MarkIV.Rhythm2,
         DualRectifier3Channel.Orange,
-        Svt.ChannelTwo
+        Svt.ChannelTwo,
+        PortaflexB15.Jumped
     ];
 }

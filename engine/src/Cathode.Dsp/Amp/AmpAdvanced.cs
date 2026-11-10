@@ -17,7 +17,8 @@ public static class AmpFeatures {
         var panel = design.Panel;
         return id switch {
             "stacktype" => preamp.Any(static s => s is ToneStackStageDesign),
-            "stackloc" => preamp.Any(AmpChannel.IsStack),
+            // A stack that is the preamp's only stage has nowhere to move to (the jumped B-15N's one netlist).
+            "stackloc" => preamp.Count > 1 && preamp.Any(AmpChannel.IsStack),
             "t2plate" => HasPlateCap(design, 1),
             "cfcomp" or "cfharm" => preamp.Any(static s => s is ToneStackStageDesign {
                     Driver: StackDriver.CathodeFollower

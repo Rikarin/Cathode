@@ -46,7 +46,7 @@ usually go after the Cab, as they would in an effects loop or a studio. The amp 
 - **High gain:** SLO-100, 5150, 5150III, Dual Rectifier, Dual Rectifier 3-Ch, Dual Rectifier 3-Ch Orange, Triple
   Rectifier, Rect-o-Verb, Mark IIC+ (and its clean rhythm channel, Mark IIC+ Rhythm), Mark IV (and its clean and
   crunch channels, Mark IV Rhythm 1 and Rhythm 2), Mark V, TriAxis, Legacy VL100, Powerball, Savage 120, Prometheus.
-- **Bass:** SVT (and its second channel, SVT Channel 2), Portaflex B-15N, Bassman 135, Bass 400.
+- **Bass:** SVT (and its second channel, SVT Channel 2), Portaflex B-15N (and both its channels jumpered, Portaflex B-15N Jumped), Bassman 135, Bass 400.
 - **Solid state:** JC-120 and Valvestate 8080 (a tube preamp into a transistor power amp). Their tube-only knobs are
   hidden.
 
@@ -81,6 +81,8 @@ low end gets flubby, turn Bass down before reaching for an EQ.`,
     middle: `The tone stack's middle control. On Fender and Marshall stacks it sets the depth of the stack's natural mid
 scoop: at 0 the mids are scooped hardest, at 10 the stack is closest to flat and loudest. Many Fender and Vox amps have
 no middle knob; there the stack's mid resistor is fixed at the stock value.
+
+On the Portaflex B-15N Jumped, which has no middle control, this knob is *Bass 2*, channel two's bass.
 
 On the Powerball this is *Mid Open*, the lead channel's middle pot that works with the Focused switch off (see
 Control 1 and Switch 1); in its channel 1 it is the one middle knob.`,
@@ -591,6 +593,8 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'SVT Channel 2':
         'Ampeg SVT, channel two: the plainer channel, Volume, Bass and Treble with Ultra Hi and Ultra Lo and no midrange controls. With Ultra Lo off its volume network cuts the lows, as on the amp.',
       'Portaflex B-15N': 'Ampeg B-15N Portaflex: warm, round vintage bass. One channel: its two are the same circuit.',
+      'Portaflex B-15N Jumped':
+        'Ampeg B-15N Portaflex with a cable from channel one to channel two, so both play. Each channel has its own controls: Volume 1, Bass 1, Treble 1, Ultra Hi 1 and Ultra Lo 1; Volume 2 (Control 1), Bass 2 (the Middle knob), Treble 2 (Control 2), Ultra Hi 2 (the Bright switch) and Ultra Lo 2 (Switch 3). Set one channel deep and the other bright and blend them with the volumes.',
       'JC-120':
         'Roland JC-120 Jazz Chorus (chorus and reverb off): a solid-state clean, very flat and bright, with its diode Distortion on Switch 1.',
       'Hot Rod Deluxe': 'Fender Hot Rod Deluxe, Normal and Drive channels with More Drive.',

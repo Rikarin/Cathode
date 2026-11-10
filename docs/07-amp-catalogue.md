@@ -168,7 +168,7 @@ built from the documented features and fitted to captures.
 | Amp | Status | Cathode type | References we have | Look for | Typical cab |
 |---|---|---|---|---|---|
 | Ampeg SVT (1970, 6550) | ✅ Done (both channels, each a type; power-amp nodes and OT assumed) | SVT, SVT Channel 2 | — (no free capture found) | Direct-out captures with settings, Ultra Lo, each Mid Freq | 8x10 closed |
-| Ampeg B-15-N Portaflex (1968) | ✅ Done (one channel; the two are the same circuit) | Portaflex B-15N | — | Direct-out captures, Ultra Lo / Hi | 1x15 closed |
+| Ampeg B-15-N Portaflex (1968) | ✅ Done (one channel, the two being the same circuit, and both jumpered as a second type; on the 8 × 10 speaker load: no data for its own cabinet) | Portaflex B-15N, Portaflex B-15N Jumped | — | Direct-out captures, Ultra Lo / Hi | 1x15 ported (Thiele, 1968) |
 | Roland JC-120 (1984 board) | ✅ Done (effect channel, chorus and reverb off, with its Distortion knob and diode clipper on Switch 1, Distortion On; solid state) | JC-120 | — | Direct-out captures, volume sweep, Distortion sweep | 2x12 open |
 | Fender Bassman 100 / 135 (bass) | ✅ Done (the 135, from CBS drawing 014283 with the 100's drawing 010303 for the small print: Bass and Normal channels, Deep, Bright, Master, 12AT7 LTP, 4 × 6L6GC ultralinear; the OT and its screen taps assumed; the 100 is the same preamp with pentode screens) | Bassman 135 | — (no free capture found) | Direct-out captures with settings | 4x12 / 2x15 |
 | Marshall Valvestate 8080 / 8100 | ✅ Done (Marshall drawings PC0689 issue 5 and PC0689P issue 9, vector PDFs at schematicheaven `marshallamps/valvestate80_80w_8080_8100_8412.pdf`; both channels, solid-state power amp; its current feedback not modelled; the preamp-tube parameters act on the boost channel's ECC83) | Valvestate 8080 | — | Captures | 1x12 / 4x12 closed |
@@ -197,7 +197,7 @@ number of types.
 
 ### Circuit Amp types by index
 
-The Circuit Amp block has 93 types. The "Cathode type" column above names them; this is their order in the Type list.
+The Circuit Amp block has 94 types. The "Cathode type" column above names them; this is their order in the Type list.
 
 | # | Type | # | Type | # | Type |
 |---|---|---|---|---|---|
@@ -234,8 +234,9 @@ The Circuit Amp block has 93 types. The "Cathode type" column above names them; 
 |  |  |  |  | 90 | Mark IV Rhythm 2 |
 |  |  |  |  | 91 | Dual Rectifier 3-Ch Orange |
 |  |  |  |  | 92 | SVT Channel 2 |
+|  |  |  |  | 93 | Portaflex B-15N Jumped |
 
-Types 81 to 92, the newest, are:
+Types 81 to 93, the newest, are:
 
 | # | Type | Family | Modelled after |
 |---|---|---|---|
@@ -251,6 +252,7 @@ Types 81 to 92, the newest, are:
 | 90 | Mark IV Rhythm 2 | Mesa/Boogie | Mesa/Boogie Mark IV, Rhythm 2, the crunch channel |
 | 91 | Dual Rectifier 3-Ch Orange | Mesa/Boogie | Mesa/Boogie Dual Rectifier (3-channel), channel 2 |
 | 92 | SVT Channel 2 | Ampeg | Ampeg SVT (1970, 6550), channel two (channel one is type 37) |
+| 93 | Portaflex B-15N Jumped | Ampeg | Ampeg B-15-N Portaflex (1968), both channels jumpered (one channel is type 38) |
 
 Match quality against the references is in `docs/06-amp-modelling-spec.md` (as-built notes per family) and in the
 manifest's targets. Only the Prometheus clean channel reaches the spec's ESR target; captures with stated knob settings
