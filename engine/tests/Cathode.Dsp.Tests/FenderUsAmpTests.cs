@@ -129,6 +129,31 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
         }
     }
 
+    /// <summary>
+    ///     The push-pull Princetons' 125A10B is 8.5k plate to plate (Hammond's figure for its replacement, the 1750E),
+    ///     not the Deluxe Reverb's 6.6k 125A1A.
+    /// </summary>
+    [Theory]
+    [InlineData("Princeton Reverb")]
+    [InlineData("Princeton AA964")]
+    public void The_princetons_output_transformer_is_the_125A10Bs_8500_ohms(string model) {
+        Assert.Equal(8.5e3, Design(model).Power.Transformer.PlateToPlate);
+        Assert.Equal(6.6e3, Design("Deluxe Reverb").Power.Transformer.PlateToPlate);
+    }
+
+    /// <summary>
+    ///     The Hot Rod Deluxe's Presence is the drawing's 25k30C, a reverse audio rheostat under the 0.1 µF: at noon
+    ///     7.5k of the track is left in series with the cap (a linear pot leaves 12.5k), all of it at 0 and none at 10.
+    /// </summary>
+    [Fact]
+    public void The_hot_rod_deluxes_presence_pot_is_the_drawings_reverse_audio_taper() {
+        var feedback = Design("Hot Rod Deluxe").Power.Feedback;
+        Assert.Equal(new Pot(25e3, PotTaper.ReverseAudio, 0.3), feedback.Presence);
+        Assert.Equal(25e3 * 0.1e-6, feedback.PresenceTimes(0).Tau1, 12);
+        Assert.Equal(7.5e3 * 0.1e-6, feedback.PresenceTimes(0.5).Tau1, 12);
+        Assert.Equal(0, feedback.PresenceTimes(1).Tau1, 12);
+    }
+
     [Theory]
     [InlineData("Hot Rod Deluxe", CircuitAmpBlock.Switch2)]
     [InlineData("Vibro-King", CircuitAmpBlock.Switch1)]

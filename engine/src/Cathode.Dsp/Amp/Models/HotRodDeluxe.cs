@@ -40,15 +40,17 @@ namespace Cathode.Dsp.Amp.Models;
 ///     </para>
 ///     <para>
 ///         The pots' tapers are from Fender's part numbers: the Volume, Drive and Bass "250k15A" (15 % at half
-///         rotation), the Master "100k30A" (30 %), the Treble and Middle "B" (linear); the Presence's "25k30C" is taken
-///         as linear. Simplified: the effects loop's op-amps (a 47k / 2.7k divider into a TL072 follower, then a
-///         non-inverting TL072 stage of gain 19.9 and 47k out) are a gain of about 1.06 and are a wire here, so the
-///         return network (0.47 µF, 47k) hangs on the send, which carries its 49.7k divider: about 0.5 dB apart. The
-///         reverb (at 0: its pot's wiper grounds the 470k mixing resistor, which is kept) and the reverb send's 470 pF
-///         / 1M load are left out, as are the 47 pF across the inverter's plates and the two 15 V zeners (1N5245B) that
-///         clamp the Drive channel's output at about ±16 V, which only the Master near full on More Drive reaches (a
-///         diode clipper beside V2B doubled that stage's cost). The J111's on-resistance (30 Ω) is the datasheet
-///         maximum.
+///         rotation), the Master "100k30A" (30 %), the Treble and Middle "B" (linear), the Presence "25k30C" (reverse
+///         audio, 30 %). The drawing wires the Presence (R67) as a rheostat under the 0.1 µF: the wiper is tied to the
+///         cap's end of the track and clockwise moves it to the grounded end, so the resistance left in series with the
+///         cap is the track beyond the wiper, 7.5k of the 25k at noon and none at 10. Simplified: the effects loop's
+///         op-amps (a 47k / 2.7k divider into a TL072 follower, then a non-inverting TL072 stage of gain 19.9 and 47k
+///         out) are a gain of about 1.06 and are a wire here, so the return network (0.47 µF, 47k) hangs on the send,
+///         which carries its 49.7k divider: about 0.5 dB apart. The reverb (at 0: its pot's wiper grounds the 470k
+///         mixing resistor, which is kept) and the reverb send's 470 pF / 1M load are left out, as are the 47 pF across
+///         the inverter's plates and the two 15 V zeners (1N5245B) that clamp the Drive channel's output at about ±16
+///         V, which only the Master near full on More Drive reaches (a diode clipper beside V2B doubled that stage's
+///         cost). The J111's on-resistance (30 Ω) is the datasheet maximum.
 ///     </para>
 /// </remarks>
 public static class HotRodDeluxe {
@@ -93,7 +95,7 @@ public static class HotRodDeluxe {
             1.5e3,
             0,
             new(1e6, PotTaper.Linear),
-            new(1 / Math.Sqrt(2), 47e3, 4.7e3, new(25e3, PotTaper.Linear), 0.1e-6),
+            new(1 / Math.Sqrt(2), 47e3, 4.7e3, new(25e3, PotTaper.ReverseAudio, 0.3), 0.1e-6),
             true,
             new(4.25e3),
             SpeakerDesign.OpenBack1x12,

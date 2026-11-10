@@ -82,6 +82,26 @@ public sealed record SpeakerDesign(
     public static IReadOnlyList<SpeakerDesign> Presets { get; } =
         [OpenBack1x12, OpenBack2x12, OpenBack4x10, Closed4x12, Closed8x10];
 
+    // Stock loads of the models with a speaker none of the presets covers. They are not in Presets, whose order is
+    // saved in presets: a model that uses one has it on Speaker load: Stock.
+
+    /// <summary>
+    ///     An open-back 1 × 8 (Champ): a high, sharp resonance, little voice-coil inductance (typical values).
+    /// </summary>
+    public static SpeakerDesign OpenBack1x8 { get; } = new(6.2, 0.5e-3, 30, 130, 35, 2.5);
+
+    /// <summary>
+    ///     An open-back 1 × 10 (Princeton): a single ten-inch cone, resonating above a twelve with a sharper peak than
+    ///     four of them share (typical values).
+    /// </summary>
+    public static SpeakerDesign OpenBack1x10 { get; } = new(6.2, 0.7e-3, 30, 110, 38, 2.8);
+
+    /// <summary>
+    ///     An open-back 1 × 15 (Vibroverb): a lower resonance than a 12, a little more voice-coil inductance (typical
+    ///     values).
+    /// </summary>
+    public static SpeakerDesign OpenBack1x15 { get; } = new(6.4, 1.3e-3, 25, 75);
+
     /// <summary>The motional resistance, inductance and capacitance of the resonance.</summary>
     public (double Resistance, double Inductance, double Capacitance) Motional =>
         MotionalOf(Resonance, PeakImpedance - Resistance, Q);

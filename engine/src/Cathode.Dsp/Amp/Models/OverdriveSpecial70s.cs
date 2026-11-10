@@ -33,13 +33,23 @@ namespace Cathode.Dsp.Amp.Models;
 ///         path from the bass wiper to the volume's wiper.
 ///     </para>
 ///     <para>
+///         No master volume: none is drawn on the preamp, overdrive or output sheet. The preamp sheet ends on V2's 10
+///         nF and the Normal/Overdrive switch (Normal straight on, Overdrive out to the first trim and back from the
+///         second), and the output sheet starts on a 10 nF into the inverter's grid and its 1M leak, with nothing
+///         between the two. So the model has none either and its Master knob is hidden: the Volume (on the overdrive, the OD
+///         Level trim) is the only level control ahead of the inverter. Later Overdrive Specials have a Master on the
+///         panel (<see cref="OverdriveSpecial" />); whether the amp these sheets were drawn from had one that the
+///         redraws leave out is not known.
+///     </para>
+///     <para>
 ///         Guesses, marked: the power tubes are not named on the drawing (6L6GC, as in Robben Ford's ODS; the 2 × 6L6
 ///         at 457 V gives 50 W); the output transformer (4k, a typical value for a 6L6 pair); the feedback tap (8 Ω);
-///         the 10 nF drawn at V2's output and at the inverter's grid is taken as one part drawn on both sheets; both
-///         trims at half (the output trim is on the panel as OD Level); the 6L6s' idle current (40 mA). The Accent
-///         switch is the Presence knob (Accent): a 10k reverse-audio rheostat in series with the 2.2 µF, so 0 is nearly
-///         off (10k beside the 390 Ω), 10 the switch on, and noon (1k) part way. The balance pot between the inverter's
-///         plate resistors is centred (100k each).
+///         the 10 nF drawn at V2's output and at the inverter's grid is taken as one part drawn on both sheets (as two
+///         parts in series the clean path's corner into the 1M leak would be 32 Hz, not 16 Hz); both trims at half (the
+///         output trim is on the panel as OD Level); the 6L6s' idle current (40 mA). The Accent switch is the Presence
+///         knob (Accent): a 10k reverse-audio rheostat in series with the 2.2 µF, so 0 is nearly off (10k beside the
+///         390 Ω), 10 the switch on, and noon (1k) part way. The balance pot between the inverter's plate resistors is
+///         centred (100k each).
 ///     </para>
 /// </remarks>
 public static class OverdriveSpecial70s {

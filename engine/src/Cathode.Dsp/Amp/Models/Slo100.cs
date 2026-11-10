@@ -165,7 +165,7 @@ public static class Slo100 {
             new(1 / Math.Sqrt(2), 39e3, 4.7e3, new(25e3, PotTaper.Linear), 0.1e-6),
             true,
             new(2.2e3),
-            new(Inductance: 1.4e-3, EddyResistance: 22, Resonance: 95, PeakImpedance: 30, Q: 2.2),
+            SpeakerDesign.Closed4x12,
             // R60 10k 2 W from the screens to B2's 40 µF: 495 V to 378 V is 11.7 mA.
             new(30, 110e-6, 100, 47e-6, 10e3, 40e-6, 11.7e-3),
             InverterInput: null

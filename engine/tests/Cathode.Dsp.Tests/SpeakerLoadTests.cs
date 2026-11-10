@@ -36,6 +36,68 @@ public class SpeakerLoadTests(ITestOutputHelper output) {
     }
 
     /// <summary>
+    ///     Every 1 × 10 combo's stock load is the ten-inch curve (resonating above the 1 × 12's), and so on for the
+    ///     Champ's 8 and the Vibroverb's 15. These stock loads are not Speaker load choices: the saved choices keep
+    ///     their five presets and their order.
+    /// </summary>
+    [Fact]
+    public void The_ten_inch_combos_stock_load_is_a_ten_inch_speakers() {
+        string[] tens = ["Princeton Reverb", "Princeton AA964", "Princeton 5F2-A", "Scout GA-17RVT", "Subway Blues"];
+        foreach (var name in tens) {
+            Assert.Same(SpeakerDesign.OpenBack1x10, Design(name).Power.Speaker);
+        }
+
+        Assert.Same(SpeakerDesign.OpenBack1x8, Design("Champ 5F1").Power.Speaker);
+        Assert.Same(SpeakerDesign.OpenBack1x15, Design("Vibroverb AB763").Power.Speaker);
+        Assert.True(SpeakerDesign.OpenBack1x10.Resonance > SpeakerDesign.OpenBack1x12.Resonance);
+        Assert.True(SpeakerDesign.OpenBack1x8.Resonance > SpeakerDesign.OpenBack1x10.Resonance);
+        Assert.True(SpeakerDesign.OpenBack1x15.Resonance < SpeakerDesign.OpenBack1x12.Resonance);
+
+        Assert.Equal(
+            [
+                SpeakerDesign.OpenBack1x12, SpeakerDesign.OpenBack2x12, SpeakerDesign.OpenBack4x10,
+                SpeakerDesign.Closed4x12, SpeakerDesign.Closed8x10
+            ],
+            SpeakerDesign.Presets
+        );
+        Assert.Equal(
+            SpeakerDesign.Presets.Count + 2,
+            CircuitAmpBlock.Info.Params[CircuitAmpBlock.SpeakerCurve].Options!.Count
+        );
+
+        static AmpDesign Design(string name) => AmpDesign.All.Single(a => a.Name == name);
+    }
+
+    /// <summary>
+    ///     The models heard through a closed 4 × 12 all take the one closed 4 × 12 curve, so their Stock load and the
+    ///     "4x12 Closed" choice are the same load.
+    /// </summary>
+    [Theory]
+    [InlineData("SLO-100")]
+    [InlineData("Mark IIC+")]
+    [InlineData("Mark IV")]
+    [InlineData("Mark V")]
+    [InlineData("5150")]
+    [InlineData("5150III")]
+    [InlineData("Dual Rectifier")]
+    [InlineData("Dual Rectifier 3-Ch")]
+    [InlineData("Triple Rectifier")]
+    [InlineData("Rect-o-Verb")]
+    [InlineData("TriAxis Rhythm")]
+    [InlineData("Powerball")]
+    [InlineData("Savage 120")]
+    [InlineData("Legacy VL100")]
+    [InlineData("Prometheus")]
+    [InlineData("Prometheus Clean")]
+    public void The_closed_4x12_models_share_the_closed_4x12_preset(string name) {
+        var design = AmpDesign.All.Single(a => a.Name == name);
+        Assert.Same(SpeakerDesign.Closed4x12, design.Power.Speaker);
+        var choice = SpeakerDesign.Presets.ToList().IndexOf(SpeakerDesign.Closed4x12) + 1;
+        Assert.Equal("4x12 Closed", CircuitAmpBlock.Info.Params[CircuitAmpBlock.SpeakerCurve].Options![choice]);
+        Assert.Same(design.Power.Speaker, CircuitAmpBlock.LoadFor(choice, (-1, -1)));
+    }
+
+    /// <summary>
     ///     Each speaker's impedance is the textbook Thiele-Small one, <c>Re + Res / (1 + j Qms (f/Fs − Fs/f))</c> with
     ///     <c>Res = Re Qms / Qes</c>, plus the voice coil's semi-inductance: the peak sits at Fs, reaches Re + Res, and
     ///     the top rises with Le.

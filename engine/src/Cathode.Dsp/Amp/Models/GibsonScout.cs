@@ -27,10 +27,10 @@ namespace Cathode.Dsp.Amp.Models;
 ///         at 16 V of cathode (the drawing: 17 V). Assumed: the reverb's footswitch closed (R15 to ground) and its
 ///         drive at 0 (the 2M pot's whole track across the Volume), the recovery plate as 100k ‖ r_p (about 37k); the
 ///         output transformer TF 18-01 at the 6AQ5 datasheet's 10k plate to plate for push-pull class AB1; the supply's
-///         source resistance; the 1 × 12 open-back preset for the 1 × 10. The two 330k-returned grid leaks act as 220k
-///         for the push-pull signal. Not modelled: the reverb (at 0). The tremolo is a bias tremolo into the grid
-///         leaks' return (<see cref="Tremolo" />): Speed and Depth on the Circuit Amp's tremolo parameters, Depth 0 its
-///         footswitch off.
+///         source resistance; the 10 in speaker's impedance curve (<see cref="SpeakerDesign.OpenBack1x10" />). The two
+///         330k-returned grid leaks act as 220k for the push-pull signal. Not modelled: the reverb (at 0). The tremolo
+///         is a bias tremolo into the grid leaks' return (<see cref="Tremolo" />): Speed and Depth on the Circuit
+///         Amp's tremolo parameters, Depth 0 its footswitch off.
 ///     </para>
 /// </remarks>
 public static class GibsonScout {
@@ -92,7 +92,7 @@ public static class GibsonScout {
             new(1, 10e3, 100, new(1e3, PotTaper.Linear), 1e-12),
             false,
             new(10e3),
-            SpeakerDesign.OpenBack1x12,
+            SpeakerDesign.OpenBack1x10,
             new(150, 20e-6, 3.9e3, 20e-6, 4.7e3, 20e-6, 7.9e-3, RectifierModel.EZ81),
             InverterInput: new(0.005e-6, 470e3),
             CathodeResistor: 270

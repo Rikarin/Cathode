@@ -303,7 +303,7 @@ Hobbyist circuit redraws (LiveSPICE `.schx`, readable as XML, not factory docume
 - Stack: Fender, fixed 6.8k mid [src]; 250 pF / 0.1 µ / 0.047 µ *(unverified)*.
 - **Cathodyne PI** on half a 12AX7: 56k plate, 56k cathode, 1k bias, 0.1 µ input [src, mod pages].
 - No grid stoppers or screen resistors from the factory; tremolo modulates the power-tube bias [src].
-- NFB 2.7k [src]. No choke; 20/20/20/20 µ can [src]. Rectifier 5U4GB (AA1164), GZ34 from AA764 [src]. 12–15 W. OT impedance not found.
+- NFB 2.7k [src]. No choke; 20/20/20/20 µ can [src]. Rectifier 5U4GB (AA1164), GZ34 from AA764 [src]. 12–15 W. OT 125A10B (022913): **8.5k : 8Ω**, from Hammond's replacement (1750E, 8,500 Ω C.T., 15 W, listed as equivalent to 125A10B and 022913); no Fender figure found.
 
 **Bassman 5F6-A** — https://robrobinette.com/5F6A_Modifications.htm, https://ampbooks.com/mobile/classic-circuits/fender-bassman-5F6-A/, Yeh & Smith DAFx-06, Dunkel et al. DAFx-16 (§4.3)
 - V1 **12AY7**: 100k plates, shared 820Ω‖250µ; bright channel 100 pF bright cap; coupling 0.02–0.022 µ [src].

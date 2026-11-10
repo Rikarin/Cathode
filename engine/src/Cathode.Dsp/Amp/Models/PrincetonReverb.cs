@@ -22,10 +22,17 @@ namespace Cathode.Dsp.Amp.Models;
 ///         the 8 Ω tap. V3B's own 47 Ω degeneration stays in its stage.
 ///     </para>
 ///     <para>
-///         Unverified: the output transformer (taken as the Deluxe's 6.6k : 8 Ω; Robinette names the Deluxe Reverb's as
-///         a drop-in), B+ (410 V), the supply nodes (320 V at the inverter, 250 V at the preamp, from Robinette's
+///         The output transformer is Fender's 125A10B (022913). Fender published no impedance for it; the 8.5k : 8 Ω
+///         is Hammond's figure for its replacement (the 1750E, "8,500 C.T." and 15 W, listed for the Princeton AA964
+///         and the Princeton Reverb AA1164 as equivalent to 125A10B and 022913; the Deluxe Reverb's 125A1A is 6.6k on
+///         the same list). The higher primary is why a Princeton gives less clean power and clips earlier than a
+///         Deluxe Reverb on the same tubes.
+///     </para>
+///     <para>
+///         Unverified: B+ (410 V), the supply nodes (320 V at the inverter, 250 V at the preamp, from Robinette's
 ///         Stokes-mod page), the 6V6 idle current (22 mA), the resistor standing in for the missing choke (1k), the
-///         coupling cap after V1B (0.02 µF) and the reverb driver's grid leak (1M).
+///         coupling cap after V1B (0.02 µF), the reverb driver's grid leak (1M) and the 10" speaker's impedance curve
+///         (<see cref="SpeakerDesign.OpenBack1x10" />, typical values).
 ///     </para>
 /// </remarks>
 public static class PrincetonReverb {
@@ -102,8 +109,8 @@ public static class PrincetonReverb {
             new(1e6, PotTaper.Linear),
             new(MixerGain, 2.7e3, 47, new(1e3, PotTaper.Linear), 1e-12),
             true,
-            new(6.6e3),
-            SpeakerDesign.OpenBack1x12,
+            new(8.5e3),
+            SpeakerDesign.OpenBack1x10,
             new(150, 20e-6, 1e3, 20e-6, 10e3, 20e-6, 5e-3, RectifierModel.FiveU4)
         ) { BiasTremolo = Tremolo },
         -9

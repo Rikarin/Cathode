@@ -79,7 +79,7 @@ public static class MarkIIC {
             new(1, 3.3e3, 1.5e3, new(250e3, PotTaper.Linear), 4.7e-9) { Series = new(56e3, 3.3e3, 47e-9) },
             true,
             new(2.5e3),
-            new(Inductance: 1.4e-3, EddyResistance: 22, Resonance: 95, PeakImpedance: 30, Q: 2.2),
+            SpeakerDesign.Closed4x12,
             new(30, 120e-6, 100, 47e-6, 10e3, 22e-6, 6e-3),
             Strapped: PentodeModel.EL34,
             StrappedPerSide: 1
