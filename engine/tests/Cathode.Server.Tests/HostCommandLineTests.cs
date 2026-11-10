@@ -184,7 +184,7 @@ public sealed class HostCommandLineTests {
             Assert.DoesNotContain("   at ", output, StringComparison.Ordinal);
 
             var broken = Path.Combine(directory.FullName, "broken.json");
-            await File.WriteAllTextAsync(broken, "{ \"nodes\": [", Token);
+            await File.WriteAllTextAsync(broken, """{ "nodes": [""", Token);
             (exit, output) = await RunHostAsync("--bench-nam", "--graph", broken);
             Assert.Equal(1, exit);
             Assert.StartsWith("error: ", output, StringComparison.Ordinal);

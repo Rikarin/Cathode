@@ -274,15 +274,69 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
     /// </summary>
     public static TheoryData<int, float, double, OversamplingPhase, int> BadSamples =>
         new() {
-            { 0, float.NaN, 48_000, OversamplingPhase.Minimum, 0 },
-            { 0, float.PositiveInfinity, 48_000, OversamplingPhase.Minimum, 0 },
-            { 1, float.NaN, 48_000, OversamplingPhase.Minimum, 0 },
-            { 1, float.NegativeInfinity, 48_000, OversamplingPhase.Minimum, 0 },
-            { 1, float.NaN, 48_000, OversamplingPhase.Linear, 0 },
-            { 1, float.NaN, 96_000, OversamplingPhase.Minimum, 0 },
-            { 1, float.PositiveInfinity, 96_000, OversamplingPhase.Minimum, 2 },
-            { 2, float.NaN, 48_000, OversamplingPhase.Minimum, 0 },
-            { 2, float.PositiveInfinity, 48_000, OversamplingPhase.Minimum, 1 }
+            {
+                0,
+                float.NaN,
+                48_000,
+                OversamplingPhase.Minimum,
+                0
+            },
+            {
+                0,
+                float.PositiveInfinity,
+                48_000,
+                OversamplingPhase.Minimum,
+                0
+            },
+            {
+                1,
+                float.NaN,
+                48_000,
+                OversamplingPhase.Minimum,
+                0
+            },
+            {
+                1,
+                float.NegativeInfinity,
+                48_000,
+                OversamplingPhase.Minimum,
+                0
+            },
+            {
+                1,
+                float.NaN,
+                48_000,
+                OversamplingPhase.Linear,
+                0
+            },
+            {
+                1,
+                float.NaN,
+                96_000,
+                OversamplingPhase.Minimum,
+                0
+            },
+            {
+                1,
+                float.PositiveInfinity,
+                96_000,
+                OversamplingPhase.Minimum,
+                2
+            },
+            {
+                2,
+                float.NaN,
+                48_000,
+                OversamplingPhase.Minimum,
+                0
+            },
+            {
+                2,
+                float.PositiveInfinity,
+                48_000,
+                OversamplingPhase.Minimum,
+                1
+            }
         };
 
     [Theory]
@@ -300,8 +354,10 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         var type = AmpDesign.All.ToList().IndexOf(designs[model]);
         const int At = 9_000;
         var sine = Signals.Sine(220, rate, (int)rate, 0.2f);
+
         float[] Render(float sample) {
-            using var block = new CircuitAmpBlock { OversamplingPhase = phase };
+            using var block = new CircuitAmpBlock();
+            block.OversamplingPhase = phase;
             block.Params.SetTarget(CircuitAmpBlock.Type, type);
             block.Params.SetTarget(CircuitAmpBlock.InputSelect, inputSelect);
             block.Prepare(new(rate, 64));

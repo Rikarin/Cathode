@@ -78,5 +78,6 @@ public static class GlobalShape {
     }
 
     static List<T> Present<T>(List<T>? items)
-        where T : class => [..(items ?? []).Where(static i => i is not null)];
+        where T : class =>
+        [..(items ?? []).Where(static i => i is not null)];
 }

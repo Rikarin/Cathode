@@ -378,7 +378,7 @@ public sealed class FilterBlock() : DspBlock(Info) {
         // The follower runs only while it has a range to move the filter over, so it costs nothing left at 0.
         var following = Params.Current(EnvRange) != 0 || Params.IsRamping(EnvRange);
         var envRange = Params.Advance(EnvRange, io.Length);
-        var sensitivity = (float)Decibels.ToGain(Params.Advance(EnvSensitivity, io.Length));
+        var sensitivity = Decibels.ToGain(Params.Advance(EnvSensitivity, io.Length));
         var attack = TimeCoefficient(Params.Advance(EnvAttack, io.Length), Spec.SampleRate);
         var release = TimeCoefficient(Params.Advance(EnvRelease, io.Length), Spec.SampleRate);
         if (!following) {

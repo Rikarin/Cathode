@@ -22,7 +22,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         pot's foot (the bass cap) and 0.1 µF to the bass pot's foot (the middle cap), 250k bass, 10k middle: the two
 ///         caps are the other way round from the Mark IIC+, IV and V and the TriAxis, whose bass cap is the 0.1 µF
 ///         (re-read for #299: the sheet draws ".047" between the 100k and the junction of the treble and bass pots,
-///         and ".1" between the 100k and the junction of the bass and mid pots); 47 nF into V2B with 3.3M from the 370 V node, 33k cathode, 0.1 µF into 15k; the equaliser:
+///         and ".1" between the 100k and the junction of the bass and mid pots); 47 nF into V2B with 3.3M from the 370 V
+///         node, 33k cathode, 0.1 µF into 15k; the equaliser:
 ///         a PNP follower (470k / 1M bias), the six 50k sliders between the op-amp's inputs, each wiper through 470 Ω
 ///         (680 Ω on the top band), an inductor and a cap to ground (1 H / 22 µF, 1 H / 2.2 µF, 0.35 H / 1 µF, 0.22 H /
 ///         0.22 µF, 0.068 H / 0.15 µF, 0.033 H / 47 nF: 34, 107, 269, 723, 1,570 and 4,040 Hz), 3.3k on the output, 0.1

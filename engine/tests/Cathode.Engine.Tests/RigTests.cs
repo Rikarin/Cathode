@@ -466,8 +466,14 @@ public class RigTests {
     [Fact]
     public void Every_modifier_source_has_a_name_and_a_rig_parameter_where_a_person_sets_it() {
         Assert.Equal(Enum.GetValues<ModSource>().Length, ModNames.Sources.Length);
-        Assert.Equal(RigControls.ManualCount, ModNames.Sources.Count(static s => s.StartsWith("manual", StringComparison.Ordinal)));
-        Assert.Equal(RigControls.ExternalCount, ModNames.Sources.Count(static s => s.StartsWith("ext", StringComparison.Ordinal)));
+        Assert.Equal(
+            RigControls.ManualCount,
+            ModNames.Sources.Count(static s => s.StartsWith("manual", StringComparison.Ordinal))
+        );
+        Assert.Equal(
+            RigControls.ExternalCount,
+            ModNames.Sources.Count(static s => s.StartsWith("ext", StringComparison.Ordinal))
+        );
         foreach (var name in ModNames.Sources.Where(static s =>
                      s.StartsWith("manual", StringComparison.Ordinal) || s.StartsWith("ext", StringComparison.Ordinal)
                  )) {

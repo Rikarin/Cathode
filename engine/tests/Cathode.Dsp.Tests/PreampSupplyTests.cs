@@ -178,7 +178,7 @@ public class PreampSupplyTests {
         var chain = channel.Power.Decoupling;
         Assert.InRange(design.Power.PhaseInverter.Supply - chain.Voltage(0), -3, 3);
         AmpStageDesign[] stages = [
-            ..design.Preamp.SelectMany(static IEnumerable<AmpStageDesign> (s) =>
+            ..design.Preamp.SelectMany(static IEnumerable<AmpStageDesign>(s) =>
                 s is ChannelSwitchStageDesign c ? [..c.Off, ..c.On] : [s]
             )
         ];

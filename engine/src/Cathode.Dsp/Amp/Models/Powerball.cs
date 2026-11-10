@@ -105,7 +105,9 @@ public static class Powerball {
                 ],
                 [
                     new NetworkStageDesign("Ch 1 V5A", ChannelOneGain()) { SupplyNode = 3 },
-                    new TriodeStageDesign("Ch 1 V5B", TriodeModel.Ecc83, SecondRail, 100e3, 1.5e3, 22e-6) { SupplyNode = 2 },
+                    new TriodeStageDesign("Ch 1 V5B", TriodeModel.Ecc83, SecondRail, 100e3, 1.5e3, 22e-6) {
+                        SupplyNode = 2
+                    },
                     new NetworkStageDesign("Ch 1 V6B", ChannelOneThirdStage()) { SupplyNode = 1 }
                 ]
             ) { SupplyNode = 1 },

@@ -87,7 +87,7 @@ public class FilterBlockTests {
     [Fact]
     public void Envelope_opens_the_filter_for_a_loud_signal_and_not_for_a_quiet_one() {
         // A low-pass at 200 Hz that the envelope may open by four octaves, to 3.2 kHz; the tone is at 2 kHz.
-        double GainDb(float amplitude, float range) {
+        static double GainDb(float amplitude, float range) {
             using var block = TestBlocks.Create<FilterBlock>(
                 (FilterBlock.Frequency, 200f),
                 (FilterBlock.EnvRange, range),
@@ -105,7 +105,7 @@ public class FilterBlockTests {
 
     [Fact]
     public void Envelope_sensitivity_makes_a_quiet_signal_open_it_and_a_negative_range_closes_it() {
-        double GainDb(float sensitivity, float frequency, float range) {
+        static double GainDb(float sensitivity, float frequency, float range) {
             using var block = TestBlocks.Create<FilterBlock>(
                 (FilterBlock.Frequency, frequency),
                 (FilterBlock.EnvRange, range),
@@ -130,7 +130,7 @@ public class FilterBlockTests {
             (FilterBlock.EnvRelease, 100f)
         );
         var tail = Signals.Sine(2_000, Rate, 48_000, 0.001f);
-        var input = Signals.Concat(Signals.Sine(2_000, Rate, 9_600, 1f), tail);
+        var input = Signals.Concat(Signals.Sine(2_000, Rate, 9_600), tail);
 
         var output = BlockRender.Mono(block, input, 64);
 
@@ -143,7 +143,7 @@ public class FilterBlockTests {
 
     [Fact]
     public void Envelope_and_ladder_do_not_depend_on_the_callback_size() {
-        float[] Render(int size) {
+        static float[] Render(int size) {
             using var block = TestBlocks.Create<FilterBlock>(
                 (FilterBlock.Type, FilterBlock.Ladder24),
                 (FilterBlock.Frequency, 300f),

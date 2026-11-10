@@ -51,7 +51,7 @@ public sealed class HardwareInputs : IDisposable {
     ///     grid input), so it is ignored there.
     /// </summary>
     public void SetGain(int source, float gain) {
-        if (source > Input1 && source < Count && float.IsFinite(gain)) {
+        if ((source is > Input1 and < Count) && float.IsFinite(gain)) {
             gainTargets[source] = gain;
         }
     }

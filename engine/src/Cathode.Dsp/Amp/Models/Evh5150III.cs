@@ -3,7 +3,8 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     EVH 5150III (100 W), red channel, drawn from the 100S (Stealth): V1A (220k, 1.8k ‖ 1 µF, 10k + 39 pF and 68k at the input, a 68k + 830 pF
+///     EVH 5150III (100 W), red channel, drawn from the 100S (Stealth): V1A (220k, 1.8k ‖ 1 µF, 10k + 39 pF and 68k at the
+///     input, a 68k + 830 pF
 ///     treble shunt on the plate), 470 pF into the gain pot (1M audio, 1 nF bright cap), 470k and 10k into V1B (100k,
 ///     1.8k ‖ 1 µF), 1 nF and a 470k/820k divider into the V2A cold clipper (5.1k unbypassed, 100k plate with 1 nF
 ///     across it), 330k and 220k into V2B (220k, 1.8k ‖ 1 µF), 1M into V3A (220k, 2.2k unbypassed, 100k leak), 1M

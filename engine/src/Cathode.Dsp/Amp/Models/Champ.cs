@@ -33,7 +33,8 @@ public static class Champ {
     /// </summary>
     const double CathodeGain = 25;
 
-    public static AmpDesign Design { get; } = Build("Champ 5F1", FirstStage(false, PotTaper.Audio), SpeakerDesign.OpenBack1x8, -10);
+    public static AmpDesign Design { get; } =
+        Build("Champ 5F1", FirstStage(false, PotTaper.Audio), SpeakerDesign.OpenBack1x8, -10);
 
     /// <summary>
     ///     V1B: 100k, 1.5k unbypassed (the feedback's return), with its grid-plate capacitance; the output is the

@@ -742,7 +742,8 @@ public sealed partial class LiveRig(
         }
 
         values.AddRange(
-            global.Manual.Take(RigControls.ManualCount).Select(static (v, i) => new ParamValue(IpcBlocks.Rig, $"manual{(char)('A' + i)}", v))
+            global.Manual.Take(RigControls.ManualCount)
+                .Select(static (v, i) => new ParamValue(IpcBlocks.Rig, $"manual{(char)('A' + i)}", v))
         );
         values.Add(new(IpcBlocks.Rig, "copyOut2", global.CopyOutput1To2 ? 1 : 0));
         for (var k = 0; k < 4; k++) {

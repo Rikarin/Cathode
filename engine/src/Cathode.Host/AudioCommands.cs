@@ -289,8 +289,7 @@ static class AudioCommands {
     /// </summary>
     static void RequireWritable(string path) {
         var existed = File.Exists(path);
-        using (new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write)) {
-        }
+        using (new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write)) { }
 
         if (!existed) {
             File.Delete(path);

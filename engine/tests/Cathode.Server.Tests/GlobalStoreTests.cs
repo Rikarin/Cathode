@@ -11,7 +11,7 @@ public sealed class GlobalStoreTests : IDisposable {
 
     [Fact]
     public void An_update_replaces_the_file_while_a_reader_holds_it() {
-        var store = new GlobalStore(Options.Create(new ServerOptions { DataDirectory = folder }));
+        using var store = new GlobalStore(Options.Create(new ServerOptions { DataDirectory = folder }));
         store.Update(static g => g.Tempo = 100);
         var path = Path.Combine(folder, "global.json");
         using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)) {
@@ -25,9 +25,8 @@ public sealed class GlobalStoreTests : IDisposable {
     [Fact]
     public async Task Live_changes_are_read_at_once_and_written_and_announced_once_for_a_burst() {
         var path = Path.Combine(folder, "global.json");
-        using var store = new GlobalStore(Options.Create(new ServerOptions { DataDirectory = folder })) {
-            LiveSaveDelay = TimeSpan.FromMilliseconds(400)
-        };
+        using var store = new GlobalStore(Options.Create(new ServerOptions { DataDirectory = folder }));
+        store.LiveSaveDelay = TimeSpan.FromMilliseconds(400);
         store.Update(static g => g.Tempo = 100);
         var written = File.GetLastWriteTimeUtc(path);
         var (_, before) = store.Versioned();
@@ -67,7 +66,8 @@ public sealed class GlobalStoreTests : IDisposable {
     [Fact]
     public void A_live_change_still_waiting_is_written_when_the_store_is_disposed() {
         var options = Options.Create(new ServerOptions { DataDirectory = folder });
-        using (var store = new GlobalStore(options) { LiveSaveDelay = TimeSpan.FromMinutes(10) }) {
+        using (var store = new GlobalStore(options)) {
+            store.LiveSaveDelay = TimeSpan.FromMinutes(10);
             store.UpdateLive(static g => g.Manual[3] = 0.25f);
         }
 
@@ -78,7 +78,8 @@ public sealed class GlobalStoreTests : IDisposable {
     [Fact]
     public void A_durable_update_writes_the_live_changes_before_it_and_announces_them_once() {
         var options = Options.Create(new ServerOptions { DataDirectory = folder });
-        using var store = new GlobalStore(options) { LiveSaveDelay = TimeSpan.FromMinutes(10) };
+        using var store = new GlobalStore(options);
+        store.LiveSaveDelay = TimeSpan.FromMinutes(10);
         var announced = 0;
         store.Changed += _ => announced++;
         store.UpdateLive(static g => g.Manual[0] = 0.5f);

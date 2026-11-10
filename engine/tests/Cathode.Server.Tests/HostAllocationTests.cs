@@ -176,7 +176,7 @@ public sealed class HostAllocationTests : IDisposable {
 
         // Stop and Start with no pause to speak of start a new run too, and still reach the Server.
         var transport = midi.Translate([new(time, 0xFC, 0, 0, 1), new(time, 0xFA, 0, 0, 1)]);
-        Assert.Equal([0xFC, 0xFA], transport!.Select(static m => (int)m.Status));
+        Assert.Equal([0xFC, 0xFA], transport!.Select(static m => m.Status));
         midi.Translate(Ticks(24, Tick100));
         Assert.Equal(140, Tempo(), 0.01);
         midi.Translate(Ticks(1, Tick100));

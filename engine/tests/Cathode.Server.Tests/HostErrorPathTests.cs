@@ -61,7 +61,8 @@ public sealed class HostErrorPathTests : IDisposable {
     [Fact]
     public async Task A_handler_that_throws_answers_with_an_error_and_keeps_the_link() {
         var token = TestContext.Current.CancellationToken;
-        using var service = new EngineHostService(ProcessSpec.Default, "test") { Log = log.Enqueue };
+        using var service = new EngineHostService(ProcessSpec.Default, "test");
+        service.Log = log.Enqueue;
         var failure = new Exception[] { new IOException("disk full"), new UnauthorizedAccessException("not yours") };
         var calls = 0;
         service.NativeMidiSend = (_, _) => throw failure[calls++];
@@ -281,7 +282,8 @@ public sealed class HostErrorPathTests : IDisposable {
 
     [Fact]
     public void Exporting_the_looper_to_a_path_that_cannot_be_written_is_an_error_and_the_next_export_works() {
-        using var service = new EngineHostService(ProcessSpec.Default, "test") { Log = log.Enqueue };
+        using var service = new EngineHostService(ProcessSpec.Default, "test");
+        service.Log = log.Enqueue;
         var folder = Directory.CreateTempSubdirectory("cth-export-");
         try {
             var empty = service.Handle(
@@ -316,7 +318,8 @@ public sealed class HostErrorPathTests : IDisposable {
     public void Exporting_while_the_looper_records_is_answered_and_the_host_keeps_running() {
         // The audio thread keeps appending to the loop while the control thread copies it. Whether such an export
         // succeeds or is refused is the looper's business; the request must be answered either way.
-        using var service = new EngineHostService(ProcessSpec.Default, "test") { Log = log.Enqueue };
+        using var service = new EngineHostService(ProcessSpec.Default, "test");
+        service.Log = log.Enqueue;
         var folder = Directory.CreateTempSubdirectory("cth-export-");
         var running = true;
         var audio = new Thread(() => {

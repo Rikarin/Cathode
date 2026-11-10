@@ -46,6 +46,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     ///     get coarser or later as the buffer grows; a smaller buffer is one sub-block.
     /// </summary>
     public const int ControlBlockSize = 64;
+
     const float TailSilence = 3.2e-5f; // -90 dBFS
 
     /// <summary>

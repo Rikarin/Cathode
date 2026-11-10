@@ -71,7 +71,11 @@ public static class RigControls {
             ..Enumerable.Range(1, 4).SelectMany(static k => Output(k)),
             // Preset-change spillover: on, the outgoing preset's tails ring out; off, it fades out in the swap fade.
             ParamDescriptor.Switch("spillover", "Preset Spillover", true),
-            ..Names("manual", Enumerable.Range(0, ManualCount).Select(static i => ((char)('A' + i)).ToString()), "Manual "),
+            ..Names(
+                "manual",
+                Enumerable.Range(0, ManualCount).Select(static i => ((char)('A' + i)).ToString()),
+                "Manual "
+            ),
             ..Names("scene", Numbers(SceneControllerCount), "Scene Controller "),
             ..Names("ext", Numbers(ExternalCount), "External "),
             // Written by the host's pitch detector (normalised between pitchLow and pitchHigh), not by people.

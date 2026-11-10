@@ -167,7 +167,8 @@ public static class Svt {
     ///     820k + 68k from its middle, a high-pass) and Ultra Lo (<see cref="SwitchRole.Switch2" />: the 150k - 150k
     ///     arm with 2 nF to ground beside the bridge, its 820k shorted, a twin-T notch near 500 Hz); otherwise a wire.
     ///     The two are one three-position rocker on the amp, so this stage never sees both on
-    ///     (<see cref="AmpPanel.ThreeWay" />: Bass Cut wins). The 1M linear volume with the 500 pF Ultra Hi cap (<see cref="SwitchRole.Switch1" />), and V3A (12AU7 half,
+    ///     (<see cref="AmpPanel.ThreeWay" />: Bass Cut wins). The 1M linear volume with the 500 pF Ultra Hi cap
+    ///     (<see cref="SwitchRole.Switch1" />), and V3A (12AU7 half,
     ///     47k, 1.5k unbypassed); out at its plate.
     /// </summary>
     static NetworkStageDesign VolumeStage() {

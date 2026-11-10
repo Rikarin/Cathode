@@ -154,7 +154,8 @@ public class FenderAmpTests(ITestOutputHelper output) {
         var stage = AmpDesign.All.Single(a => a.Name == model).Preamp[0];
         var supply = stage switch {
             ToneStackStageDesign stack => stack.Supply,
-            NetworkStageDesign network => network.Netlist.Elements.First(static e => e.Kind == ElementKind.Supply).Value,
+            NetworkStageDesign network =>
+                network.Netlist.Elements.First(static e => e.Kind == ElementKind.Supply).Value,
             _ => throw new InvalidOperationException(stage.Name)
         };
         var plate = OperatingPoint.CommonCathode(Wdf.TriodeModel.Ecc83, 0, supply, 100e3, 1.5e3).Plate;
@@ -234,7 +235,7 @@ public class FenderAmpTests(ITestOutputHelper output) {
         // The drawing's tone pot has the 500 pF on its far end: at 10 it bypasses the Instrument volume's upper part,
         // and turned down the pot's track comes in series with it. The Microphone channel is the same circuit without
         // the cap, so the Instrument channel's extra treble over it is the bright bypass.
-        double Lift(float tone) {
+        static double Lift(float tone) {
             return Channel(0f) - Channel(1f);
 
             double Channel(float mic) => Analysis.ToDb(Level(4_000, mic) / Level(400, mic));

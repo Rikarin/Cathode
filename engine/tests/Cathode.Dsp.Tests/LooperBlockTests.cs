@@ -142,7 +142,7 @@ public class LooperBlockTests {
 
         // Unrelated playing while the loop starts: none of it may be faded into the loop's first samples.
         looper.Apply(LooperAction.Play);
-        var first = Render(block, Enumerable.Repeat(0.4f, Loop).ToArray());
+        var first = Render(block, [..Enumerable.Repeat(0.4f, Loop)]);
         var second = Render(block, new float[Loop]);
 
         // Play fades in over 2 ms (96 samples); the 10 ms crossfade would have covered 480.

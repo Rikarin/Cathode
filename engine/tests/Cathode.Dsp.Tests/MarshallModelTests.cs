@@ -298,7 +298,7 @@ public class MarshallModelTests(ITestOutputHelper output) {
         Assert.Equal(470, drawn.ScreenResistor);
         Assert.Equal(0, Bluesbreaker.Design.Power.SharedScreenResistor);
 
-        (double Idle, double IdleScreen, double Driven) Run(PowerAmpDesign design) {
+        static (double Idle, double IdleScreen, double Driven) Run(PowerAmpDesign design) {
             var power = new PowerAmp(design, 96_000);
             power.SetSourceResistance(30e3);
             power.Reset();
@@ -373,17 +373,21 @@ public class MarshallModelTests(ITestOutputHelper output) {
     public void The_tone_knobs_all_at_0_still_pass_signal(string model) {
         var type = TypeOf(model);
         var input = Signals.Sine(440, Rate, 24_000, 0.01f);
-        double Level(float knobs) => Analysis.ToDb(
-            Analysis.Rms(
-                Render(
-                    type,
-                    input,
-                    (CircuitAmpBlock.Bass, knobs),
-                    (CircuitAmpBlock.Middle, knobs),
-                    (CircuitAmpBlock.Treble, knobs)
-                ).AsSpan(12_000)
-            )
-        );
+
+        double Level(float knobs) =>
+            Analysis.ToDb(
+                Analysis.Rms(
+                    Render(
+                            type,
+                            input,
+                            (CircuitAmpBlock.Bass, knobs),
+                            (CircuitAmpBlock.Middle, knobs),
+                            (CircuitAmpBlock.Treble, knobs)
+                        )
+                        .AsSpan(12_000)
+                )
+            );
+
         var (noon, closed) = (Level(5), Level(0));
         output.WriteLine($"{model}: {noon:0.0} dB at noon, {closed:0.0} dB with the three at 0");
         Assert.True(closed > noon - 30, $"{closed:0.0} dB with the tone knobs at 0, {noon:0.0} dB at noon");

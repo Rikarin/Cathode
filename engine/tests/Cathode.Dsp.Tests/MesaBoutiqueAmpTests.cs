@@ -515,6 +515,8 @@ public class MesaBoutiqueAmpTests(ITestOutputHelper output) {
     [InlineData("Dual Rectifier 3-Ch Orange", CircuitAmpBlock.Bright)]
     public void Three_channel_presence_pot_follows_the_mode(string type, int shuntMode) {
         double Lift(bool shunt, bool feedback) {
+            return Treble(10f) - Treble(0f);
+
             double Treble(float presence) {
                 using var block = Create(
                     type,
@@ -527,8 +529,6 @@ public class MesaBoutiqueAmpTests(ITestOutputHelper output) {
                 var rendered = BlockRender.Mono(block, Signals.Sine(6_000, Rate, 24_000, 1e-4f), 64);
                 return Analysis.ToDb(Analysis.MagnitudeAt(rendered.AsSpan(12_000).ToArray(), 6_000, Rate));
             }
-
-            return Treble(10f) - Treble(0f);
         }
 
         var (shunt, idle, inFeedback) = (Lift(true, false), Lift(false, false), Lift(false, true));

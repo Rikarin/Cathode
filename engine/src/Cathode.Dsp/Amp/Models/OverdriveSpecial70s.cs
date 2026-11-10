@@ -36,7 +36,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         No master volume: none is drawn on the preamp, overdrive or output sheet. The preamp sheet ends on V2's 10
 ///         nF and the Normal/Overdrive switch (Normal straight on, Overdrive out to the first trim and back from the
 ///         second), and the output sheet starts on a 10 nF into the inverter's grid and its 1M leak, with nothing
-///         between the two. So the model has none either and its Master knob is hidden: the Volume (on the overdrive, the OD
+///         between the two. So the model has none either and its Master knob is hidden: the Volume (on the overdrive, the
+///         OD
 ///         Level trim) is the only level control ahead of the inverter. Later Overdrive Specials have a Master on the
 ///         panel (<see cref="OverdriveSpecial" />); whether the amp these sheets were drawn from had one that the
 ///         redraws leave out is not known.

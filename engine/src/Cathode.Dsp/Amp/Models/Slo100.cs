@@ -50,7 +50,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         2.2M ‖ 120 pF over 330k. That node is shared: the cold clipper's 20 nF (2.2M to ground after it) comes
 ///         into it through the channel switch's optocoupler, and 220k goes from it to the next stage's grid, so the
 ///         330k and the normal channel's 2.2M ‖ 120 pF load the cold clipper on the overdrive channel too (Robinette
-///         gives its AC load as 2.2M ‖ 330k). Robinette's text agrees on the dividers (Crunch passes 52 % at full volume, Clean 4 %; 13 % after
+///         gives its AC load as 2.2M ‖ 330k). Robinette's text agrees on the dividers (Crunch passes 52 % at full volume,
+///         Clean 4 %; 13 % after
 ///         the second stage). Read with doubt: the drawing wires a short across the overdrive path's 470k ‖ 2 nF (taken
 ///         as a drafting error: the overdrive channel keeps it, as in the other sources), and its Bright/Norm switch
 ///         looks like it selects the 470 pF in place of the 470k (here it puts the cap across the 470k, as Fractal

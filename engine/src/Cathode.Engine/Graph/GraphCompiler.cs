@@ -335,12 +335,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             param.Taper == ParamTaper.Log,
             modifier.AttackMs,
             modifier.ReleaseMs
-        ) {
-            Enabled = modifier.Enabled,
-            Source2 = source2,
-            Multiply = multiply,
-            Shape = shape
-        };
+        ) { Enabled = modifier.Enabled, Source2 = source2, Multiply = multiply, Shape = shape };
     }
 
     /// <summary>

@@ -352,7 +352,10 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
                     var s = new System.Numerics.Complex(0, 2 * Math.PI * frequency);
                     var z = 1 / (1 / rx + s * c / (1 + s * rp * c) + 1 / (r + 1 / (s * cs) + s * ls));
                     var circuit = z / (rf + z);
-                    var model = t.Gain * (1 + s * t.Zero) / (1 + s * t.Pole) * (1 + s * t.N1 + s * s * t.N2)
+                    var model = t.Gain
+                        * (1 + s * t.Zero)
+                        / (1 + s * t.Pole)
+                        * (1 + s * t.N1 + s * s * t.N2)
                         / (1 + s * t.D1 + s * s * t.D2);
                     Assert.True(
                         (circuit - model).Magnitude < 1e-9 * circuit.Magnitude,

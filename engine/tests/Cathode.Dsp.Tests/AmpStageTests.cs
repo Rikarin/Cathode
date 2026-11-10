@@ -91,7 +91,7 @@ public partial class AmpStageTests(ITestOutputHelper output) {
         Assert.False(ToneStackDesign.Fender.MiddleOnWiper);
         Assert.False(ToneStackDesign.Vox.MiddleOnWiper);
 
-        double Gain(ToneStackDesign design, double hz, double bass, double middle, double treble) {
+        static double Gain(ToneStackDesign design, double hz, double bass, double middle, double treble) {
             var stack = new ToneStackCircuit(design, Rate, 1.5e3);
             stack.Set(bass, middle, treble);
             var impulse = new float[32_768];

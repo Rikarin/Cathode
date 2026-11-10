@@ -117,6 +117,7 @@ public class CircuitAmpVisibleControlsTests(ITestOutputHelper output) {
 
         var input = Stimulus();
         var baselines = new float[contexts.Count][];
+
         float[] Render(Dictionary<int, float> settings) {
             using var block = TestBlocks.Create<CircuitAmpBlock>([..settings.Select(static s => (s.Key, s.Value))]);
             return BlockRender.Stereo(block, input, input, static _ => 64).Left;

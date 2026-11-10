@@ -545,6 +545,7 @@ public sealed partial class CircuitAmpBlock
             // Amp off puts out), whatever the interface's calibration. Input Trim still trims it.
             volts = lineMaster / (preampScale * inputVolts) * volts;
         }
+
         if (saturate || location == EqBeforePowerAmp || treble) {
             var eq = location == EqBeforePowerAmp;
             for (var i = 0; i < inner.Length; i++) {

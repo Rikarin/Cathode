@@ -260,7 +260,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         Assert.True(sagged.Node < rest.Node - 0.02, $"the supply did not sag: {sagged.Node:0.0000}");
 
         block.Params.SetTarget(CircuitAmpBlock.PowerAmpModel, 0);
-        BlockRender.Mono(block, sine.AsSpan(0, 24_000).ToArray(), 64);
+        BlockRender.Mono(block, [..sine.AsSpan(0, 24_000)], 64);
         var off = (Node: block.Channel.Supplies[0], block.Channel.Power.Supply);
         output.WriteLine(
             $"preamp node at rest {rest.Node:0.0000} (B+ {rest.Supply:0.0} V), playing {sagged.Node:0.0000} "
@@ -271,7 +271,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
 
         // And a setting the supply follows still reaches the preamp while the power amp is off.
         block.Params.SetTarget(CircuitAmpBlock.Variac, 70);
-        BlockRender.Mono(block, sine.AsSpan(0, 24_000).ToArray(), 64);
+        BlockRender.Mono(block, [..sine.AsSpan(0, 24_000)], 64);
         using var brown = new CircuitAmpBlock();
         brown.Params.SetTarget(CircuitAmpBlock.Type, AmpDesign.All.ToList().IndexOf(Plexi.Design));
         brown.Params.SetTarget(CircuitAmpBlock.Sag, 10);
@@ -481,7 +481,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
             using var block = new CircuitAmpBlock();
             block.Params.SetTarget(CircuitAmpBlock.Type, AmpDesign.All.ToList().IndexOf(design));
             block.Prepare(new(Rate, 64));
-            BlockRender.Mono(block, input.AsSpan(0, 12_000).ToArray(), 64);
+            BlockRender.Mono(block, [..input.AsSpan(0, 12_000)], 64);
             block.Params.SetTarget(CircuitAmpBlock.TransformerLow, lowFrequency);
             block.Params.SetTarget(CircuitAmpBlock.Bias, bias);
             block.Params.SetTarget(CircuitAmpBlock.Variac, variac);
@@ -566,7 +566,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
             }
         }
 
-        string Label(string model, IReadOnlyList<string> labels) =>
+        static string Label(string model, IReadOnlyList<string> labels) =>
             labels[AmpDesign.All.ToList().FindIndex(a => a.Name == model)];
 
         Assert.Equal(string.Empty, Label("Mark IIC+", depth));
@@ -582,6 +582,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     [Fact]
     public void Expert_controls_hide_on_models_without_the_part_they_act_on() {
         var parameters = CircuitAmpBlock.Info.Params;
+
         string[] Hidden(string id) {
             var labels = parameters.Single(p => p.Id == id).TypeLabels!;
             return [..AmpDesign.All.Where((_, type) => labels[type] == string.Empty).Select(static a => a.Name)];
@@ -637,6 +638,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     public void Preamp_tube_reaches_a_stage_of_paralleled_twelve_ax7s(string model) {
         var type = AmpDesign.All.ToList().FindIndex(a => a.Name == model);
         Assert.True(type >= 0, model);
+
         float[] Render(float tube) {
             using var block = TestBlocks.Create<CircuitAmpBlock>(
                 (CircuitAmpBlock.Type, type),

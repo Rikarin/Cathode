@@ -262,21 +262,25 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
         var marshall = AmpStacks.All.ToList().IndexOf(ToneStackDesign.Marshall) + 1;
         var fender = AmpStacks.All.ToList().IndexOf(ToneStackDesign.Fender) + 1;
         var input = Signals.Sine(440, 48_000, 24_000, 0.05f);
-        double Level(AmpDesign design, int stack) => Analysis.ToDb(
-            Math.Max(
-                Analysis.Rms(
-                    Render(
-                        Index(design),
-                        input,
-                        (CircuitAmpBlock.StackType, stack),
-                        (CircuitAmpBlock.Bass, 0f),
-                        (CircuitAmpBlock.Middle, 0f),
-                        (CircuitAmpBlock.Treble, 0f)
-                    ).AsSpan(12_000)
-                ),
-                1e-9
-            )
-        );
+
+        double Level(AmpDesign design, int stack) =>
+            Analysis.ToDb(
+                Math.Max(
+                    Analysis.Rms(
+                        Render(
+                                Index(design),
+                                input,
+                                (CircuitAmpBlock.StackType, stack),
+                                (CircuitAmpBlock.Bass, 0f),
+                                (CircuitAmpBlock.Middle, 0f),
+                                (CircuitAmpBlock.Treble, 0f)
+                            )
+                            .AsSpan(12_000)
+                    ),
+                    1e-9
+                )
+            );
+
         var (blackface, blackfaceMarshall) = (Level(Blackface.Design, 0), Level(Blackface.Design, marshall));
         var (plexi, plexiFender) = (Level(Plexi.Design, 0), Level(Plexi.Design, fender));
         Assert.True(blackface < -100, $"Blackface, its own stack at 0: {blackface:0.0} dB");

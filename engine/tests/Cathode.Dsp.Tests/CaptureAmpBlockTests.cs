@@ -184,6 +184,7 @@ public class CaptureAmpBlockTests : IDisposable {
         // A capture that clips at 0.1, a 60 Hz sine under that, and 12 dB of Bass: after the capture the boost
         // comes out whole, before it the capture clips the boosted sine.
         var input = Signals.Sine(60, 48_000, 24_000, 0.05f);
+
         float Peak(int location) {
             using var block = new CaptureAmpBlock(static _ => new ClipModel(0.1f));
             block.LoadAsset(CaptureAmpBlock.ModelSlot, "capture.nam");

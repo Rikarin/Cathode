@@ -23,20 +23,104 @@ public partial class AmpStageTests {
     /// </summary>
     public static TheoryData<string, bool, int, double, double> MesaEnglChains =>
         new() {
-            { "Mark V", false, 4, 0.002, -16 },
-            { "Mark V", false, 4, 0.05, -16 },
-            { "Rect-o-Verb", false, 4, 0.002, -15 },
-            { "Rect-o-Verb", false, 4, 0.05, -9 },
-            { "Rect-o-Verb", true, 3, 0.002, -45 },
-            { "Rect-o-Verb", true, 3, 0.05, -45 },
-            { "Powerball", false, 4, 0.0005, -25 },
-            { "Powerball", false, 4, 0.05, -10 },
-            { "Powerball", true, 4, 0.002, -38 },
-            { "Powerball", true, 4, 0.05, -15 },
-            { "Savage 120", false, 4, 0.002, -80 },
-            { "Savage 120", false, 4, 0.05, -5 },
-            { "Savage 120", true, 5, 0.002, -35 },
-            { "Savage 120", true, 5, 0.05, -25 }
+            {
+                "Mark V",
+                false,
+                4,
+                0.002,
+                -16
+            },
+            {
+                "Mark V",
+                false,
+                4,
+                0.05,
+                -16
+            },
+            {
+                "Rect-o-Verb",
+                false,
+                4,
+                0.002,
+                -15
+            },
+            {
+                "Rect-o-Verb",
+                false,
+                4,
+                0.05,
+                -9
+            },
+            {
+                "Rect-o-Verb",
+                true,
+                3,
+                0.002,
+                -45
+            },
+            {
+                "Rect-o-Verb",
+                true,
+                3,
+                0.05,
+                -45
+            },
+            {
+                "Powerball",
+                false,
+                4,
+                0.0005,
+                -25
+            },
+            {
+                "Powerball",
+                false,
+                4,
+                0.05,
+                -10
+            },
+            {
+                "Powerball",
+                true,
+                4,
+                0.002,
+                -38
+            },
+            {
+                "Powerball",
+                true,
+                4,
+                0.05,
+                -15
+            },
+            {
+                "Savage 120",
+                false,
+                4,
+                0.002,
+                -80
+            },
+            {
+                "Savage 120",
+                false,
+                4,
+                0.05,
+                -5
+            },
+            {
+                "Savage 120",
+                true,
+                5,
+                0.002,
+                -35
+            },
+            {
+                "Savage 120",
+                true,
+                5,
+                0.05,
+                -25
+            }
         };
 
     /// <summary>
@@ -182,7 +266,6 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
 
     [Fact]
     public void Panels_name_the_real_controls() {
-
         Assert.Equal(
             ["Channel 2", "Drive Mode", "Tube Rectifier"],
             new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "Lone Star"))
@@ -250,7 +333,7 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
     /// </summary>
     [Fact]
     public void Rect_o_Verb_rhythm_channel_is_cleaner_and_Pushed_drives_it() {
-        double At(float rhythm, float pushed) {
+        static double At(float rhythm, float pushed) {
             using var block = Create(
                 "Rect-o-Verb",
                 [..Switches(rhythm, pushed, 0), (CircuitAmpBlock.Gain, 5f), (CircuitAmpBlock.Master, 3f)]
@@ -328,6 +411,8 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
 
         // The treble knob's reach on a driven note's upper harmonics (2.2 to 6.6 kHz against the fundamental).
         static double TrebleReach(bool smooth) {
+            return Math.Abs(Tilt(10f) - Tilt(0f));
+
             double Tilt(float treble) {
                 using var block = Amp(smooth, 8f, treble);
                 var rendered = BlockRender.Mono(block, Signals.Sine(220, Rate, 48_000, 0.1f), 64).AsSpan(24_000);
@@ -338,8 +423,6 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
 
                 return Analysis.ToDb(Math.Sqrt(high)) - Analysis.ToDb(Analysis.MagnitudeAt(rendered, 220, Rate));
             }
-
-            return Math.Abs(Tilt(10f) - Tilt(0f));
         }
 
         var (small, driven) = (Small(true) - Small(false), Driven(true) - Driven(false));
@@ -348,7 +431,7 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         output.WriteLine($"Treble 0 to 10 on a driven note's highs: Rough {rough:0.0} dB, Smooth {smoothed:0.0} dB");
         Assert.InRange(small, -60, -20);
         Assert.InRange(driven, -12, 3);
-        Assert.True(smoothed < rough - 2,$"Smooth's treble reaches {smoothed:0.0} dB, Rough's {rough:0.0} dB");
+        Assert.True(smoothed < rough - 2, $"Smooth's treble reaches {smoothed:0.0} dB, Rough's {rough:0.0} dB");
     }
 
     /// <summary>
