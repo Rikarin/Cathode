@@ -44,6 +44,7 @@ jobs:
   tag:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -66,6 +67,7 @@ jobs:
           - { os: windows-latest, name: windows-x64 }
           - { os: ubuntu-latest, name: linux-x64 }
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60 # notarisation waits on Apple
     permissions:
       contents: read
       id-token: write # the Sigstore certificate that signs the provenance attestation
@@ -142,6 +144,7 @@ jobs:
           - { os: ubuntu-24.04, name: linux-x64 }
           - { os: ubuntu-24.04-arm, name: linux-arm64 }
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     permissions:
       contents: read
       id-token: write # the Sigstore certificate that signs the provenance attestation
@@ -224,6 +227,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [engine, editor, tag, desktop, headless]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write # creates the release
       id-token: write # the Sigstore certificate that signs the attestation of SHA256SUMS
