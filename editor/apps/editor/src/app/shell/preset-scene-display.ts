@@ -161,15 +161,15 @@ export function presetBank(
           <ng-icon xui name="matKeyboardArrowDownRound" size="xs" />
         </button>
       </div>
-      @if (renaming()) {
+      @if (renaming(); as editing) {
         <input
           #sceneNameField
           class="lcd-glass border-focus min-w-0 flex-1 px-2 text-sm outline-none"
           aria-label="Scene name"
           data-testid="scene-name-input"
-          [value]="sceneName()"
+          [value]="editing.name"
           (keydown.enter)="rename(sceneNameField.value)"
-          (keydown.escape)="renaming.set(false)"
+          (keydown.escape)="renaming.set(null)"
           (blur)="rename(sceneNameField.value)"
           #name
         />
@@ -179,7 +179,7 @@ export function presetBank(
           class="lcd-glass flex min-w-0 flex-1 items-center gap-3 px-2 text-start text-sm hover:brightness-110"
           data-testid="scene-name"
           [xuiTooltip]="'Rename the scene'"
-          (click)="renaming.set(true)"
+          (click)="startRename()"
         >
           <span class="text-lcd-accent w-8 shrink-0 font-semibold tabular-nums" aria-hidden="true">{{
             sceneNumber()
@@ -200,7 +200,12 @@ export class PresetSceneDisplay {
   /** A bank chosen from the bank menu, by id; the shell loads its first preset. */
   readonly chooseBank = output<string>();
 
-  protected readonly renaming = signal(false);
+  /**
+   * The scene being renamed, as it was when its field opened: its preset, its index and its name. The field keeps
+   * them however the active scene changes meanwhile (a footswitch, MIDI, another editor, the scene buttons, which do
+   * not take the focus from the field); null while no field is open.
+   */
+  protected readonly renaming = signal<{ preset: string | undefined; scene: number; name: string } | null>(null);
   private readonly nameInput = viewChild<ElementRef<HTMLInputElement>>('name');
   /** The preset's bank slot or setlist entry, or dashes for a preset in no bank. */
   protected readonly place = computed(() =>
@@ -229,15 +234,26 @@ export class PresetSceneDisplay {
     void this.live.selectScene((this.live.activeScene() + direction + count) % count);
   }
 
+  /** Opens the rename field for the active scene. */
+  protected startRename(): void {
+    this.renaming.set({ preset: this.live.preset()?.id, scene: this.live.activeScene(), name: this.sceneName() });
+  }
+
+  /**
+   * Gives the scene the field was opened for its new name, whichever scene is active now. Nothing is renamed if
+   * another preset was loaded meanwhile: the scene the name was typed for is gone.
+   */
   protected rename(name: string): void {
-    if (!this.renaming()) {
+    const editing = this.renaming();
+    if (!editing) {
       return;
     }
 
-    this.renaming.set(false);
+    this.renaming.set(null);
+    const preset = this.live.preset();
     const trimmed = name.trim();
-    if (trimmed && trimmed !== this.sceneName()) {
-      void this.live.renameScene(this.live.activeScene(), trimmed);
+    if (preset?.id === editing.preset && trimmed && trimmed !== preset?.scenes[editing.scene]?.name) {
+      void this.live.renameScene(editing.scene, trimmed);
     }
   }
 }
