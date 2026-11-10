@@ -196,6 +196,19 @@ export function yieldsToControl(shortcut: Shortcut): boolean {
   return !shortcut.mod && !/^F\d+$/.test(shortcut.key ?? '');
 }
 
+/**
+ * The shortcuts that still run while a modal dialog is open: those that open or close a dialog themselves, and the two
+ * that never touch the preset (mute is the panic button). Every other shortcut acts on the rig behind the dialog, where
+ * the user cannot see what it did, so it waits until the dialog is closed.
+ */
+const WithDialogOpen: ReadonlySet<string> = new Set(['tuner', 'settings', 'help', 'mute', 'clearClips']);
+
+/** Whether a modal dialog (Settings, the Tuner, a confirmation…) is open: xUI marks its overlay pane `aria-modal`. */
+export function isDialogOpen(target: EventTarget | null): boolean {
+  const root = (target as Node | null)?.ownerDocument ?? (typeof document === 'undefined' ? null : document);
+  return !!root?.querySelector('[aria-modal="true"]');
+}
+
 /** The shortcut an event presses, if any: modifiers must match exactly (⌥ is ignored, it shows Block Info). */
 export function findShortcut(
   event: Pick<KeyboardEvent, 'key' | 'code' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'>,
@@ -259,7 +272,9 @@ export class ShortcutService {
       return false; // Space on a focused button presses it; it does not bypass the selected block
     }
 
-    const handler = shortcut && this.handlers.get(shortcut.id);
+    // Behind a modal dialog the rig is out of sight: only the shortcuts that are safe there run.
+    const blocked = shortcut && !WithDialogOpen.has(shortcut.id) && isDialogOpen(event.target);
+    const handler = shortcut && !blocked && this.handlers.get(shortcut.id);
     if (!handler) {
       if (event.metaKey && event.key.toLowerCase() === 'a') {
         event.preventDefault(); // an editor, not a document: select-all would only paint every label blue

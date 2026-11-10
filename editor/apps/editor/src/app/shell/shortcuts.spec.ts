@@ -3,6 +3,7 @@ import {
   Shortcuts,
   controlTakesKey,
   findShortcut,
+  isDialogOpen,
   isOnControl,
   isTyping,
   shortcutKeys
@@ -353,6 +354,65 @@ describe('ShortcutService.dispatch and the focused element', () => {
     const unbound = key('j');
     expect(press(shortcuts, document.body, unbound)).toBe(false);
     expect(unbound.defaultPrevented).toBe(false);
+  });
+
+  it('leaves the rig alone behind a modal dialog: only the dialog toggles, mute and the clip reset run', () => {
+    const ran: string[] = [];
+    const shortcuts = new ShortcutService();
+    const ids = ['bypass', 'global', 'channelNext', 'channelA', 'addBlock', 'presetPicker', 'undo', 'redo', 'reload'];
+    const allowed = ['tuner', 'settings', 'help', 'mute', 'clearClips'];
+    const all = [...ids, 'channelReset', 'scene2', 'save', ...allowed];
+    shortcuts.register(Object.fromEntries(all.map(id => [id, () => ran.push(id)])));
+    // An xUI dialog: a CDK overlay pane marked modal, focused itself (dialog-focus.ts) or on a button inside.
+    const pane = element('div', { class: 'cdk-overlay-pane', role: 'dialog', 'aria-modal': 'true', tabindex: '-1' });
+    const button = pane.appendChild(document.createElement('button'));
+
+    const rig = [
+      key(' ', { code: 'Space' }),
+      key('g'),
+      key('x'),
+      key('a'),
+      key('q'),
+      key('p'),
+      key('z', { metaKey: true }),
+      key('z', { metaKey: true, shiftKey: true }),
+      key('i', { metaKey: true }),
+      key('2', { metaKey: true, code: 'Digit2' }),
+      key('s', { metaKey: true }),
+      key('F5')
+    ];
+    for (const event of rig) {
+      expect(press(shortcuts, pane, event)).toBe(false);
+      expect(event.defaultPrevented).toBe(false);
+    }
+
+    // Letters do not press a button, so without the dialog rule G would reach the rig from one.
+    expect(press(shortcuts, button, key('g'))).toBe(false);
+    // Focus left on the page behind (a dialog opened without taking it) changes nothing.
+    expect(press(shortcuts, document.body, key('g'))).toBe(false);
+    expect(ran).toEqual([]);
+
+    const safe = [
+      key('t', { metaKey: true }),
+      key(',', { metaKey: true }),
+      key('?', { shiftKey: true }),
+      key('m'),
+      key('k', { metaKey: true })
+    ];
+    for (const event of safe) {
+      expect(press(shortcuts, pane, event)).toBe(true);
+    }
+
+    expect(ran).toEqual(allowed);
+
+    // ⌘A still does not select the whole editor from a dialog.
+    const selectAll = key('a', { metaKey: true });
+    press(shortcuts, pane, selectAll);
+    expect(selectAll.defaultPrevented).toBe(true);
+
+    pane.remove();
+    expect(press(shortcuts, document.body, key('g'))).toBe(true);
+    expect(isDialogOpen(document.body)).toBe(false);
   });
 
   it('dispatches to the handler registered last; unregistering an older one leaves it in place', () => {
