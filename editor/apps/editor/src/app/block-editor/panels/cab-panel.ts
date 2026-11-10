@@ -179,6 +179,7 @@ const sameReferences = (a: readonly string[], b: readonly string[]): boolean =>
             [accept]="source() === Source.ir ? '.wav' : '.cabgrid,.wav'"
             [assets]="source() === Source.ir ? library.impulseResponses() : library.cabGrids()"
             [reference]="block().assets[asset()]"
+            [hint]="noFiles"
             (picked)="pick($event)"
           />
           @if (source() === Source.ir && fileIsPack()) {
@@ -219,6 +220,9 @@ export class CabPanel {
   readonly block = input.required<PresetBlock>();
 
   protected readonly Source = Source;
+  protected readonly noFiles =
+    'Cathode comes with no IR files, and a slot without one plays nothing. Upload a .wav IR or a .cabgrid pack, or ' +
+    'set Source to DynaCab, which needs no file.';
   protected readonly takesFile = takesFile;
   protected readonly reductionSpan = ReductionSpanDb;
   protected readonly selected = signal(0);

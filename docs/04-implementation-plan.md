@@ -303,7 +303,7 @@ Gate for each model: ESR/MRSTFT within target across a knob sweep, plus an ABX p
   - picker tags, favourites and pin, Perform pages, and footswitch views, links and per-preset overrides.
 - [x] Editor workflow on top of the PS stream: ⌘L opens Preset Leveling, ⌘I resets the selected block's channel, and the preset picker, Go to, ⌘PgUp/PgDn, F5 and New from template ask before discarding unsaved edits (`PresetSwitcher`).
 
-- [ ] Factory content: 50+ presets, factory IRs (our own captures or properly licensed), factory NAM captures (own or licensed)
+- [ ] Factory content: 50+ presets (done: 70), factory IRs (our own captures or properly licensed), factory NAM captures (own or licensed). No IR or capture ships yet; until one does, the pickers of the Amp NAM, IR Player and Cab blocks say so while the library has none and point at uploading and at the file-less alternatives
 - [ ] Installers (signed and notarised), auto-update, crash reporting (opt-in), telemetry-free by default
 - [ ] User docs: block guide generated from descriptors, plus how-tos
 - [ ] Performance pass: CPU estimator in the grid (from benchmark data), low-power mode

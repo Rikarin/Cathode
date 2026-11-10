@@ -15,6 +15,7 @@ import { AssetPicker } from './asset-picker';
         <cth-asset-picker
           [label]="slot.label"
           accept=".wav"
+          [hint]="$first ? noImpulseResponses : undefined"
           [assets]="library.impulseResponses()"
           [reference]="block().assets[slot.asset]"
           (picked)="live.setAsset(block().id, slot.asset, $event.ref)"
@@ -24,6 +25,9 @@ import { AssetPicker } from './asset-picker';
   `
 })
 export class IrPlayerPanel {
+  protected readonly noImpulseResponses =
+    'Cathode comes with no impulse responses, and an empty IR Player passes its input through. Upload a .wav IR, ' +
+    'or use a Cab block: its DynaCab speakers need no file.';
   protected readonly live = inject(LiveStore);
   protected readonly library = inject(LibraryStore);
 

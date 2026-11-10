@@ -18,7 +18,11 @@ import { XuiSelectImports } from '@xui/select';
 import { type PickerEntry, PickerList } from '../../shell/picker-list';
 import { LibraryStore } from '../../state/library.store';
 
-/** Picks an asset of one family for a block slot, or uploads a new file (which is then picked). */
+/**
+ * Picks an asset of one family for a block slot, or uploads a new file (which is then picked). Cathode ships no
+ * captures or impulse responses, so while the library has none of the family the picker says so (`hint`: what the
+ * block does without a file, and where files come from) instead of showing an empty list with no explanation.
+ */
 @Component({
   selector: 'cth-asset-picker',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -41,6 +45,9 @@ import { LibraryStore } from '../../state/library.store';
       <button xuiButton variant="outline" size="sm" type="button" (click)="file.click()">Upload…</button>
       <input #file type="file" class="hidden" [accept]="accept()" (change)="upload(file)" />
     </div>
+    @if (hint() && listed() && assets().length === 0) {
+      <p class="text-foreground-muted max-w-xl text-xs" data-testid="asset-hint">{{ hint() }}</p>
+    }
     <xui-dialog class="w-[min(36rem,calc(100vw-2rem))] max-w-none" [title]="label()" [(open)]="browsing">
       <xui-dialog-body class="flex min-h-0 flex-col">
         <cth-picker-list
@@ -64,11 +71,15 @@ export class AssetPicker {
   readonly assets = input.required<readonly AssetInfo[]>();
   readonly reference = input<string | undefined>();
   readonly accept = input('');
+  /** Shown while the library has no asset of this family. */
+  readonly hint = input<string>();
   readonly picked = output<AssetInfo>();
 
   protected readonly labelId = computed(() => `asset-${this.label().replace(/\W+/g, '-').toLowerCase()}`);
   protected readonly current = computed(() => this.assets().find(a => a.ref === this.reference()) ?? null);
   protected readonly name = (asset: AssetInfo) => (asset.favorite ? '★ ' : '') + asset.name;
+  /** Whether the library has been read since the picker opened: an empty list is only then known to be empty. */
+  protected readonly listed = signal(false);
   /** The browser: search, favourites, colour tags, and a pin to keep it open while auditioning IRs. */
   protected readonly browsing = signal(false);
   protected readonly entries = computed<PickerEntry[]>(() =>
@@ -88,7 +99,10 @@ export class AssetPicker {
 
   constructor() {
     // Assets can arrive from elsewhere (another editor, a preset import); show the store as it is now.
-    void this.library.refreshAssets();
+    void (async () => {
+      await this.library.refreshAssets();
+      this.listed.set(true);
+    })();
   }
 
   protected async upload(input: HTMLInputElement): Promise<void> {

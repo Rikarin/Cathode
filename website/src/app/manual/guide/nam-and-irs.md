@@ -2,6 +2,8 @@ Cathode's own amps and cabs are modelled from circuits and data sheets. You can 
 
 This chapter covers loading and levelling captures, finding them, loading and mixing IRs, and capturing an IR.
 
+> **Note:** Cathode comes with no captures and no IR files, so the Amp NAM block, the IR Player and the Cab's IR and IR Pack sources have nothing to play until you upload a file; each says so while your Library has none. The factory presets need none: they use the Circuit Amp and the Cab's DynaCab speakers.
+
 ## Neural captures: NAM and AIDA-X
 
 A neural capture is a small neural network trained to reproduce one piece of gear at one setting: someone plays test signals through the real amp or pedal, records what comes out, and trains a model to match. The result can be very close to the real thing at that setting.
