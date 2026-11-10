@@ -14,6 +14,7 @@ import {
   ModifierCurves,
   ModifierOperations,
   ModifierSources,
+  ModifierUpdateRates,
   type ParameterInfo,
   type PresetModifier
 } from '@cathode/api-client';
@@ -87,12 +88,16 @@ export function respond(m: Response, source: number): number {
   return clamp01(y * r.scale + r.offset);
 }
 
+/** Whether a modifier source is an external controller (External 1-16): the ones PC Reset waits for. */
+export const isExternal = (source: string | null | undefined): boolean => source?.startsWith('ext') === true;
+
 /**
- * A modifier as it is stored: a second source's operation only with a second source, and response settings only
- * where they differ from the defaults, so a plain modifier stays as presets have always stored it.
+ * A modifier as it is stored: a second source's operation and scale only with a second source, and the source
+ * scales, the response settings, the update rate and PC Reset only where they differ from the defaults (PC Reset only
+ * with an external source, the one thing it acts on), so a plain modifier stays as presets have always stored it.
  */
 export function sparseResponse(m: PresetModifier): PresetModifier {
-  const { source2, operation, start, mid, end, slope, scale, offset, ...rest } = m;
+  const { source2, operation, scale1, scale2, updateRate, pcReset, start, mid, end, slope, scale, offset, ...rest } = m;
   const given = { start, mid, end, slope, scale, offset };
   const kept = Object.fromEntries(
     Object.entries(given).filter(
@@ -101,8 +106,17 @@ export function sparseResponse(m: PresetModifier): PresetModifier {
   );
   return {
     ...rest,
-    ...(source2 ? { source2, ...(operation === 'multiply' ? { operation } : {}) } : {}),
-    ...kept
+    ...(scale1 != null && scale1 !== 1 ? { scale1 } : {}),
+    ...(source2
+      ? {
+          source2,
+          ...(operation === 'multiply' || operation === 'subtract' ? { operation } : {}),
+          ...(scale2 != null && scale2 !== 1 ? { scale2 } : {})
+        }
+      : {}),
+    ...kept,
+    ...(updateRate === 'medium' || updateRate === 'slow' ? { updateRate } : {}),
+    ...(pcReset === true && (isExternal(m.source) || isExternal(source2)) ? { pcReset } : {})
   };
 }
 
@@ -127,32 +141,37 @@ function themeColors(): { accent: string; line: string; label: string } {
  * When an engage modifier engages its block, to follow "Engaged": "at 50 % and above", "as soon as it moves, off
  * after 300 ms below 5 %".
  */
-export function engagedWhen(m: Pick<PresetModifier, 'mode' | 'threshold' | 'offDelayMs'>): string {
+export function engagedWhen(m: Pick<PresetModifier, 'mode' | 'threshold' | 'offDelayMs' | 'offAbove'>): string {
   const percent = `${Math.round((m.threshold ?? EngageDefaults.threshold) * 100)} %`;
   const delay = Math.round(m.offDelayMs ?? EngageDefaults.offDelayMs);
+  // With the off region above the threshold the block is engaged at the threshold and below it.
+  const [on, off] = m.offAbove ? ['below', 'above'] : ['above', 'below'];
   if (m.mode === 'moving') {
-    return `as soon as it moves, off ${delay > 0 ? `after ${delay} ms` : 'once back'} below ${percent}`;
+    return `as soon as it moves, off ${delay > 0 ? `after ${delay} ms` : 'once back'} ${off} ${percent}`;
   }
 
-  return delay > 0 ? `at ${percent} and above, off after ${delay} ms below it` : `at ${percent} and above`;
+  return delay > 0 ? `at ${percent} and ${on}, off after ${delay} ms ${off} it` : `at ${percent} and ${on}`;
 }
 
 /** An engage modifier as it is stored: settings at their defaults are left out, as a preset stores them. */
 export function sparseEngage(m: PresetModifier): PresetModifier {
-  const { mode, threshold, offDelayMs, ...rest } = m;
+  const { mode, threshold, offDelayMs, offAbove, ...rest } = m;
   return {
     ...rest,
     ...(mode === 'moving' ? { mode } : {}),
     ...(threshold != null && threshold !== EngageDefaults.threshold ? { threshold } : {}),
-    ...(offDelayMs != null && offDelayMs > 0 ? { offDelayMs } : {})
+    ...(offDelayMs != null && offDelayMs > 0 ? { offDelayMs } : {}),
+    ...(offAbove === true ? { offAbove } : {})
   };
 }
 
 /**
  * Edits the modifier on one parameter (docs/02-architecture.md §5.4): which controller drives it (or which two,
- * added or multiplied), with what response (Start/Mid/End, Slope, Scale, Offset), over what range, through which
- * curve, with what damping. The chart previews source to value. On a block's engage switch it also
- * sets how the value engages the block: by position or by movement, the threshold and the off delay.
+ * each with its own scale, added, multiplied or subtracted), with what response (Start/Mid/End, Slope, Scale,
+ * Offset), over what range, through which curve, with what damping, how often it writes the parameter (Update Rate)
+ * and, for an external controller, whether the stored value holds after a preset load until the controller moves
+ * (PC Reset). The chart previews source to value. On a block's engage switch it also sets how the value engages the
+ * block: by position or by movement, the threshold, which side of it is off, and the off delay.
  */
 @Component({
   selector: 'cth-modifier-dialog',
@@ -169,16 +188,28 @@ export function sparseEngage(m: PresetModifier): PresetModifier {
     <xui-dialog [title]="'Modifier: ' + param().name" icon="matTuneRound" [(open)]="open">
       <xui-dialog-body>
         <div class="flex flex-col gap-4">
-          <label class="flex flex-col gap-1">
-            <span class="text-foreground-muted text-xs">Source</span>
-            <xui-select
-              aria-label="Modifier source"
-              [items]="sources"
-              [itemText]="sourceName"
-              [value]="draft().source"
-              (valueChange)="patch({ source: $event ?? 'lfo1' })"
+          <div class="flex flex-wrap items-end gap-3">
+            <label class="flex min-w-48 flex-1 flex-col gap-1">
+              <span class="text-foreground-muted text-xs">Source</span>
+              <xui-select
+                aria-label="Modifier source"
+                [items]="sources"
+                [itemText]="sourceName"
+                [value]="draft().source"
+                (valueChange)="patch({ source: $event ?? 'lfo1' })"
+              />
+            </label>
+            <cth-knob
+              label="Source scale"
+              unit="%"
+              data-testid="modifier-scale1"
+              [min]="0"
+              [max]="100"
+              [defaultValue]="100"
+              [value]="(draft().scale1 ?? 1) * 100"
+              (valueChange)="patch({ scale1: $event / 100 })"
             />
-          </label>
+          </div>
           <div class="flex flex-wrap items-end gap-3">
             <label class="flex min-w-48 flex-1 flex-col gap-1">
               <span class="text-foreground-muted text-xs">Second source</span>
@@ -198,7 +229,17 @@ export function sparseEngage(m: PresetModifier): PresetModifier {
                 data-testid="modifier-operation"
                 [options]="operations"
                 [value]="draft().operation ?? 'add'"
-                (valueChange)="patch({ operation: $event === 'multiply' ? 'multiply' : null })"
+                (valueChange)="patch({ operation: $event === 'multiply' || $event === 'subtract' ? $event : null })"
+              />
+              <cth-knob
+                label="Source 2 scale"
+                unit="%"
+                data-testid="modifier-scale2"
+                [min]="0"
+                [max]="100"
+                [defaultValue]="100"
+                [value]="(draft().scale2 ?? 1) * 100"
+                (valueChange)="patch({ scale2: $event / 100 })"
               />
             }
           </div>
@@ -269,6 +310,32 @@ export function sparseEngage(m: PresetModifier): PresetModifier {
             [value]="draft().curve"
             (valueChange)="patch({ curve: $event ?? 'linear' })"
           />
+          @if (!engage()) {
+            <label class="flex items-center gap-3">
+              <span class="text-foreground-muted text-xs">Update rate</span>
+              <xui-segmented-control
+                size="sm"
+                aria-label="How often the modifier writes the parameter"
+                data-testid="modifier-update-rate"
+                [options]="updateRates"
+                [value]="draft().updateRate ?? 'fast'"
+                (valueChange)="patch({ updateRate: $event === 'medium' || $event === 'slow' ? $event : null })"
+              />
+            </label>
+          }
+          @if (external()) {
+            <label class="flex items-center gap-3">
+              <span class="text-foreground-muted text-xs">After a preset load</span>
+              <xui-segmented-control
+                size="sm"
+                aria-label="PC Reset: what the parameter does when the preset loads"
+                data-testid="modifier-pc-reset"
+                [options]="pcResets"
+                [value]="draft().pcReset ? 'hold' : 'follow'"
+                (valueChange)="patch({ pcReset: $event === 'hold' ? true : null })"
+              />
+            </label>
+          }
           @if (engage()) {
             <div class="border-border flex flex-col gap-3 border-t pt-4" data-testid="engage-settings">
               <label class="flex items-center gap-3">
@@ -280,6 +347,17 @@ export function sparseEngage(m: PresetModifier): PresetModifier {
                   [options]="engageModes"
                   [value]="draft().mode ?? 'position'"
                   (valueChange)="patch({ mode: $event === 'moving' ? 'moving' : null })"
+                />
+              </label>
+              <label class="flex items-center gap-3">
+                <span class="text-foreground-muted text-xs">Off</span>
+                <xui-segmented-control
+                  size="sm"
+                  aria-label="Which side of the threshold bypasses the block"
+                  data-testid="engage-off-side"
+                  [options]="offSides"
+                  [value]="draft().offAbove ? 'above' : 'below'"
+                  (valueChange)="patch({ offAbove: $event === 'above' ? true : null })"
                 />
               </label>
               <div class="flex flex-wrap gap-6">
@@ -346,8 +424,25 @@ export class ModifierDialog {
   protected readonly secondSourceName = (s: string) => (s === 'none' ? 'None' : this.sourceName(s));
   protected readonly operations = ModifierOperations.map(o => ({
     value: o,
-    label: o === 'multiply' ? 'Multiply' : 'Add'
+    label: o.charAt(0).toUpperCase() + o.slice(1)
   }));
+  /** Fast writes the parameter every control block; the slower rates cost less and step more coarsely. */
+  protected readonly updateRates = ModifierUpdateRates.map(r => ({
+    value: r,
+    label: r.charAt(0).toUpperCase() + r.slice(1)
+  }));
+  /** PC Reset: follow the controller's last value at once, or hold the stored value until the controller moves. */
+  protected readonly pcResets = [
+    { value: 'follow', label: 'Follow the controller' },
+    { value: 'hold', label: 'Hold the stored value until it moves' }
+  ];
+  /** The side of the engage threshold on which the block is bypassed. */
+  protected readonly offSides = [
+    { value: 'below', label: 'Below the threshold' },
+    { value: 'above', label: 'Above the threshold' }
+  ];
+  /** Whether a source is an external controller: PC Reset acts on those only. */
+  protected readonly external = computed(() => isExternal(this.draft().source) || isExternal(this.draft().source2));
   /** The response settings, in percent; each at its default leaves the source as it is. */
   protected readonly responseKnobs = [
     { key: 'start', label: 'Start', min: 0, max: 100, default: ResponseDefaults.start },
@@ -416,7 +511,7 @@ export class ModifierDialog {
           lineStyle: { color: theme.accent, width: 2 },
           itemStyle: { color: theme.accent },
           areaStyle: { color: theme.accent, opacity: 0.12 },
-          // The engage threshold: the block is off below it.
+          // The engage threshold: the block is off on one side of it.
           ...(this.engage()
             ? {
                 markLine: {

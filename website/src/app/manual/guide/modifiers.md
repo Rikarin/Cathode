@@ -6,7 +6,7 @@ A **modifier** makes a knob move by itself, following a **controller**: an LFO t
 
 A modifier connects a **source** (a controller), or two sources combined, to one **parameter** (a knob). Every source produces a value between 0 and 1. The modifier turns that into a knob position:
 
-1. With a **Second source**, it adds the two values (the sum stops at 1) or multiplies them.
+1. It multiplies each source by its **scale** (100 % unless you change it). With a **Second source**, it then adds the two values (the sum stops at 1), multiplies them, or subtracts the second from the first (the result stops at 0).
 2. It applies the **response**: Start, Mid, End, Slope, Scale and Offset (see [below](#the-response)). At their defaults they change nothing.
 3. It bends the result through a **curve**.
 4. It scales that between the **Min** and **Max** you set, in the knob's own units (dB, Hz, %).
@@ -19,12 +19,13 @@ Modifiers work on continuous knobs. Switches and choices cannot take one, with o
 ## Adding a modifier
 
 1. Right-click a knob on a block's page and choose **Add modifier…**.
-2. In the dialog, choose the **Source**. To drive the knob from two controllers, choose a **Second source** too and whether the two **Add** or **Multiply**.
+2. In the dialog, choose the **Source**. To drive the knob from two controllers, choose a **Second source** too and whether the two **Add**, **Multiply** or **Subtract**.
 3. Set **Min** and **Max**: the knob's value when the source is at 0 and at 1. They start at the knob's full range.
 4. Set **Attack** and **Release** (0 to 2000 ms) if the movement should be smoothed. Leave them at 0 for a modifier that follows the source exactly.
 5. Under **Applies on**, keep **All channels**, or pick one channel (**A** to **D**) so the modifier only acts while the block is on that channel. On the other channels the knob keeps that channel's own value.
 6. Choose a **Curve**. The chart shows how the source maps to the value.
-7. Click **Save**.
+7. Leave **Update rate** on **Fast** unless the modifier costs too much CPU (see [below](#update-rate)).
+8. Click **Save**.
 
 A small dot appears beside the knob, and the knob now turns with the value it is getting. A mark on its track shows the value you set by hand. Hover the dot to see the source.
 
@@ -47,6 +48,9 @@ With a **Second source**, the knob follows both controllers:
 
 - **Add**: the two values are summed, and the sum stops at 100 %. An LFO added to a pedal wobbles around wherever the pedal is.
 - **Multiply**: one value scales the other. A pedal multiplied with an LFO sets how deep the LFO goes: at the heel the knob rests at Min, at the toe the LFO sweeps the whole range.
+- **Subtract**: the second value is taken from the first, and the result stops at 0. A pedal less an envelope follower backs the knob off as you play harder.
+
+Each source has a **scale** beside it, 0 to 100 %, which its value is multiplied by before the two are combined. **Source scale** at 50 % makes a pedal reach only half way; **Source 2 scale** at 20 % with Add lays a shallow LFO wobble over a pedal's full travel. The first one works with a single source too.
 
 ### The response
 
@@ -63,6 +67,19 @@ Six knobs between the sources and the range shape how the knob answers the sourc
 
 Some uses: Start 100 % and End 0 % turn a pedal round. Mid 0 % keeps the knob at Min for the first half of the travel. Scale 50 % with Offset 25 % makes the source move only the middle half of the range. The chart in the dialog shows the result as you turn them.
 
+### Update rate
+
+**Update rate** sets how often the modifier writes the knob: **Fast** (every 64 samples or less, about 750 times a second at 48 kHz), **Medium** (at most every 5 ms) or **Slow** (at most every 20 ms). Some knobs make their block do real work each time they change (a filter recalculates, an amp's circuit is solved again), so a slower rate lowers the CPU a modulated block takes. The price is a coarser movement: if you hear steps ("zipper noise") in a sweep, go back to Fast. Attack and Release are timed the same on every rate. An engage modifier has no update rate.
+
+### After a preset load (PC Reset)
+
+An expression pedal keeps its position when you change presets, so a modifier on **External 1** to **16** normally puts its knob where the pedal is the moment the preset loads. For a modifier with an External source the dialog has **After a preset load**:
+
+- **Follow the controller** (the default): the knob follows the pedal's last position at once.
+- **Hold the stored value until it moves**: the preset loads with the knob at the value saved in it (and, for a modifier on the engage switch, with the block on or off as the scene stores it). The modifier takes over the moment the pedal, or whatever drives that External, sends a new value.
+
+Use it for a pedal you share between presets: a volume pedal left at the heel does not load the next preset silent. The hold starts only when a preset loads; editing the preset does not start or end it. The setting does nothing for the other sources, which do not keep a position between presets.
+
 ### The list of modifiers
 
 **Controllers ▸ Modifiers**, at the bottom of the Controllers page, lists every modifier in the preset by block and parameter, with its source and the channels it applies on. Change **Applies on** there too.
@@ -75,13 +92,14 @@ A modifier can switch a whole block on and off:
 2. Choose **Engage from a modifier…**, pick a source, and set how it engages the block (below).
 3. Click **Save**.
 
-The value the switch looks at is the modifier's output, from 0 to 100 %: the source after the response, the curve, Min, Max, Attack and Release. Below the curve, the dialog has three more settings:
+The value the switch looks at is the modifier's output, from 0 to 100 %: the source after the response, the curve, Min, Max, Attack and Release. Below the curve, the dialog has four more settings:
 
-| Setting        | What it does                                                                                                                                                                                                                                                   |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Engages by** | **Position**: the block is on while the value is at the threshold or above it, and off below it. **Moving**: the block comes on the moment the value moves away from where it was resting, wherever that is, and goes off once it is back below the threshold. |
-| **Threshold**  | Where "off" begins, 0 to 100 % (50 % unless you change it). In Position mode it is the switch-over point. In Moving mode it marks the resting end of the travel, such as a pedal's heel.                                                                       |
-| **Off delay**  | 0 to 5000 ms (0 unless you change it). The block goes off only after the value has stayed below the threshold for this long without a break; coming back above the threshold starts the wait again. Engaging never waits.                                      |
+| Setting        | What it does                                                                                                                                                                                                                                                                            |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Engages by** | **Position**: the block is on while the value is at the threshold or above it, and off below it. **Moving**: the block comes on the moment the value moves away from where it was resting, wherever that is, and goes off once it is back below the threshold.                          |
+| **Off**        | Which side of the threshold is off. **Below the threshold** (the default) is what the rest of this section describes. **Above the threshold** turns everything round: the block is on at the threshold and below it and goes off above it, for a block that should drop out at the toe. |
+| **Threshold**  | Where "off" begins, 0 to 100 % (50 % unless you change it). In Position mode it is the switch-over point. In Moving mode it marks the resting end of the travel, such as a pedal's heel.                                                                                                |
+| **Off delay**  | 0 to 5000 ms (0 unless you change it). The block goes off only after the value has stayed below the threshold for this long without a break; coming back above the threshold starts the wait again. Engaging never waits.                                                               |
 
 The chart marks the threshold with a dashed line, and a note under the switch on the block's page sums the settings up.
 

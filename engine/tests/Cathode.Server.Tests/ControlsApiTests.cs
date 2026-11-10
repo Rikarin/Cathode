@@ -88,7 +88,7 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         await ServerFixture.Eventually(() => server.Graph?.Modifiers.Count == 1);
         var bound = server.Graph!.Modifiers[0];
         Assert.Equal(ModSource.Lfo2, bound.Source2);
-        Assert.True(bound.Multiply);
+        Assert.Equal(ModOperation.Multiply, bound.Operation);
         Assert.Equal(new ModShape(1f, 0.5f, 0f, 0.5f, 2f, 0f), bound.Shape);
     }
 

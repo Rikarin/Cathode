@@ -25,6 +25,18 @@ describe('engage settings', () => {
     expect(engagedWhen({ mode: 'moving', threshold: 0.05 })).toBe('as soon as it moves, off once back below 5 %');
   });
 
+  it('describe an off region above the threshold from the other side', () => {
+    expect(engagedWhen({ threshold: 0.9, offAbove: true })).toBe('at 90 % and below');
+    expect(engagedWhen({ threshold: 0.9, offAbove: true, offDelayMs: 200 })).toBe(
+      'at 90 % and below, off after 200 ms above it'
+    );
+    expect(engagedWhen({ mode: 'moving', threshold: 0.9, offAbove: true })).toBe(
+      'as soon as it moves, off once back above 90 %'
+    );
+    expect(sparseEngage({ ...engage, offAbove: true })).toEqual({ ...engage, offAbove: true });
+    expect(sparseEngage({ ...engage, offAbove: false })).toEqual(engage);
+  });
+
   it('are stored only when they differ from the defaults', () => {
     expect(sparseEngage({ ...engage, mode: 'position', threshold: 0.5, offDelayMs: 0 })).toEqual(engage);
     expect(sparseEngage({ ...engage, mode: 'moving', threshold: 0.05, offDelayMs: 300 })).toEqual({
@@ -108,6 +120,28 @@ describe('modifier response (as the engine applies it)', () => {
       end: 0
     });
     expect(sparseResponse({ ...plain, source2: 'lfo1', operation: 'add' })).toEqual({ ...plain, source2: 'lfo1' });
+  });
+
+  it('stores source scales, subtract, the update rate and PC Reset only where they do something', () => {
+    expect(sparseResponse({ ...plain, scale1: 1, scale2: 0.5, updateRate: 'fast', pcReset: false })).toEqual(plain);
+    expect(
+      sparseResponse({
+        ...plain,
+        scale1: 0.5,
+        source2: 'lfo1',
+        operation: 'subtract',
+        scale2: 0.25,
+        updateRate: 'slow'
+      })
+    ).toEqual({ ...plain, scale1: 0.5, source2: 'lfo1', operation: 'subtract', scale2: 0.25, updateRate: 'slow' });
+    // PC Reset waits for an external controller: without one there is nothing to wait for.
+    expect(sparseResponse({ ...plain, source: 'lfo1', pcReset: true })).toEqual({ ...plain, source: 'lfo1' });
+    expect(sparseResponse({ ...plain, source: 'ext3', pcReset: true })).toEqual({
+      ...plain,
+      source: 'ext3',
+      pcReset: true
+    });
+    expect(sparseResponse({ ...plain, source: 'lfo1', source2: 'ext1', pcReset: true }).pcReset).toBe(true);
   });
 });
 

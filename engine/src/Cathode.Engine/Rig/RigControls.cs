@@ -238,6 +238,35 @@ public readonly record struct ModShape(float Start, float Mid, float End, float 
         value is { } v && float.IsFinite(v) ? Math.Clamp(v, min, max) : fallback;
 }
 
+/// <summary>How a modifier's second source joins its first (<see cref="Modulation.Combine" />).</summary>
+public enum ModOperation {
+    /// <summary>The sum, held within 0..1.</summary>
+    Add,
+
+    /// <summary>The product.</summary>
+    Multiply,
+
+    /// <summary>The first less the second, held within 0..1.</summary>
+    Subtract
+}
+
+/// <summary>
+///     How often a modifier writes its parameter (<see cref="ModNames.UpdateRates" />). The modifier itself is
+///     evaluated every control sub-block on any rate; a slower rate only spaces the writes, so a block that
+///     recomputes on each change of the parameter (filter coefficients, a circuit solve) does it less often, at the
+///     price of coarser steps.
+/// </summary>
+public enum ModUpdateRate {
+    /// <summary>Every control sub-block (at most 64 frames).</summary>
+    Fast,
+
+    /// <summary>At most once in <see cref="ModNames.MediumUpdateMs" />.</summary>
+    Medium,
+
+    /// <summary>At most once in <see cref="ModNames.SlowUpdateMs" />.</summary>
+    Slow
+}
+
 /// <summary>What engages a block from its engage modifier (<see cref="ModNames.EngageParam" />).</summary>
 public enum EngageMode {
     /// <summary>The modified value: engaged at or above the threshold, bypassed below it.</summary>
@@ -271,7 +300,19 @@ public static class ModNames {
     ///     How a modifier's second source joins its first (<see cref="Modulation.Combine" />); the first entry is what
     ///     a modifier that names none uses.
     /// </summary>
-    public static readonly ImmutableArray<string> Operations = ["add", "multiply"];
+    public static readonly ImmutableArray<string> Operations = ["add", "multiply", "subtract"];
+
+    /// <summary>
+    ///     The <see cref="ModUpdateRate" /> names, in order; the first is what a modifier that names none uses. The
+    ///     Axe-Fx has the same three (Slow, Medium, Fast); the intervals are Cathode's own.
+    /// </summary>
+    public static readonly ImmutableArray<string> UpdateRates = ["fast", "medium", "slow"];
+
+    /// <summary>The least time between two writes of a <see cref="ModUpdateRate.Medium" /> modifier.</summary>
+    public const float MediumUpdateMs = 5f;
+
+    /// <summary>The least time between two writes of a <see cref="ModUpdateRate.Slow" /> modifier.</summary>
+    public const float SlowUpdateMs = 20f;
 
     /// <summary>The <see cref="EngageMode" /> names, in order.</summary>
     public static readonly ImmutableArray<string> EngageModes = ["position", "moving"];
@@ -289,11 +330,29 @@ public static class ModNames {
     }
 
     /// <summary>An operation by name; none (null) is <c>add</c>.</summary>
-    public static bool TryParseOperation(string? name, out bool multiply) {
+    public static bool TryParseOperation(string? name, out ModOperation operation) {
         var index = name is null ? 0 : Operations.IndexOf(name);
-        multiply = index == 1;
+        operation = (ModOperation)Math.Max(index, 0);
         return index >= 0;
     }
+
+    /// <summary>An update rate by name; none (null) is <see cref="ModUpdateRate.Fast" />.</summary>
+    public static bool TryParseUpdateRate(string? name, out ModUpdateRate rate) {
+        var index = name is null ? 0 : UpdateRates.IndexOf(name);
+        rate = (ModUpdateRate)Math.Max(index, 0);
+        return index >= 0;
+    }
+
+    /// <summary>The least time between two writes at <paramref name="rate" />, in ms; 0 is every sub-block.</summary>
+    public static float UpdatePeriodMs(ModUpdateRate rate) =>
+        rate switch {
+            ModUpdateRate.Medium => MediumUpdateMs,
+            ModUpdateRate.Slow => SlowUpdateMs,
+            _ => 0f
+        };
+
+    /// <summary>A source's scale (0..1) as the engine uses it: none (null), or not a number, is 1.</summary>
+    public static float SourceScale(float? scale) => scale is { } s && float.IsFinite(s) ? Math.Clamp(s, 0f, 1f) : 1f;
 
     /// <summary>An engage mode by name; none (null) is <see cref="EngageMode.Position" />.</summary>
     public static bool TryParseEngageMode(string? name, out EngageMode mode) {

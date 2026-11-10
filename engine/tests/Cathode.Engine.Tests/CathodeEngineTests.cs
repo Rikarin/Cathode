@@ -143,6 +143,33 @@ public class CathodeEngineTests {
     }
 
     [Fact]
+    public void An_engage_modifier_that_is_off_above_its_threshold_bypasses_at_the_toe() {
+        var engine = new CathodeEngine(Spec);
+        var definition = VolumeGraph(-6.0206f);
+        definition.Modifiers.Add(
+            new() {
+                Block = "vol",
+                Param = ModNames.EngageParam,
+                Source = "manualA",
+                Threshold = 0.9f,
+                OffAbove = true
+            }
+        );
+        var graph = Compiler.Compile(definition, Spec, 1);
+        engine.Publish(graph);
+        var manual = RigControls.Descriptor.IndexOf("manualA");
+        var states = new List<bool>();
+
+        foreach (var pedal in new[] { 0f, 0.9f, 0.95f, 0.5f }) {
+            engine.Rig.SetTarget(manual, pedal);
+            OfflineRenderer.Render(engine, Signals.Step(4_800), Signals.Step(4_800), 64);
+            states.Add(graph.IsBypassed(graph.SlotOf("vol")));
+        }
+
+        Assert.Equal([false, false, true, false], states); // engaged up to the threshold, off above it
+    }
+
+    [Fact]
     public void An_engage_modifier_with_an_off_delay_holds_the_block_on_for_that_long() {
         var engine = new CathodeEngine(Spec);
         var definition = VolumeGraph(-6.0206f);

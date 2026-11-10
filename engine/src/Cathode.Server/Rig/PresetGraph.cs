@@ -8,7 +8,9 @@ namespace Cathode.Server.Rig;
 public static class PresetGraph {
     /// <summary>
     ///     <paramref name="held" /> holds the blocks Scene Ignore kept off the scene's state; a modifier scoped to one
-    ///     channel starts enabled only when its block is on that channel. <paramref name="oversampling" /> is the
+    ///     channel starts enabled only when its block is on that channel, and one <paramref name="waiting" /> names
+    ///     (PC Reset: its external controller has not moved since the preset loaded) starts disabled.
+    ///     <paramref name="oversampling" /> is the
     ///     global oversampling filters (minimum or linear), which the graph carries because they change block
     ///     latencies.
     /// </summary>
@@ -17,7 +19,8 @@ public static class PresetGraph {
         int sceneIndex,
         AssetStore assets,
         IReadOnlyDictionary<string, SceneBlockState>? held = null,
-        string oversampling = "minimum"
+        string oversampling = "minimum",
+        Func<PresetModifier, bool>? waiting = null
     ) {
         var scene = preset.Scenes[sceneIndex];
 
@@ -62,6 +65,10 @@ public static class PresetGraph {
                         Curve = m.Curve,
                         Source2 = m.Source2,
                         Operation = m.Operation,
+                        Scale1 = m.Scale1,
+                        Scale2 = m.Scale2,
+                        UpdateRate = m.UpdateRate,
+                        OffAbove = m.OffAbove,
                         Start = m.Start,
                         Mid = m.Mid,
                         End = m.End,
@@ -73,7 +80,8 @@ public static class PresetGraph {
                         Mode = m.Mode,
                         Threshold = m.Threshold,
                         OffDelayMs = m.OffDelayMs,
-                        Enabled = m.Channel is null || m.Channel == StateOf(m.Block).Channel
+                        Enabled = (m.Channel is null || m.Channel == StateOf(m.Block).Channel)
+                            && waiting?.Invoke(m) != true
                     }
                 )
         );

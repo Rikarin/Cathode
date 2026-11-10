@@ -613,12 +613,22 @@ public sealed partial class LiveRig(
     ///     Turns the block's channel-scoped modifiers on for <paramref name="channel" /> and off for the rest.
     /// </summary>
     void SyncModifiers(PresetBlock block, string channel) {
-        var descriptor = catalog.Descriptor(block.Type);
         foreach (var modifier in preset.Modifiers.Where(m => m.Block == block.Id && m.Channel is not null)) {
-            var index = descriptor?.IndexOf(modifier.Param) ?? -1;
-            var value = index < 0 ? 0f : descriptor!.ValueOf(index, block.Channels.GetValueOrDefault(channel));
-            engine.SetModifier(generation, block.Id, modifier.Param, modifier.Channel == channel, value);
+            SendModifier(block, modifier, channel);
         }
+    }
+
+    /// <summary>
+    ///     Tells the engine whether <paramref name="modifier" /> drives its parameter with the block on
+    ///     <paramref name="channel" />: on, unless it is scoped to another channel or PC Reset still holds it; off
+    ///     leaves the parameter at the channel's stored value.
+    /// </summary>
+    void SendModifier(PresetBlock block, PresetModifier modifier, string channel) {
+        var descriptor = catalog.Descriptor(block.Type);
+        var index = descriptor?.IndexOf(modifier.Param) ?? -1;
+        var value = index < 0 ? 0f : descriptor!.ValueOf(index, block.Channels.GetValueOrDefault(channel));
+        var enabled = (modifier.Channel is null || modifier.Channel == channel) && !IsWaiting(modifier);
+        engine.SetModifier(generation, block.Id, modifier.Param, enabled, value);
     }
 
     /// <summary>
@@ -829,14 +839,17 @@ public sealed partial class LiveRig(
 
     async Task ReplaceAsync(Preset next, int scene = 0) {
         var before = Capture();
+        var waitingBefore = waiting;
         preset = next;
         activeScene = scene;
         held.Clear();
+        ArmPcReset();
         try {
             await SyncGraphAsync();
         } catch (Exception e) {
             // Whatever failed, the rig stays on the preset it had rather than a working copy it cannot play.
             Restore(before);
+            Volatile.Write(ref waiting, waitingBefore);
             await SyncGraphAsync();
             throw e is IpcException ipc
                 ? new RigException(422, "The engine could not load this preset: " + ipc.Message, ipc.Errors)
@@ -899,7 +912,10 @@ public sealed partial class LiveRig(
     async Task SyncGraphAsync() {
         generation++;
         var oversampling = globals.Get().Oversampling;
-        await engine.LoadGraphAsync(PresetGraph.Build(preset, activeScene, assets, held, oversampling), generation);
+        await engine.LoadGraphAsync(
+            PresetGraph.Build(preset, activeScene, assets, held, oversampling, IsWaiting),
+            generation
+        );
         compiledOversampling = oversampling;
         engine.SetParams(
             generation,

@@ -138,8 +138,13 @@ public sealed partial class LiveRig {
             return $"Unknown operation '{m.Operation}'.";
         }
 
+        if (!ModNames.TryParseUpdateRate(m.UpdateRate, out _)) {
+            return $"Unknown update rate '{m.UpdateRate}'.";
+        }
+
         foreach (var (name, value) in new[] {
-                     ("Start", m.Start), ("Mid", m.Mid), ("End", m.End), ("Slope", m.Slope)
+                     ("Start", m.Start), ("Mid", m.Mid), ("End", m.End), ("Slope", m.Slope),
+                     ("Source 1 Scale", m.Scale1), ("Source 2 Scale", m.Scale2)
                  }) {
             if (value is not (null or >= 0f and <= 1f)) {
                 return $"Modifier {name} {value} is not within 0-1.";
@@ -424,9 +429,70 @@ public sealed partial class LiveRig {
         engine.SetParams(generation, [new(IpcBlocks.Rig, $"manual{(char)('A' + index)}", clamped)]);
     }
 
-    /// <summary>External 1-16 (expression pedals, CCs): live values only, never stored.</summary>
-    public void SetExternal(int index, float value) =>
-        engine.SetParams(generation, [new(IpcBlocks.Rig, $"ext{index + 1}", Math.Clamp(value, 0f, 1f))]);
+    /// <summary>
+    ///     External 1-16 (expression pedals, CCs): live values only, never stored. A value also ends the wait of the
+    ///     modifiers PC Reset holds for that controller (<see cref="ReleaseWaitingAsync" />).
+    /// </summary>
+    public void SetExternal(int index, float value) {
+        var source = $"ext{index + 1}";
+        engine.SetParams(generation, [new(IpcBlocks.Rig, source, Math.Clamp(value, 0f, 1f))]);
+        if (Array.Exists(Volatile.Read(ref waiting), w => w.Sources.Contains(source))) {
+            // Not awaited: the callers (a MIDI CC, the controls API) do not wait for the rig's lock, and a failure
+            // here is an engine that went away, which the next graph sync reports.
+            _ = ReleaseWaitingAsync(source);
+        }
+    }
+
+    /// <summary>
+    ///     PC Reset (<see cref="PresetModifier.PcReset" />): the modifiers of the loaded preset that still hold their
+    ///     stored value, each with the external controllers that end its wait. Replaced whole, inside the lock;
+    ///     <see cref="SetExternal" /> reads it outside.
+    /// </summary>
+    (string Block, string Param, string[] Sources)[] waiting = [];
+
+    /// <summary>A modifier's external sources: the controllers PC Reset waits for.</summary>
+    static string[] ExternalSources(PresetModifier m) => [
+        ..new[] { m.Source, m.Source2 }.OfType<string>()
+            .Where(static s => s.StartsWith("ext", StringComparison.Ordinal))
+    ];
+
+    /// <summary>A preset has just loaded: every PC Reset modifier with an external source waits for it.</summary>
+    void ArmPcReset() =>
+        Volatile.Write(
+            ref waiting,
+            [
+                ..preset.Modifiers.Where(static m => m.PcReset == true)
+                    .Select(static m => (m.Block, m.Param, Sources: ExternalSources(m)))
+                    .Where(static w => w.Sources.Length > 0)
+            ]
+        );
+
+    /// <summary>
+    ///     Whether PC Reset still holds <paramref name="m" /> at its stored value: it waited when the preset loaded,
+    ///     none of its controllers has sent a value since, and it still has PC Reset on. Inside the lock.
+    /// </summary>
+    bool IsWaiting(PresetModifier m) =>
+        m.PcReset == true && Array.Exists(waiting, w => w.Block == m.Block && w.Param == m.Param);
+
+    /// <summary>
+    ///     External controller <paramref name="source" /> sent a value: the modifiers that waited for it take over
+    ///     from the stored value, unless their channel scope keeps them off.
+    /// </summary>
+    Task<bool> ReleaseWaitingAsync(string source) =>
+        Locked(() => {
+                var released = waiting.Where(w => w.Sources.Contains(source)).ToArray();
+                Volatile.Write(ref waiting, [..waiting.Except(released)]);
+                foreach (var (blockId, param, _) in released) {
+                    var block = BlockById(preset, blockId);
+                    var modifier = preset.Modifiers.Find(m => m.Block == blockId && m.Param == param);
+                    if (block is not null && modifier is not null) {
+                        SendModifier(block, modifier, Live(blockId).Channel);
+                    }
+                }
+
+                return Task.FromResult(released.Length > 0);
+            }
+        );
 
     /// <summary>
     ///     Tells the host whether to follow MIDI clock and whether to send it. While the tempo follows incoming clock,
