@@ -212,6 +212,8 @@ public sealed class PowerAmp {
     double chokeInductance; // 0: the screen node is fed through a resistor
     double chokeDecay; // exp(-R T / L)
     double chokeCurrent;
+    OperatingInputs? solvedFor; // what the kept operating point was solved for (SolveOperatingPoint)
+    (double Supply, double Screen, double Cathode, double CathodeB) solvedPoint;
     PowerControls controls = Unset;
     PowerSettings settings = PowerSettings.Stock;
     readonly BiasTremolo? tremolo;
@@ -221,6 +223,9 @@ public sealed class PowerAmp {
     public PhaseInverter PhaseInverter { get; }
 
     public NewtonSolver Newton => root.Newton;
+
+    /// <summary>What the power stage's solver gave up on since it was built.</summary>
+    public SolverFaults Faults => SolverFaults.Of(root.Newton);
 
     /// <summary>
     ///     The preamp node as a fraction of its nominal voltage (the preamp's sag), after the last sample.
@@ -366,6 +371,7 @@ public sealed class PowerAmp {
         unloadedSupply = design.Supply + supply.SourceResistance * draw + (rectifier?.Drop(draw) ?? 0);
         acPeak = CalibrateAc(draw);
         preampDraw = supply.PreampCurrent;
+        SetSaturation(settings.Drive);
         Reset();
         nominalPreamp = PreampVoltage;
         chain.Calibrate(nominalPreamp);
@@ -494,6 +500,12 @@ public sealed class PowerAmp {
                 GridBias = -stockBias * (1.2 - 0.4 * controls.Bias) * variac;
             }
         }
+
+        if (Design.Topology == PowerTopology.SingleEnded
+            && (controls.Bias != previous.Bias || controls.Sag != previous.Sag)) {
+            // The idle current moved, and the core's knee sits above its flux.
+            SetSaturation(settings.Drive);
+        }
     }
 
     /// <summary>
@@ -559,20 +571,87 @@ public sealed class PowerAmp {
             SupplyMode.Ac50 => 50,
             _ => Design.PowerSupply.LineFrequency
         };
-        SetSaturation(settings.Drive);
 
         // Feedback (turns, presence and depth frequencies) and the bias (tube, variac) follow from the knobs.
         var c = controls;
         controls = Unset;
         Configure(c);
+        if (Design.Topology != PowerTopology.SingleEnded) {
+            SetSaturation(settings.Drive); // single-ended, Configure has just placed the knee for the new bias
+        }
+
         return reset;
     }
 
     /// <summary>
-    ///     The operating point for the current knobs: supply nodes, bias and every state at rest. Allocation-free and
-    ///     a few tens of microseconds, so a type change can call it on the audio thread.
+    ///     The operating point for the current knobs: supply nodes, bias and every state at rest. Allocation-free. The
+    ///     audio thread calls it (a type change, a tube swap): a few microseconds when the supply's operating point is
+    ///     the one last solved, and what <see cref="SolveOperatingPoint" /> costs when a knob or setting has moved it.
     /// </summary>
     public void Reset() {
+        var supply = Design.PowerSupply;
+        SolveOperatingPoint();
+        PreampVoltage = ScreenSupply - supply.PreampResistance * supply.PreampCurrent;
+        if (nominalPreamp > 0) {
+            chain.Reset(PreampVoltage, nominalPreamp);
+        }
+
+        chokeCurrent = (Supply - ScreenSupply) / supply.ChokeResistance;
+        root.Reset();
+        root.SetInitialVoltages([0]);
+        ref var stage = ref root.Device;
+        stage.Reset();
+        stage.BiasSwing = 0;
+        tremolo?.Reset();
+        var idle = IdlePerTube(Supply, ScreenSupply);
+        stage.SetIdle(idle.Plate, idle.Screen);
+        if (Design.Topology == PowerTopology.SingleEnded) {
+            // The idle current flows from B+ through the whole primary: the magnetising inductance carries it, less
+            // what a core near its knee passes beside it.
+            var draw = IdleCurrents(Supply, ScreenSupply, out _).Plates;
+            root.Ports.A.Precharge(-RestMagnetising(draw));
+        }
+
+        var all = IdleCurrents(Supply, ScreenSupply, out _);
+        var rectified = all.Plates + all.Screens + supply.PreampCurrent;
+        rectifierRoot = rectifier is { Perveance: > 0 } r ? Math.Cbrt(rectified / r.Perveance) : 0;
+        phase = 0;
+        // The inverter's input network at rest: its grid current through the leak, the coupling cap charged to match.
+        inverterRest = Design.InverterInput is null ? 0 : SolveInverterGrid(0, 0, 0, 0);
+        InverterGrid = inverterRest;
+        inverterHistory = -inverterRest;
+        excess = saturationFlux > 0 ? Excess(Flux) : 0;
+        root.SetCurrent(0, -excess);
+        Prime(ref stage);
+    }
+
+    /// <summary>
+    ///     The supply at idle for the current knobs and settings: B+, the screen node and the cathode voltage.
+    ///     Allocation-free. The last solution is kept with everything it was solved from, so a reset with nothing moved
+    ///     (a type change back to this amp, Tonestack Location, the Power Amp switch) costs a comparison and returns
+    ///     the same voltages to the last bit: the solve itself is tens of microseconds, and half a millisecond and
+    ///     more where the fixed point does not settle and the bisection takes over (the SVT and the Subway Blues as
+    ///     they come, some thirty models with Bias, Sag and the Variac at their ends). A cathode-biased amp's solve
+    ///     starts from the cathode voltage of the moment, which is then part of what it was solved from: after
+    ///     playing it is solved again.
+    /// </summary>
+    void SolveOperatingPoint() {
+        var inputs = new OperatingInputs(
+            unloadedSupply * variac,
+            sagScale,
+            rectifier,
+            GridBias,
+            CathodeResistor,
+            law,
+            settings.Triode,
+            settings.Hardness,
+            Design.CathodeBias ? CathodeVoltage : 0
+        );
+        if (inputs == solvedFor) {
+            (Supply, ScreenSupply, CathodeVoltage, cathodeB) = solvedPoint;
+            return;
+        }
+
         Supply = Design.Supply;
         ScreenSupply = Design.Supply;
         var supply = Design.PowerSupply;
@@ -601,37 +680,59 @@ public sealed class PowerAmp {
             SolveSupply(unloaded);
         }
 
-        PreampVoltage = ScreenSupply - supply.PreampResistance * supply.PreampCurrent;
-        if (nominalPreamp > 0) {
-            chain.Reset(PreampVoltage, nominalPreamp);
+        solvedFor = inputs;
+        solvedPoint = (Supply, ScreenSupply, CathodeVoltage, cathodeB);
+    }
+
+    /// <summary>
+    ///     Everything the supply's idle operating point is solved from besides the design; the last, the cathode
+    ///     voltage a cathode-biased amp's secant starts from (0 on fixed bias, whose solve reads no state).
+    /// </summary>
+    readonly record struct OperatingInputs(
+        double Unloaded,
+        double SagScale,
+        RectifierModel? Rectifier,
+        double GridBias,
+        double CathodeResistor,
+        PentodeModel Law,
+        bool Triode,
+        double Hardness,
+        double CathodeStart
+    );
+
+    /// <summary>
+    ///     The plate current all the tubes draw through the primary at the idle operating point of the current knobs
+    ///     and settings (bias, variac, sag, tube, rectifier), whatever the supply is doing now. Allocation-free.
+    /// </summary>
+    double RestPlateCurrent() {
+        var (plate, screen, cathode, other) = (Supply, ScreenSupply, CathodeVoltage, cathodeB);
+        SolveOperatingPoint();
+        var plates = IdleCurrents(Supply, ScreenSupply, out _).Plates;
+        (Supply, ScreenSupply, CathodeVoltage, cathodeB) = (plate, screen, cathode, other);
+        return plates;
+    }
+
+    /// <summary>
+    ///     The magnetising inductance's share of the idle current <paramref name="draw" /> on a single-ended amp: the
+    ///     current i with i + excess(L i) = draw, by bisection (the excess rises with the flux). All of it with a
+    ///     linear core.
+    /// </summary>
+    double RestMagnetising(double draw) {
+        if (!(saturationFlux > 0) || !(draw > 0)) {
+            return draw;
         }
 
-        chokeCurrent = (Supply - ScreenSupply) / supply.ChokeResistance;
-        root.Reset();
-        root.SetInitialVoltages([0]);
-        ref var stage = ref root.Device;
-        stage.Reset();
-        stage.BiasSwing = 0;
-        tremolo?.Reset();
-        var idle = IdlePerTube(Supply, ScreenSupply);
-        stage.SetIdle(idle.Plate, idle.Screen);
-        if (Design.Topology == PowerTopology.SingleEnded) {
-            // The idle current flows from B+ through the whole primary: the magnetising inductance carries it.
-            var draw = IdleCurrents(Supply, ScreenSupply, out _).Plates;
-            root.Ports.A.Precharge(-draw);
+        var (low, high) = (0.0, draw);
+        for (var i = 0; i < 50; i++) {
+            var middle = 0.5 * (low + high);
+            if (middle + Excess(magnetising * middle) > draw) {
+                high = middle;
+            } else {
+                low = middle;
+            }
         }
 
-        var all = IdleCurrents(Supply, ScreenSupply, out _);
-        var rectified = all.Plates + all.Screens + supply.PreampCurrent;
-        rectifierRoot = rectifier is { Perveance: > 0 } r ? Math.Cbrt(rectified / r.Perveance) : 0;
-        phase = 0;
-        // The inverter's input network at rest: its grid current through the leak, the coupling cap charged to match.
-        inverterRest = Design.InverterInput is null ? 0 : SolveInverterGrid(0, 0, 0, 0);
-        InverterGrid = inverterRest;
-        inverterHistory = -inverterRest;
-        excess = saturationFlux > 0 ? Excess(Flux) : 0;
-        root.SetCurrent(0, -excess);
-        Prime(ref stage);
+        return 0.5 * (low + high);
     }
 
     /// <summary>
@@ -868,8 +969,8 @@ public sealed class PowerAmp {
     ///     <paramref name="load" /> amperes, charged through the design's own source resistance and rectifier (Schade's
     ///     picture: the rectifier conducts only near the mains peaks, so the same mean needs a higher peak than the DC
     ///     supply's open-circuit voltage, and the source resistance, which Sag scales, keeps its meaning). By bisection
-    ///     on a simulation of the reservoir alone at 60 Hz with the runtime's step (control thread, a few
-    ///     milliseconds).
+    ///     on a simulation of the reservoir alone at 60 Hz, stepped at a fixed 48 kHz whatever the runtime's rate
+    ///     (control thread, a few milliseconds, once per design).
     /// </summary>
     double CalibrateAc(double load) {
         lock (AcPeaks) {
@@ -941,10 +1042,9 @@ public sealed class PowerAmp {
         }
 
         // Single-ended, the idle current's flux sits in the core: the drive moves the knee closer to it, not to zero (a
-        // knee below the idle flux would saturate the core at rest).
-        var idle = Design.Topology == PowerTopology.SingleEnded
-            ? ot.PrimaryInductance * Design.TubesPerSide * Design.IdleCurrent
-            : 0;
+        // knee below the idle flux would saturate the core at rest). That flux is the inductance in use (Xfmr Low
+        // Freq) times the idle current of the operating point in use (Bias, Variac, Sag, the tube, the rectifier).
+        var idle = Design.Topology == PowerTopology.SingleEnded ? magnetising * RestPlateCurrent() : 0;
         if (stock <= 0) {
             // A core with the knee at eight times the flux of full power at 40 Hz: far out of the way at 0.
             var swing = Math.Sqrt(2 * Design.RatedPower * ot.PlateToPlate);
@@ -1075,9 +1175,6 @@ public sealed class PowerAmp {
         root.Ports.E.Configure(lm * impedance * n2, sampleRate);
         root.Ports.F.Configure(cm / impedance / n2, sampleRate);
         root.Propagate();
-        if (saturationFlux > 0) {
-            SetSaturation(s.Drive);
-        }
     }
 
     /// <summary>
@@ -1122,7 +1219,7 @@ public sealed class PowerAmp {
     /// </summary>
     (double Reservoir, double Screens) SideCurrents(double vg, double plate, double screen) {
         var tap = ScreenTap(settings.Triode);
-        var vs = tap > 0 ? plate : ScreenAtIdle(law, vg, screen);
+        var vs = tap > 0 ? plate : ScreenAtIdle(vg, screen);
         var ip = KorenPentode.Plate(law, vg, vs, plate);
         var ig2 = KorenPentode.Screen(law, vg, vs);
         var fromReservoir = Design.TubesPerSide * (ip + (tap > 0 ? ig2 : 0));
@@ -1144,7 +1241,7 @@ public sealed class PowerAmp {
     (double Plate, double Screen, double Cathode) IdlePerTube(double plate, double screen) {
         var tapped = ScreenTap(settings.Triode) > 0;
         if (!Design.CathodeBias) {
-            var vs = tapped ? plate : ScreenAtIdle(law, GridBias, screen);
+            var vs = tapped ? plate : ScreenAtIdle(GridBias, screen);
             return (KorenPentode.Plate(law, GridBias, vs, plate), KorenPentode.Screen(law, GridBias, vs), 0);
         }
 
@@ -1176,7 +1273,7 @@ public sealed class PowerAmp {
         }
 
         var bias = x1;
-        var screenVoltage = tapped ? plate - bias : ScreenAtIdle(law, -bias, screen - bias);
+        var screenVoltage = tapped ? plate - bias : ScreenAtIdle(-bias, screen - bias);
         return (
             KorenPentode.Plate(law, -bias, screenVoltage, plate - bias),
             KorenPentode.Screen(law, -bias, screenVoltage),
@@ -1191,17 +1288,18 @@ public sealed class PowerAmp {
             return Design.Sides * (fromReservoir + fromScreens) * CathodeResistor - vk;
         }
 
-        var vs = ScreenAtIdle(law, -vk, screen - vk);
+        var vs = ScreenAtIdle(-vk, screen - vk);
         var count = 2 * Design.TubesPerSide;
         var current = count * (KorenPentode.Plate(law, -vk, vs, plate - vk) + KorenPentode.Screen(law, -vk, vs));
         return current * CathodeResistor - vk;
     }
 
     /// <summary>
-    ///     The screen voltage (relative to the cathode) after the screen resistor's drop, by fixed-point iteration (a
-    ///     strong contraction: the screen resistor is small against the screen's slope resistance).
+    ///     The screen voltage (relative to the cathode) of the tube in use after the screen resistor's drop, by
+    ///     fixed-point iteration (a strong contraction: the screen resistor is small against the screen's slope
+    ///     resistance).
     /// </summary>
-    double ScreenAtIdle(PentodeModel tube, double grid, double node) {
+    double ScreenAtIdle(double grid, double node) {
         var vs = node;
         for (var i = 0; i < 30; i++) {
             var next = node - Design.ScreenResistor * KorenPentode.Screen(law, grid, vs);
@@ -1222,7 +1320,7 @@ public sealed class PowerAmp {
         var screenNode = Design.ScreenSupply > 0 ? Design.ScreenSupply : Design.Supply;
         for (var i = 0; i < 80; i++) {
             var bias = 0.5 * (low + high);
-            var vs = tapped ? Design.Supply : ScreenAtIdle(law, -bias, screenNode);
+            var vs = tapped ? Design.Supply : ScreenAtIdle(-bias, screenNode);
             if (KorenPentode.Plate(law, -bias, vs, Design.Supply) > Design.IdleCurrent) {
                 low = bias;
             } else {
@@ -1246,7 +1344,7 @@ public sealed class PowerAmp {
         var tapped = ScreenTap(settings.Triode) > 0;
         for (var i = 0; i < 80; i++) {
             var vk = 0.5 * (low + high);
-            var vs = tapped ? Design.Supply - vk : ScreenAtIdle(law, -vk, Design.Supply - vk);
+            var vs = tapped ? Design.Supply - vk : ScreenAtIdle(-vk, Design.Supply - vk);
             if (KorenPentode.Plate(law, -vk, vs, Design.Supply - vk) > Design.IdleCurrent) {
                 low = vk;
             } else {
@@ -1255,7 +1353,7 @@ public sealed class PowerAmp {
         }
 
         var bias = 0.5 * (low + high);
-        var screenVoltage = tapped ? Design.Supply - bias : ScreenAtIdle(law, -bias, Design.Supply - bias);
+        var screenVoltage = tapped ? Design.Supply - bias : ScreenAtIdle(-bias, Design.Supply - bias);
         var perTube = Design.IdleCurrent + KorenPentode.Screen(law, -bias, screenVoltage);
         return bias / (Design.Sides * Design.TubesPerSide * perTube);
     }

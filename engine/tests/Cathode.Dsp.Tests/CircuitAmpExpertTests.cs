@@ -240,6 +240,48 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         Assert.Equal(idle, block.Channel.Power.PlateCurrents);
     }
 
+    /// <summary>
+    ///     With the power amp off nothing steps its supply, which the preamp still reads. Switched off while playing,
+    ///     the supply must not stay where the playing had sagged it: the preamp runs on the voltage at rest, as it
+    ///     does when the switch is thrown in silence, and the power amp comes back from rest too.
+    /// </summary>
+    [Fact]
+    public void Power_amp_switched_off_while_playing_leaves_the_preamp_on_the_supply_at_rest() {
+        using var block = new CircuitAmpBlock();
+        block.Params.SetTarget(CircuitAmpBlock.Type, AmpDesign.All.ToList().IndexOf(Plexi.Design));
+        block.Params.SetTarget(CircuitAmpBlock.Gain, 10);
+        block.Params.SetTarget(CircuitAmpBlock.Master, 10);
+        block.Params.SetTarget(CircuitAmpBlock.Sag, 10);
+        block.Prepare(new(Rate, 64));
+        var rest = (Node: block.Channel.Supplies[0], block.Channel.Power.Supply);
+        var sine = Signals.Sine(110, Rate, 96_000, 0.5f);
+        BlockRender.Mono(block, sine, 64);
+        var sagged = (Node: block.Channel.Supplies[0], block.Channel.Power.Supply);
+        Assert.True(sagged.Node < rest.Node - 0.02, $"the supply did not sag: {sagged.Node:0.0000}");
+
+        block.Params.SetTarget(CircuitAmpBlock.PowerAmpModel, 0);
+        BlockRender.Mono(block, sine.AsSpan(0, 24_000).ToArray(), 64);
+        var off = (Node: block.Channel.Supplies[0], block.Channel.Power.Supply);
+        output.WriteLine(
+            $"preamp node at rest {rest.Node:0.0000} (B+ {rest.Supply:0.0} V), playing {sagged.Node:0.0000} "
+            + $"({sagged.Supply:0.0} V), power amp off {off.Node:0.0000} ({off.Supply:0.0} V)"
+        );
+        Assert.Equal(rest.Node, off.Node, 1e-9);
+        Assert.Equal(rest.Supply, off.Supply, 1e-6);
+
+        // And a setting the supply follows still reaches the preamp while the power amp is off.
+        block.Params.SetTarget(CircuitAmpBlock.Variac, 70);
+        BlockRender.Mono(block, sine.AsSpan(0, 24_000).ToArray(), 64);
+        using var brown = new CircuitAmpBlock();
+        brown.Params.SetTarget(CircuitAmpBlock.Type, AmpDesign.All.ToList().IndexOf(Plexi.Design));
+        brown.Params.SetTarget(CircuitAmpBlock.Sag, 10);
+        brown.Params.SetTarget(CircuitAmpBlock.Variac, 70);
+        brown.Prepare(new(Rate, 64));
+        output.WriteLine($"Variac 70 % with the power amp off: B+ {block.Channel.Power.Supply:0.0} V");
+        Assert.Equal(brown.Channel.Power.Supply, block.Channel.Power.Supply, 1e-6);
+        Assert.True(block.Channel.Supplies[0] < 0.8 * rest.Node, "the preamp does not follow the Variac");
+    }
+
     [Fact]
     public void Input_select_takes_the_chosen_input() {
         static float[] Render(int select, bool silentLeft) {
@@ -388,6 +430,82 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         );
         Assert.True(Analysis.ToDb(low10) - Analysis.ToDb(low0) > 6, "the core saturates on low notes");
         Assert.True(Math.Abs(Analysis.ToDb(high10) - Analysis.ToDb(high0)) < 2, "and leaves the mids alone");
+    }
+
+    /// <summary>
+    ///     On a single-ended amp the idle current's flux sits in the core, and Xfmr Drive brings the knee towards it.
+    ///     That flux follows the inductance (Xfmr Low Freq) and the idle current (Bias, Variac, the tube), so the knee
+    ///     must follow them too: placed from the design's values it fell below the flux at rest, the core sat
+    ///     saturated and every cut-off of the tube spiked the output to 15-70 times full scale.
+    /// </summary>
+    [Theory]
+    [InlineData(false, 25f, 50f, 100f, 0)]
+    [InlineData(false, 25f, 100f, 130f, 0)]
+    [InlineData(false, 100f, 100f, 130f, 0)]
+    [InlineData(false, 100f, 50f, 100f, 7)]
+    [InlineData(true, 25f, 50f, 100f, 0)]
+    [InlineData(true, 25f, 100f, 130f, 0)]
+    [InlineData(true, 100f, 100f, 130f, 0)]
+    public void Transformer_drive_on_a_single_ended_amp_keeps_the_knee_above_the_flux_at_rest(
+        bool princeton,
+        float lowFrequency,
+        float bias,
+        float variac,
+        int tube
+    ) {
+        var design = princeton ? Princeton5F2.Design : Champ.Design;
+        var input = new float[48_000];
+        var chord = CircuitAmpBlockTests.Chord(12_000, 1.2f);
+        var noise = new Random(7);
+        for (var i = 0; i < input.Length; i++) {
+            input[i] = chord[i % chord.Length] + 0.01f * (float)(2 * noise.NextDouble() - 1);
+        }
+
+        (double Peak, double Flux, double Drift) Run(float drive) {
+            using var block = new CircuitAmpBlock();
+            block.Params.SetTarget(CircuitAmpBlock.Type, AmpDesign.All.ToList().IndexOf(design));
+            block.Params.SetTarget(CircuitAmpBlock.TransformerLow, lowFrequency);
+            block.Params.SetTarget(CircuitAmpBlock.Bias, bias);
+            block.Params.SetTarget(CircuitAmpBlock.Variac, variac);
+            block.Params.SetTarget(CircuitAmpBlock.PowerTube, tube);
+            block.Params.SetTarget(CircuitAmpBlock.TransformerDrive, drive);
+            block.Prepare(new(Rate, 64));
+            var rest = block.Channel.Power.Flux;
+            BlockRender.Mono(block, new float[24_000], 64);
+            var drift = Math.Abs(block.Channel.Power.Flux - rest);
+            return (Analysis.Peak(BlockRender.Mono(block, input, 64)), rest, drift);
+        }
+
+        // The same settings reached while playing: the knee follows each of them without a reset.
+        double Live(float drive) {
+            using var block = new CircuitAmpBlock();
+            block.Params.SetTarget(CircuitAmpBlock.Type, AmpDesign.All.ToList().IndexOf(design));
+            block.Prepare(new(Rate, 64));
+            BlockRender.Mono(block, input.AsSpan(0, 12_000).ToArray(), 64);
+            block.Params.SetTarget(CircuitAmpBlock.TransformerLow, lowFrequency);
+            block.Params.SetTarget(CircuitAmpBlock.Bias, bias);
+            block.Params.SetTarget(CircuitAmpBlock.Variac, variac);
+            block.Params.SetTarget(CircuitAmpBlock.TransformerDrive, drive);
+            return Analysis.Peak(BlockRender.Mono(block, input, 64));
+        }
+
+        var linear = Run(0);
+        for (var drive = 2; drive <= 10; drive += 2) {
+            var (peak, rest, drift) = Run(drive);
+            output.WriteLine(
+                $"{design.Name} Xfmr Drive {drive}: peak {peak:0.00} (linear core {linear.Peak:0.00}), "
+                + $"flux at rest {rest:0.000} Vs, drift in silence {drift:0.0000} Vs"
+            );
+            Assert.True(peak < 2 * linear.Peak + 0.1, $"Xfmr Drive {drive}: peak {peak:0.00}");
+            Assert.True(drift < 0.01 * Math.Abs(rest), $"Xfmr Drive {drive}: the core does not start at rest");
+            Assert.True(
+                Math.Abs(rest) > 0.5 * Math.Abs(linear.Flux),
+                $"Xfmr Drive {drive}: the core is saturated at rest ({rest:0.000} Vs of {linear.Flux:0.000} Vs)"
+            );
+            var live = Live(drive);
+            output.WriteLine($"  set while playing: peak {live:0.00}");
+            Assert.True(live < 2 * linear.Peak + 0.1, $"Xfmr Drive {drive} set while playing: peak {live:0.00}");
+        }
     }
 
     [Fact]

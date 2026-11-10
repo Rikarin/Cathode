@@ -469,6 +469,9 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
     double outputResistance;
     double restOutput;
     bool solved;
+    long operatingPointSteps;
+    long dcVersion; // moves with everything the DC solve reads besides the rest input and the supply
+    (long Version, double RestInput, double Supply)? solvedFor; // what the operating point here was solved for
 
     public NetworkStageDesign Design { get; }
 
@@ -477,6 +480,9 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
     public override double RestOutput => restOutput;
 
     public override NewtonSolver? Newton => root.Device.Ports > 0 ? root.Newton : null;
+
+    /// <summary>A network without devices still counts the changes that left it singular.</summary>
+    public override SolverFaults Faults => SolverFaults.Of(root.Newton);
 
     public override bool IsGainStage { get; }
 
@@ -595,6 +601,8 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
     /// </summary>
     public double RestVoltage(int node) => node == StageNetlist.Ground ? 0 : solution[node - 1];
 
+    public override long OperatingPointSteps => operatingPointSteps;
+
     public override void SetSampleRate(double sampleRate) {
         this.sampleRate = sampleRate;
         if (hasMemory) {
@@ -613,6 +621,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
 
     public override void SetSourceResistance(double ohms) {
         if (TrySetSourceResistance(ref sourceResistance, ohms, Design.InputResistance)) {
+            dcVersion++;
             root.Ports.Source.Value = sourceResistance;
             root.Propagate();
         }
@@ -636,6 +645,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
     public override void Apply(in PreampSettings settings) {
         if (settings.ChangesDevices(this.settings)) {
             root.Device = make(settings, sampleRate);
+            dcVersion++;
         }
 
         this.settings = settings;
@@ -707,6 +717,10 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
 
             values[i] = value;
             changed = true;
+            if (e.Kind != ElementKind.Capacitor) {
+                dcVersion++; // a capacitor is open at DC
+            }
+
             if (e.Kind == ElementKind.Resistor) {
                 root.SetResistance(index[i], value);
             } else {
@@ -790,14 +804,27 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
 
     /// <summary>
     ///     The DC operating point for a source resting at <paramref name="restInput" /> volts: Newton on the nodal
-    ///     equations with the devices, the supplies (and the source) stepped up from a tenth in ten steps.
+    ///     equations with the devices, the supplies (and the source) stepped up from a tenth in ten steps. The solve
+    ///     is a function of the rest input, the supply, the source resistance, the resistors and inductors as the
+    ///     knobs and settings have them, and the devices: where none of them has changed since the last solve (a type
+    ///     change back to this amp, a channel switch, Tonestack Location), the operating point is the one already
+    ///     here and nothing is solved, so the audio thread's reset costs this stage a comparison instead of thirty
+    ///     and more factorisations.
     /// </summary>
     void SolveOperatingPoint(double restInput) {
+        // A device with state of its own (an op-amp's pole) is solved each time: its state is not part of the key.
+        var key = (dcVersion, restInput, supplyScale);
+        if (!hasMemory && key == solvedFor) {
+            return;
+        }
+
+        solvedFor = key;
         Array.Clear(solution);
         const int Steps = 10;
         for (var s = 1; s <= Steps; s++) {
             var scale = (double)s / Steps;
             for (var iteration = 0; iteration < 100; iteration++) {
+                operatingPointSteps++;
                 Stamp(restInput * scale, scale, true);
                 if (!DenseLu.SolveInPlace(matrix.AsSpan(0, size * size), size, pivots, vector.AsSpan(0, size))) {
                     return;

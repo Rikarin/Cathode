@@ -67,7 +67,27 @@ public sealed class ChannelSwitchStage : AmpStage {
         }
     }
 
+    /// <summary>Both channels' stages' (the one not playing keeps what it counted).</summary>
+    public override SolverFaults Faults {
+        get {
+            var faults = default(SolverFaults);
+            foreach (var stage in off) {
+                faults += stage.Faults;
+            }
+
+            foreach (var stage in on) {
+                faults += stage.Faults;
+            }
+
+            return faults;
+        }
+    }
+
     public override bool IsGainStage => offGainStage >= 0 || onGainStage >= 0;
+
+    /// <summary>Both channels' stages' (a reset settles both).</summary>
+    public override long OperatingPointSteps =>
+        off.Sum(static s => s.OperatingPointSteps) + on.Sum(static s => s.OperatingPointSteps);
 
     /// <summary>The gain stages of the channel that has more of them.</summary>
     public int GainStages => Math.Max(off.Count(static s => s.IsGainStage), on.Count(static s => s.IsGainStage));
