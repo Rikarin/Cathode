@@ -46,7 +46,7 @@ usually go after the Cab, as they would in an effects loop or a studio. The amp 
 - **High gain:** SLO-100, 5150, 5150III, Dual Rectifier, Dual Rectifier 3-Ch, Dual Rectifier 3-Ch Orange, Triple
   Rectifier, Rect-o-Verb, Mark IIC+ (and its clean rhythm channel, Mark IIC+ Rhythm), Mark IV (and its clean and
   crunch channels, Mark IV Rhythm 1 and Rhythm 2), Mark V, TriAxis, Legacy VL100, Powerball, Savage 120, Prometheus.
-- **Bass:** SVT, Portaflex B-15N, Bassman 135, Bass 400.
+- **Bass:** SVT (and its second channel, SVT Channel 2), Portaflex B-15N, Bassman 135, Bass 400.
 - **Solid state:** JC-120 and Valvestate 8080 (a tube preamp into a transistor power amp). Their tube-only knobs are
   hidden.
 
@@ -587,7 +587,9 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       Powerball:
         'Engl Powerball: channel 2 (lead), Lo and Hi modes, with its Open and Focused middle, and on Switch 3 channel 1, Clean and Crunch. Tight modern metal. Two supply filter nodes are assumed (not on the drawing) to stop it motorboating.',
       'Savage 120': 'Engl Savage 120 lead channel, Rough and (Switch 3) Smooth: aggressive, mid-forward high gain.',
-      SVT: 'Ampeg SVT: the classic tube bass amp, with Ultra Hi, Ultra Lo and Bass Cut.',
+      SVT: 'Ampeg SVT, channel one: the classic tube bass amp, with its Mid-Range and Mid Freq, Ultra Hi, Ultra Lo and Bass Cut.',
+      'SVT Channel 2':
+        'Ampeg SVT, channel two: the plainer channel, Volume, Bass and Treble with Ultra Hi and Ultra Lo and no midrange controls. With Ultra Lo off its volume network cuts the lows, as on the amp.',
       'Portaflex B-15N': 'Ampeg B-15N Portaflex: warm, round vintage bass. One channel: its two are the same circuit.',
       'JC-120':
         'Roland JC-120 Jazz Chorus (chorus and reverb off): a solid-state clean, very flat and bright, with its diode Distortion on Switch 1.',

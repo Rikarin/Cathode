@@ -111,6 +111,7 @@ export const AMP_MODELS: Record<string, { family: AmpFamily; basedOn: string }> 
 
   // Bass and solid state
   SVT: { family: 'bass', basedOn: 'Ampeg SVT (1970, 6550)' },
+  'SVT Channel 2': { family: 'bass', basedOn: 'Ampeg SVT (1970, 6550), channel two' },
   'Portaflex B-15N': { family: 'bass', basedOn: 'Ampeg B-15-N Portaflex (1968)' },
   'Bassman 135': { family: 'bass', basedOn: 'Fender Bassman 135 (bass)' },
   'Bass 400': { family: 'bass', basedOn: 'Mesa/Boogie Bass 400' },

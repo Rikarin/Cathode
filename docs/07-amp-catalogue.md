@@ -167,7 +167,7 @@ built from the documented features and fitted to captures.
 
 | Amp | Status | Cathode type | References we have | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Ampeg SVT (1970, 6550) | ✅ Done (channel one; power-amp nodes and OT assumed) | SVT | — (no free capture found) | Direct-out captures with settings, Ultra Lo, each Mid Freq | 8x10 closed |
+| Ampeg SVT (1970, 6550) | ✅ Done (both channels, each a type; power-amp nodes and OT assumed) | SVT, SVT Channel 2 | — (no free capture found) | Direct-out captures with settings, Ultra Lo, each Mid Freq | 8x10 closed |
 | Ampeg B-15-N Portaflex (1968) | ✅ Done (one channel; the two are the same circuit) | Portaflex B-15N | — | Direct-out captures, Ultra Lo / Hi | 1x15 closed |
 | Roland JC-120 (1984 board) | ✅ Done (effect channel, chorus and reverb off, with its Distortion knob and diode clipper on Switch 1, Distortion On; solid state) | JC-120 | — | Direct-out captures, volume sweep, Distortion sweep | 2x12 open |
 | Fender Bassman 100 / 135 (bass) | ✅ Done (the 135, from CBS drawing 014283 with the 100's drawing 010303 for the small print: Bass and Normal channels, Deep, Bright, Master, 12AT7 LTP, 4 × 6L6GC ultralinear; the OT and its screen taps assumed; the 100 is the same preamp with pentode screens) | Bassman 135 | — (no free capture found) | Direct-out captures with settings | 4x12 / 2x15 |
@@ -197,7 +197,7 @@ number of types.
 
 ### Circuit Amp types by index
 
-The Circuit Amp block has 91 types. The "Cathode type" column above names them; this is their order in the Type list.
+The Circuit Amp block has 93 types. The "Cathode type" column above names them; this is their order in the Type list.
 
 | # | Type | # | Type | # | Type |
 |---|---|---|---|---|---|
@@ -232,8 +232,10 @@ The Circuit Amp block has 91 types. The "Cathode type" column above names them; 
 | 28 | Hot Cat 30 | 58 | 1987X | 88 | Mark IIC+ Rhythm |
 | 29 | ODS 97 | 59 | 1959T Tremolo | 89 | Mark IV Rhythm 1 |
 |  |  |  |  | 90 | Mark IV Rhythm 2 |
+|  |  |  |  | 91 | Dual Rectifier 3-Ch Orange |
+|  |  |  |  | 92 | SVT Channel 2 |
 
-Types 81 to 90, the newest, are:
+Types 81 to 92, the newest, are:
 
 | # | Type | Family | Modelled after |
 |---|---|---|---|
@@ -247,6 +249,8 @@ Types 81 to 90, the newest, are:
 | 88 | Mark IIC+ Rhythm | Mesa/Boogie | Mesa/Boogie Mark IIC+, the rhythm channel (the lead channel is type 21) |
 | 89 | Mark IV Rhythm 1 | Mesa/Boogie | Mesa/Boogie Mark IV, Rhythm 1, the clean channel (the lead channel is type 25) |
 | 90 | Mark IV Rhythm 2 | Mesa/Boogie | Mesa/Boogie Mark IV, Rhythm 2, the crunch channel |
+| 91 | Dual Rectifier 3-Ch Orange | Mesa/Boogie | Mesa/Boogie Dual Rectifier (3-channel), channel 2 |
+| 92 | SVT Channel 2 | Ampeg | Ampeg SVT (1970, 6550), channel two (channel one is type 37) |
 
 Match quality against the references is in `docs/06-amp-modelling-spec.md` (as-built notes per family) and in the
 manifest's targets. Only the Prometheus clean channel reaches the spec's ESR target; captures with stated knob settings

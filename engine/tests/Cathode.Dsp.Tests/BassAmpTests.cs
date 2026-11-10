@@ -13,7 +13,12 @@ namespace Cathode.Dsp.Tests;
 /// </summary>
 public partial class AmpStageTests {
     public static TheoryData<string, double, double> BassChains =>
-        new() { { "SVT", 0.001, -30 }, { "Portaflex B-15N", 0.01, -30 }, { "JC-120", 0.02, -40 } };
+        new() {
+            { "SVT", 0.001, -30 },
+            { "SVT Channel 2", 0.001, -30 },
+            { "Portaflex B-15N", 0.01, -30 },
+            { "JC-120", 0.02, -40 }
+        };
 
     [Theory]
     [MemberData(nameof(BassChains))]
@@ -101,7 +106,7 @@ public partial class AmpStageTests {
 public class BassAmpTests(ITestOutputHelper output) {
     const double Rate = 48_000;
 
-    static readonly string[] Models = ["SVT", "Portaflex B-15N", "JC-120"];
+    static readonly string[] Models = ["SVT", "SVT Channel 2", "Portaflex B-15N", "JC-120"];
 
     public static TheoryData<string> Types => [..Models];
 
@@ -113,6 +118,15 @@ public class BassAmpTests(ITestOutputHelper output) {
         );
         Assert.Equal("Mid Freq", Label("control1", "SVT"));
         Assert.Equal("Bright Input", Label("bright", "SVT"));
+        // Channel two has no midrange loop: no Mid-Range, no Mid Freq, and its Ultra Lo is a plain switch (no Bass
+        // Cut).
+        Assert.Equal(
+            ["Ultra Hi", "Ultra Lo", string.Empty],
+            new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "SVT Channel 2"))
+        );
+        Assert.Empty(Label("middle", "SVT Channel 2"));
+        Assert.Empty(Label("control1", "SVT Channel 2"));
+        Assert.Equal("Bright Input", Label("bright", "SVT Channel 2"));
         Assert.Equal(
             ["Ultra Hi", "Ultra Lo"],
             new[] { "switch1", "switch2" }.Select(static id => Label(id, "Portaflex B-15N"))
@@ -266,6 +280,34 @@ public class BassAmpTests(ITestOutputHelper output) {
         Assert.InRange(lows - notch, 8, 20);
         Assert.InRange(hi, 4, 14);
         Assert.True(cut < -6, $"Bass Cut {cut:0.0} dB");
+    }
+
+    /// <summary>
+    ///     Channel two's Ultra Lo, as Piazza's redraw has it (the switch shorts 10M ‖ 1 nF ahead of the volume and
+    ///     the 1M under a 0.1 µF + 68k shunt), gives the manual's figures, about +2 dB at 40 Hz and −10 dB at 500 Hz;
+    ///     its Ultra Hi is the same 500 pF across the volume as channel one's. And it is another circuit than channel
+    ///     one: no midrange loop, so the Middle knob does nothing and the response is not channel one's.
+    /// </summary>
+    [Fact]
+    public void Svt_channel_two_ultra_switches_shape_as_the_manual_says() {
+        static double At(string type, double frequency, params (int Index, float Value)[] settings) =>
+            Level(type, frequency, 1e-3f, [(CircuitAmpBlock.Gain, 3f), ..settings]);
+
+        const string Two = "SVT Channel 2";
+        var notch = At(Two, 500, (CircuitAmpBlock.Switch2, 1f)) - At(Two, 500);
+        var lows = At(Two, 40, (CircuitAmpBlock.Switch2, 1f)) - At(Two, 40);
+        var hi = At(Two, 8_000, (CircuitAmpBlock.Switch1, 1f)) - At(Two, 8_000);
+        var middle = At(Two, 800, (CircuitAmpBlock.Middle, 10f)) - At(Two, 800, (CircuitAmpBlock.Middle, 0f));
+        var tilt = At(Two, 100) - At(Two, 2_000) - (At("SVT", 100) - At("SVT", 2_000));
+        output.WriteLine(
+            $"Channel two Ultra Lo: {notch:0.0} dB at 500 Hz, {lows:0.0} dB at 40 Hz; Ultra Hi {hi:0.0} dB at 8 kHz; "
+            + $"Middle moves 800 Hz {middle:0.00} dB; 100 Hz against 2 kHz is {tilt:0.0} dB from channel one's"
+        );
+        Assert.InRange(notch, -12, -7);
+        Assert.InRange(lows, 1, 5);
+        Assert.InRange(hi, 4, 14);
+        Assert.InRange(Math.Abs(middle), 0, 0.01);
+        Assert.True(Math.Abs(tilt) > 3, $"channel two's response is channel one's ({tilt:0.0} dB)");
     }
 
     /// <summary>
