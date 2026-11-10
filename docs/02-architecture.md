@@ -72,37 +72,52 @@ A user who runs no editor (a "headless rig on a mini-PC") starts only Host + Ser
 
 ```
 cathode/
-├─ engine/                                  # .NET 10 solution
+├─ engine/                                  # .NET 10 solution (Cathode.slnx)
 │  ├─ src/
-│  │  ├─ Cathode.Dsp/                      # pure DSP: blocks, filters, oversampling, convolution
-│  │  │                                     #   no I/O, no threads, no allocation after Prepare()
-│  │  ├─ Cathode.Dsp.Native/               # P/Invoke: NAM core, RTNeural, FTZ/DAZ, vDSP FFT
-│  │  ├─ Cathode.Engine/                   # graph model + compiler, scheduler, params, modifiers,
-│  │  │                                     #   scenes/channels runtime, spillover, telemetry writer
-│  │  ├─ Cathode.Audio/                    # IAudioBackend + Offline/Null/Native backends
-│  │  ├─ Cathode.Contracts/                # preset schema, REST DTOs, migrations (no references)
+│  │  ├─ Cathode.Dsp/                      # pure DSP: blocks, filters, oversampling, convolution, the
+│  │  │                                     #   managed AIDA-X models; no I/O, no threads, no allocation
+│  │  │                                     #   after Prepare()
+│  │  ├─ Cathode.Dsp.Native/               # P/Invoke: the NAM capture amp block over cth_nam
+│  │  ├─ Cathode.Engine/                   # graph compiler, real-time loop, command ring, modifiers,
+│  │  │                                     #   the rig (controllers, looper, global EQ), spillover,
+│  │  │                                     #   telemetry region
+│  │  ├─ Cathode.Audio/                    # offline renderer, null backend, native device and MIDI
+│  │  │                                     #   sessions (cth_audio), latency probe
+│  │  ├─ Cathode.Contracts/                # preset schema and REST DTOs (no references)
 │  │  ├─ Cathode.Ipc/                      # Host<->Server protocol: messages, the graph as sent (no references)
-│  │  ├─ Cathode.EngineHost/               # the host's IPC handler and socket server
+│  │  ├─ Cathode.EngineHost/               # the host's IPC handler and socket server, MIDI input
 │  │  ├─ Cathode.Host/                     # engine executable (NativeAOT)
-│  │  └─ Cathode.Server/                   # ASP.NET Core REST + WS gateway
+│  │  └─ Cathode.Server/                   # ASP.NET Core REST + WS gateway: the live rig, the stores and
+│  │                                        #   preset migrations (Stores/), the MIDI router (Midi/), the
+│  │                                        #   factory presets (Factory/), openapi.json
 │  ├─ native/
-│  │  ├─ cth_audio/                          # C ABI shim over CoreAudio / WASAPI / ASIO / ALSA / JACK
-│  │  └─ cth_nam/                            # extern "C" wrapper of NeuralAmpModelerCore + RTNeural
+│  │  ├─ cth_audio/                          # C ABI shim over CoreAudio / WASAPI / ASIO / ALSA / JACK, MIDI
+│  │  │                                     #   (CoreMIDI / WinMM / ALSA sequencer) and the FTZ/DAZ helper
+│  │  ├─ cth_nam/                            # extern "C" wrapper of NeuralAmpModelerCore
+│  │  └─ rtsan/                              # the native real-time paths under RealtimeSanitizer
 │  ├─ tests/                                # see 03-testing-strategy.md
-│  ├─ bench/                                # BenchmarkDotNet + callback-timing soak harness
-│  └─ tools/
-│     ├─ Cathode.Render/                   # CLI: render preset × DI file → wav (offline)
-│     └─ Cathode.Analyze/                  # CLI: THD, alias ratio, ESR, MRSTFT, null residual
+│  │  ├─ Cathode.Testing/                  # stimuli and analysers: FFT, THD, null residual, ESR, MRSTFT
+│  │  ├─ Cathode.*.Tests/                  # xUnit suites per project, and the amp reference suite
+│  │  └─ assets/                           # golden renders, the legacy preset corpus, NAM and amp references
+│  ├─ tools/
+│  │  ├─ Cathode.Render/                   # CLI: render a graph over a DI file to a WAV (offline)
+│  │  ├─ Cathode.Bench/                    # CLI: CPU cost per block; writes Cathode.Dsp/BlockCosts.cs
+│  │  ├─ Cathode.References/               # CLI: fetch the amp references, match and fit circuit amps
+│  │  └─ Cathode.Soak/                     # CLI: drive a live server and host as a gig would, count overloads
+│  ├─ examples/                             # two example graphs and a synthetic cab IR
+│  └─ spikes/                               # the GC-load spike behind ADR-0001
 ├─ editor/                                  # Nx workspace (same tooling as xUI)
-│  ├─ apps/desktop/                         # Electron main + preload
-│  ├─ apps/editor/                          # Angular renderer app
+│  ├─ apps/desktop/                         # Electron main + preload; e2e/ holds the Playwright tests
+│  ├─ apps/editor/                          # Angular renderer app: shell, grid, block-editor, pages, state
 │  ├─ libs/api-client/                      # generated from engine OpenAPI (committed)
-│  ├─ libs/audio-ui/                        # knob, meter, VU, tuner, EQ curve, grid... (xUI-styled)
-│  ├─ libs/features/*                       # grid, block-editor, scenes, modifiers, library, setup
-│  └─ e2e/                                  # Playwright _electron
-├─ assets/                                  # factory presets, factory IRs (own captures), test DI corpus
+│  └─ libs/audio-ui/                        # knob, meter, tuner, scope, RTA, block tile... (xUI-styled)
+├─ website/                                 # the landing page and the manual (Angular, prerendered); its
+│                                           #   parameter tables are generated from the engine's catalog
+├─ packaging/headless/                      # the Linux headless package: install script, systemd units
 └─ docs/
 ```
+
+There is no top-level assets folder. The factory presets are embedded in the Server (`engine/src/Cathode.Server/Factory`); no factory IRs or captures ship yet. Test audio lives in `engine/tests/assets`.
 
 ### Project dependencies
 
