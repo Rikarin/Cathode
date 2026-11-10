@@ -117,7 +117,9 @@ export class SaveBlockDialog {
       this.scope() === 'block'
         ? wholeBlock(block, channel, this.live.preset()?.modifiers ?? [])
         : { values: { ...(block.channels[channel] ?? {}) } };
-    await this.presets.save(block.type, name, { ...entry, folder: this.folder().trim() });
-    this.ui.saveBlockOpen.set(false);
+    // A refused save keeps the dialog, with the name and folder as typed (the store has shown the reason).
+    if (await this.presets.save(block.type, name, { ...entry, folder: this.folder().trim() })) {
+      this.ui.saveBlockOpen.set(false);
+    }
   }
 }
