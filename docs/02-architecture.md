@@ -441,6 +441,7 @@ Live state outside the preset has events of its own, which carry the current `re
   - can instead connect to a remote server (headless rig) by URL and token
   - writes its own messages and everything the sidecars print to log files in the system's logs folder (`main.log`, `host.log`, `server.log`; 2 MB each, with one older file kept), shown by Help ▸ Show Logs
   - provides native file dialogs, auto-update and crash reporting
+  - is packaged with Electron's fuses set so the shipped binary runs only its own code (no `ELECTRON_RUN_AS_NODE`, `NODE_OPTIONS` or `--inspect`; the app is loaded only from `app.asar`, whose integrity is checked on macOS and Windows), and ignores the development switches `CATHODE_EDITOR_URL`, `CATHODE_EDITOR_DIR` and `CATHODE_ENGINE_DIR` when packaged
   - has contextIsolation on and nodeIntegration off; a minimal preload exposes `window.cathode.{pickFile, revealPath, version}`
 - **Renderer:** an Angular 22 standalone, zoneless, signals-based app in an Nx workspace (the same tooling as xUI, so the libs can be consumed as source during development).
 

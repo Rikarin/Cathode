@@ -13,6 +13,7 @@ import { existsSync, statSync } from 'node:fs';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { contentSecurityPolicy } from './content-security-policy';
+import { developmentSwitch } from './development';
 import { log, logSidecar, showLogs } from './logs';
 import { networkStatus, newToken, portFree } from './network';
 import {
@@ -67,10 +68,11 @@ if (!primary) {
 const Scheme = 'app';
 /** The app icon (apps/desktop/assets/icon.png), copied next to main.js by the build. */
 const Icon = join(__dirname, 'icon.png');
+// CATHODE_EDITOR_DIR and CATHODE_EDITOR_URL are for development only: a packaged app serves the editor it carries.
 const editorRoot = resolve(
-  process.env['CATHODE_EDITOR_DIR'] ?? join(__dirname, app.isPackaged ? 'editor' : '../editor/browser')
+  developmentSwitch('CATHODE_EDITOR_DIR') ?? join(__dirname, app.isPackaged ? 'editor' : '../editor/browser')
 );
-const devServer = process.env['CATHODE_EDITOR_URL']; // `nx serve editor` during development
+const devServer = developmentSwitch('CATHODE_EDITOR_URL'); // `nx serve editor` during development
 /** The same build for cathode-server to serve on the network: it cannot read inside the asar archive. */
 const editorFiles = editorRoot.replace(`${sep}app.asar${sep}`, `${sep}app.asar.unpacked${sep}`);
 
