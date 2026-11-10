@@ -11,7 +11,7 @@ The capture tier of the Amp block hosts the **reference C++ NeuralAmpModelerCore
 - **C ABI:** `load`, `info`, `reset`, `set_size`, `process`, `free`, `set_fast_tanh`. Mono float in and out; the model runs in NAM's default double precision, converted at the boundary.
 - **Managed side:** `Cathode.Dsp.Native` contains `NamModel` (the handle) and `NamAmpBlock`, which has input trim, loudness normalisation to −18 dB as in the NAM plugin, and output level.
 - **Graphs:** graph nodes reference model files through a new **assets** map (`"assets": { "model": "x.nam" }`). The compiler loads assets on the control thread before `Prepare`, and reports load failures as graph validation errors.
-- **Fast tanh** is on by default in the host benchmark, as in the NAM plugin. It is a process-global switch upstream.
+- **Fast tanh** is on, as in the NAM plugin. It is a process-global switch upstream and off there by default, so `NamModel.Load` applies it to every model the engine loads; the benchmark's `--exact-tanh` and the golden tests turn it off.
 
 ## Correctness
 

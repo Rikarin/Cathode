@@ -9228,6 +9228,24 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         min: 0,
         max: 1,
         default: 1
+      },
+      {
+        id: 'size',
+        name: 'Size',
+        kind: 'choice',
+        min: 0,
+        max: 1,
+        default: 0,
+        options: ['Full', 'Lite']
+      },
+      {
+        id: 'location',
+        name: 'EQ Location',
+        kind: 'choice',
+        min: 0,
+        max: 1,
+        default: 0,
+        options: ['Post', 'Pre']
       }
     ]
   },

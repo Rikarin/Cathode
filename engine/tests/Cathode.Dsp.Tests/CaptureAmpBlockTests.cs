@@ -180,6 +180,38 @@ public class CaptureAmpBlockTests : IDisposable {
     }
 
     [Fact]
+    public void Eq_location_pre_runs_the_tone_controls_into_the_capture() {
+        // A capture that clips at 0.1, a 60 Hz sine under that, and 12 dB of Bass: after the capture the boost
+        // comes out whole, before it the capture clips the boosted sine.
+        var input = Signals.Sine(60, 48_000, 24_000, 0.05f);
+        float Peak(int location) {
+            using var block = new CaptureAmpBlock(static _ => new ClipModel(0.1f));
+            block.LoadAsset(CaptureAmpBlock.ModelSlot, "capture.nam");
+            block.Params.SetTarget(CaptureAmpBlock.Bass, 12f);
+            block.Params.SetTarget(CaptureAmpBlock.Location, location);
+            block.Prepare(new(48_000, 64));
+            return BlockRender.Mono(block, input, 64).Skip(12_000).Max(MathF.Abs);
+        }
+
+        Assert.InRange(Peak(CaptureAmpBlock.LocationPost), 0.15f, 0.2f);
+        Assert.Equal(0.1f, Peak(CaptureAmpBlock.LocationPre));
+    }
+
+    [Theory]
+    [InlineData(CaptureAmpBlock.LocationPost)]
+    [InlineData(CaptureAmpBlock.LocationPre)]
+    public void Without_a_capture_the_eq_runs_once_on_either_location(int location) {
+        using var block = new CaptureAmpBlock();
+        block.Params.SetTarget(CaptureAmpBlock.Middle, 12f);
+        block.Params.SetTarget(CaptureAmpBlock.Location, location);
+        block.Prepare(new(48_000, 64));
+
+        var response = BlockRender.Mono(block, Signals.Impulse(16_384), 64);
+
+        Assert.InRange(Analysis.ToDb(Analysis.MagnitudeAt(response, 650, 48_000)), 11.5, 12.5);
+    }
+
+    [Fact]
     public void Flat_tone_without_a_model_is_bit_transparent() {
         using var block = new CaptureAmpBlock();
         block.Prepare(new(48_000, 64));
@@ -319,6 +351,29 @@ public class CaptureAmpBlockTests : IDisposable {
                     .Select(c => ((float)m[row, c]).ToString("R", CultureInfo.InvariantCulture))
             )
             + "]";
+    }
+
+    /// <summary>A capture that hard-clips at <paramref name="ceiling" />.</summary>
+    sealed class ClipModel(float ceiling) : ICaptureModel {
+        public string Format => "fake";
+
+        public string Architecture => "clip";
+
+        public double ExpectedSampleRate => 48_000;
+
+        public double? Loudness => null;
+
+        public double? InputLevelDbu => null;
+
+        public void Reset(double sampleRate, int maxFrames) { }
+
+        public void Process(ReadOnlySpan<float> input, Span<float> output) {
+            for (var i = 0; i < input.Length; i++) {
+                output[i] = Math.Clamp(input[i], -ceiling, ceiling);
+            }
+        }
+
+        public void Dispose() { }
     }
 
     /// <summary>A capture that passes its input through, recording <paramref name="inputLevelDbu" />.</summary>
