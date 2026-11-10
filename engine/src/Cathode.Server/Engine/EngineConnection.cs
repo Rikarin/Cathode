@@ -339,7 +339,14 @@ public sealed partial class EngineConnection(
             monitor = null;
             synced = false;
             await lost.CancelAsync();
-            await meters.ContinueWith(static _ => { }, TaskScheduler.Default);
+            try {
+                await meters;
+            } catch (OperationCanceledException) {
+                // stopped with the link
+            } catch (Exception e) when (e is not OutOfMemoryException) {
+                MetersFailed(logger, e);
+            }
+
             mapped?.Dispose();
             info = null;
             Link = null;
@@ -367,48 +374,74 @@ public sealed partial class EngineConnection(
     async Task PublishMetersAsync(TelemetryMonitor source, CancellationToken cancellationToken) {
         using var timer = new PeriodicTimer(MeterInterval);
         var window = new float[ScopeSamples];
+        var replaced = FrameJson.Replaced;
+        var failing = false;
         while (await timer.WaitForNextTickAsync(cancellationToken)) {
-            if (scopeEnabled && source.Region.ReadScope(window)) {
-                var points = new float[ScopeSamples / ScopeDecimation];
-                for (var i = 0; i < points.Length; i++) {
-                    points[i] = window[i * ScopeDecimation];
+            // One frame that cannot be built or written must not end the meters for every client until the host
+            // reconnects: log it (once per run of failures) and carry on with the next tick.
+            try {
+                PublishMeters(source, window);
+                failing = false;
+            } catch (Exception e) when (e is not OutOfMemoryException) {
+                if (!failing) {
+                    MetersFailed(logger, e);
                 }
 
-                hub.PublishFrame(
-                    "scope",
-                    new("scope", source.Region.SampleRate / ScopeDecimation, points),
-                    ContractsJsonContext.Default.ScopeFrame
-                );
+                failing = true;
             }
 
-            PublishRta(source.Region);
-            if (source.Poll() is not { } reading) {
-                continue;
+            // Said once per connection: a NaN in the audio path usually stays there until the preset is reloaded.
+            if (replaced >= 0 && FrameJson.Replaced != replaced) {
+                NonFiniteTelemetry(logger);
+                replaced = -1;
+            }
+        }
+    }
+
+    void PublishMeters(TelemetryMonitor source, float[] window) {
+        if (scopeEnabled && source.Region.ReadScope(window)) {
+            var points = new float[ScopeSamples / ScopeDecimation];
+            for (var i = 0; i < points.Length; i++) {
+                points[i] = window[i * ScopeDecimation];
             }
 
             hub.PublishFrame(
-                "telemetry",
-                new(
-                    "telemetry",
-                    reading.InputPeak,
-                    reading.OutputPeakLeft,
-                    reading.OutputPeakRight,
-                    reading.CpuP999,
-                    reading.Overruns,
-                    Tuner(LastTelemetry),
-                    LastTelemetry?.Tempo ?? 120,
-                    Looper(LastTelemetry),
-                    BlockMeters(source),
-                    source.LoudnessMomentary,
-                    source.LoudnessShortTerm,
-                    OutputPeaks(LastTelemetry),
-                    Modulation(source),
-                    Controllers(source.Controllers)
-                ),
-                ContractsJsonContext.Default.Telemetry
+                "scope",
+                new("scope", source.Region.SampleRate / ScopeDecimation, points),
+                FrameJson.ScopeFrame
             );
         }
+
+        PublishRta(source.Region);
+        if (source.Poll() is not { } reading) {
+            return;
+        }
+
+        hub.PublishFrame(
+            "telemetry",
+            new(
+                "telemetry",
+                reading.InputPeak,
+                reading.OutputPeakLeft,
+                reading.OutputPeakRight,
+                reading.CpuP999,
+                reading.Overruns,
+                Tuner(LastTelemetry),
+                LastTelemetry?.Tempo ?? 120,
+                Looper(LastTelemetry),
+                BlockMeters(source),
+                Loudness(source.LoudnessMomentary),
+                Loudness(source.LoudnessShortTerm),
+                OutputPeaks(LastTelemetry),
+                Modulation(source),
+                Controllers(source.Controllers)
+            ),
+            FrameJson.Telemetry
+        );
     }
+
+    /// <summary>A loudness in LUFS, or null when the meter has none to give: 0 would read as full scale.</summary>
+    static float? Loudness(float lufs) => float.IsFinite(lufs) ? lufs : null;
 
     /// <summary>
     ///     Every block meter by block id and meter id, when the meters belong to the graph whose meters the host
@@ -588,7 +621,7 @@ public sealed partial class EngineConnection(
                     Looper(t),
                     OutputPeaks: OutputPeaks(t)
                 ),
-                ContractsJsonContext.Default.Telemetry
+                FrameJson.Telemetry
             );
         }
     }
@@ -601,6 +634,15 @@ public sealed partial class EngineConnection(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Shared telemetry '{Path}' unavailable, using IPC: {Message}")]
     static partial void TelemetryUnavailable(ILogger logger, string path, string message);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Publishing meters failed")]
+    static partial void MetersFailed(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "The engine reported a meter, scope or RTA value that is not a finite number; it is shown as 0"
+    )]
+    static partial void NonFiniteTelemetry(ILogger logger);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Handling MIDI failed: {Error}")]
     static partial void MidiHandlerFailed(ILogger logger, string error);
