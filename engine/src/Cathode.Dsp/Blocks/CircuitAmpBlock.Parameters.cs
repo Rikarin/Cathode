@@ -197,7 +197,9 @@ public sealed partial class CircuitAmpBlock {
 
     /// <summary>
     ///     The descriptor's parameters with each model's panel names (<see cref="ParamDescriptor.TypeLabels" />) and
-    ///     its own defaults (<see cref="ParamDescriptor.TypeDefaults" />, from <see cref="AmpPanel.Defaults" />).
+    ///     its own defaults (<see cref="ParamDescriptor.TypeDefaults" />, from <see cref="AmpPanel.Defaults" />), and
+    ///     shown on a model that puts it behind one of its switches only while that switch is on
+    ///     (<see cref="ParamDescriptor.TypeVisibleWhen" />, from <see cref="AmpPanel.BehindSwitch" />).
     /// </summary>
     static IReadOnlyList<ParamDescriptor> Labelled(IReadOnlyList<ParamDescriptor> parameters) => [
         ..parameters.Select(static p => {
@@ -208,9 +210,16 @@ public sealed partial class CircuitAmpBlock {
                     )
                 ];
                 float[] defaults = [..AmpDesign.All.Select(a => a.Panel.Default(p.Id, p.Default))];
+                var behind = AmpDesign.All.Index()
+                    .Where(a => a.Item.Panel.BehindSwitch.ContainsKey(p.Id))
+                    .ToDictionary(
+                        static a => a.Index,
+                        a => new ParamCondition(a.Item.Panel.BehindSwitch[p.Id], [1f])
+                    );
                 return p with {
                     TypeLabels = labels.All(l => l == p.Name) ? null : labels,
-                    TypeDefaults = defaults.All(d => d == p.Default) ? null : defaults
+                    TypeDefaults = defaults.All(d => d == p.Default) ? null : defaults,
+                    TypeVisibleWhen = behind.Count > 0 ? behind : null
                 };
             }
         )

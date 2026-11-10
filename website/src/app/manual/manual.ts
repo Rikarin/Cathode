@@ -239,6 +239,7 @@ function collapse(block: ManualBlock, params: readonly EngineParam[]): Knob[] {
       param.options,
       availability(param),
       param.visibleWhen ?? null,
+      param.typeVisibleWhen ?? null,
       describeParam(block.doc, param.id) ?? ''
     ]);
 
@@ -305,12 +306,29 @@ function family(block: ManualBlock, members: readonly { param: EngineParam; n: n
   };
 }
 
-/** The setting of another knob the knob is shown with, as text ("Controls is Compression"), if it has one. */
+/**
+ * The setting of another knob the knob is shown with, as text ("Controls is Compression"), if it has one; a condition
+ * that holds on one type only (`typeVisibleWhen`) names the type and that type's name for the other knob ("JC-120:
+ * Distortion On is On").
+ */
 function shownWhenOf(block: ManualBlock, param: EngineParam): string | undefined {
-  const when = param.visibleWhen;
-  const other = when && block.params.find(p => p.id === when.param);
+  const types = block.params.find(p => p.id === 'type')?.options ?? [];
+  const text = (when: NonNullable<EngineParam['visibleWhen']>, type?: number): string | undefined => {
+    const other = block.params.find(p => p.id === when.param);
+    const name = (type !== undefined && other?.typeLabels?.[type]) || other?.name;
 
-  return when && other ? `${other.name} is ${when.values.map(v => formatValue(other, v)).join(' or ')}` : undefined;
+    return other && `${name} is ${when.values.map(v => formatValue(other, v)).join(' or ')}`;
+  };
+  const parts = [
+    param.visibleWhen && text(param.visibleWhen),
+    ...Object.entries(param.typeVisibleWhen ?? {}).map(([type, when]) => {
+      const shown = text(when, Number(type));
+
+      return shown && `${types[Number(type)] ?? type}: ${shown}`;
+    })
+  ].filter(Boolean);
+
+  return parts.length ? parts.join('; ') : undefined;
 }
 
 /**

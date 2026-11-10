@@ -142,7 +142,9 @@ public sealed record FrequencyResponse(float[] Frequencies, float[] Db, float[] 
 ///     there. <c>TypeDefaults</c>, where present, is the parameter's default per value of <c>type</c> (a model that
 ///     ships a control at another setting), in place of <c>Default</c>: a value a channel does not store is that
 ///     type's default. <c>VisibleWhen</c>, where present, shows the parameter only while another one of the block (a
-///     choice or a switch) holds one of the listed values: hide it otherwise.
+///     choice or a switch) holds one of the listed values: hide it otherwise. <c>TypeVisibleWhen</c>, where present,
+///     holds such a condition for some values of <c>type</c> only, keyed by the type value ("39"): on that type the
+///     parameter shows only while it holds too (an amp model's knob behind a switch of its own).
 /// </summary>
 public sealed record ParameterInfo(
     string Id,
@@ -157,7 +159,8 @@ public sealed record ParameterInfo(
     IReadOnlyList<string>? TypeLabels = null,
     string? Page = null,
     IReadOnlyList<float>? TypeDefaults = null,
-    ParameterCondition? VisibleWhen = null
+    ParameterCondition? VisibleWhen = null,
+    IReadOnlyDictionary<string, ParameterCondition>? TypeVisibleWhen = null
 );
 
 /// <summary>A condition on a block's parameter: it holds while <c>Param</c> is one of <c>Values</c>.</summary>

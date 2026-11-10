@@ -30,20 +30,34 @@ export function blockDefault(
  * Whether `param` shows with the block's current settings: always, unless it carries `visibleWhen` (it means something
  * only while another parameter, a choice or a switch, holds one of some values, as the Compressor's Threshold with
  * Controls on Threshold/Ratio); then while that parameter's value (read by `valueOf`, or its default) is one of them.
+ * A condition for the block's type alone (`typeVisibleWhen`: the JC-120's Distortion knob behind its Distortion On
+ * switch) holds on that type as well.
  */
 export function isShown(
   params: readonly ParameterInfo[],
   param: ParameterInfo,
   valueOf: (id: string) => number | undefined
 ): boolean {
-  const when = param.visibleWhen;
-  if (!when) {
+  const holds = (when: ParameterInfo['visibleWhen'] | undefined): boolean => {
+    if (!when) {
+      return true;
+    }
+
+    const other = params.find(p => p.id === when.param);
+    const value = valueOf(when.param) ?? (other ? blockDefault(params, other, valueOf) : undefined);
+    return value !== undefined && when.values.includes(Math.round(value));
+  };
+
+  if (!holds(param.visibleWhen)) {
+    return false;
+  }
+
+  if (!param.typeVisibleWhen) {
     return true;
   }
 
-  const other = params.find(p => p.id === when.param);
-  const value = valueOf(when.param) ?? (other ? blockDefault(params, other, valueOf) : undefined);
-  return value !== undefined && when.values.includes(Math.round(value));
+  const type = valueOf('type') ?? params.find(p => p.id === 'type')?.default ?? 0;
+  return holds(param.typeVisibleWhen[String(Math.round(type))]);
 }
 
 /**

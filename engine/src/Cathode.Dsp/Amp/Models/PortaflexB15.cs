@@ -3,7 +3,8 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Ampeg Portaflex B-15-N (1968, about 30 W), channel one: V1 (6SL7: 470k plate, 5.6k unbypassed) with the Normal
+///     Ampeg Portaflex B-15-N (1968, about 30 W), one of its two channels, which are the same circuit (channel one's
+///     part names here): V1 (6SL7: 470k plate, 5.6k unbypassed) with the Normal
 ///     input's 47k (the Bright input's 100k ‖ 5 nF), its 0.1 µF into 0.01 µF and the 1M volume, the Ultra Lo shunt
 ///     (0.02 µF and 39k to ground from the plate side, with 1M in series while it is off) and the 500 pF Ultra Hi cap;
 ///     the second 6SL7 half (220k, 2.2k unbypassed); a passive Baxandall with 1M pots; the 270k mixing resistors; a
@@ -26,6 +27,13 @@ namespace Cathode.Dsp.Amp.Models;
 ///         which loads the mix node through its 270k as about 150k more; and the cab: the B-15's closed 1 × 15 runs on
 ///         the closed 8 × 10 preset, the library's only bass cabinet. The screens have no resistors on the drawing (1 Ω
 ///         here).
+///     </para>
+///     <para>
+///         Channel two (V2, another 6SL7) is channel one again on the drawing, part for part: the same input network,
+///         Ultra Lo and Ultra Hi, volume, second half and Baxandall into its own 270k. So the model is either channel,
+///         and a channel switch would change nothing. Not modelled: both channels played at once (a cable between
+///         their inputs), which needs the second channel's volume, bass, treble and two switches, more controls than
+///         the block has free.
 ///     </para>
 /// </remarks>
 public static class PortaflexB15 {

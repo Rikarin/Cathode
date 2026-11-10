@@ -82,14 +82,29 @@ public sealed class BlockDescriptor {
 
     /// <summary>
     ///     Every <see cref="ParamDescriptor.VisibleWhen" /> names another parameter of the block, a choice or a switch
-    ///     but not the type, and values it can take.
+    ///     but not the type, and values it can take; so does every <see cref="ParamDescriptor.TypeVisibleWhen" />, each
+    ///     on a value the block's type choice can take.
     /// </summary>
     static void CheckVisibility(string typeId, IReadOnlyList<ParamDescriptor> parameters) {
+        var type = parameters.FirstOrDefault(static p => p is { Id: "type", Kind: ParamKind.Enum });
         foreach (var p in parameters) {
-            if (p.VisibleWhen is not { } when) {
-                continue;
+            if (p.VisibleWhen is { } when) {
+                Check(p, when);
             }
 
+            foreach (var (value, typed) in p.TypeVisibleWhen ?? new Dictionary<int, ParamCondition>()) {
+                if (type is null || p.Id == "type" || value < 0 || value > type.Max) {
+                    throw new ArgumentException(
+                        $"Parameter '{p.Id}' of block '{typeId}' cannot have a condition on type {value}.",
+                        nameof(parameters)
+                    );
+                }
+
+                Check(p, typed);
+            }
+        }
+
+        void Check(ParamDescriptor p, ParamCondition when) {
             var other = parameters.FirstOrDefault(o => o.Id == when.Param);
             var valid = other is { Kind: ParamKind.Enum or ParamKind.Bool, Id: not "type" }
                 && other.Id != p.Id

@@ -56,6 +56,12 @@ public sealed record ParamCondition(string Param, IReadOnlyList<float> Values);
 ///         Compressor's Threshold and Ratio with Controls on Threshold/Ratio; the editor hides it otherwise. Null for
 ///         a parameter always shown. The block's descriptor checks the parameter it names.
 ///     </para>
+///     <para>
+///         <see cref="TypeVisibleWhen" />: such a condition on some values of the block's <c>type</c> parameter only,
+///         by type value, for a control one model puts behind a switch of its own (the JC-120's Distortion knob, which
+///         does nothing until its Distortion On switch is on). On those types it holds as well as
+///         <see cref="VisibleWhen" />; on the others it does not apply. Null where no type has a condition of its own.
+///     </para>
 /// </remarks>
 public sealed record ParamDescriptor(
     string Id,
@@ -73,7 +79,8 @@ public sealed record ParamDescriptor(
     bool Recompile = false,
     string? Page = null,
     IReadOnlyList<float>? TypeDefaults = null,
-    ParamCondition? VisibleWhen = null
+    ParamCondition? VisibleWhen = null,
+    IReadOnlyDictionary<int, ParamCondition>? TypeVisibleWhen = null
 ) {
     /// <summary>
     ///     This parameter, shown only while parameter <paramref name="param" /> holds one of

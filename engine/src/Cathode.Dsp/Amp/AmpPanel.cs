@@ -133,6 +133,14 @@ public sealed record AmpPanel {
     /// </summary>
     public float Default(string id, float fallback) => Defaults.GetValueOrDefault(id, fallback);
 
+    /// <summary>
+    ///     The model's controls that do nothing until one of its switches is on, by parameter id, each with that
+    ///     switch's id: the JC-120's Distortion knob ("control2") behind its Distortion On switch ("switch1"). The
+    ///     editor shows such a control only while the switch is on
+    ///     (<see cref="Parameters.ParamDescriptor.TypeVisibleWhen" />).
+    /// </summary>
+    public IReadOnlyDictionary<string, string> BehindSwitch { get; init; } = new Dictionary<string, string>();
+
     /// <summary>Whether one of the model's own switches is called <paramref name="name" />.</summary>
     public bool HasSwitch(string name) => Switch1 == name || Switch2 == name || Switch3 == name;
 

@@ -10659,7 +10659,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Contour',
           'Ultra Hi',
           'Ultra Hi',
-          'Distortion',
+          'Distortion On',
           'Normal Ch',
           '',
           'Vibrato Ch',
@@ -11124,7 +11124,13 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           '',
           ''
-        ]
+        ],
+        typeVisibleWhen: {
+          '39': {
+            param: 'switch1',
+            values: [1]
+          }
+        }
       },
       {
         id: 'eq1',
