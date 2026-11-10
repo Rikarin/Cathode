@@ -324,6 +324,69 @@ public sealed record FeedbackDesign(
     }
 
     /// <summary>
+    ///     The Peavey 5150 II's presence wiring, in place of the pot in series with the cap: the pot's whole track runs
+    ///     from the tail's foot to <see cref="PresenceCap" /> (and so to ground), and this second cap goes from the
+    ///     wiper to ground. At 10 the wiper is at the foot and the tap cap lies straight across the shunt; at 0 it is
+    ///     at the far end, the two caps in parallel behind the whole track. 0 for the other wirings. Not with
+    ///     <see cref="PresenceIsShunt" />, <see cref="PresenceSeries" />, <see cref="Branch" />, <see cref="Series" />
+    ///     or <see cref="Deep" />.
+    /// </summary>
+    public double PresenceTapCap { get; init; }
+
+    /// <summary>
+    ///     With <see cref="PresenceTapCap" />: the feedback fraction as two first-order sections, as
+    ///     <see cref="BranchTimes" /> gives them, from 1 / (1 + R_f Y) with the shunt's admittance Y = 1 / R_x + 1 /
+    ///     Z_p and the presence branch Z_p = a + (1 / s C_t) ∥ (b + 1 / s C), a the track from the foot to the wiper
+    ///     and b the rest of it. <paramref name="frequency" /> divides both caps.
+    /// </summary>
+    public (double Gain, double Zero1, double Pole1, double Zero2, double Pole2) TapTimes(
+        double presence,
+        double frequency = 1
+    ) {
+        var (c, tap) = (PresenceCap / frequency, PresenceTapCap / frequency);
+        var (rf, rx) = (FeedbackResistor, ShuntResistor);
+        var b = Presence.Ohms * Presence.Fraction(presence);
+        var a = Presence.Ohms - b;
+
+        // Z_p = (1 + n1 s + n2 s²) / (s (C + C_t) + s² b C C_t);
+        // β = R_x (1 + n1 s + n2 s²) / ((R_x + R_f) (1 + n1 s + n2 s²) + R_f R_x (s (C + C_t) + s² b C C_t)).
+        var (n1, n2) = (b * c + a * (c + tap), a * b * c * tap);
+        var slowZero = 0.5 * (n1 + Math.Sqrt(Math.Max(n1 * n1 - 4 * n2, 0)));
+        var c1 = (rx + rf) * n1 + rf * rx * (c + tap);
+        var c2 = (rx + rf) * n2 + rf * rx * b * c * tap;
+        return Sections(rx, slowZero, n2 / slowZero, (rx + rf, c1, c2));
+    }
+
+    /// <summary>
+    ///     A resonance control in series with the feedback resistor (the Peavey 5150 II's): a rheostat with a cap
+    ///     across it, turned by the Depth knob. Below the cap's corner the rheostat adds to the feedback resistor and
+    ///     the feedback falls, so the amp's response (and the speaker's resonance) rises there. Null for the generic
+    ///     depth shelf (<see cref="DepthFrequency" />, <see cref="LowFeedback" />). Not with <see cref="Deep" />.
+    /// </summary>
+    public SeriesResonance? Resonance { get; init; }
+
+    /// <summary>
+    ///     The depth control's low shelf at rotation <paramref name="depth" /> (0..1), (<c>Floor</c> ω + s) / (ω + s):
+    ///     the feedback below the shelf as a fraction of the mid band's, and the shelf's pole in rad/s.
+    ///     <paramref name="frequency" /> scales the pole. The generic control goes from <see cref="LowFeedback" />
+    ///     down to a tenth of it at <see cref="DepthFrequency" />. With <see cref="Resonance" /> it is the network's
+    ///     own: R_s / (R_s + R) of the feedback, R_s the feedback and shunt resistors in series and R the rheostat's
+    ///     resistance, with the pole at 1 / ((R ∥ R_s) C).
+    /// </summary>
+    public (double Floor, double Omega) DepthShelf(double depth, double frequency = 1) {
+        var omega = 2 * Math.PI * (DepthFrequency * frequency);
+        if (Resonance is not { } resonance) {
+            return (LowFeedback * (1 - 0.9 * Math.Clamp(depth, 0, 1)), omega);
+        }
+
+        var rheostat = resonance.Pot.Ohms * resonance.Pot.Fraction(depth);
+        var arm = FeedbackResistor + ShuntResistor;
+        return rheostat > 0
+            ? (arm / (arm + rheostat), (arm + rheostat) * frequency / (rheostat * resonance.Cap * arm))
+            : (1, omega);
+    }
+
+    /// <summary>
     ///     With <see cref="Series" /> and its <see cref="SeriesPresence.ShiftCap" /> in circuit (the pull shift): the
     ///     cap C_p in series with the arm makes the feedback fraction third order and takes it to nothing at DC, β(s)
     ///     = <c>Rise</c> s (1 + s <c>Zero1</c>) (1 + s <c>Zero2</c>) / ((1 + s <c>Pole0</c>) (1 + s <c>Pole1</c>) (1 +
@@ -409,7 +472,11 @@ public sealed record FeedbackDesign(
         }
 
         Complex z;
-        if (PresenceIsShunt) {
+        if (PresenceTapCap > 0) {
+            var b = Presence.Ohms * Presence.Fraction(presence);
+            var lower = 1 / (s * PresenceTapCap / frequency + 1 / (b + 1 / (s * c)));
+            z = 1 / (1 / rx + 1 / (Presence.Ohms - b + lower));
+        } else if (PresenceIsShunt) {
             var p = Presence.Fraction(presence);
             z = (1 - p) * rx + p * rx / (1 + s * p * rx * c);
         } else {
@@ -570,6 +637,14 @@ public sealed record DeepSwitchDesign(
 /// <param name="Resistor">The branch's resistor.</param>
 /// <param name="Cap">The branch's cap.</param>
 public readonly record struct ShuntBranch(double Resistor, double Cap);
+
+/// <summary>
+///     A rheostat with a cap across it in series with the feedback resistor
+///     (<see cref="FeedbackDesign.Resonance" />).
+/// </summary>
+/// <param name="Pot">The rheostat: its resistance rises with the Depth knob.</param>
+/// <param name="Cap">Across the rheostat.</param>
+public readonly record struct SeriesResonance(Pot Pot, double Cap);
 
 /// <summary>
 ///     The legs of a series presence (<see cref="FeedbackDesign.Series" />): the series arm's resistor (with the

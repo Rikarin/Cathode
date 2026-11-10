@@ -76,9 +76,9 @@ The Lone Star is a clean and edge-of-breakup amp with a drive channel.
 
 ### High gain
 
-**5150**, **5150III**, **Legacy VL100**, **Powerball**, **Savage 120**, **Prometheus**, **Prometheus Clean**.
+**5150**, **6505+**, **6505+ Rhythm**, **5150III**, **Legacy VL100**, **Powerball**, **Savage 120**, **Prometheus**, **Prometheus Clean**.
 
-Modern metal and hard rock. The 5150 and 5150III are tight and aggressive, with a **Resonance** control for the low end; the 5150's **Pre Gain** is the gain and **Post Gain** the master. The Powerball and Savage 120 are German high-gain amps with mid controls of their own (**Focused**, **Contour**). The Legacy VL100 is a smooth lead amp. The Prometheus models are a Lichtlaerm Audio design whose circuit was inferred without a published schematic.
+Modern metal and hard rock. The 5150 and 5150III are tight and aggressive, with a **Resonance** control for the low end; the 5150's **Pre Gain** is the gain and **Post Gain** the master. The **6505+** is the 5150 II, the later amp with a separate rhythm preamp: its lead channel is tighter in the low end, its tone controls are named **Low**, **Mid** and **High** as on the panel, and **6505+ Rhythm** is its clean channel, with a **Crunch** switch and a **Bright** switch. The Powerball and Savage 120 are German high-gain amps with mid controls of their own (**Focused**, **Contour**). The Legacy VL100 is a smooth lead amp. The Prometheus models are a Lichtlaerm Audio design whose circuit was inferred without a published schematic.
 
 ### Solid state
 

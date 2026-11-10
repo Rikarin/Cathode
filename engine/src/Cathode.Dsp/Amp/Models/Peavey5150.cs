@@ -58,30 +58,9 @@ public static class Peavey5150 {
                 GridLeak: 1e6
             ) { SupplyNode = 2 },
             new NetworkStageDesign("V1B", PreGain()) { SupplyNode = 2 },
-            new TriodeStageDesign(
-                "V2A",
-                TriodeModel.Ecc83,
-                V1Rail,
-                100e3,
-                39e3,
-                CouplingCap: 22e-9,
-                SeriesResistor: 470e3,
-                GridLeak: 1e6
-            ) { SupplyNode = 2 },
-            new NetworkStageDesign("V2B", ThirdGain()) { SupplyNode = 1 },
-            new TriodeStageDesign(
-                "V5B",
-                TriodeModel.Ecc83,
-                V2Rail,
-                220e3,
-                2.2e3,
-                InputResistance: 1e6,
-                CouplingCap: 22e-9,
-                GridLeak: 100e3
-            ) { SupplyNode = 1 },
-            new NetworkStageDesign("V5A", FeedbackStage()) { SupplyNode = 1 },
+            ..PeaveyParts.ColdClipperToDriver(V1Rail, V2Rail, 22e-9),
             new NetworkStageDesign("Stack", Stack()) { SupplyNode = 1 },
-            new NetworkStageDesign("V3A", PostStage()) { SupplyNode = 1 }
+            PeaveyParts.Post(V2Rail)
         ],
         new(
             "4 x 6L6GC",
@@ -151,52 +130,14 @@ public static class Peavey5150 {
         return net;
     }
 
-    /// <summary>V2B: 22 nF into 330k ‖ 1 nF to ground, 220k to the grid; 220k plate, 1.82k ‖ 1 µF.</summary>
-    static StageNetlist ThirdGain() {
-        var net = new StageNetlist();
-        var (coupled, grid, supply, plate, cathode) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Capacitor(net.Input, coupled, 22e-9);
-        net.Resistor(coupled, StageNetlist.Ground, 330e3);
-        net.Capacitor(coupled, StageNetlist.Ground, 1e-9);
-        net.Resistor(coupled, grid, 220e3);
-        net.Supply(supply, V2Rail);
-        net.Resistor(supply, plate, 220e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.82e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 1e-6);
-        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-        net.Output = plate;
-        return net;
-    }
-
-    /// <summary>
-    ///     V5A with shunt feedback: 1M and 22 nF in, 1M grid leak; 100k plate, 2.2k unbypassed; 22 nF out, and 1M from
-    ///     the coupled output back to the grid.
-    /// </summary>
-    static StageNetlist FeedbackStage() {
-        var net = new StageNetlist();
-        var (series, grid, supply, plate, cathode, output) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Resistor(net.Input, series, 1e6);
-        net.Capacitor(series, grid, 22e-9);
-        net.Resistor(grid, StageNetlist.Ground, 1e6);
-        net.Supply(supply, V2Rail);
-        net.Resistor(supply, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 2.2e3);
-        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-        net.Capacitor(plate, output, 22e-9);
-        net.Resistor(output, grid, 1e6);
-        net.Output = output;
-        return net;
-    }
-
     /// <summary>
     ///     470k into the pad (33k, and 10 nF + 47k, to ground), the stack (47k slope, 470 pF treble cap, 22 nF bass and
     ///     middle caps) and the post gain (1M audio) on the treble wiper.
     /// </summary>
     static StageNetlist Stack() {
         var net = new StageNetlist();
-        var (pad, shelf, slope, trebleTop, trebleBottom, middle) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (pad, shelf) = (net.Node(), net.Node());
+        var (slope, trebleTop, trebleBottom, middle) = (net.Node(), net.Node(), net.Node(), net.Node());
         net.Resistor(net.Input, pad, 470e3);
         net.Resistor(pad, StageNetlist.Ground, 33e3);
         net.Capacitor(pad, shelf, 10e-9);
@@ -209,28 +150,6 @@ public static class Peavey5150 {
         net.Capacitor(slope, middle, 22e-9, CapacitorRole.Stack);
         net.Rheostat(middle, StageNetlist.Ground, new(50e3, PotTaper.Linear), PotRole.Middle);
         net.Output = net.Pot(treble, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Master);
-        return net;
-    }
-
-    /// <summary>
-    ///     The post stage V3A from the loop return: 47 nF, 1M grid leak; 68k plate, 3.3k ‖ 4.7 nF; 22 nF out, 100k in
-    ///     series with the inverter's grid and its 1M leak.
-    /// </summary>
-    static StageNetlist PostStage() {
-        var net = new StageNetlist();
-        var (grid, supply, plate, cathode, coupled, inverter) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Capacitor(net.Input, grid, 47e-9);
-        net.Resistor(grid, StageNetlist.Ground, 1e6);
-        net.Supply(supply, V2Rail);
-        net.Resistor(supply, plate, 68e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 3.3e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 4.7e-9);
-        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-        net.Capacitor(plate, coupled, 22e-9);
-        net.Resistor(coupled, StageNetlist.Ground, 1e6);
-        net.Resistor(coupled, inverter, 100e3);
-        net.Output = inverter;
         return net;
     }
 }

@@ -100,6 +100,8 @@ public sealed partial record AmpDesign {
         MarkIIC.Rhythm,
         MarkIV.Rhythm1,
         MarkIV.Rhythm2,
-        DualRectifier3Channel.Orange
+        DualRectifier3Channel.Orange,
+        Peavey6505Plus.Design,
+        Peavey6505Plus.Rhythm
     ];
 }

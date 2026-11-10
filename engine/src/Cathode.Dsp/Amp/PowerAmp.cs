@@ -1882,7 +1882,10 @@ struct PushPullStage : INonlinearDevice {
     ///     the shunt in place of the depth control: third order, the presence's section and a second-order one
     ///     (<see cref="FeedbackDesign.DeepTimes" />), its resonance scaled by the depth frequency. With
     ///     <paramref name="presenceShift" /> on a series presence that has a shift cap, the cap is in the arm: a third
-    ///     section, a high-pass ahead of the other two (<see cref="FeedbackDesign.ShiftedTimes" />).
+    ///     section, a high-pass ahead of the other two (<see cref="FeedbackDesign.ShiftedTimes" />). A tapped presence
+    ///     (<see cref="FeedbackDesign.PresenceTapCap" />) is second order too (<see cref="FeedbackDesign.TapTimes" />),
+    ///     and a series resonance (<see cref="FeedbackDesign.Resonance" />) sets the depth shelf in place of the
+    ///     generic one (<see cref="FeedbackDesign.DepthShelf" />).
     /// </summary>
     public void SetFeedback(
         FeedbackDesign design,
@@ -1909,7 +1912,8 @@ struct PushPullStage : INonlinearDevice {
             return;
         }
 
-        hasBranch = design.Branch is not null || design.Series is not null;
+        var tapped = design.PresenceTapCap > 0;
+        hasBranch = design.Branch is not null || design.Series is not null || tapped;
         var shifted = presenceShift && design.Series is { ShiftCap: > 0 };
         if (shifted && !hasShift) {
             shift.Reset();
@@ -1922,9 +1926,9 @@ struct PushPullStage : INonlinearDevice {
             this.presence.Design(1, zero1, 1, pole1, rate);
             branch.Design(1, zero2, 1, pole2, rate);
         } else if (hasBranch) {
-            var (gain, zero1, pole1, zero2, pole2) = design.Series is not null
-                ? design.SeriesTimes(presence, presenceFrequency)
-                : design.BranchTimes(presence, presenceFrequency);
+            var (gain, zero1, pole1, zero2, pole2) = tapped ? design.TapTimes(presence, presenceFrequency)
+            : design.Series is not null ? design.SeriesTimes(presence, presenceFrequency)
+            : design.BranchTimes(presence, presenceFrequency);
             this.presence.Design(gain, gain * zero1, 1, pole1, rate);
             branch.Design(1, zero2, 1, pole2, rate);
         } else {
@@ -1932,8 +1936,7 @@ struct PushPullStage : INonlinearDevice {
             this.presence.Design(design.Beta, design.Beta * tau1, 1, tau2, rate);
         }
 
-        var omega = 2 * Math.PI * (design.DepthFrequency * depthFrequency);
-        var floor = design.LowFeedback * (1 - 0.9 * Math.Clamp(depth, 0, 1));
+        var (floor, omega) = design.DepthShelf(depth, depthFrequency);
         this.depth.Design(floor * omega, 1, omega, 1, rate);
     }
 
