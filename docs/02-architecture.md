@@ -47,7 +47,7 @@ This document turns the feature audit ([01](01-axe-fx-iii-audit.md)) and the DSP
 │   drain commands → evaluate modifiers → run compiled graph → meters   │
 │ Analysis thread: tuner (YIN/MPM), RTA FFT, looper disk I/O            │
 │ Native shim (C/C++): CoreAudio HAL · WASAPI · ASIO · ALSA · JACK      │
-│                      NAM core · RTNeural · FTZ/DAZ · RT thread prio   │
+│                      MIDI · NAM core · FTZ/DAZ · RT thread prio       │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -333,8 +333,9 @@ On every backend the shim enables flush-to-zero on the callback thread, splits c
 
 ### 5.7 Neural and native DSP ⚠
 
-- **NAM** (`.nam` A1 and A2) runs through `native/cth_nam`, an `extern "C"` wrapper around NeuralAmpModelerCore with calls such as `nam_load`, `nam_process`, `nam_reset` and `nam_free`. Hosting the reference core gives exact compatibility with the 700k+ models on Tone3000, and new architectures for free.
-- **RTNeural** covers AIDA-X and Proteus LSTM/GRU models.
+- **NAM** (`.nam` A1 and A2) runs through `native/cth_nam`, an `extern "C"` wrapper around NeuralAmpModelerCore with calls such as `cth_nam_load`, `cth_nam_process`, `cth_nam_reset` and `cth_nam_free` ([ADR-0003](adr/0003-nam-hosting.md)). Hosting the reference core gives exact compatibility with the 700k+ models on Tone3000, and new architectures for free.
+- **AIDA-X** models (`.aidax` or `.json`, the RTNeural Keras JSON format) run in managed code: `AidaModel` in Cathode.Dsp evaluates the stacked LSTM or GRU layers and the dense head, with its weights in native memory. **RTNeural itself is not a dependency**; the first plan was to host it beside the NAM core, and the managed runner made that unnecessary. The capture amp block (`NamAmpBlock`) picks the runner by file type.
+- Proteus/GuitarML LSTM files are not loaded by the amp block. A managed runner for them exists in the test harness only (`Cathode.Testing.References.GuitarMlLstmModel`), for the amp reference captures.
 - **ONNX Runtime is not used on the audio path.** Its per-call overhead, allocations and lack of streaming state make it unsuitable.
 - Long native calls use normal P/Invoke, **never** `SuppressGCTransition`, so a GC can still proceed while the native code runs.
 
@@ -342,7 +343,7 @@ On every backend the shim enables flush-to-zero on the callback thread, splits c
 
 Three tiers ship together, in one Amp block:
 
-1. **Capture amps (NAM / RTNeural)**: user-loaded or bundled, snapshot accuracy. These give fast time-to-value.
+1. **Capture amps (NAM and AIDA-X models, §5.7)**: user-loaded, snapshot accuracy. These give fast time-to-value.
 2. **Cathode "Circuit" amps**: our own white- and grey-box models. This is the long-term differentiator and the closest analogue to Fractal's Cygnus approach:
    - preamp triode stages via WDF or DK-method with ADAA plus 2–8× IIR polyphase oversampling *only around the nonlinearities*
    - an exact passive tone-stack model (FMV, Vox, Marshall, …)
@@ -410,7 +411,7 @@ Still to come: RMS, per-block CPU, scene state, and binary frames.
 - **Server** (`MidiRouter`): applies the MIDI channel filter, MIDI learn, the global mappings and the active footswitch layout, and runs the actions one at a time in the order the MIDI arrived, through the same `LiveRig` calls the REST API uses, so the editor sees every change. It also publishes each message to `/ws` as MIDI monitor activity.
 - **What is sample-accurate.** A tap keeps its sample time all the way: the router passes it to the engine as `EngineCommand.TapTempo(sampleTime)`. Nothing else is placed on a sample. A CC bound to an External or Manual controller reaches the engine as an ordinary `setParams` on the rig bank, at whatever callback follows the IPC round trip, and the modifier's damping smooths it.
 - **Output.** The Server sends footswitch LED states and Scene MIDI to the host (`midiOut`), which writes them to the chosen output port, or to every one (`GET /midi/outputs` lists them; the global `midiOutPort` picks).
-- Mappings cover preset and scene change, block bypass and channel, modifier sources, tap tempo, tuner and looper. They live in global settings, and presets can override them.
+- Mappings cover preset and scene change, block bypass and channel, modifier sources, tap tempo, tuner and looper. They live in the global settings (`GlobalSettings.MidiMappings`), and a preset cannot override them. Only footswitch actions have a per-preset override (`PUT /live/footswitch-overrides`, §7.5).
 - Foot-controller support (generic MIDI controllers in v1) uses an Axe-Fx-like **layout/view model**: layouts, per-switch tap/hold functions, LED colours sent via MIDI where the controller supports it.
 
 ---
@@ -568,7 +569,7 @@ The editor's software-editor features, built in the ED stream. They follow Fract
 - Licences:
   - **ASIO SDK**: used under its GPLv3 option ([THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md)); a closed-source fork would need Steinberg's proprietary agreement
   - **NAM core**: MIT
-  - **RTNeural**: BSD-3
+  - **RTNeural**: not used. AIDA-X models, which are in its JSON format, run in our own managed code
   - **JUCE**: not used, to avoid GPL or commercial licensing
   - Study the GPL code in chowdsp and other projects for ideas only, unless the licence fits.
 
