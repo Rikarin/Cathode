@@ -1,3 +1,4 @@
+using Cathode.Dsp.Amp;
 using Cathode.Dsp.Capture;
 using Cathode.Dsp.Filters;
 using Cathode.Dsp.Parameters;
@@ -7,8 +8,12 @@ namespace Cathode.Dsp.Blocks;
 /// <summary>
 ///     The capture tier of the Amp block: a neural capture (<see cref="ICaptureModel" />) with input calibration and
 ///     trim, loudness normalisation, an EQ (bass, middle, treble, presence) after the capture or, with EQ Location on
-///     Pre, before it, and output level. Mono in (left), mono out copied to both channels. Without a model the gains
-///     are skipped and only the EQ runs. A model trained at
+///     Pre, before it, and output level. Stack Type chooses what Bass, Middle and Treble are: the three ±12 dB bands
+///     (Active) or one of <see cref="ToneStackDesign.All" />, the passive stacks of the Tone Stack block, with the
+///     knob's ±12 dB as the pot's travel (<see cref="PassiveGraphicEq.Position" />, 0 dB at noon) and the stack's loss
+///     at noon made up. Presence is the 5 kHz band on every type, and Bright is a fixed treble shelf
+///     (<see cref="BrightBand" />); both sit with the EQ. Mono in (left), mono out copied to both channels. Without a
+///     model the gains are skipped and only the EQ runs. A model trained at
 ///     another rate than the engine's runs at its own rate inside a <see cref="CaptureResampler" />, whose delay the
 ///     block reports as its latency. A slimmable model (NAM A2) runs at the size the Size parameter names: Lite costs a
 ///     fraction of Full's CPU. Resizing is not real-time safe, so the size is applied when the block is prepared and
@@ -30,12 +35,8 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
     public const int Size = 8;
 
     public const int Location = 9;
-
-    public const int SizeFull = 0;
-    public const int SizeLite = 1;
-
-    public const int LocationPost = 0;
-    public const int LocationPre = 1;
+    public const int Stack = 10;
+    public const int Bright = 11;
 
     /// <summary>Loudness that normalised models are brought to, matching the NAM plugin.</summary>
     public const double TargetLoudnessDb = -18;
@@ -59,7 +60,30 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
         (BiquadType.Peak, 5_000f, 0.9f)
     ];
 
+    /// <summary>
+    ///     Bright: a +6 dB shelf above 3 kHz. Cathode's own voicing, not a part of any amp: a capture has no volume
+    ///     pot for a bright cap to bridge.
+    /// </summary>
+    static readonly (BiquadType Type, float Frequency, float Q, float GainDb) BrightBand =
+        (BiquadType.HighShelf, 3_000f, 0.7f, 6f);
+
+    // The choices' values.
+    public const int SizeFull = 0;
+    public const int SizeLite = 1;
+    public const int LocationPost = 0;
+    public const int LocationPre = 1;
+
+    /// <summary><see cref="Stack" />'s first choice: the ±12 dB bands. The passive stacks follow it.</summary>
+    public const int StackActive = 0;
+
     readonly SvfState[] tone = new SvfState[ToneBands.Length];
+
+    readonly ToneStackCircuit[] stacks =
+        [..ToneStackDesign.All.Select(static d => new ToneStackCircuit(d, 48_000))];
+
+    SvfState bright;
+    bool brightOn;
+    int activeStack = StackActive; // the Stack Type of the last callback
     float inputGain = 1f;
     float outputGain = 1f;
     float calibrationDb; // Input 1's, from the last callback (0 = 1 V at full scale, the default)
@@ -87,7 +111,9 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
             ParamDescriptor.Float("presence", "Presence", -12f, 12f, 0f, "dB"),
             ParamDescriptor.Switch("calibrate", "Calibrated Input", true),
             ParamDescriptor.Choice("size", "Size", ["Full", "Lite"]) with { Recompile = true },
-            ParamDescriptor.Choice("location", "EQ Location", ["Post", "Pre"])
+            ParamDescriptor.Choice("location", "EQ Location", ["Post", "Pre"]),
+            ParamDescriptor.Choice("stack", "Stack Type", ["Active", ..ToneStackDesign.All.Select(static d => d.Name)]),
+            ParamDescriptor.Switch("bright", "Bright")
         ],
         maxInstances: 2
     );
@@ -176,23 +202,64 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
     }
 
     void ApplyTone(Span<float> samples) {
+        var type = Math.Clamp((int)Params.Current(Stack), StackActive, stacks.Length);
+        if (type != activeStack) {
+            ResetTone(); // a stack chosen again starts discharged, and the bands it replaces start clean
+            activeStack = type;
+        }
+
+        var on = Params.Current(Bright) >= 0.5f;
+        if (on != brightOn) {
+            bright.Reset();
+            brightOn = on;
+        }
+
+        var passive = type == StackActive ? null : stacks[type - 1];
+        Span<double> knobs = stackalloc double[3];
         for (var start = 0; start < samples.Length; start += SubBlock) {
             var chunk = samples.Slice(start, Math.Min(SubBlock, samples.Length - start));
             for (var b = 0; b < tone.Length; b++) {
                 var moving = Params.IsRamping(Bass + b);
                 var gain = Params.Advance(Bass + b, chunk.Length);
+                if (passive is not null && b < knobs.Length) {
+                    knobs[b] = PassiveGraphicEq.Position(gain); // the pot's rotation: -12 dB is 0, +12 dB is full
+                    continue;
+                }
+
                 if (gain == 0 && !moving) {
                     tone[b].Reset(); // a flat band is skipped, so a flat EQ is bit-transparent
                     continue;
                 }
 
-                var (type, frequency, q) = ToneBands[b];
-                tone[b].Process(SvfCoefficients.Design(type, Spec.SampleRate, frequency, q, gain), chunk);
+                var (band, frequency, q) = ToneBands[b];
+                tone[b].Process(SvfCoefficients.Design(band, Spec.SampleRate, frequency, q, gain), chunk);
+            }
+
+            if (passive is not null) {
+                RunStack(passive, ToneStackBlock.MakeupOf(type - 1), knobs, chunk);
+            }
+
+            if (on) {
+                var (band, frequency, q, gain) = BrightBand;
+                bright.Process(SvfCoefficients.Design(band, Spec.SampleRate, frequency, q, gain), chunk);
             }
         }
     }
 
+    static void RunStack(ToneStackCircuit stack, double makeup, ReadOnlySpan<double> knobs, Span<float> samples) {
+        stack.Set(knobs[0], knobs[1], knobs[2]);
+        for (var i = 0; i < samples.Length; i++) {
+            samples[i] = (float)Flush.Value(stack.Tick(samples[i]) * makeup);
+        }
+
+        stack.FlushDenormals();
+    }
+
     protected override void OnPrepare(in ProcessSpec spec) {
+        foreach (var stack in stacks) {
+            stack.SetSampleRate(spec.SampleRate);
+        }
+
         resampler = CaptureModel is null ? null : PrepareModel(CaptureModel, spec);
         prepared = true;
     }
@@ -201,6 +268,8 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
         resampler?.Reset();
         (inputGain, outputGain) = TargetGains();
         tonePre = Params.Current(Location) >= 0.5f;
+        activeStack = Math.Clamp((int)Params.Current(Stack), StackActive, stacks.Length);
+        brightOn = Params.Current(Bright) >= 0.5f;
         ResetTone();
     }
 
@@ -208,6 +277,12 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
         for (var b = 0; b < tone.Length; b++) {
             tone[b].Reset();
         }
+
+        foreach (var stack in stacks) {
+            stack.Reset();
+        }
+
+        bright.Reset();
     }
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {

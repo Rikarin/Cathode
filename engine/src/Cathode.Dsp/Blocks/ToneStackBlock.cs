@@ -26,6 +26,12 @@ public sealed class ToneStackBlock() : DspBlock(Info) {
     static readonly double[] Makeup =
         [..ToneStackDesign.All.Select(static d => 1 / PassiveGraphicEq.NoonGain(d, 48_000))];
 
+    /// <summary>
+    ///     The make-up gain of stack <paramref name="stack" /> (its index in <see cref="ToneStackDesign.All" />): the
+    ///     inverse of its gain at 1 kHz with the knobs at noon.
+    /// </summary>
+    internal static double MakeupOf(int stack) => Makeup[stack];
+
     readonly ToneStackCircuit[] left = Stacks();
     readonly ToneStackCircuit[] right = Stacks();
     int active = -1;

@@ -100,7 +100,7 @@
 | **EQ** | 16 GEQ types (incl. passive "Mark" 5-band, console 3-band); 5-band PEQ | Analytic-tested EQ family |
 | **Misc** | Enhancer, Ring Mod, Resonator (4 combs), 3-voice tracking Synth, 24-band Vocoder, Volume/Pan (width, mono, swap, phase) | Straightforward DSP, built in Phase 6 |
 | **Utility blocks** | **Looper** (stereo, 300 s, overdub/undo), **Tone Match**, **RTA**, **Scene MIDI** (up to 8 PC/CC messages per scene) | Same blocks. Tone Match = smoothed spectral-ratio FIR, exportable as an IR |
-| **NAM** (fw 33 beta) | Loads `.nam` files. Full and Lite (Full ≈ 6× the CPU of Lite). About a dozen tone-stack types Pre or Post; Bright. Max 2 NAM, or 1 Amp + 2 NAM | **This confirms our hybrid strategy:** even Fractal now hosts NAM next to its own modelling. We host NeuralAmpModelerCore natively (A1 and A2) and add tone stacks Pre/Post |
+| **NAM** (fw 33 beta) | Loads `.nam` files. Full and Lite (Full ≈ 6× the CPU of Lite). About a dozen tone-stack types Pre or Post; Bright. Max 2 NAM, or 1 Amp + 2 NAM | **This confirms our hybrid strategy:** even Fractal now hosts NAM next to its own modelling. We host NeuralAmpModelerCore natively (A1 and A2, Full and Lite) and add tone stacks Pre/Post: Amp NAM's Stack Type (its own ±12 dB bands, or the Fender, Marshall and Vox passive stacks of the Tone Stack block), EQ Location and Bright. Three passive stacks, not the Axe-Fx's dozen; Bright is a fixed +6 dB shelf above 3 kHz, our own voicing |
 
 ---
 

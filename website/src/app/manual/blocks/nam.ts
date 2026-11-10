@@ -4,7 +4,8 @@ export const doc: BlockDoc = {
   summary: `Amp NAM plays a neural capture of a real amp (or pedal, or whole rig): a Neural Amp Modeler file (.nam) or an
 AIDA-X model (.aidax or .json). A capture is a snapshot of one amp at one setting: it reproduces that sound very
 closely, but its knobs are fixed where they were when it was made. This block adds an input trim, loudness
-normalisation and a four-band EQ after or before the capture, so you can fit it into your rig.
+normalisation and tone controls after or before the capture (a four-band EQ or a passive amp tone stack, and a
+Bright switch), so you can fit it into your rig.
 
 If you want an amp whose Gain, tone stack, tubes and power section you can change, use the circuit
 [Amp](/manual/blocks/circuitamp) block instead.`,
@@ -30,14 +31,17 @@ more. Use this to match. It is not a gain knob in the amp's sense: the capture's
 the file, so switching captures does not jump in level. Files without a stored loudness are left as they are. Turn it
 off to hear the capture's raw output level.`,
 
-    bass: `A bass shelf at 120 Hz, ±12 dB, on the side of the capture *EQ Location* names.`,
+    bass: `With *Stack Type* on Active, a bass shelf at 120 Hz, ±12 dB. On a passive stack it is the stack's Bass pot:
+-12 dB is the pot at 0, 0 dB is noon and +12 dB is 10. On the side of the capture *EQ Location* names.`,
 
-    middle: `A broad mid peak at 650 Hz, ±12 dB, on the side of the capture *EQ Location* names.`,
+    middle: `With *Stack Type* on Active, a broad mid peak at 650 Hz, ±12 dB. On a passive stack it is the stack's
+Middle pot (-12 dB is 0, 0 dB is noon, +12 dB is 10). On the side of the capture *EQ Location* names.`,
 
-    treble: `A treble shelf at 2.5 kHz, ±12 dB, on the side of the capture *EQ Location* names.`,
+    treble: `With *Stack Type* on Active, a treble shelf at 2.5 kHz, ±12 dB. On a passive stack it is the stack's
+Treble pot (-12 dB is 0, 0 dB is noon, +12 dB is 10). On the side of the capture *EQ Location* names.`,
 
     presence: `A peak at 5 kHz, ±12 dB, on the side of the capture *EQ Location* names: upper bite without touching
-the treble below it.`,
+the treble below it. It is the same on every *Stack Type*.`,
 
     calibrate: `Drives the capture as hard as the real amp was driven by the same guitar. Many NAM files record the
 level, in dBu, that reached full scale on the interface they were made with; with this on, the block adds the
@@ -53,12 +57,24 @@ AIDA-X models) it does nothing. Changing it rebuilds the rig, as changing a bloc
     location: `Where the four tone knobs sit. *Post* equalises the capture's output: the tone changes, the distortion
 does not. *Pre* equalises your guitar before the capture, as a tone stack ahead of an amp's gain stages does: a boost
 drives the capture harder in that band and a cut cleans it up, so Bass tightens or loosens the low end and Treble
-changes how the top breaks up.`
+changes how the top breaks up.`,
+
+    stack: `What Bass, Middle and Treble are. *Active* is three independent bands that cut or boost by up to 12 dB and
+are flat at 0. *Fender*, *Marshall* and *Vox* are the passive tone stacks of the [Tone Stack](/manual/blocks/tonestack)
+block: the three knobs become the stack's pots and interact as they do on the amp, and the stack is never flat (a
+Fender stack at noon scoops the mids). The level the stack loses at noon is made up, so switching types does not jump
+in loudness. A passive stack with *EQ Location* on Pre is the closest this block gets to turning the tone knobs of the
+amp that was captured.`,
+
+    bright: `Adds 6 dB of treble above about 3 kHz, on the side of the capture *EQ Location* names. On Pre it also
+makes the capture break up more in the highs, as an amp's bright switch does; on Post it only brightens the result.
+It is a fixed voicing of Cathode's own, not a model of one amp's bright cap.`
   },
 
-  tips: `**The EQ is after the capture unless you move it.** With *EQ Location* on Post the four tone knobs are a plain
-EQ on the capture's output: they do not change how the capture distorts, as an amp's tone stack would. For that, set
-*EQ Location* to Pre, or put an EQ or Tone Stack block before the capture and keep these knobs for the output.
+  tips: `**The EQ is after the capture unless you move it.** With *EQ Location* on Post the tone knobs and *Bright* shape
+the capture's output: they do not change how the capture distorts, as an amp's tone stack would. For that, set
+*EQ Location* to Pre, with a passive *Stack Type* if you want the knobs to behave like an amp's, or put an EQ or Tone
+Stack block before the capture and keep these knobs for the output.
 
 **Matching the input.** Many NAM files record the input level they were made at, and with *Calibrated Input* on the
 block matches it for you once Input 1 is calibrated. If yours does not record it, start at 0 dB and adjust *Input* until
