@@ -58,6 +58,7 @@ Under the navigation bar is a second bar for the preset you are playing.
 - **Preset** menu:
   - **Name, author, tags and notes…**
   - **Save as…** (⇧⌘S)
+  - **Export**
   - **New from template…** and **Save as template…**
   - **Take a snapshot** and **Snapshots…**
   - **Revert to saved**

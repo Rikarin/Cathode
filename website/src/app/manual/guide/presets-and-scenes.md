@@ -54,6 +54,7 @@ All in the **Preset** menu, except where noted:
 | **Revert to saved**    | Throws away unsaved changes and goes back to the stored preset. Only available when there are changes.         |
 | Reload (**F5**)        | Loads the stored preset again, as a fresh load. This also clears the undo history.                             |
 | **Clear preset…**      | Empties the grid and the name, after a confirmation. Undo brings it back.                                      |
+| **Export**             | Saves the working copy as a `.cthpreset` file, unsaved changes included.                                       |
 | **Save as template…**  | Stores the working copy as a template under a name.                                                            |
 | **New from template…** | Starts a new preset from a template. The dialog also deletes templates.                                        |
 | **Take a snapshot**    | Stores the working copy as it is now, unsaved changes included, with a time stamp. One click, nothing to name. |

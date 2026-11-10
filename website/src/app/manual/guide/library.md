@@ -37,7 +37,7 @@ Favourites and colour tags help you find presets fast. Set a favourite with the 
 
 A **`.cthpreset`** file is one preset, packaged with every IR and NAM capture it uses, ready to back up or give to someone else.
 
-**To export:** in **Library ▸ Presets**, select the preset and click **Export**. Your browser or the app saves the file.
+**To export:** in **Library ▸ Presets**, select the preset and click **Export**. Your browser or the app saves the file. To export the preset you are working on as it is now, unsaved changes included, choose **Preset ▸ Export**.
 
 **To import:** click **Import…** and choose a `.cthpreset` file. The preset is added to your presets, and any IRs and captures it carries are added to the NAM amps and IR cabs sections (files you already have are not duplicated). An import never overwrites a preset you have: if the same preset already exists, the imported one is added as a new preset beside it. An exported factory preset comes back as your own.
 

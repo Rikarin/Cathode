@@ -7,6 +7,7 @@ import {
   matCameraAltRound,
   matDeleteRound,
   matDeleteSweepRound,
+  matDownloadRound,
   matExpandMoreRound,
   matHistoryRound,
   matInfoRound,
@@ -24,11 +25,12 @@ import { XuiMenuImports } from '@xui/menu';
 import { ConnectionService } from '../core/connection';
 import { Notify } from '../core/notify';
 import { CompareStore } from '../state/compare.store';
+import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
 import { PresetSwitcher } from '../state/preset-switcher';
 
 /**
- * The preset commands beyond save: revert, clear, snapshots (stored on the Server, so every editor shares them) and
+ * The preset commands beyond save: export, revert, clear, snapshots (stored on the Server, so every editor shares them) and
  * templates.
  */
 @Component({
@@ -49,6 +51,7 @@ import { PresetSwitcher } from '../state/preset-switcher';
       matCameraAltRound,
       matDeleteRound,
       matDeleteSweepRound,
+      matDownloadRound,
       matExpandMoreRound,
       matHistoryRound,
       matInfoRound,
@@ -69,6 +72,9 @@ import { PresetSwitcher } from '../state/preset-switcher';
         </button>
         <button type="button" xuiMenuItem icon="matSaveAsRound" (click)="saveAs.emit()">
           Save as…<span menuItemLabel>⇧⌘S</span>
+        </button>
+        <button type="button" xuiMenuItem icon="matDownloadRound" data-testid="export-preset" (click)="export()">
+          Export
         </button>
         <xui-menu-divider />
         <button type="button" xuiMenuItem icon="matViewQuiltRound" (click)="openTemplates()">New from template…</button>
@@ -278,6 +284,7 @@ export class PresetMenu {
   private readonly switcher = inject(PresetSwitcher);
   private readonly connection = inject(ConnectionService);
   private readonly notify = inject(Notify);
+  private readonly library = inject(LibraryStore);
 
   protected readonly confirmClear = signal(false);
   protected readonly infoOpen = signal(false);
@@ -311,6 +318,11 @@ export class PresetMenu {
     if (await this.live.updateInfo(info)) {
       this.infoOpen.set(false);
     }
+  }
+
+  /** Downloads the working copy as it is now, unsaved edits included, as a preset package. */
+  protected export(): void {
+    void this.library.download('/api/v1/live/export', `${this.live.preset()?.name.trim() || 'preset'}.cthpreset`);
   }
 
   protected async revert(): Promise<void> {
