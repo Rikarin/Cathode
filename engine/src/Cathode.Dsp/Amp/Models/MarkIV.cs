@@ -35,7 +35,11 @@ namespace Cathode.Dsp.Amp.Models;
 ///         the generic octave; Rhythm 1's rheostat has no cap and keeps the generic one.
 ///     </para>
 ///     <para>
-///         Guesses, marked: the rheostat's taper (linear), the IIC+ model's 465 V and 40 mA, a 2.2k primary. The 2.7k
+///         Guesses, marked: the rheostat's taper (linear), the IIC+ model's 40 mA, a 2.2k primary. The supply is
+///         the IIC+ model's (<see cref="MarkIIC.Supply" />): this set has no supply sheet and prints no node
+///         voltage, but its sheets name the same nodes, V1A and V1B on D, the lead stages, V2A, V2B and the inverter
+///         on C, so the stages run on the IIC+ sheets' voltages with its B+, its dropper and its two assumed
+///         filters. The 2.7k
 ///         that straps the outer pair's screens to their plates in triode is left out. In the lead type the rhythm
 ///         path's 3.3M feed into V3A is left out; the EQ is the behavioural slot
 ///         (<see cref="EqualizerStageDesign" />).
@@ -70,10 +74,10 @@ public static class MarkIV {
     public static AmpDesign Design { get; } = new(
         "Mark IV",
         [
-            new NetworkStageDesign("V1A", InputAndStack()),
-            new TriodeStageDesign("V1B", TriodeModel.Ecc83, 425, 100e3, 1.5e3, 15e-6),
-            new NetworkStageDesign("V2A", LeadDrive()),
-            new NetworkStageDesign("V2B", LeadStage()),
+            new NetworkStageDesign("V1A", InputAndStack()) { SupplyNode = 2 },
+            new TriodeStageDesign("V1B", TriodeModel.Ecc83, MarkIIC.RailD, 100e3, 1.5e3, 15e-6) { SupplyNode = 2 },
+            new NetworkStageDesign("V2A", LeadDrive()) { SupplyNode = 1 },
+            new NetworkStageDesign("V2B", LeadStage()) { SupplyNode = 1 },
             new NetworkStageDesign("V3A", LeadReturn()),
             new NetworkStageDesign("V4A", Recovery(PotRole.Control2, true)),
             new CouplingStageDesign("Master", 47e-9, new(250e3, PotTaper.Audio), PotRole.Master, 22e3),
@@ -83,7 +87,7 @@ public static class MarkIV {
             Name = "4 x 6L6GC (Simul-Class)",
             RatedPower = 85,
             // The 22k tail stands on the feedback shunt, 3.3k over 1.5k: 26.8k from the bias junction to ground.
-            PhaseInverter = new LongTailPairDesign(TriodeModel.Ecc83, 427, 82e3, 91e3, 26.8e3, 470),
+            PhaseInverter = new LongTailPairDesign(TriodeModel.Ecc83, MarkIIC.RailC, 82e3, 91e3, 26.8e3, 470),
             Feedback = new(1, 3.3e3, 1.5e3, new(250e3, PotTaper.Linear), 5e-9) {
                 Series = new(56e3, 3.3e3, 47e-9, 1e-9)
             },
@@ -103,7 +107,8 @@ public static class MarkIV {
             Switch2 = "Bright",
             Switch3 = "Mid Gain",
             Equalizer = ["80", "240", "750", "2200", "6600"]
-        }
+        },
+        PreampSupply = MarkIIC.Supply
     };
 
     /// <summary>
@@ -113,8 +118,8 @@ public static class MarkIV {
     public static AmpDesign Rhythm1 { get; } = Design with {
         Name = "Mark IV Rhythm 1",
         Preamp = [
-            new NetworkStageDesign("V1A", RhythmInput(false)),
-            new TriodeStageDesign("V1B", TriodeModel.Ecc83, 425, 100e3, 1.5e3, 15e-6),
+            new NetworkStageDesign("V1A", RhythmInput(false)) { SupplyNode = 2 },
+            new TriodeStageDesign("V1B", TriodeModel.Ecc83, MarkIIC.RailD, 100e3, 1.5e3, 15e-6) { SupplyNode = 2 },
             new NetworkStageDesign("V3A", RhythmReturn(false)),
             new NetworkStageDesign("V4A", Recovery(PotRole.Control1, false)),
             new CouplingStageDesign("Master", 47e-9, new(250e3, PotTaper.Audio), PotRole.Master, 22e3),
@@ -135,8 +140,8 @@ public static class MarkIV {
     public static AmpDesign Rhythm2 { get; } = Design with {
         Name = "Mark IV Rhythm 2",
         Preamp = [
-            new NetworkStageDesign("V1A", RhythmInput(true)),
-            new TriodeStageDesign("V1B", TriodeModel.Ecc83, 425, 100e3, 1.5e3, 15e-6),
+            new NetworkStageDesign("V1A", RhythmInput(true)) { SupplyNode = 2 },
+            new TriodeStageDesign("V1B", TriodeModel.Ecc83, MarkIIC.RailD, 100e3, 1.5e3, 15e-6) { SupplyNode = 2 },
             new NetworkStageDesign("V3A", RhythmReturn(true)),
             new NetworkStageDesign("V4A", Recovery(PotRole.Control1, true)),
             new CouplingStageDesign("Master", 47e-9, new(250e3, PotTaper.Audio), PotRole.Master, 22e3),
@@ -164,7 +169,7 @@ public static class MarkIV {
             net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node()
         );
         net.Resistor(net.Input, StageNetlist.Ground, 1e6);
-        net.Supply(supply, 425);
+        net.Supply(supply, MarkIIC.RailD);
         net.Resistor(supply, plate, 150e3);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
         net.Capacitor(cathode, StageNetlist.Ground, 0.47e-6);
@@ -223,7 +228,7 @@ public static class MarkIV {
             net.Resistor(partial, StageNetlist.Ground, 22e3);
         }
 
-        net.Supply(supply, 425);
+        net.Supply(supply, MarkIIC.RailD);
         net.Resistor(supply, plate, 150e3);
         net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
         LeadStackLoad(net, plate);
@@ -292,7 +297,7 @@ public static class MarkIV {
         }
 
         net.Capacitor(grid, StageNetlist.Ground, 47e-12);
-        net.Supply(supply, 433);
+        net.Supply(supply, MarkIIC.RailC);
         net.Resistor(supply, plate, 100e3);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
         if (crunch) {
@@ -314,7 +319,15 @@ public static class MarkIV {
     /// </summary>
     static StageNetlist LeadDrive() {
         var net = new StageNetlist();
-        net.Output = MesaParts.LeadDrive(net, net.Input, 680e3, new(1e6, PotTaper.Audio), PotRole.Control1, 433, 20e-9);
+        net.Output = MesaParts.LeadDrive(
+            net,
+            net.Input,
+            680e3,
+            new(1e6, PotTaper.Audio),
+            PotRole.Control1,
+            MarkIIC.RailLead,
+            20e-9
+        );
         return net;
     }
 
@@ -324,7 +337,7 @@ public static class MarkIV {
     /// </summary>
     static StageNetlist LeadStage() {
         var net = new StageNetlist();
-        net.Output = MesaParts.LeadStage(net, net.Input, 433, SwitchRole.Switch2, 22e3, plateCap: 1e-9);
+        net.Output = MesaParts.LeadStage(net, net.Input, MarkIIC.RailLead, SwitchRole.Switch2, 22e3, plateCap: 1e-9);
         return net;
     }
 
@@ -334,12 +347,8 @@ public static class MarkIV {
     /// </summary>
     static StageNetlist LeadReturn() {
         var net = new StageNetlist();
-        var (coupled, grid, supply, plate, cathode, partial, boost) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        MesaParts.LeadDivider(net, net.Input, coupled, grid, 100e3, 547e-12);
-        net.Supply(supply, 433);
-        net.Resistor(supply, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
+        var (grid, plate, cathode) = MesaParts.LeadReturn(net, 100e3, MarkIIC.RailC);
+        var (partial, boost) = (net.Node(), net.Node());
         net.Capacitor(cathode, partial, 15e-6);
         net.Resistor(partial, StageNetlist.Ground, 22e3);
         net.Capacitor(cathode, boost, 2.2e-6);
@@ -368,7 +377,7 @@ public static class MarkIV {
 
         net.Resistor(padded, grid, 3.3e3);
         net.Resistor(grid, StageNetlist.Ground, 47e3);
-        net.Supply(supply, 433);
+        net.Supply(supply, MarkIIC.RailC);
         net.Resistor(supply, plate, 120e3);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1e3);
         net.Capacitor(cathode, StageNetlist.Ground, 15e-6);

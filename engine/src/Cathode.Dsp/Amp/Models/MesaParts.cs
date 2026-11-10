@@ -227,4 +227,36 @@ static class MesaParts {
         net.Resistor(grid, StageNetlist.Ground, shunt);
         net.Capacitor(grid, StageNetlist.Ground, shuntCap);
     }
+
+    /// <summary>
+    ///     The stage the lead circuit returns into, as the Mark IV's V3A and the Mark V's have it, up to its cathode
+    ///     resistor: the divider from the lead stage (<see cref="LeadDivider" />, <paramref name="shunt" /> ‖ 547 pF
+    ///     at the grid), a 100k plate from a rail of <paramref name="supply" /> volts and 1.5k at the cathode. The
+    ///     caller adds the cathode's bypasses and the triode. Returns the grid, the plate and the cathode.
+    /// </summary>
+    public static (int Grid, int Plate, int Cathode) LeadReturn(StageNetlist net, double shunt, double supply) {
+        var (coupled, grid, rail, plate, cathode) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        LeadDivider(net, net.Input, coupled, grid, shunt, 547e-12);
+        net.Supply(rail, supply);
+        net.Resistor(rail, plate, 100e3);
+        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
+        return (grid, plate, cathode);
+    }
+
+    /// <summary>
+    ///     The Mark front stage's fixed parts, as the Mark IIC+'s V1A and the TriAxis's V2A have them: 1M grid leak,
+    ///     150k plate from a rail of <paramref name="supply" /> volts, 1.5k ‖ 0.47 µF at the cathode and 15 µF from the
+    ///     cathode to a node of its own, which the caller returns to ground through its shift or boost resistor. The
+    ///     caller adds the triode. Returns the plate, the cathode and that node.
+    /// </summary>
+    public static (int Plate, int Cathode, int Bypass) FrontStage(StageNetlist net, double supply) {
+        var (rail, plate, cathode, bypass) = (net.Node(), net.Node(), net.Node(), net.Node());
+        net.Resistor(net.Input, StageNetlist.Ground, 1e6);
+        net.Supply(rail, supply);
+        net.Resistor(rail, plate, 150e3);
+        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
+        net.Capacitor(cathode, StageNetlist.Ground, 0.47e-6);
+        net.Capacitor(cathode, bypass, 15e-6);
+        return (plate, cathode, bypass);
+    }
 }
