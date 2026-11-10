@@ -47,9 +47,9 @@ Hiwatts are loud, clean and firm, with huge headroom and a tight low end: big ch
 
 ### Vox and class A
 
-**AC30**, **AC15**, **DC-30**, **Chieftain**, **Hot Cat 30**, **Express**, **Liverpool**.
+**AC30**, **AC15**, **AC15C1**, **DC-30**, **Chieftain**, **Hot Cat 30**, **Express**, **Liverpool**.
 
-Chime and jangle: a bright, complex top, little or no negative feedback, and power sections that break up sweetly. The Vox-style amps have a **Cut** control instead of a presence: it works the other way round, so more Cut means less treble. The Chieftain and Hot Cat call theirs **Brilliance** (and the Tiny Terror its **Tone**) and wire it the other way: up is brighter. The AC30's **Normal Ch** switch picks its plainer channel. The DC-30, Chieftain and Hot Cat are boutique amps in this spirit; the Express and Liverpool are the Trainwreck circuits.
+Chime and jangle: a bright, complex top, little or no negative feedback, and power sections that break up sweetly. The Vox-style amps have a **Cut** control instead of a presence: it works the other way round, so more Cut means less treble. The Chieftain and Hot Cat call theirs **Brilliance** (and the Tiny Terror its **Tone**) and wire it the other way: up is brighter. The AC30's **Normal Ch** switch picks its plainer channel. The AC15C1 is the current AC15, with no EF86: its **Normal Ch** switch moves the guitar from the Top Boost input to the Normal input, which has a volume and no tone controls, and unlike the old Vox amps it has a **Master**. The DC-30, Chieftain and Hot Cat are boutique amps in this spirit; the Express and Liverpool are the Trainwreck circuits.
 
 ### Dumble-style
 

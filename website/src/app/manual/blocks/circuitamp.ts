@@ -39,7 +39,7 @@ usually go after the Cab, as they would in an effects loop or a studio. The amp 
   Twin. The *Jumped* versions run both channels at once, the classic way to play them.
 - **British crunch and classic rock:** JTM45, Plexi, Plexi 100W, 1959SLP, 1987X, 1959T Tremolo, Bluesbreaker 1962,
   18 W 1974X, Major 1967, JCM800 2203 and 2204, Hiwatt DR103 and DR504.
-- **Chime and class A:** AC30, AC15, DC-30, Chieftain, Hot Cat 30, Tiny Terror, Liverpool, Express.
+- **Chime and class A:** AC30, AC15, AC15C1, DC-30, Chieftain, Hot Cat 30, Tiny Terror, Liverpool, Express.
 - **Smooth, vocal overdrive:** ODS 97, ODS 70s, Cornford MK50H II, Lone Star, Subway Blues.
 - **Hot-rodded British and modern rock:** Silver Jubilee, JCM900 4100 and 4502, DSL100, JVM410H, BE-100 and
   BE-100 HBE, AFD100, Quick Rod, Laney GH100L, Hot Rod Deluxe.
@@ -109,7 +109,7 @@ interaction with the speaker load rise in the bass: more thump and chest. It is 
 resonance or depth control (*Resonance* on the 5150s, Cornford and JVM, *Depth Punch* on the Powerball, *Depth Boost*
 on the Savage). At 0 the feedback is stock. The DSL100's *Deep* is a switch, as on the amp: see *Bright*.`,
 
-    cut: `The Vox-style cut control (AC30, AC15, DC-30): a pot and cap across the phase inverter's outputs that shunt
+    cut: `The Vox-style cut control (AC30, AC15, AC15C1, DC-30): a pot and cap across the phase inverter's outputs that shunt
 treble away before the power tubes. Turning it **up** removes more treble (it works backwards to a treble knob). Use it
 to tame the top end of a bright class-A amp. The Chieftain, Hot Cat 30 and Tiny Terror have the same circuit wired the
 other way, as their *Brilliance* or *Tone* (see *Presence*).`,
@@ -540,6 +540,8 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       Plexi: 'A generic Marshall 1959 Super Lead, 50 W style: open, bright crunch with no master volume.',
       AC30: 'Vox AC30 with the Top Boost channel (Switch 1 picks the Normal channel). Chimey class A, no feedback, Cut control.',
       AC15: 'Vox AC15 with its EF86 pentode channel (Switch 1 picks the 12AX7 channel). Warm, rich early break-up.',
+      AC15C1:
+        'Vox AC15C1, the current AC15: the Top Boost input with Treble and Bass (Switch 1 picks the Normal input), Tone Cut and a master volume. Two EL84, no feedback.',
       'DC-30': 'Matchless DC-30: two channels of boutique class-A chime and crunch (Switch 1 for channel 2).',
       Prometheus:
         'Lichtlaerm Prometheus lead channel. No schematic is published, so this is a plausible circuit fitted to captures, not a copy. Modern high gain with Bite switches.',

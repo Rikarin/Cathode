@@ -1165,18 +1165,19 @@
         "notes": "DIYRE L2A reamp box -> amp -> Suhr Reactive Load -> Steinberg UR824 at 11.5 dBu; master cranked"
       },
       "circuit": {
-        "type": "AC15",
+        "type": "AC15C1",
         "params": {
           "switch1": 1,
           "gain": 2,
-          "cut": 0
+          "cut": 0,
+          "master": 10
         }
       },
       "targets": {
         "esr": 2.0,
         "mrstft": 8.0
       },
-      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86) into 2 x EL84: the AC15 type with its 12AX7 channel (switch 1)."
+      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The AC15C1 type's Normal input (switch 1), its master at 10 as captured."
     },
     {
       "id": "t3k-ac15c1-normal-v12-cmin",
@@ -1201,18 +1202,19 @@
         "notes": "DIYRE L2A reamp box -> amp -> Suhr Reactive Load -> Steinberg UR824 at 11.5 dBu; master cranked"
       },
       "circuit": {
-        "type": "AC15",
+        "type": "AC15C1",
         "params": {
           "switch1": 1,
           "gain": 5,
-          "cut": 0
+          "cut": 0,
+          "master": 10
         }
       },
       "targets": {
         "esr": 2.0,
         "mrstft": 8.0
       },
-      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86) into 2 x EL84: the AC15 type with its 12AX7 channel (switch 1)."
+      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The AC15C1 type's Normal input (switch 1), its master at 10 as captured."
     },
     {
       "id": "t3k-ac15c1-normal-v3-cmin",
@@ -1237,18 +1239,19 @@
         "notes": "DIYRE L2A reamp box -> amp -> Suhr Reactive Load -> Steinberg UR824 at 11.5 dBu; master cranked"
       },
       "circuit": {
-        "type": "AC15",
+        "type": "AC15C1",
         "params": {
           "switch1": 1,
           "gain": 8,
-          "cut": 0
+          "cut": 0,
+          "master": 10
         }
       },
       "targets": {
         "esr": 2.0,
         "mrstft": 8.0
       },
-      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86) into 2 x EL84: the AC15 type with its 12AX7 channel (switch 1)."
+      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The AC15C1 type's Normal input (switch 1), its master at 10 as captured."
     },
     {
       "id": "t3k-ac15c1-normal-vmax-cmin",
@@ -1273,18 +1276,19 @@
         "notes": "DIYRE L2A reamp box -> amp -> Suhr Reactive Load -> Steinberg UR824 at 11.5 dBu; master cranked"
       },
       "circuit": {
-        "type": "AC15",
+        "type": "AC15C1",
         "params": {
           "switch1": 1,
           "gain": 10,
-          "cut": 0
+          "cut": 0,
+          "master": 10
         }
       },
       "targets": {
         "esr": 2.0,
         "mrstft": 8.0
       },
-      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86) into 2 x EL84: the AC15 type with its 12AX7 channel (switch 1)."
+      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The AC15C1 type's Normal input (switch 1), its master at 10 as captured."
     },
     {
       "id": "t3k-ac15c1-normal-v12-c12",
@@ -1309,18 +1313,19 @@
         "notes": "DIYRE L2A reamp box -> amp -> Suhr Reactive Load -> Steinberg UR824 at 11.5 dBu; master cranked"
       },
       "circuit": {
-        "type": "AC15",
+        "type": "AC15C1",
         "params": {
           "switch1": 1,
           "gain": 5,
-          "cut": 5
+          "cut": 5,
+          "master": 10
         }
       },
       "targets": {
         "esr": 2.0,
         "mrstft": 8.0
       },
-      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86) into 2 x EL84: the AC15 type with its 12AX7 channel (switch 1)."
+      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The AC15C1 type's Normal input (switch 1), its master at 10 as captured."
     },
     {
       "id": "t3k-ac15c1-normal-vmax-c3",
@@ -1345,18 +1350,19 @@
         "notes": "DIYRE L2A reamp box -> amp -> Suhr Reactive Load -> Steinberg UR824 at 11.5 dBu; master cranked"
       },
       "circuit": {
-        "type": "AC15",
+        "type": "AC15C1",
         "params": {
           "switch1": 1,
           "gain": 10,
-          "cut": 8
+          "cut": 8,
+          "master": 10
         }
       },
       "targets": {
         "esr": 2.0,
         "mrstft": 8.0
       },
-      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The C1 Normal channel is a 12AX7 channel (not EF86) into 2 x EL84: the AC15 type with its 12AX7 channel (switch 1)."
+      "notes": "Clock positions mapped 7:00 = 0 ... 12:00 = 5 ... 5:00 = 10. The AC15C1 type's Normal input (switch 1), its master at 10 as captured."
     },
     {
       "id": "t3k-ac15c1-topboost",
@@ -1379,7 +1385,7 @@
         "notes": "DIYRE L2A reamp box -> amp -> Suhr Reactive Load -> Steinberg UR824 at 11.5 dBu; master cranked"
       },
       "circuit": {
-        "type": "AC30"
+        "type": "AC15C1"
       },
       "targets": {
         "esr": 2.0,

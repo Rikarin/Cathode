@@ -31,30 +31,22 @@ public static class AC15 {
                 [AC30.FirstStage("V1"), AC30.NormalVolume("Vib-Trem volume", 47e-9)]
             )
         ],
-        new(
+        VoxParts.PowerAmp(
             "2 x EL84",
-            PentodeModel.EL84,
             1,
             320,
-            100,
             0.034,
-            true,
+            130,
             50e-6,
             16,
-            new LongTailPairDesign(TriodeModel.Ecc83, 291, 100e3, 100e3, 47e3, 1.2e3),
+            291,
+            47e-9,
             0.01e-6,
-            220e3,
-            1.5e3,
             4.7e-9,
-            new(250e3, PotTaper.ReverseAudio), // log track, its resistance falling fastest as the cut comes in
-            new(1, 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6),
-            false,
-            new(8e3),
+            8e3,
             SpeakerDesign.OpenBack1x12,
             // The 22k dropper to the EF86's 291 V: about 1.2 mA.
-            new(80, 32e-6, 150, 16e-6, 22e3, 16e-6, 1.2e-3, RectifierModel.EZ81),
-            InverterInput: new(47e-9, 1e6),
-            CathodeResistor: 130
+            new(80, 32e-6, 150, 16e-6, 22e3, 16e-6, 1.2e-3, RectifierModel.EZ81)
         ),
         -6
     ) {

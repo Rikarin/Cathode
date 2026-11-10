@@ -22,7 +22,9 @@ public class ClassAAmpSweepTests(ITestOutputHelper output) {
             { "AC15", false },
             { "AC15", true },
             { "DC-30", false },
-            { "DC-30", true }
+            { "DC-30", true },
+            { "AC15C1", false },
+            { "AC15C1", true }
         };
 
     [Theory]
@@ -36,6 +38,7 @@ public class ClassAAmpSweepTests(ITestOutputHelper output) {
     [Theory]
     [InlineData("AC30")]
     [InlineData("DC-30")]
+    [InlineData("AC15C1")]
     public void Treble_and_bass_tilt_the_top_boost(string type) {
         double[] knobs = [0, 2, 4, 6, 8, 10];
         var trebleHigh = Sweep(type, false, CircuitAmpBlock.Treble, knobs, 4_000);
@@ -71,9 +74,11 @@ public class ClassAAmpSweepTests(ITestOutputHelper output) {
         Assert.True(tilt[^1] - tilt[0] > 8, $"{tilt[^1] - tilt[0]:0.0} dB");
     }
 
-    [Fact]
-    public void Dc30_master_across_the_inverter_turns_the_level_down() {
-        var levels = Sweep("DC-30", false, CircuitAmpBlock.Master, [1, 3, 5, 7, 10], 1_000);
+    [Theory]
+    [InlineData("DC-30")]
+    [InlineData("AC15C1")]
+    public void Master_across_the_inverter_turns_the_level_down(string type) {
+        var levels = Sweep(type, false, CircuitAmpBlock.Master, [1, 3, 5, 7, 10], 1_000);
         Assert.True(Increasing(levels), string.Join(", ", levels.Select(static l => $"{l:0.0}")));
         Assert.True(levels[^1] - levels[0] > 15, $"{levels[^1] - levels[0]:0.0} dB");
     }

@@ -46,30 +46,22 @@ public static class AC30 {
                 [NormalVolume("Normal volume", 47e-9)]
             )
         ],
-        new(
+        VoxParts.PowerAmp(
             "4 x EL84",
-            PentodeModel.EL84,
             2,
             340,
-            100,
             0.045,
-            true,
+            50,
             250e-6,
             30,
-            new LongTailPairDesign(TriodeModel.Ecc83, PreampSupply, 100e3, 100e3, 47e3, 1.2e3),
+            PreampSupply,
+            47e-9,
             0.1e-6,
-            220e3,
-            1.5e3,
             4.7e-9,
-            new(250e3, PotTaper.ReverseAudio), // log track, its resistance falling fastest as the cut comes in
-            new(1, 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6),
-            false,
-            new(4e3),
+            4e3,
             SpeakerDesign.OpenBack2x12,
             // R10 22k drops the screen node's 320 V to the preamp's 290 V: about 1.4 mA.
-            new(60, 16e-6, 120, 16e-6, 22e3, 8e-6, 1.4e-3, RectifierModel.GZ34),
-            InverterInput: new(47e-9, 1e6),
-            CathodeResistor: 50
+            new(60, 16e-6, 120, 16e-6, 22e3, 8e-6, 1.4e-3, RectifierModel.GZ34)
         ),
         -8
     ) {
