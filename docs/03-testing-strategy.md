@@ -59,6 +59,7 @@ Every `IDspBlock` gets a parametrised suite generated from its descriptor (`Bloc
    - the same render twice must be bit-equal, and so must a render in another process (`SimdNullTests` compares the test process's render with `cathode-render`'s)
    - `Reset()` then a render must equal a fresh instance then a render
 8. **Denormals:** a loud burst followed by 10 s of silence must leave no subnormal value in the output or the state, and per-block time must not jump.
+9. **Live parameters:** every smoothed parameter shown on a block's type, changed while the block runs, must have finished its ramp a little later (`BlockConformanceTests`, per type; `RigTests` for the rig's controller settings). A parameter read with `Params.Current` but never passed to `Params.Advance` fails it: such a knob does nothing until the preset is reloaded. The few parameters a block reads from the target (off the audio thread, or at an event) are listed in the test.
 
 ### Property-based (CsCheck)
 

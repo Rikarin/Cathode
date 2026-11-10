@@ -2,6 +2,7 @@ using Cathode.Audio;
 using Cathode.Dsp;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Looping;
+using Cathode.Dsp.Parameters;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
 using Cathode.Ipc;
@@ -69,6 +70,45 @@ public class RigTests {
         Assert.InRange(Analysis.Peak(rising.AsSpan(47_000, 1_000)), 0.003, 0.005);
         // Under the threshold the envelope is released and idle: the modifier's minimum, -60 dB, on the -20 dB input.
         Assert.InRange(Analysis.Peak(closed.AsSpan(36_000, 12_000)), 0.00009, 0.00011);
+    }
+
+    /// <summary>
+    ///     The rig's side of the blocks' conformance test: a smoothed rig parameter read with <c>Current</c> but never
+    ///     advanced keeps its start-up value for good. Every one changed on a running engine must finish its ramp.
+    /// </summary>
+    [Fact]
+    public void Every_smoothed_rig_parameter_changed_while_the_engine_runs_reaches_its_target() {
+        // Read from the target (and smoothed, where it matters, by the engine's own gain ramps), never advanced.
+        string[] readFromTheTarget = [
+            "metroLevel", "effectsMix", "gateOffset", "in1Gain", "in1Cal", "out1Level", "out2Level", "out3Level",
+            "out4Level", "pitchLow", "pitchHigh"
+        ];
+        var engine = Engine();
+        var input = Enumerable.Repeat(0.5f, 48_000).ToArray();
+        OfflineRenderer.Render(engine, input, input, 64);
+        var moved = new List<int>();
+        for (var i = 0; i < engine.Rig.Count; i++) {
+            var p = engine.Rig.Descriptor(i);
+            if (p.Kind != ParamKind.Float || p.Smoothing == ParamSmoothing.Step || readFromTheTarget.Contains(p.Id)) {
+                continue;
+            }
+
+            // A quarter of the range away, towards the further end.
+            var from = engine.Rig.GetTarget(i);
+            var quarter = (p.Max - p.Min) / 4;
+            engine.Rig.SetTarget(i, from - p.Min > p.Max - from ? from - quarter : from + quarter);
+            moved.Add(i);
+        }
+
+        // A stage's value is read while the stage plays: every stage, at 20 Hz, is one cycle in 1.6 s.
+        Set(engine, "seqStages", RigControls.SequencerStages);
+        Set(engine, "seqRate", 20f);
+        var cycle = Enumerable.Repeat(0.5f, 2 * 48_000).ToArray();
+        OfflineRenderer.Render(engine, cycle, cycle, 64);
+
+        var stuck = moved.Where(i => engine.Rig.IsRamping(i)).Select(i => engine.Rig.Descriptor(i).Id);
+        Assert.Empty(stuck);
+        Assert.All(moved, i => Assert.Equal(engine.Rig.GetTarget(i), engine.Rig.Current(i)));
     }
 
     [Theory]
