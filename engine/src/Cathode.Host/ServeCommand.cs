@@ -25,7 +25,13 @@ static class ServeCommand {
         var rate = options.Rate();
         var buffer = options.Buffer();
         // Per process, so a restarted host never truncates a file a Server still has mapped (Windows forbids that).
-        var telemetry = options.Text("telemetry") ?? $"{socketPath}.{Environment.ProcessId}.telemetry";
+        // A host that was killed or crashed could not delete its own, so this one does.
+        var telemetry = options.Text("telemetry");
+        if (telemetry is null) {
+            TelemetryFiles.RemoveStale(socketPath);
+            telemetry = TelemetryFiles.PathFor(socketPath, Environment.ProcessId);
+        }
+
 
         using var stop = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) => {

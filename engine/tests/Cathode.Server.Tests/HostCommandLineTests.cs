@@ -173,4 +173,36 @@ public sealed class HostCommandLineTests {
             directory.Delete(true);
         }
     }
+
+    [Fact]
+    public void Telemetry_files_of_hosts_that_are_gone_are_removed_and_nothing_else() {
+        var directory = Directory.CreateTempSubdirectory("cth-cli-");
+        try {
+            const int Gone = 2_000_000_000; // above any process id an OS hands out
+            var socket = Path.Combine(directory.FullName, "h.sock");
+            var stale = Cathode.EngineHost.TelemetryFiles.PathFor(socket, Gone);
+            Assert.Equal($"{socket}.{Gone}.telemetry", stale);
+            var running = Cathode.EngineHost.TelemetryFiles.PathFor(socket, Environment.ProcessId);
+            string[] kept = [
+                running,
+                socket + ".backup.telemetry", // not a process id
+                socket + ".-5.telemetry",
+                socket + ".telemetry",
+                Path.Combine(directory.FullName, $"other.sock.{Gone}.telemetry"), // another host's socket
+                Path.Combine(directory.FullName, $"h.sock2.{Gone}.telemetry")
+            ];
+            foreach (var file in kept.Append(stale)) {
+                File.WriteAllText(file, "");
+            }
+
+            Assert.Equal(1, Cathode.EngineHost.TelemetryFiles.RemoveStale(socket));
+
+            Assert.False(File.Exists(stale));
+            Assert.All(kept, static file => Assert.True(File.Exists(file), file));
+            Assert.Equal(0, Cathode.EngineHost.TelemetryFiles.RemoveStale(socket));
+            Assert.Equal(0, Cathode.EngineHost.TelemetryFiles.RemoveStale(Path.Combine(directory.FullName, "x", "y")));
+        } finally {
+            directory.Delete(true);
+        }
+    }
 }
