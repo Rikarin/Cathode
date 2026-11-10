@@ -47,13 +47,14 @@ static class HtmlReport {
               <span style="color:var(--ref)">Reference</span> vs <span style="color:var(--amp)">circuit amp</span>.</p>
               <table><tr><th>Reference</th><th>Circuit</th><th>Input dBu</th><th>ESR</th><th>ESR (pre)</th>
               """
-            + "<th>MRSTFT</th><th>Harm. dB</th><th>Resp. dB</th><th>Pass</th></tr>"
+            + "<th>MRSTFT</th><th>Harm. dB</th><th>Resp. dB</th><th>Within drift guard</th></tr>"
         );
         foreach (var r in reports) {
             AppendSummaryRow(html, r);
         }
 
         html.Append("</table>");
+        html.Append(CultureInfo.InvariantCulture, $"<p class=\"muted\">{Encode(ShipTarget.Summary(reports))}</p>");
         foreach (var r in reports) {
             AppendSection(html, r);
         }

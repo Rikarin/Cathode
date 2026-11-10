@@ -251,7 +251,7 @@ Close the gap with the Axe-Fx III block list in [01](01-axe-fx-iii-audit.md), in
 
 **Definition-of-done tooling added in this phase:**
 - `tools/Cathode.Bench` measures every block (the worst of its types, with the longest IRs) and writes `BlockCosts.cs`. The conformance suite fails for a block without a cost.
-- `GoldenRenderTests` compares each block's default render with `tests/assets/golden/<type>.wav` (null residual below −90 dB). Regenerate with `CATHODE_UPDATE_GOLDEN=1`.
+- `GoldenRenderTests` compares each block's render at its golden setting (the defaults, or a setting that makes a block audible where the defaults leave it a wire) with `tests/assets/golden/<block>.wav`, and a render of each of its types with `<block>-types.wav` (null residual below −90 dB). It fails for a block whose render is the stimulus or silence, and for two types that render alike. Regenerate with `CATHODE_UPDATE_GOLDEN=1`.
 
 ---
 

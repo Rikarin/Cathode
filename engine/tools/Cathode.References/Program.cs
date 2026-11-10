@@ -15,6 +15,7 @@ using System.Text.Json;
 //   fit --id <id> --tol <param>:<min>:<max>[:<nominal>]... [--max-evals <n>] [--input-dbu <dBu>]
 //   fit --synthetic [--type <Type>]
 //                               fit physical tolerances (Nelder-Mead on ESR + MRSTFT)
+//   ship-target --report <file> how many matches of a capture-match test run reach the docs/06 §5.4 bar
 //
 // Options for every command: --manifest <path> (default: found above the working folder), --cache <dir> (default
 // $CATHODE_REFERENCES or ~/.cache/cathode/references).
@@ -49,6 +50,7 @@ try {
         "hash" => Hash(options),
         "match" => Match(manifest, cache, options, manifestPath),
         "fit" => Fit(manifest, cache, options),
+        "ship-target" => ShipTargetOf(options),
         _ => Unknown(args[0])
     };
 } catch (Exception e) when (e is ArgumentException
@@ -79,6 +81,7 @@ static void PrintUsage() =>
                 [--json] [--html] [--out <dir>]
           fit --id <id> --tol <param>:<min>:<max>[:<nominal>]... [--max-evals <n>] [--input-dbu <dBu>]
           fit --synthetic [--type <Type>]
+          ship-target --report <file>    how many matches in a test run's report reach the docs/06 §5.4 bar
         Common: --manifest <path>, --cache <dir> (default $CATHODE_REFERENCES or ~/.cache/cathode/references)
         """
     );
@@ -149,7 +152,7 @@ static int Match(ReferenceManifest manifest, ReferenceCache cache, Options optio
     var reports = new List<MatchReport>();
     Console.WriteLine(
         $"{"reference",-36} {"circuit",-28} {"dBu",6} {"ESR",7} {"ESRpre",7} {"MRSTFT",7} {"harm dB",8} "
-        + $"{"resp dB",8} {"pass",5}"
+        + $"{"resp dB",8} {"guard",5}"
     );
     foreach (var entry in entries) {
         var settings = Settings(entry, type, overrides);
@@ -187,6 +190,11 @@ static int Match(ReferenceManifest manifest, ReferenceCache cache, Options optio
     }
 
     Console.WriteLine("* input calibration fitted (the source does not state it)");
+    Console.WriteLine("guard: within the manifest's drift guard, which is not the bar for a match");
+    if (reports.Count > 0) {
+        Console.WriteLine(ShipTarget.Summary(reports));
+    }
+
     if (reports.Count > 0 && (options.Flag("json") || options.Flag("html"))) {
         var engineRoot = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(manifestPath)!, "..", "..", ".."));
         var output = options.Value("out") ?? Path.Combine(engineRoot, "artifacts", "references");
@@ -205,6 +213,19 @@ static int Match(ReferenceManifest manifest, ReferenceCache cache, Options optio
     }
 
     return reports.Any(static r => r.Pass == false) ? 1 : 0;
+}
+
+// Counts the matches in the file the capture-match tests write (CATHODE_REFERENCES_REPORT: id, pre-emphasised ESR,
+// MRSTFT, harmonics, response, within or drifted, tab-separated) against the ship target.
+static int ShipTargetOf(Options options) {
+    var path = options.Value("report") ?? throw new ArgumentException("ship-target needs --report <file>.");
+    var matches = File.ReadLines(path)
+        .Select(static line => line.Split('\t'))
+        .Where(static parts => parts.Length >= 6)
+        .Select(static parts => (double.Parse(parts[1], CultureInfo.InvariantCulture), parts[5] == "within"))
+        .ToList();
+    Console.WriteLine(ShipTarget.Summary(matches));
+    return 0;
 }
 
 static int Fit(ReferenceManifest manifest, ReferenceCache cache, Options options) {

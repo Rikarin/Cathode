@@ -73,6 +73,21 @@ public class ManifestTests {
         Assert.Equal(CircuitAmpBlock.Info.Params.Count, ids.Count);
     }
 
+    /// <summary>
+    ///     ESR and MRSTFT alone guard little where the ESR target is near the signal's own size (silence scores 1.0),
+    ///     so every reference CI can run also guards the harmonic and response distances. The local-only (T3K)
+    ///     captures get theirs from whoever holds the files.
+    /// </summary>
+    [Fact]
+    public void Redistributable_references_guard_harmonics_and_response_too() =>
+        Assert.All(
+            Manifest.References.Where(static r => r is { Redistributable: true, Targets: not null }),
+            static r => {
+                Assert.True(r.Targets!.HarmonicsDb > 0, $"{r.Id} has no harmonicsDb target");
+                Assert.True(r.Targets.ResponseDb > 0, $"{r.Id} has no responseDb target");
+            }
+        );
+
     [Fact]
     public void Conditioned_models_list_their_knob_values() =>
         Assert.All(

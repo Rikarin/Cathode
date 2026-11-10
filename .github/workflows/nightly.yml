@@ -14,7 +14,9 @@ name: nightly
 #   bands; CATHODE_MULTIRATE_FULL=1). Every build already runs every block at every rate and the models at 44.1 kHz.
 # - Capture matches (docs/06 §4.3): `cathode-references fetch` downloads the redistributable (GPL) amp captures named
 #   in engine/tests/assets/references/manifest.json into a cache kept between runs (keyed on the manifest, which holds
-#   every URL and SHA-256), and Cathode.References.Tests holds each circuit amp to the manifest's ESR / MRSTFT targets.
+#   every URL and SHA-256), and Cathode.References.Tests holds each circuit amp to the manifest's targets. Those are
+#   drift guards (the distances measured when an entry was added, plus a margin), not the bar for a match: the job
+#   summary says how many captures reach docs/06 §5.4's ship target.
 #   CATHODE_REFERENCES_REQUIRED=1 makes a missing redistributable capture fail instead of skip; the local-only (T3K)
 #   captures cannot be fetched by script and still skip, and the job summary counts them. Too slow for every push
 #   (each case renders the circuit amp for several seconds of audio); pull requests that touch the native code (NAM
@@ -112,7 +114,9 @@ jobs:
       # Verifies what the cache restored against the manifest's SHA-256 and downloads anything missing or changed.
       - name: Fetch the redistributable captures
         run: dotnet run --project tools/Cathode.References -c Release --no-build -- fetch
-      - name: Capture-match tests
+      - name: Capture-match tests (drift guard)
+        env:
+          CATHODE_REFERENCES_REPORT: ${{ runner.temp }}/references.tsv
         run: |
           set -o pipefail
           dotnet test --project tests/Cathode.References.Tests -c Release --no-build 2>&1 | tee "$RUNNER_TEMP/references.log"
@@ -124,15 +128,29 @@ jobs:
           verified=$(grep -cE ' Verified$' <<< "$status" || true)
           missing=$(grep -cE ' Missing$' <<< "$status" || true)
           skipped=$(grep -c '^skipped Cathode.References.Tests.ReferenceMatchTests' "$log" 2>/dev/null || true)
+          report="$RUNNER_TEMP/references.tsv"
+          ship="no capture was matched"
+          if [ -s "$report" ]; then
+            ship=$(dotnet run --project tools/Cathode.References -c Release --no-build -- ship-target --report "$report" 2>/dev/null || echo "the ship-target count failed")
+          fi
           {
             echo "### Capture matches"
             echo
+            echo "These tests are a drift guard: they fail when a circuit amp moves away from its capture, and passing does not say it matches the capture."
+            echo
+            echo "- $ship"
             echo "- References in the cache: $verified verified, $missing missing (local-only T3K captures are fetched by hand and never in CI)"
             echo "- Capture-match cases skipped: $skipped (each a local-only capture; a missing redistributable one fails)"
             echo
             echo '```'
             grep -E '^\s*(total|failed|succeeded|skipped):' "$log" 2>/dev/null || echo "the tests did not run"
             echo '```'
+            if [ -s "$report" ]; then
+              echo
+              echo "| Capture | ESR (pre-emphasised) | MRSTFT | Harmonics dB | Response dB | Drift guard |"
+              echo "| --- | ---: | ---: | ---: | ---: | --- |"
+              awk -F'\t' '{ printf "| %s | %s | %s | %s | %s | %s |\n", $1, $2, $3, $4, $5, $6 }' "$report"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
   rtsan:

@@ -81,7 +81,7 @@ Every block registered in `BlockRegistry.CreateDefault()` automatically runs the
 - decay to silence with no subnormals
 - a recorded CPU cost
 
-Each block also has a golden render in `tests/assets/golden`. After an intended change to a block's sound, regenerate them and review the diff:
+Each block also has a golden render in `tests/assets/golden`, made at its golden setting: its defaults, or, where the defaults leave it a wire or put its effect after the end of the render, a setting that makes it audible (`GoldenRenderTests.SetupFor`). A block with a Type choice has a second file, `<block>-types.wav`, with a shorter render of every type. Two tests keep the files honest: a block whose render is the stimulus or silence fails, and so do two types of a block that render alike. A new block that is a wire at its defaults, or a new type that needs a setting to differ from the others, gets a case in `SetupFor`. After an intended change to a block's sound, regenerate them and review the diff:
 
 ```bash
 CATHODE_UPDATE_GOLDEN=1 dotnet test --project tests/Cathode.Dsp.Tests

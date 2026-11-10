@@ -169,23 +169,23 @@ Ten overdrives from the guide's Drive list (pp. 37–38), appended after the ear
 | ED2 | Shortcuts: blocks (Space, ⇧Space, ⇧⌘Space, ⌘X, ⌘D, ⌘U, ⌘B, G, Q, ⌥/F1), ⌘T, ⌘Y | ✅ | shortcuts.spec; E2E "? lists the shortcuts, and the block shortcuts bypass, replace, cut and paste" | ⌘L opens Preset Leveling, ⌘I resets the channel (PS endpoints) |
 | ED3 | `?` help overlay listing every shortcut | ✅ | E2E above (now a tab of Settings) | the overlay became the Keyboard shortcuts tab of Settings (⌘, / ?), checked in the browser |
 | ED4 | Preferences: knob mode (linear/circular), wheel (normal/reverse/off), tooltips, meter refresh | ✅ | preferences spec; audio-ui knob and meter preferences; E2E preferences test | now the Preferences tab of Settings |
-| ED5 | Revert preset; Clear preset | ◐ | Revert_goes_back_to_the_saved_version_and_can_be_undone; Clear_empties_the_grid_and_the_name_but_keeps_the_id | menu items seen in the browser; UI not driven in the running editor |
+| ED5 | Revert preset; Clear preset | ✅ | Revert_goes_back_to_the_saved_version_and_can_be_undone; Clear_empties_the_grid_and_the_name_but_keeps_the_id; e2e preset-tools › Revert goes back to the saved preset, and Clear empties it until Undo | |
 | ED6 | Snapshots (timestamped, server-side, load/delete) | ✅ | Snapshots_keep_unsaved_edits_and_load_list_and_delete; E2E a snapshot keeps unsaved edits and loads back | Snapshots dialog opened in the browser |
-| ED7 | Templates: New from template, Save as template | ◐ | Templates_are_saved_and_start_new_presets | UI not driven in the running editor |
+| ED7 | Templates: New from template, Save as template | ✅ | Templates_are_saved_and_start_new_presets; e2e preset-tools › a rig is saved as a template, a new preset starts from it, and the template is deleted | |
 | ED8 | Replace block type keeping cables | ✅ | Replacing_a_block_keeps_its_cell_and_cables; E2E Q-replace step |  |
 | ED9 | Drag-onto swap, ⌘-drag replace; move row / column | ◐ | Dropping_swaps_two_blocks_with_the_wiring_in_place_or_replaces_the_target; A_row_moves_with_its_cables_and_a_column_shifts_the_ones_between; A_column_moved_across_others_keeps_every_block_on_the_signal_path_and_undo_restores_it | a column move now rewires instead of dropping cables (the path closes behind the column and runs through it where it lands; docs/02 §7.5); drag-to-swap not driven in E2E |
 | ED10 | Cut; paste onto same-type block copies settings; disconnect all cables | ✅ | Pasting_settings_replaces_every_channel_of_a_same_type_block; Disconnect_removes_every_cable_of_a_block; E2E cut and paste |  |
 | ED11 | All-scenes actions: channel, engage, bypass | ✅ | All_scene_actions_set_the_channel_and_bypass_in_every_scene; E2E ⇧Space |  |
 | ED12 | Block Info view; amps-in-use summary | ✅ | Block Info specs; E2E F1 step |  |
-| ED13 | Circuit Amp Ideal / Authentic view | ◐ | labelledParams › shows every control in the Ideal view… | toggle UI not driven in the running editor |
+| ED13 | Circuit Amp Ideal / Authentic view | ✅ | labelledParams › shows every control in the Ideal view…; e2e amp-tools › the Amp page shows the model’s own panel or every control… | |
 | ED14 | Library: single channel or whole block (with modifiers); recall into channel or all | ◐ | Whole_block_entries_recall_every_channel_with_modifiers_and_travel_as_files | UI not driven in the running editor |
 | ED15 | Library: folders, file export/import, drag-and-drop, save all blocks of a preset | ◐ | same server test; folder spec | drag-and-drop not run |
 | ED16 | Manage Presets / IRs: multi-select, drag swap/move/copy, pending changes until Save, duplicate/rename/delete | ◐ | Manage Presets › (5); Manage IRs › holds renames…; metadata server tests | Manage IRs has no drag or duplicate (content-addressed IRs); page UI not driven in the running editor |
 | ED17 | Reset Amp blocks on selected presets (keeps the real amp's panel controls) | ◐ | Reset_amp_blocks_keeps_the_front_panel_and_resets_the_expert_settings | button UI not driven in the running editor |
-| ED18 | Parameter Batch Set | ◐ | Batch_set_writes_one_parameter_into_the_matching_block_of_each_preset | UI not driven in the running editor |
+| ED18 | Parameter Batch Set | ✅ | Batch_set_writes_one_parameter_into_the_matching_block_of_each_preset; e2e preset-tools › Batch Set puts a knob’s value into the same block of another preset | |
 | ED19 | Pickers: colour tags / favourites, keyboard search, pin | ◐ | pickers specs; metadata server tests | UI not driven in the running editor |
-| ED20 | Performance pages: global and per-preset | ◐ | Performance_pages_live_in_the_preset_and_in_global; performance pages specs | UI not driven in the running editor |
-| ED21 | Footswitches: layout links, views, per-preset overrides | ◐ | Footswitch_views_links_and_preset_overrides_change_what_a_switch_does; footswitch specs | Global page editor UI not driven in the running editor |
+| ED20 | Performance pages: global and per-preset | ◐ | Performance_pages_live_in_the_preset_and_in_global; performance pages specs; e2e performance › a knob goes onto the Perform page, where it is renamed, turned and removed | the per-preset page is driven in the running editor; the global page is not |
+| ED21 | Footswitches: layout links, views, per-preset overrides | ◐ | Footswitch_views_links_and_preset_overrides_change_what_a_switch_does; footswitch specs; e2e performance › MIDI learn is armed and cancelled, and a footswitch layout gets switches and views | layouts, switches and views are driven in the running editor; layout links and per-preset overrides are not |
 
 ## IO: audio inputs and outputs (wiki *Audio I/O and amplification*)
 
@@ -203,7 +203,7 @@ Ten overdrives from the guide's Drive list (pp. 37–38), appended after the ear
 | IO10 | Latency report in Setup: converters, buffer and per-block latency | ✅ | Linear_phase_oversampling_recompiles_and_the_latency_report_names_the_drive | GET /api/v1/system/latency; Setup tab of Settings shows it (checked in the browser by the stream) |
 | IO11 | Output clip warning at −1 dBFS | ✅ | Output_peaks_follow_each_output_after_its_trim | CLIP badge forced and seen in the browser by the stream |
 | IO12 | Editor hint when stereo effects sit before a mono-summing block | ◐ | mono-hint spec | Drive not flagged (it never sums to mono); UI not driven in the running editor |
-| IO13 | Cab resonance helper: guided sine sweep that writes the amp's Load resonance | ◐ | The_test_tone_replaces_a_blocks_output…; The_test_tone_plays_for_a_block_without_touching_the_preset | helper UI not driven in the running editor |
+| IO13 | Cab resonance helper: guided sine sweep that writes the amp's Load resonance | ✅ | The_test_tone_replaces_a_blocks_output…; The_test_tone_plays_for_a_block_without_touching_the_preset | e2e amp-tools › …the resonance helper sets Load resonance drives the helper (the sweep, Apply, Cancel) in the running editor |
 
 ## CB: Cab block (wiki *Cab block*)
 
