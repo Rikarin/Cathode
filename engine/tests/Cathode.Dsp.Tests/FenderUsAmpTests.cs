@@ -26,7 +26,8 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
         "Princeton 5F2-A",
         "Princeton AA964",
         "Vibro-King",
-        "Blues Junior"
+        "Blues Junior",
+        "Pro Junior"
     ];
 
     public static TheoryData<string> Models => [..Names];
@@ -179,6 +180,7 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
     [Theory]
     [InlineData("Hot Rod Deluxe", 0.004, "V1A=0.013,V1B=0.058,V2A=1.49")]
     [InlineData("Blues Junior", 0.010, "V1B=0.042,V1A=0.162,V2B=0.114")]
+    [InlineData("Pro Junior", 0.020, "V1B=0.008,V1A=0.238")]
     public void Gain_staging_follows_the_test_points_on_the_drawing(string model, double input, string points) {
         var expected = points.Split(',')
             .Select(static p => p.Split('='))
@@ -231,6 +233,47 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
         }
 
         Assert.All(errors, static e => Assert.InRange(e, -7, 7));
+    }
+
+    /// <summary>
+    ///     The Pro Junior against the DC test points of Fender's drawing 047420 (its voltages "may vary ± 20 %"): 152
+    ///     V on both V1 plates and 1.2 V on their cathodes from the 232 V node, 172 V on the inverter's plates and 41 V
+    ///     on its cathodes. The inverter's tail is the 33k alone (the feedback enters at the second grid), and the
+    ///     feedback is 100k into 1k with 0.1 µF straight across it, so it falls above 1.6 kHz wherever the hidden
+    ///     Presence knob stands.
+    /// </summary>
+    [Fact]
+    public void The_pro_junior_rests_where_the_drawing_measures_it() {
+        var design = Design("Pro Junior");
+        foreach (var stage in design.Preamp.Cast<NetworkStageDesign>()) {
+            var triode = stage.Netlist.Elements.Single(static e => e.Kind == ElementKind.Triode);
+            var built = Assert.IsType<NetworkStage<FastTriode>>(stage.Create(Rate));
+            built.SetSourceResistance(1e3);
+            built.Update(new(0.5, 0.5, 0.5, 0.5, 0.5, false));
+            built.Reset(0);
+            var (plate, cathode) = (built.RestVoltage(triode.A), built.RestVoltage(triode.C));
+            output.WriteLine($"{stage.Name}: plate {plate:0.0} V (152), cathode {cathode:0.00} V (1.2)");
+            Assert.InRange(plate, 152 * 0.9, 152 * 1.1);
+            Assert.InRange(cathode, 1.2 * 0.8, 1.2 * 1.2);
+        }
+
+        var pair = Assert.IsType<LongTailPairDesign>(design.Power.PhaseInverter);
+        Assert.Equal(33e3, pair.TailResistor);
+        var inverter = LongTailPair.For(pair);
+        output.WriteLine(
+            $"inverter: cathodes {inverter.RestCathode:0.0} V (41), plates {inverter.RestPlateA:0.0} / "
+            + $"{inverter.RestPlateB:0.0} V (172)"
+        );
+        Assert.InRange(inverter.RestCathode, 41 * 0.85, 41 * 1.15);
+        Assert.InRange(inverter.RestPlateB, 172 * 0.9, 172 * 1.1);
+
+        var feedback = design.Power.Feedback;
+        Assert.Equal(1.0 / 101, feedback.Beta, 12);
+        foreach (var presence in new[] { 0.0, 0.5, 1.0 }) {
+            var (zero, pole) = feedback.PresenceTimes(presence);
+            Assert.Equal(0, zero);
+            Assert.InRange(1 / (2 * Math.PI * pole), 1_550, 1_650);
+        }
     }
 
     [Fact]
