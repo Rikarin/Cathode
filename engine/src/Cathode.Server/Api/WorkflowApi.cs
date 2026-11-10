@@ -2,6 +2,8 @@ using Cathode.Contracts;
 using Cathode.Server.Rig;
 using Cathode.Server.Stores;
 using Microsoft.AspNetCore.Http.HttpResults;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using static Cathode.Server.Api.CathodeApi;
 
 namespace Cathode.Server.Api;
@@ -199,8 +201,20 @@ static class WorkflowApi {
             .WithSummary("Block Library entries as a .cthblock file.");
         blockPresets.MapPost(
                 "/import",
-                (BlockPresetFile file, BlockPresetStore store) => TypedResults.Ok(store.Import(file))
+                async (HttpRequest request, BlockPresetStore store, CancellationToken cancellationToken) => {
+                    // As JSON, not as a BlockPresetFile: the store upgrades each entry from the schema it was
+                    // exported with before reading it.
+                    JsonNode? file;
+                    try {
+                        file = await JsonNode.ParseAsync(request.Body, cancellationToken: cancellationToken);
+                    } catch (JsonException e) {
+                        throw new RigException(400, $"The Block Library file is not valid JSON: {e.Message}");
+                    }
+
+                    return TypedResults.Ok(store.Import(file));
+                }
             )
+            .Accepts<BlockPresetFile>("application/json")
             .WithName("ImportBlockPresets")
             .WithSummary("Adds the entries of a .cthblock file as new user entries.");
     }

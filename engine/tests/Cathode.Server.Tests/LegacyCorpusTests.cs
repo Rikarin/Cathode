@@ -14,7 +14,8 @@ namespace Cathode.Server.Tests;
 ///     The legacy corpus (docs/03-testing-strategy.md §9): <c>tests/assets/legacy/&lt;version&gt;/</c> holds a data
 ///     folder written by each released Cathode, through its own API: two factory presets duplicated into the library,
 ///     a user's edit saved as a new preset (a Tiny Terror with its Cut on channel A, a 5881 on channel B, the amp made
-///     a global block), a user block preset of a Hot Cat and a <c>global.json</c> with a setting changed. Every
+///     a global block), a user block preset of a Hot Cat, that entry exported as <c>legacy-hot-cat.cthblock</c> and a
+///     <c>global.json</c> with a setting changed. Every
 ///     release since must read all of it, upgraded, and render every distinct scene of every preset finite, the same
 ///     twice, and at the loudness recorded in <c>levels.json</c>. A deliberate change of sound (an amp model refit)
 ///     moves those levels: rewrite them with <c>CATHODE_UPDATE_LEGACY_LEVELS=1</c> and say why in the commit.
@@ -22,7 +23,8 @@ namespace Cathode.Server.Tests;
 /// <remarks>
 ///     To add a release: start its Server (<c>Cathode:Engine:Mode=inprocess</c> on 1.0.0-rc.*) on an empty data
 ///     folder, make the same files through its API, copy <c>presets</c>, <c>block-presets</c> and
-///     <c>global.json</c> into a folder named after the version, and record the levels.
+///     <c>global.json</c> into a folder named after the version, save the answer of
+///     <c>POST /block-presets/export</c> for the block preset beside them, and record the levels.
 /// </remarks>
 public sealed class LegacyCorpusTests {
     /// <summary>Loudness tolerance, LU: tight enough to catch a migration that changes a value.</summary>
@@ -94,6 +96,15 @@ public sealed class LegacyCorpusTests {
         Assert.Equal(10 - 7, hotCat.Values["presence"]);
         Assert.Equal(1, hotCat.Values["powertube"]); // the 5881 is the 6L6GC
         Assert.False(hotCat.Values.ContainsKey("cut"));
+        // The same entry as that release exported it (a .cthblock file) comes through the import upgraded alike.
+        using var exported = new ByteArrayContent(
+            await File.ReadAllBytesAsync(Path.Combine(Corpus, version, "legacy-hot-cat.cthblock"), Token)
+        );
+        exported.Headers.ContentType = new("application/json");
+        using var import = await client.PostAsync("/api/v1/block-presets/import", exported, Token);
+        Assert.Equal(HttpStatusCode.OK, import.StatusCode);
+        var imported = Assert.Single((await import.Content.ReadFromJsonAsync<BlockPreset[]>(Token))!);
+        Assert.Equal(hotCat.Values, imported.Values);
 
         // Loading one plays it: the live rig takes it and the engine reports no error.
         using var load = await client.PutAsync($"/api/v1/live/preset/{edits.Id}", null, Token);

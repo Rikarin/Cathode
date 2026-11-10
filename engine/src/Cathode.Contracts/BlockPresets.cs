@@ -8,7 +8,7 @@ namespace Cathode.Contracts;
 public sealed class BlockPreset {
     /// <summary>
     ///     2 after 1.0.0-rc.3, when an Amp's changed as a preset's schema 2; a file without one is schema 1 (the
-    ///     Block Library's store upgrades it as it reads).
+    ///     Block Library's store upgrades it as it reads, and each entry of an imported <c>.cthblock</c> file).
     /// </summary>
     public static readonly int CurrentSchemaVersion = 2;
 

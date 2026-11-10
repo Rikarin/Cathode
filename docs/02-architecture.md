@@ -505,7 +505,7 @@ The editor's software-editor features, built in the ED stream. They follow Fract
   - Performance pages and footswitch overrides: `PUT /live/perform`, `PUT /live/footswitch-overrides`.
   - Block Library:
     - `POST /live/block-presets` saves every block.
-    - `POST /block-presets/export` and `/import` handle `.cthblock` files.
+    - `POST /block-presets/export` and `/import` handle `.cthblock` files. Import upgrades each entry from the schema it was exported with, as the store does for its own files; an entry from a newer release is refused.
     - `ApplyBlockPresetRequest.AllChannels` recalls a whole-block entry.
   - Metadata and preset tools:
     - `PATCH /presets/{id}/metadata` and `PATCH /assets/{ref}/metadata` set name, colour tag and favourite.

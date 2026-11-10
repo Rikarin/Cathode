@@ -92,7 +92,7 @@ The **Block Library** keeps settings for a single block, so you can reuse a driv
 
 The Block Library section lists your own entries in folders, with their block type and whether each is a **Channel** or a **Whole block**. **Move…** puts an entry in another folder (or a new one), and the bin deletes it.
 
-Tick entries and click **Export** to save them as a **`.cthblock`** file. **Import…** adds `.cthblock` files, and you can also drop them onto the section, or onto a grid cell to use them there straight away.
+Tick entries and click **Export** to save them as a **`.cthblock`** file. **Import…** adds `.cthblock` files, and you can also drop them onto the section, or onto a grid cell to use them there straight away. A file exported by an older version of Cathode imports with the same sound.
 
 ## Global blocks
 
