@@ -90,7 +90,7 @@ For example: `CATHODE_HOST_ARGS=--input-map 1;2 --outputs 1,3,0,0`. Separate the
 
 The browser remembers the token for that rig, so next time the editor opens straight away. It is the full editor, the same as in the desktop app, except that **Audio setup** shows the engine figures and the input calibration but cannot choose the interface (that is the settings file's job).
 
-<!-- screenshot wanted: the editor in a phone browser, connected to a headless rig (remote.png, already listed in screenshots.ts) -->
+<!-- screenshot wanted: the editor in a phone browser, connected to a headless rig (remote.png, already listed in screenshots.ts). Not taken yet: at a phone's width the preset bar's controls overlap, so the picture waits for that layout. -->
 
 If you lose the token, it is the `Cathode__Token` line in `/etc/cathode/cathode.env`:
 

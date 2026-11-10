@@ -127,7 +127,7 @@ To set a block's state in **every** scene at once, right-click it on the grid an
 
 **Scenes** in the navigation bar shows a table with a row per block and a column per scene. The active scene's column is highlighted.
 
-<!-- screenshot wanted: the Scenes page: the block-by-scene table with engaged dots and channel letters, the active scene highlighted -->
+![The Scenes page: one row per block and one column per scene, each cell with the block's engaged dot and its channel letters A to D; scene 1, Verse, is the active one, with the Drive and the Delay bypassed](screenshots/scenes.webp)
 
 - Click a block's dot to engage (green) or bypass it in that scene.
 - Click a channel letter to choose that channel in that scene.

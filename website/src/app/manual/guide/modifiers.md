@@ -108,7 +108,9 @@ Touch the pedal and the wah is on, wherever the pedal is. Park it at the heel an
 
 Open **Controllers** in the navigation bar to set them up. Their settings are stored with the preset, except **Manual A to E**, which are global.
 
-<!-- screenshot wanted: the Controllers page: scene level and controllers, Manual A-E, LFO 1 and 2, ADSR 1 and 2 and the followers side by side, the sequencer -->
+![The top of the Controllers page: the scene's level and its four scene controllers, the MIDI the scene sends, Manual A to E and the External knobs](screenshots/controllers.webp)
+
+![Further down the Controllers page: LFO 1 and 2, ADSR 1 and 2, and the envelope and pitch followers, side by side](screenshots/controllers-sources.webp)
 
 ### Scene controllers
 

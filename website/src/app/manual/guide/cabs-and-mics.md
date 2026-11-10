@@ -110,7 +110,7 @@ Two mics at different distances hear the speaker at slightly different times. Su
 - **Invert** flips a slot's polarity. If a blend sounds thin, try inverting one mic: if the low end comes back, they were fighting.
 - The **Align** view, beside **Response** under the speaker picture, shows each slot's impulse on a shared time line. Drag a waveform sideways to set its Delay, nudge it, or line every slot up with the latest one.
 
-<!-- screenshot wanted: the Cab block's Align view with two mics (an SM57 and an R-121) and their onsets marked -->
+![The Cab block's Align view: Mic 1, a Dynamic 57, and Mic 2, a Ribbon 121 four inches back, on the speaker, and below them each mic's impulse on a time axis with its delay, the nudge buttons and Align onsets](screenshots/cab-align.webp)
 
 > **Tip:** Judge a blend with all mics playing, not by soloing. Phase problems only show when the mics are summed.
 

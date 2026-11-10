@@ -49,7 +49,7 @@ A **bank** is an ordered list of up to **128 slots**, each holding a preset. Ban
 
 To organise banks, choose **Preset ▸ Manage presets…** in the preset bar. The page has the list of **Banks** and your **Library** of presets on the left, and the slots of the selected bank on the right.
 
-<!-- screenshot wanted: the Manage presets page: the Banks list, the Library list, and a bank's slots with a few selected, coloured and favourited -->
+![The Manage presets page: the Banks list with the bank “Friday gig” open, the Library list under it, and the bank's slots, two of them selected, some with a colour tag and a favourite star](screenshots/manage.webp)
 
 - **New bank:** the **+** beside **Banks**. Rename a bank by double-clicking it, or right-click it for **Rename…** and **Delete…**.
 - **Put a preset in a slot:** drag it from the **Library** list onto a slot.
