@@ -387,6 +387,7 @@ Still to come: RMS, per-block CPU, scene state, and binary frames.
 ### 5.10 MIDI and controllers
 
 - MIDI is read in the native shim (RtMidi, or JACK MIDI on Linux). Events are timestamped, then converted to **sample offsets** and pushed into the command ring. That gives sample-accurate tap tempo and CC ramps.
+- The host connects every input and scans every two seconds for changes: the port count, and the shim's `cth_midi_generation`, which the OS's device notifications bump (CoreMIDI's setup-changed notification, the ALSA sequencer's announce port, Configuration Manager device-interface events on Windows). A device plugged in later, swapped, or unplugged and back between two scans is connected at the next scan. On macOS the shim creates its CoreMIDI client on a thread of its own that runs a run loop: without one, CoreMIDI never updates the process's list of devices.
 - Mappings cover preset and scene change, block bypass and channel, modifier sources, tap tempo, tuner and looper. They live in global settings, and presets can override them.
 - Foot-controller support (generic MIDI controllers in v1) uses an Axe-Fx-like **layout/view model**: layouts, per-switch tap/hold functions, LED colours sent via MIDI where the controller supports it.
 

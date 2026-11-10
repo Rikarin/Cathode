@@ -659,6 +659,8 @@ int32_t cth_audio_stop(cth_stream *s)
     if (!s || !s->running) return 0;
     OSStatus status = AudioDeviceStop(s->device, s->proc_id);
     s->running = 0;
+    /* A device that is gone has nothing left to stop: the HAL rejects the call, and that is not a failure. */
+    if (status != noErr && atomic_load_explicit(&s->status, memory_order_relaxed) == CTH_STREAM_LOST) return 0;
     return status == noErr ? 0 : fail("could not stop the device", status);
 }
 

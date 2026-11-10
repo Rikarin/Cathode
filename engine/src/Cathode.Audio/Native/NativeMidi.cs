@@ -46,6 +46,13 @@ public static unsafe partial class NativeMidi {
     /// <summary>Connects every input source (again: call it to pick up devices plugged in since).</summary>
     public static bool Open() => IsAvailable && OpenNative() == 0;
 
+    /// <summary>
+    ///     A number that changes when a MIDI port may have come or gone since <see cref="Open" />, also when a device
+    ///     was unplugged and plugged back in so quickly that <see cref="PortCount" /> never changed (its source is
+    ///     disconnected all the same). Allocation-free; needs the library.
+    /// </summary>
+    public static uint Generation() => GenerationNative();
+
     public static void Close() {
         if (IsAvailable) {
             CloseNative();
@@ -102,6 +109,9 @@ public static unsafe partial class NativeMidi {
 
     [LibraryImport(Library, EntryPoint = "cth_midi_open")]
     internal static partial int OpenNative();
+
+    [LibraryImport(Library, EntryPoint = "cth_midi_generation")]
+    internal static partial uint GenerationNative();
 
     [LibraryImport(Library, EntryPoint = "cth_midi_read")]
     internal static partial int ReadNative(EventNative* events, int max);

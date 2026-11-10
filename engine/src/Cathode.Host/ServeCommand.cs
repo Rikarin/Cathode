@@ -22,10 +22,16 @@ static class ServeCommand {
 
     public static async Task<int> RunAsync(CommandLine options) {
         var socketPath = options.Text("socket") ?? throw new InvalidOperationException("--socket <path> is required.");
-        var rate = options.Double("rate", 48_000);
-        var buffer = options.Int("buffer", 64);
+        var rate = options.Rate();
+        var buffer = options.Buffer();
         // Per process, so a restarted host never truncates a file a Server still has mapped (Windows forbids that).
-        var telemetry = options.Text("telemetry") ?? $"{socketPath}.{Environment.ProcessId}.telemetry";
+        // A host that was killed or crashed could not delete its own, so this one does.
+        var telemetry = options.Text("telemetry");
+        if (telemetry is null) {
+            TelemetryFiles.RemoveStale(socketPath);
+            telemetry = TelemetryFiles.PathFor(socketPath, Environment.ProcessId);
+        }
+
 
         using var stop = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) => {
@@ -90,7 +96,22 @@ static class ServeCommand {
             await serving.CancelAsync().ConfigureAwait(false);
             return await watch.ConfigureAwait(false) ?? exit;
         } finally {
-            session.Stop();
+            StopQuietly(session.Stop, deviceService.DeviceStatus == AudioDeviceStatus.Lost);
+        }
+    }
+
+    /// <summary>
+    ///     Stops the device on the way out without letting a failure replace the exit code: stopping a device that has
+    ///     just been unplugged can fail, and the host must still exit with <see cref="DeviceExitCode" />. A failure is
+    ///     logged unless the device is known to be lost, where it is expected and says nothing new.
+    /// </summary>
+    internal static void StopQuietly(Action stopDevice, bool deviceLost) {
+        try {
+            stopDevice();
+        } catch (InvalidOperationException e) {
+            if (!deviceLost) {
+                Console.Error.WriteLine($"{DateTime.Now:HH:mm:ss.fff} warning: {e.Message}");
+            }
         }
     }
 

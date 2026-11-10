@@ -80,4 +80,129 @@ public sealed class HostCommandLineTests {
             directory.Delete(true);
         }
     }
+
+    [Theory]
+    [InlineData("--rate", "0")]
+    [InlineData("--rate", "fast")]
+    [InlineData("--buffer", "0")]
+    [InlineData("--buffer", "99999999999")]
+    [InlineData("--buffer", "64.5")]
+    public async Task Serve_rejects_a_rate_or_buffer_out_of_range_with_one_line(string option, string value) {
+        // --rate 0 used to divide by zero on the null backend's audio thread, and a buffer too large for an int was an
+        // unhandled OverflowException: a stack trace and a crash loop under a supervisor.
+        var directory = Directory.CreateTempSubdirectory("cth-cli-");
+        try {
+            var (exit, output) = await RunHostAsync(
+                "--serve",
+                "--null-audio",
+                "--socket",
+                Path.Combine(directory.FullName, "h.sock"),
+                "--telemetry",
+                Path.Combine(directory.FullName, "t"),
+                option,
+                value
+            );
+            Assert.Equal(1, exit);
+            Assert.StartsWith($"error: {option} must be", output, StringComparison.Ordinal);
+            Assert.DoesNotContain("   at ", output, StringComparison.Ordinal);
+        } finally {
+            directory.Delete(true);
+        }
+    }
+
+    [Theory]
+    [InlineData("--seconds", "0")]
+    [InlineData("--seconds", "-1")]
+    [InlineData("--tail", "-1")]
+    [InlineData("--length", "0")]
+    public async Task Ir_capture_rejects_a_duration_that_is_not_positive(string option, string value) {
+        var directory = Directory.CreateTempSubdirectory("cth-cli-");
+        try {
+            var (exit, output) = await RunHostAsync(
+                "--ir-capture",
+                "--out",
+                Path.Combine(directory.FullName, "ir.wav"),
+                option,
+                value
+            );
+            Assert.Equal(1, exit);
+            Assert.StartsWith($"error: {option} must be", output, StringComparison.Ordinal);
+        } finally {
+            directory.Delete(true);
+        }
+    }
+
+    [Fact]
+    public async Task Ir_capture_checks_that_the_file_can_be_written_before_it_plays_the_sweep() {
+        var directory = Directory.CreateTempSubdirectory("cth-cli-");
+        try {
+            var (exit, output) = await RunHostAsync(
+                "--ir-capture",
+                "--out",
+                Path.Combine(directory.FullName, "no-such-folder", "ir.wav")
+            );
+            Assert.Equal(1, exit);
+            Assert.StartsWith("error: ", output, StringComparison.Ordinal);
+            Assert.Contains("no-such-folder", output, StringComparison.Ordinal);
+            Assert.DoesNotContain("Playing", output, StringComparison.Ordinal);
+            Assert.DoesNotContain("   at ", output, StringComparison.Ordinal);
+        } finally {
+            directory.Delete(true);
+        }
+    }
+
+    [Fact]
+    public async Task A_graph_file_that_is_missing_or_not_a_graph_is_a_one_line_error() {
+        var directory = Directory.CreateTempSubdirectory("cth-cli-");
+        try {
+            var missing = Path.Combine(directory.FullName, "missing.json");
+            var (exit, output) = await RunHostAsync("--bench-nam", "--graph", missing);
+            Assert.Equal(1, exit);
+            Assert.StartsWith("error: ", output, StringComparison.Ordinal);
+            Assert.Contains("missing.json", output, StringComparison.Ordinal);
+            Assert.DoesNotContain("   at ", output, StringComparison.Ordinal);
+
+            var broken = Path.Combine(directory.FullName, "broken.json");
+            await File.WriteAllTextAsync(broken, "{ \"nodes\": [", Token);
+            (exit, output) = await RunHostAsync("--bench-nam", "--graph", broken);
+            Assert.Equal(1, exit);
+            Assert.StartsWith("error: ", output, StringComparison.Ordinal);
+            Assert.Contains("broken.json is not a graph", output, StringComparison.Ordinal);
+            Assert.DoesNotContain("   at ", output, StringComparison.Ordinal);
+        } finally {
+            directory.Delete(true);
+        }
+    }
+
+    [Fact]
+    public void Telemetry_files_of_hosts_that_are_gone_are_removed_and_nothing_else() {
+        var directory = Directory.CreateTempSubdirectory("cth-cli-");
+        try {
+            const int Gone = 2_000_000_000; // above any process id an OS hands out
+            var socket = Path.Combine(directory.FullName, "h.sock");
+            var stale = Cathode.EngineHost.TelemetryFiles.PathFor(socket, Gone);
+            Assert.Equal($"{socket}.{Gone}.telemetry", stale);
+            var running = Cathode.EngineHost.TelemetryFiles.PathFor(socket, Environment.ProcessId);
+            string[] kept = [
+                running,
+                socket + ".backup.telemetry", // not a process id
+                socket + ".-5.telemetry",
+                socket + ".telemetry",
+                Path.Combine(directory.FullName, $"other.sock.{Gone}.telemetry"), // another host's socket
+                Path.Combine(directory.FullName, $"h.sock2.{Gone}.telemetry")
+            ];
+            foreach (var file in kept.Append(stale)) {
+                File.WriteAllText(file, "");
+            }
+
+            Assert.Equal(1, Cathode.EngineHost.TelemetryFiles.RemoveStale(socket));
+
+            Assert.False(File.Exists(stale));
+            Assert.All(kept, static file => Assert.True(File.Exists(file), file));
+            Assert.Equal(0, Cathode.EngineHost.TelemetryFiles.RemoveStale(socket));
+            Assert.Equal(0, Cathode.EngineHost.TelemetryFiles.RemoveStale(Path.Combine(directory.FullName, "x", "y")));
+        } finally {
+            directory.Delete(true);
+        }
+    }
 }

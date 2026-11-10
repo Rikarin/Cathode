@@ -117,6 +117,10 @@ CTH_API int32_t cth_midi_port_count(void);
 CTH_API int32_t cth_midi_port_info(int32_t index, cth_midi_port *port);
 /* 0 on success. Connects all current sources; call again to pick up devices plugged in since. */
 CTH_API int32_t cth_midi_open(void);
+/* A number that changes when a MIDI port may have come or gone since cth_midi_open (a device plugged in, unplugged,
+ * or unplugged and back so quickly that cth_midi_port_count never changed, which leaves its source disconnected).
+ * Poll it and call cth_midi_open again when it differs from the last value seen. */
+CTH_API uint32_t cth_midi_generation(void);
 /* Copies up to max queued events into events; returns how many. Events that overflowed the ring are lost. */
 CTH_API int32_t cth_midi_read(cth_midi_event *events, int32_t max);
 /* Sends one short message (status byte first: channel voice, system common or system real-time, no SysEx) to the

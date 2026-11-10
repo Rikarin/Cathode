@@ -1,8 +1,15 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
  * CoreMIDI input and output for cth_audio (see cth_audio.h). Uses the MIDI 1.0 protocol through MIDIEventList, so
- * incoming words are Universal MIDI Packets: type 1 (system) and type 2 (MIDI 1.0 channel voice) are decoded. */
+ * incoming words are Universal MIDI Packets: type 1 (system) and type 2 (MIDI 1.0 channel voice) are decoded.
+ *
+ * CoreMIDI keeps a process's view of the MIDI setup up to date on the run loop of the thread that made the process's
+ * first CoreMIDI call. Without a run loop there, MIDIGetNumberOfSources and the rest keep answering with the setup as
+ * it was at that first call, so a device plugged in later is never seen. The host has no run loop of its own, so every
+ * entry point first starts a thread (once, for the life of the process) that creates the client and then runs one. */
 #include <CoreMIDI/CoreMIDI.h>
+#include <dispatch/dispatch.h>
 #include <mach/mach_time.h>
+#include <pthread.h>
 #include <stdatomic.h>
 #include <stdio.h>
 #include <string.h>
@@ -13,6 +20,11 @@
 static MIDIClientRef client;
 static MIDIPortRef input_port;
 static MIDIPortRef output_port;
+static pthread_once_t client_once = PTHREAD_ONCE_INIT;
+static dispatch_semaphore_t client_ready;
+static int32_t client_error;          /* 0, or why the client could not be created */
+static _Atomic int opened;            /* between cth_midi_open and cth_midi_close */
+static _Atomic uint32_t generation;   /* bumped by CoreMIDI's setup-changed notification */
 static cth_midi_event ring[RING_SIZE];
 static _Atomic uint32_t ring_head; /* written by the CoreMIDI thread */
 static _Atomic uint32_t ring_tail; /* written by the reader */
@@ -82,11 +94,64 @@ static void copy_string(MIDIObjectRef object, CFStringRef property, char *out, s
     }
 }
 
-int32_t cth_midi_port_count(void) { return (int32_t)(MIDIGetNumberOfSources() + MIDIGetNumberOfDestinations()); }
+static int32_t create_client(void)
+{
+    if (MIDIClientCreateWithBlock(CFSTR("Cathode"), &client, ^(const MIDINotification *notification) {
+            if (notification->messageID == kMIDIMsgSetupChanged) atomic_fetch_add(&generation, 1);
+        }) != noErr) return -1;
+    if (MIDIInputPortCreateWithProtocol(client, CFSTR("Cathode In"), kMIDIProtocol_1_0, &input_port,
+                                        ^(const MIDIEventList *list, void *source) { receive(list, source); })
+        != noErr) return -2;
+    if (MIDIOutputPortCreate(client, CFSTR("Cathode Out"), &output_port) != noErr) return -3;
+    return 0;
+}
+
+/* The process's first CoreMIDI call, then the run loop CoreMIDI needs to follow devices coming and going. */
+static void *run_client(void *arg)
+{
+    (void)arg;
+    pthread_setname_np("cth-midi");
+    client_error = create_client();
+    dispatch_semaphore_signal(client_ready);
+
+    /* A run loop with nothing to wait on returns at once: this source keeps it running. */
+    CFRunLoopSourceContext context = {0};
+    CFRunLoopSourceRef keep_alive = CFRunLoopSourceCreate(NULL, 0, &context);
+    CFRunLoopAddSource(CFRunLoopGetCurrent(), keep_alive, kCFRunLoopDefaultMode);
+    CFRunLoopRun();
+    return NULL;
+}
+
+static void start_client(void)
+{
+    pthread_t thread;
+    client_ready = dispatch_semaphore_create(0);
+    if (pthread_create(&thread, NULL, run_client, NULL) != 0) {
+        client_error = -4;
+        return;
+    }
+
+    pthread_detach(thread);
+    dispatch_semaphore_wait(client_ready, DISPATCH_TIME_FOREVER);
+}
+
+/* Call before any other CoreMIDI function. Returns 0, or a negative number when there is no client. */
+static int32_t ensure_client(void)
+{
+    pthread_once(&client_once, start_client);
+    return client_error;
+}
+
+int32_t cth_midi_port_count(void)
+{
+    ensure_client();
+    return (int32_t)(MIDIGetNumberOfSources() + MIDIGetNumberOfDestinations());
+}
 
 int32_t cth_midi_port_info(int32_t index, cth_midi_port *port)
 {
     if (!port || index < 0) return -1;
+    ensure_client();
     ItemCount sources = MIDIGetNumberOfSources();
     MIDIEndpointRef endpoint = (ItemCount)index < sources ? MIDIGetSource((ItemCount)index)
                                                           : MIDIGetDestination((ItemCount)index - sources);
@@ -101,14 +166,9 @@ int32_t cth_midi_port_info(int32_t index, cth_midi_port *port)
 
 int32_t cth_midi_open(void)
 {
-    if (!client) {
-        if (MIDIClientCreate(CFSTR("Cathode"), NULL, NULL, &client) != noErr) return -1;
-        if (MIDIInputPortCreateWithProtocol(client, CFSTR("Cathode In"), kMIDIProtocol_1_0, &input_port,
-                                            ^(const MIDIEventList *list, void *source) { receive(list, source); })
-            != noErr) return -2;
-        if (MIDIOutputPortCreate(client, CFSTR("Cathode Out"), &output_port) != noErr) return -3;
-    }
-
+    int32_t err = ensure_client();
+    if (err < 0) return err;
+    atomic_store(&opened, 1);
     ItemCount count = MIDIGetNumberOfSources();
     for (ItemCount i = 0; i < count; i++) {
         MIDIEndpointRef source = MIDIGetSource(i);
@@ -135,7 +195,7 @@ int32_t cth_midi_read(cth_midi_event *events, int32_t max)
 
 int32_t cth_midi_send(const char *destination_uid, const uint8_t *data, int32_t length)
 {
-    if (!output_port || !data || length < 1 || length > 3 || data[0] < 0x80) return -1;
+    if (!atomic_load(&opened) || !data || length < 1 || length > 3 || data[0] < 0x80) return -1;
     /* A Universal MIDI Packet names its kind in the top nibble: 2 is a MIDI 1.0 channel voice message, 1 is system
      * common and real-time (clock, start, song position, ...). Sent as type 2, a system message is malformed. */
     uint32_t type = data[0] >= 0xF0 ? 0x1u : 0x2u;
@@ -164,12 +224,13 @@ int32_t cth_midi_send(const char *destination_uid, const uint8_t *data, int32_t 
     return sent > 0 ? 0 : -3;
 }
 
+uint32_t cth_midi_generation(void) { return atomic_load(&generation); }
+
+/* The client and its thread stay for the life of the process (CoreMIDI is tied to that thread's run loop, see the
+ * top of the file); closing disconnects the sources, so nothing more is queued. */
 void cth_midi_close(void)
 {
-    if (client) {
-        MIDIClientDispose(client);
-        client = 0;
-        input_port = 0;
-        output_port = 0;
-    }
+    if (!atomic_exchange(&opened, 0)) return;
+    ItemCount count = MIDIGetNumberOfSources();
+    for (ItemCount i = 0; i < count; i++) MIDIPortDisconnectSource(input_port, MIDIGetSource(i));
 }

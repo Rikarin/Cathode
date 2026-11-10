@@ -130,7 +130,8 @@ public sealed class HostAllocationTests : IDisposable {
             AllocationProbe.Measure(() => {
                     for (var i = 0; i < 1_000; i++) {
                         midi.Translate(poll);
-                        _ = Cathode.Audio.Native.NativeMidi.PortCount(); // the port scan's check
+                        _ = Cathode.Audio.Native.NativeMidi.PortCount(); // the port scan's two checks
+                        _ = Cathode.Audio.Native.NativeMidi.Generation();
                     }
                 }
             )
@@ -139,6 +140,47 @@ public sealed class HostAllocationTests : IDisposable {
         // A message the Server maps still gets through.
         var batch = midi.Translate([new(start, 0xB0, 11, 64, 3)]);
         Assert.Equal(0xB0, Assert.Single(batch!).Status);
+    }
+
+    [Fact]
+    public void Midi_clock_that_pauses_sets_the_tempo_only_from_ticks_after_the_pause() {
+        Assert.SkipUnless(Cathode.Audio.Native.NativeAudio.IsLibraryPresent, "cth_audio not built");
+        using var midi = new MidiInput(service.Engine, static _ => { });
+        midi.SetFollowClock(true);
+        const ulong Tick100 = 60_000_000_000 / 100 / 24;
+        const ulong Tick140 = 60_000_000_000 / 140 / 24;
+        var time = Cathode.Audio.Native.NativeMidi.NowNanoseconds();
+
+        float Tempo() => service.Engine.Rig.GetTarget(RigControls.Descriptor.IndexOf("tempo"));
+
+        List<Cathode.Audio.Native.MidiMessage> Ticks(int count, ulong interval) {
+            var ticks = new List<Cathode.Audio.Native.MidiMessage>(count);
+            for (var i = 0; i < count; i++) {
+                time += interval;
+                ticks.Add(new(time, 0xF8, 0, 0, 1));
+            }
+
+            return ticks;
+        }
+
+        midi.Translate(Ticks(30, Tick100));
+        Assert.Equal(100, Tempo(), 0.01);
+
+        // The clock stops for three seconds without a Stop message and comes back at 140 BPM: the old tempo holds
+        // until a whole beat of new ticks is in.
+        time += 3_000_000_000;
+        midi.Translate(Ticks(24, Tick140));
+        Assert.Equal(100, Tempo(), 0.01);
+        midi.Translate(Ticks(1, Tick140));
+        Assert.Equal(140, Tempo(), 0.01);
+
+        // Stop and Start with no pause to speak of start a new run too, and still reach the Server.
+        var transport = midi.Translate([new(time, 0xFC, 0, 0, 1), new(time, 0xFA, 0, 0, 1)]);
+        Assert.Equal([0xFC, 0xFA], transport!.Select(static m => (int)m.Status));
+        midi.Translate(Ticks(24, Tick100));
+        Assert.Equal(140, Tempo(), 0.01);
+        midi.Translate(Ticks(1, Tick100));
+        Assert.Equal(100, Tempo(), 0.01);
     }
 
     [Fact]

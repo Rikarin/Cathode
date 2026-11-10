@@ -9,21 +9,33 @@ namespace Cathode.EngineHost;
 ///     it arrived at (from the OS timestamp), and batches go to the Server, which owns the mappings. MIDI clock is
 ///     handled here, when following it is on: the tempo comes from the average tick interval, sample-accurately. Notes
 ///     are also posted to the engine, which keeps the held chord for the blocks
-///     (<see cref="CathodeEngine.HeldNotes" />). Devices plugged in later are picked up within a couple of seconds.
+///     (<see cref="CathodeEngine.HeldNotes" />). Devices plugged in later, or unplugged and plugged back in, are
+///     picked up within a couple of seconds.
 /// </summary>
 public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage>> forward) : IDisposable {
     const int TicksPerBeat = 24;
     const byte Clock = 0xF8;
+    const byte ClockStart = 0xFA;
+    const byte ClockContinue = 0xFB;
+    const byte ClockStop = 0xFC;
     const byte ActiveSensing = 0xFE;
     const int AllSoundOff = 120;
     const int AllNotesOff = 123;
+
+    /// <summary>
+    ///     Longer than the tick interval of the slowest tempo followed (30 BPM: 83 ms), so a longer silence is the
+    ///     clock pausing, not a tempo.
+    /// </summary>
+    const ulong ClockGapNs = 100_000_000;
 
     readonly List<MidiMessage> received = [];
     readonly Queue<ulong> ticks = new();
     Thread? thread;
     volatile bool running;
     volatile bool followClock;
+    ulong lastTick;
     int knownPorts = -1;
+    uint knownGeneration;
 
     public void SetFollowClock(bool enabled) {
         followClock = enabled;
@@ -54,9 +66,14 @@ public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage
         while (running) {
             if (DateTime.UtcNow - lastScan > TimeSpan.FromSeconds(2)) {
                 lastScan = DateTime.UtcNow;
-                var count = NativeMidi.PortCount(); // only the count: listing the ports allocates
-                if (count != knownPorts) {
+                // Only two numbers: listing the ports allocates. The count alone misses a device that was unplugged
+                // and back between two scans, or swapped for another; the shim's generation does not. Both are read
+                // before the sources are connected, so a change during that is seen by the next scan.
+                var generation = NativeMidi.Generation();
+                var count = NativeMidi.PortCount();
+                if (count != knownPorts || generation != knownGeneration) {
                     knownPorts = count;
+                    knownGeneration = generation;
                     NativeMidi.Open();
                 }
             }
@@ -88,6 +105,10 @@ public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage
 
             if (message.Status == ActiveSensing) {
                 continue;
+            }
+
+            if (message.Status is ClockStart or ClockContinue or ClockStop) {
+                ResetClock(); // forwarded too: the Server may map transport
             }
 
             Notes(message);
@@ -123,6 +144,13 @@ public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage
         }
 
         lock (ticks) {
+            // The tempo comes from an unbroken run of ticks only: one measured against a tick from before a pause
+            // would read as a very slow beat.
+            if (ticks.Count > 0 && timeNs > lastTick && timeNs - lastTick > ClockGapNs) {
+                ticks.Clear();
+            }
+
+            lastTick = timeNs;
             ticks.Enqueue(timeNs);
             if (ticks.Count > TicksPerBeat + 1) {
                 ticks.Dequeue();
@@ -132,6 +160,13 @@ public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage
                 double beatNs = timeNs - ticks.Peek();
                 engine.Tempo = Math.Clamp(60e9 / beatNs, 30, 300);
             }
+        }
+    }
+
+    /// <summary>Start, Continue and Stop begin a new run of ticks: the tempo holds until a beat of them is in.</summary>
+    void ResetClock() {
+        lock (ticks) {
+            ticks.Clear();
         }
     }
 }

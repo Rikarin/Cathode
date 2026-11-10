@@ -7,12 +7,16 @@ using Cathode.Dsp.Native;
 using Cathode.Engine;
 using Cathode.Engine.Graph;
 using Cathode.Ipc;
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace Cathode.Host;
 
 /// <summary>Device diagnostics for Phase 0 spike S1 (native audio shim).</summary>
 static class AudioCommands {
+    /// <summary>How long past the sweep and its tail an IR capture may take before it is given up.</summary>
+    const double CaptureGraceSeconds = 5;
+
     public static int ListDevices(CommandLine options) {
         RequireBackend();
         if (options.Flag("json")) {
@@ -70,7 +74,7 @@ static class AudioCommands {
 
     public static int AudioTest(CommandLine options) {
         RequireBackend();
-        var seconds = options.Int("seconds", 10);
+        var seconds = options.Int("seconds", 10, 1, 86_400);
         var engine = default(CathodeEngine);
         using var session = OpenSession(
             options,
@@ -78,10 +82,7 @@ static class AudioCommands {
                 engine = new(spec);
                 var graphPath = options.Text("graph");
                 var definition = graphPath is not null
-                    ? JsonSerializer.Deserialize(
-                        File.ReadAllText(graphPath),
-                        GraphJsonContext.Default.GraphDefinition
-                    )!
+                    ? CommandLine.ReadGraph(graphPath)
                     : options.Text("nam") is { } model
                         ? GraphTemplates.Nam(Path.GetFullPath(model))
                         : GraphTemplates.Basic();
@@ -125,6 +126,7 @@ static class AudioCommands {
 
     public static int LatencyTest(CommandLine options) {
         RequireBackend();
+        var seconds = options.Int("seconds", 5, 1, 3600);
         var probe = default(LatencyProbe);
         using var session = OpenSession(options, spec => probe = new(spec.SampleRate), 1);
         if (session.InputChannels == 0) {
@@ -135,7 +137,7 @@ static class AudioCommands {
 
         Console.WriteLine("Playing clicks on output 1 and listening on input 1...");
         session.Start();
-        Thread.Sleep(options.Int("seconds", 5) * 1000);
+        Thread.Sleep(seconds * 1000);
         session.Stop();
 
         var lags = probe!.Measurements();
@@ -161,10 +163,12 @@ static class AudioCommands {
     /// </summary>
     public static int IrCapture(CommandLine options) {
         var path = options.Text("out") ?? throw new InvalidOperationException("--out <file.wav> is required.");
+        var seconds = options.Double("seconds", 5, 0.5, 60);
+        var level = (float)Math.Pow(10, options.Double("level", -18, -120, 0) / 20);
+        var tail = options.Double("tail", 1.5, 0, 60);
+        var length = options.Double("length", 500, 1, 60_000);
+        RequireWritable(path); // before the sweep is played, not after
         RequireBackend();
-        var seconds = options.Double("seconds", 5);
-        var level = (float)Math.Pow(10, options.Double("level", -18) / 20);
-        var tail = options.Double("tail", 1.5);
         var recorder = default(SweepRecorder);
         using var session = OpenSession(
             options,
@@ -180,8 +184,24 @@ static class AudioCommands {
             + "recording input 1..."
         );
         session.Start();
+        // The recording is done after the sweep and its tail; a device that stops calling back (unplugged mid-sweep)
+        // would otherwise never finish it.
+        var deadline = Stopwatch.GetTimestamp()
+            + (long)((seconds + tail + CaptureGraceSeconds) * Stopwatch.Frequency);
         while (!recorder!.Done) {
             Thread.Sleep(50);
+            if (session.DeviceStatus != AudioDeviceStatus.Ok) {
+                throw new InvalidOperationException(
+                    "The audio device was lost or its settings changed during the capture; nothing was written."
+                );
+            }
+
+            if (Stopwatch.GetTimestamp() > deadline) {
+                throw new InvalidOperationException(
+                    "The capture did not finish in time: the audio device is not calling back at its sample rate. "
+                    + "Nothing was written."
+                );
+            }
         }
 
         session.Stop();
@@ -196,7 +216,7 @@ static class AudioCommands {
         }
 
         var measurement = recorder.Measurement;
-        var ir = measurement.Trim(measurement.Deconvolve(recorder.Recorded), options.Double("length", 500));
+        var ir = measurement.Trim(measurement.Deconvolve(recorder.Recorded), length);
         WavFile.Write(path, new((int)session.SampleRate, [ir]));
         Console.WriteLine(
             $"recorded peak {20 * Math.Log10(peak):0.0} dBFS; wrote {ir.Length} samples "
@@ -210,19 +230,39 @@ static class AudioCommands {
         Func<ProcessSpec, IAudioProcessor> createProcessor,
         int inputChannels
     ) {
-        var rate = options.Double("rate", 48_000);
-        var buffer = options.Int("buffer", 64);
+        var rate = options.Rate();
+        var buffer = options.Buffer();
 
         // The processor needs the actual buffer size, which is only known once the device is open, so it is
         // created lazily on first use behind a forwarding wrapper.
         var forwarder = new ForwardingProcessor();
         var session = NativeAudioSession.Open(forwarder, options.Text("device"), rate, buffer, inputChannels);
-        forwarder.Target = createProcessor(new(session.SampleRate, Math.Max(session.BufferFrames, 1)));
+        try {
+            forwarder.Target = createProcessor(new(session.SampleRate, Math.Max(session.BufferFrames, 1)));
+        } catch {
+            session.Dispose(); // a graph or model that does not load: release the device before reporting it
+            throw;
+        }
+
         Console.WriteLine(
             $"device: {options.Text("device") ?? "(default output)"}  {session.SampleRate / 1000:0.#} kHz  buffer "
             + $"{session.BufferFrames}  in {session.InputChannels}  out {session.OutputChannels}"
         );
         return session;
+    }
+
+    /// <summary>
+    ///     Fails now, with the file system's own error, when <paramref name="path" /> cannot be written. An existing
+    ///     file is left as it is, and none is left behind.
+    /// </summary>
+    static void RequireWritable(string path) {
+        var existed = File.Exists(path);
+        using (new FileStream(path, FileMode.OpenOrCreate, FileAccess.Write)) {
+        }
+
+        if (!existed) {
+            File.Delete(path);
+        }
     }
 
     static void PrintReportedLatency(NativeAudioSession session, AudioSessionStats stats) {

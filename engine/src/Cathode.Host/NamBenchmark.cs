@@ -4,8 +4,6 @@ using Cathode.Dsp.Native;
 using Cathode.Engine;
 using Cathode.Engine.Graph;
 using Cathode.Ipc;
-using System.Globalization;
-using System.Text.Json;
 
 namespace Cathode.Host;
 
@@ -21,8 +19,8 @@ static class NamBenchmark {
             throw new InvalidOperationException("--model <file.nam> or --graph <graph.json> is required.");
         }
 
-        var spec = new ProcessSpec(48_000, options.Int("buffer", 64));
-        var seconds = options.Int("seconds", 10);
+        var spec = new ProcessSpec(48_000, options.Buffer());
+        var seconds = options.Int("seconds", 10, 1, 3600);
         var fastTanh = !options.Flag("exact-tanh");
         NamModel.SetFastTanh(fastTanh);
 
@@ -30,8 +28,8 @@ static class NamBenchmark {
             ? CompileFile(graphPath, spec)
             : Compile(GraphTemplates.Nam(Path.GetFullPath(path!)), spec);
         var amp = graph.SlotOf("amp1") is >= 0 and var ampSlot ? graph.Block(ampSlot) as NamAmpBlock : null;
-        if (options.Text("size") is { } size && amp is not null) {
-            amp.SetModelSize(double.Parse(size, CultureInfo.InvariantCulture));
+        if (options.Text("size") is not null && amp is not null) {
+            amp.SetModelSize(options.Double("size", 1, 0, 1));
         }
 
         var engine = new CathodeEngine(spec);
@@ -86,7 +84,7 @@ static class NamBenchmark {
             BlockRegistry.CreateDefault().AddNativeBlocks(),
             Path.GetDirectoryName(Path.GetFullPath(graphPath))
         ).Compile(
-            JsonSerializer.Deserialize(File.ReadAllText(graphPath), GraphJsonContext.Default.GraphDefinition)!,
+            CommandLine.ReadGraph(graphPath),
             spec,
             1
         );

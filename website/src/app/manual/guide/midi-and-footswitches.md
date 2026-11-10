@@ -19,7 +19,7 @@ Cathode treats a PC as a press. A CC or note counts as **pressed** at a value or
 ## Connecting a controller
 
 1. Connect the controller to the computer: by USB if it is a class-compliant USB MIDI device, or through a MIDI interface (many audio interfaces have MIDI sockets).
-2. That's all: Cathode listens to every MIDI input it finds, and picks up devices plugged in later within a couple of seconds.
+2. That's all: Cathode listens to every MIDI input it finds, and picks up devices plugged in later, or unplugged and plugged back in, within a couple of seconds.
 3. Open **Global** and look at the **Monitor** box in the **MIDI** section. Press a switch: a line such as `CC 20 = 127 (ch 1)` appears. If nothing appears, Cathode is not receiving anything (see [Troubleshooting](/manual/troubleshooting#midi-does-nothing)).
 
 ### Receive channel

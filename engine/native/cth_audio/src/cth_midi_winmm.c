@@ -2,10 +2,16 @@
  * WinMM MIDI input and output for cth_audio (see cth_audio.h). WinMM numbers ports by position, which shifts when
  * devices come and go, so uids are "in:" or "out:" + the port name + "#n" for the n-th port of that name: stable
  * across runs as long as the same devices are plugged in. Inputs call back on a WinMM thread; events are timestamped
- * there on the QueryPerformanceCounter clock and queued in a ring that cth_midi_read drains. */
+ * there on the QueryPerformanceCounter clock and queued in a ring that cth_midi_read drains.
+ *
+ * The input handle of a device that is unplugged is dead, also after the device is back, and WinMM does not say so.
+ * So while MIDI is open a Configuration Manager notification counts device interfaces arriving and leaving
+ * (cth_midi_generation), and the host reopens the inputs when the number moves. It listens to every interface class:
+ * MIDI drivers do not share one. */
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <mmsystem.h>
+#include <cfgmgr32.h>
 #include <stdio.h>
 #include <string.h>
 #include "cth_audio.h"
@@ -22,6 +28,8 @@ static SRWLOCK producer_lock = SRWLOCK_INIT; /* input callbacks may run on more 
 static cth_midi_event ring[RING_SIZE];
 static volatile LONG ring_head; /* written by the WinMM callbacks */
 static volatile LONG ring_tail; /* written by the reader */
+static HCMNOTIFICATION device_notification;
+static volatile LONG generation; /* bumped on a Configuration Manager thread */
 
 uint64_t cth_midi_now_ns(void)
 {
@@ -137,9 +145,33 @@ static void close_all(void)
     }
 }
 
+static DWORD CALLBACK device_changed(HCMNOTIFICATION notification, PVOID context, CM_NOTIFY_ACTION action,
+                                     PCM_NOTIFY_EVENT_DATA data, DWORD size)
+{
+    (void)notification; (void)context; (void)data; (void)size;
+    if (action == CM_NOTIFY_ACTION_DEVICEINTERFACEARRIVAL || action == CM_NOTIFY_ACTION_DEVICEINTERFACEREMOVAL) {
+        InterlockedIncrement(&generation);
+    }
+    return ERROR_SUCCESS;
+}
+
+uint32_t cth_midi_generation(void) { return (uint32_t)InterlockedCompareExchange(&generation, 0, 0); }
+
 int32_t cth_midi_open(void)
 {
     AcquireSRWLockExclusive(&ports_lock);
+    if (!device_notification) {
+        /* Best effort: without it a device is still found when the port count changes. */
+        CM_NOTIFY_FILTER filter;
+        ZeroMemory(&filter, sizeof filter);
+        filter.cbSize = sizeof filter;
+        filter.Flags = CM_NOTIFY_FILTER_FLAG_ALL_INTERFACE_CLASSES;
+        filter.FilterType = CM_NOTIFY_FILTER_TYPE_DEVICEINTERFACE;
+        if (CM_Register_Notification(&filter, NULL, device_changed, &device_notification) != CR_SUCCESS) {
+            device_notification = NULL;
+        }
+    }
+
     close_all(); /* indices shift when devices come and go, so start over */
     UINT count = midiInGetNumDevs();
     if (count > MAX_PORTS) count = MAX_PORTS;
@@ -198,5 +230,8 @@ void cth_midi_close(void)
     AcquireSRWLockExclusive(&ports_lock);
     close_all();
     opened = 0;
+    HCMNOTIFICATION notification = device_notification;
+    device_notification = NULL;
     ReleaseSRWLockExclusive(&ports_lock);
+    if (notification) CM_Unregister_Notification(notification); /* waits for a callback that is running */
 }
