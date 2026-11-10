@@ -1,4 +1,4 @@
-import { type ChildProcess, execFile, spawn } from 'node:child_process';
+import { type ChildProcess, execFile } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { readFile, rm } from 'node:fs/promises';
 import { createServer } from 'node:net';
@@ -7,14 +7,9 @@ import { join } from 'node:path';
 import { type Command, engine } from './engine';
 import { portFree } from './network';
 import type { AudioSettings, NetworkSettings } from './settings';
+import { Sidecar, type SidecarStatus, endPolitely } from './sidecar';
 
-export interface SidecarStatus {
-  name: 'host' | 'server';
-  state: 'starting' | 'running' | 'restarting' | 'stopped' | 'failed';
-  detail: string | null;
-  /** The running process's id, or null. */
-  pid: number | null;
-}
+export type { SidecarStatus } from './sidecar';
 
 export interface IrCaptureOptions {
   seconds: number;
@@ -34,144 +29,18 @@ export interface Connection {
   token: string;
 }
 
-const MaxBackoffMs = 10_000;
 const ReadyTimeoutMs = 60_000;
+/** What a job that found the engine stopped reports, and what `start` then fails with. */
+const Stopped = 'The local engine was stopped.';
 /** The host's GC budget (docs/adr/0001-process-model.md): NativeAOT reads it from the environment only, as hex. */
 const Gen0Budget = '10000000';
 
 /**
- * One supervised child process: started with a command line computed at each (re)start, restarted with backoff
- * when it exits on its own, stopped politely on request (its standard input closed, and SIGTERM where there are
- * signals), and killed if it is still running 3 s later.
- */
-class Sidecar {
-  private child: ChildProcess | null = null;
-  private wanted = false;
-  private failures = 0;
-  private restartTimer: NodeJS.Timeout | null = null;
-  readonly log: string[] = [];
-  status: SidecarStatus;
-
-  constructor(
-    readonly name: 'host' | 'server',
-    private readonly commandLine: () => Command & { env?: NodeJS.ProcessEnv },
-    /** What the process prints once it serves: running (again, after a restart). */
-    private readonly ready: RegExp,
-    private readonly onStatus: () => void
-  ) {
-    this.status = { name, state: 'stopped', detail: null, pid: null };
-  }
-
-  /** Starts the process unless it already runs (or is about to restart): never a second one beside the first. */
-  start(): void {
-    this.wanted = true;
-    if (this.child || this.restartTimer) {
-      return;
-    }
-
-    this.launch();
-  }
-
-  /** Whether the process runs now. */
-  get running(): boolean {
-    return this.child !== null;
-  }
-
-  async stop(): Promise<void> {
-    this.wanted = false;
-    if (this.restartTimer) {
-      clearTimeout(this.restartTimer);
-      this.restartTimer = null;
-    }
-
-    const child = this.child;
-    if (child?.exitCode === null) {
-      const exited = new Promise<void>(done => child.once('exit', () => done()));
-      // Closing its lifeline asks it to stop, and it then stops cleanly: the host releases the device and removes its
-      // socket. On Windows that is the only polite way: Node has no signals there, and kill() terminates outright.
-      child.stdin?.end();
-      if (process.platform !== 'win32') {
-        child.kill('SIGTERM');
-      }
-
-      const killer = setTimeout(() => child.kill('SIGKILL'), 3_000);
-      await exited;
-      clearTimeout(killer);
-    }
-
-    this.set('stopped', null);
-  }
-
-  /** Called once the process proves healthy (the server answered), so the next failure starts the backoff over. */
-  healthy(): void {
-    this.failures = 0;
-    this.set('running', null);
-  }
-
-  private launch(): void {
-    this.restartTimer = null;
-    let command: ReturnType<typeof this.commandLine>;
-    try {
-      command = this.commandLine();
-    } catch (error) {
-      this.set('failed', (error as Error).message);
-      return;
-    }
-
-    const child = spawn(command.command, command.args, {
-      env: { ...process.env, ...command.env },
-      // Standard input is the child's lifeline (StdinWatch in the engine): the OS closes it however this app ends, a
-      // crash or a force quit included, and the child then stops on its own instead of outliving the app.
-      stdio: ['pipe', 'pipe', 'pipe'],
-      windowsHide: true
-    });
-    this.child = child;
-    this.set(this.failures === 0 ? 'starting' : 'restarting', null);
-    child.stdin.on('error', () => undefined); // a child that already exited: nothing to tell it
-    const keep = (data: Buffer) => {
-      const lines = data.toString().split('\n').filter(Boolean);
-      this.log.push(...lines);
-      this.log.splice(0, Math.max(0, this.log.length - 200));
-      const waiting = this.status.state === 'starting' || this.status.state === 'restarting';
-      if (this.child === child && waiting && lines.some(line => this.ready.test(line))) {
-        this.set('running', null);
-      }
-    };
-    child.stdout.on('data', keep);
-    child.stderr.on('data', keep);
-    const ended = (code: number | string | null) => {
-      if (this.child !== child) {
-        return;
-      }
-
-      this.child = null;
-      if (!this.wanted) {
-        return;
-      }
-
-      const delay = Math.min(MaxBackoffMs, 500 * 2 ** this.failures++);
-      this.set('restarting', `exited (${code}); restarting in ${Math.round(delay / 1000)} s`);
-      this.restartTimer = setTimeout(() => this.launch(), delay);
-    };
-    child.once('exit', (code, signal) => ended(signal ?? code));
-    // A process that never started emits no exit: it ends here, so it is retried like one that crashed.
-    child.once('error', error => {
-      this.log.push(`spawn failed: ${error.message}`);
-      if (child.pid === undefined) {
-        ended(error.message);
-      }
-    });
-  }
-
-  private set(state: SidecarStatus['state'], detail: string | null): void {
-    this.status = { name: this.name, state, detail, pid: this.child?.pid ?? null };
-    this.onStatus();
-  }
-}
-
-/**
  * The local engine: cathode-host on the chosen interface and cathode-server in front of it, on loopback, and with
  * control from other devices on, also on every interface at the network port, serving the web editor there.
+ *
+ * `stop` is final: it ends whatever runs, a measurement included, and nothing starts a process again afterwards. Going
+ * back to the local engine takes a new `Sidecars`.
  */
 export class Sidecars {
   private readonly socket = join(tmpdir(), `cathode-${process.pid}.sock`);
@@ -181,6 +50,9 @@ export class Sidecars {
   private ready: Promise<Connection> | null = null;
   /** The host's exclusive jobs (restart, latency test, IR capture), one at a time: each stops and restarts it. */
   private hostJobs: Promise<unknown> = Promise.resolve();
+  /** The host's one-shot command that runs now (a latency test or an IR capture), so `stop` can end it. */
+  private measurement: ChildProcess | null = null;
+  private stopped = false;
   private readonly host: Sidecar;
   private readonly server: Sidecar;
   /** Why the Server is not on the network although the setting asks for it, or null. */
@@ -191,11 +63,27 @@ export class Sidecars {
     private network: NetworkSettings,
     private readonly editorDirectory: string,
     private readonly dataDirectory: string | null,
-    onStatus: (statuses: SidecarStatus[]) => void
+    onStatus: (statuses: SidecarStatus[]) => void,
+    /** Gets every line either process prints (the log files); the editor is shown only the last few. */
+    onLine: (name: 'host' | 'server', line: string) => void = () => undefined
   ) {
     const notify = () => onStatus(this.statuses());
-    this.host = new Sidecar('host', () => this.hostCommand(), / serving on /, notify);
-    this.server = new Sidecar('server', () => this.serverCommand(), /Now listening on/, notify);
+    this.host = new Sidecar(
+      'host',
+      () => this.hostCommand(),
+      / serving on /,
+      notify,
+      {},
+      line => onLine('host', line)
+    );
+    this.server = new Sidecar(
+      'server',
+      () => this.serverCommand(),
+      /Now listening on/,
+      notify,
+      {},
+      line => onLine('server', line)
+    );
   }
 
   statuses(): SidecarStatus[] {
@@ -209,15 +97,17 @@ export class Sidecars {
   /** Starts both processes; resolves with the connection once the Server answers. */
   start(): Promise<Connection> {
     this.ready ??= (async () => {
+      this.refuseWhenStopped();
       // A retry after a slow first start finds the Server still starting: it keeps its port and is not started twice.
       if (this.port === 0 || !this.server.running) {
         this.port = await freePort();
       }
 
+      this.refuseWhenStopped();
+
+      // The host reports itself: it is running once it prints that it serves, not because the Server answers.
       this.host.start();
-      const connection = await this.serve();
-      this.host.healthy();
-      return connection;
+      return await this.serve();
     })().catch((error: unknown) => {
       this.ready = null;
       throw error;
@@ -247,6 +137,7 @@ export class Sidecars {
       wanted && !(await portFree(this.network.port))
         ? `Port ${this.network.port} is in use by another program. Choose another port.`
         : null;
+    this.refuseWhenStopped(); // stopped while the port was checked: start nothing
     this.server.start();
     const connection = { baseUrl: `http://127.0.0.1:${this.port}`, token: this.token() };
     await waitForServer(connection);
@@ -264,7 +155,17 @@ export class Sidecars {
     return this.onNetwork() ? this.network.token : this.runToken;
   }
 
+  /**
+   * Stops both processes, for good. A job on the host that is under way is ended first and waited for (its measurement
+   * is asked to stop, so the device is free again), and neither it nor a job still queued restarts the host.
+   */
   async stop(): Promise<void> {
+    this.stopped = true;
+    if (this.measurement) {
+      void endPolitely(this.measurement);
+    }
+
+    await this.hostJobs;
     await Promise.all([this.server.stop(), this.host.stop()]);
     this.ready = null;
   }
@@ -273,9 +174,51 @@ export class Sidecars {
   applyAudio(audio: AudioSettings): Promise<void> {
     return this.exclusive(async () => {
       this.audio = audio;
-      await this.host.stop();
+      if (!this.stopped) {
+        await this.host.stop();
+        this.resumeHost();
+      }
+    });
+  }
+
+  private refuseWhenStopped(): void {
+    if (this.stopped) {
+      throw new Error(Stopped);
+    }
+  }
+
+  /** Starts the host again after a job that stopped it, unless the engine was stopped meanwhile. */
+  private resumeHost(): void {
+    if (!this.stopped) {
       this.host.start();
-      this.host.healthy();
+    }
+  }
+
+  /**
+   * Runs one of the host's measuring commands to its end. It gets `--watch-stdin` and a pipe for standard input, like
+   * the sidecars: it stops playing and frees the device when this app ends, however that happens, or when `stop` asks.
+   */
+  private measure(args: string[], timeoutMs: number): Promise<{ ok: boolean; output: string }> {
+    if (this.stopped) {
+      return Promise.resolve({ ok: false, output: Stopped });
+    }
+
+    return new Promise(done => {
+      const host = engine.host();
+      const child = execFile(
+        host.command,
+        [...host.args, ...args, '--watch-stdin'],
+        { timeout: timeoutMs, windowsHide: true },
+        (error, stdout, stderr) => {
+          if (this.measurement === child) {
+            this.measurement = null;
+          }
+
+          done({ ok: !error, output: `${stdout}${stderr}${error && !stdout ? error.message : ''}`.trim() });
+        }
+      );
+      child.stdin?.on('error', () => undefined); // a command that already exited: nothing to tell it
+      this.measurement = child;
     });
   }
 
@@ -292,6 +235,10 @@ export class Sidecars {
   }
 
   private async runLatencyTest(): Promise<{ ok: boolean; output: string; roundTripMs: number | null }> {
+    if (this.stopped) {
+      return { ok: false, output: Stopped, roundTripMs: null };
+    }
+
     if (!this.audio.device) {
       return {
         ok: false,
@@ -302,9 +249,7 @@ export class Sidecars {
 
     await this.host.stop();
     try {
-      const host = engine.host();
       const args = [
-        ...host.args,
         '--latency-test',
         '--device',
         this.audio.device,
@@ -315,16 +260,11 @@ export class Sidecars {
         '--seconds',
         '3'
       ];
-      const output = await new Promise<string>(done =>
-        execFile(host.command, args, { timeout: 20_000 }, (error, stdout, stderr) =>
-          done(`${stdout}${stderr}${error && !stdout ? error.message : ''}`)
-        )
-      );
+      const { output } = await this.measure(args, 20_000);
       const match = /measured round trip: \d+ frames = ([\d.]+) ms/.exec(output);
-      return { ok: match !== null, output: output.trim(), roundTripMs: match ? Number(match[1]) : null };
+      return { ok: match !== null, output, roundTripMs: match ? Number(match[1]) : null };
     } finally {
-      this.host.start();
-      this.host.healthy();
+      this.resumeHost();
     }
   }
 
@@ -337,6 +277,10 @@ export class Sidecars {
   }
 
   private async runIrCapture(options: IrCaptureOptions): Promise<IrCaptureResult> {
+    if (this.stopped) {
+      return { ok: false, output: Stopped, wav: null };
+    }
+
     if (!this.audio.device) {
       return { ok: false, output: 'Pick an audio interface first: capturing needs a real device.', wav: null };
     }
@@ -344,9 +288,7 @@ export class Sidecars {
     const file = join(tmpdir(), `cathode-ir-${process.pid}-${Date.now()}.wav`);
     await this.host.stop();
     try {
-      const host = engine.host();
       const args = [
-        ...host.args,
         '--ir-capture',
         '--device',
         this.audio.device,
@@ -363,17 +305,12 @@ export class Sidecars {
         '--out',
         file
       ];
-      const { output, ok } = await new Promise<{ output: string; ok: boolean }>(done =>
-        execFile(host.command, args, { timeout: (options.seconds + 20) * 1_000 }, (error, stdout, stderr) =>
-          done({ output: `${stdout}${stderr}${error && !stdout ? error.message : ''}`.trim(), ok: !error })
-        )
-      );
+      const { output, ok } = await this.measure(args, (options.seconds + 20) * 1_000);
       const wav = ok ? new Uint8Array(await readFile(file)) : null;
       return { ok: ok && wav !== null, output, wav };
     } finally {
       await rm(file, { force: true });
-      this.host.start();
-      this.host.healthy();
+      this.resumeHost();
     }
   }
 

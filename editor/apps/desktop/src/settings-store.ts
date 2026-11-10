@@ -72,6 +72,69 @@ export function defaultSettings(): Settings {
   };
 }
 
+/** A value read from the renderer or from disk, for a `T`: an object whose fields are all still to be checked. */
+export type Unchecked<T> = { readonly [K in keyof T]?: unknown };
+
+/** Neither the renderer nor the file is trusted: everything from them is checked, starting with its being an object. */
+export function fields(value: unknown): Record<string, unknown> {
+  return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {};
+}
+
+export function isWholeIn(value: unknown, min: number, max: number): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max;
+}
+
+/** Audio settings out of anything: each field is the given one when it is usable, else the default. */
+export function validAudio(value: unknown): AudioSettings {
+  const audio: Unchecked<AudioSettings> = fields(value);
+  const oneOf = (option: unknown, options: readonly number[], fallback: number) =>
+    options.find(o => o === option) ?? fallback;
+  const device = typeof audio.device === 'string' && audio.device.length < 512 ? audio.device : null;
+  const sampleRate = oneOf(audio.sampleRate, [44_100, 48_000, 88_200, 96_000], 48_000);
+  const bufferFrames = oneOf(audio.bufferFrames, [32, 64, 128, 256, 512], 64);
+  const channels = (list: unknown): number[] =>
+    Array.isArray(list) ? (list as unknown[]).filter(c => isWholeIn(c, 1, 64)).slice(0, 2) : [];
+  // Outputs 1-4: the first channel of each pair, 0 for unmapped.
+  const outputs = Array.isArray(audio.outputs)
+    ? (audio.outputs as unknown[]).map(c => (isWholeIn(c, 0, 63) ? c : 0)).slice(0, 4)
+    : [1];
+  const inputs = Array.isArray(audio.inputs) ? (audio.inputs as unknown[]).slice(0, 6).map(channels) : [];
+  const [first = [], ...rest] = inputs;
+  return {
+    device,
+    sampleRate,
+    bufferFrames,
+    loopIn: channels(audio.loopIn),
+    loopOut: channels(audio.loopOut),
+    outputs,
+    diOut: channels(audio.diOut),
+    inputs: first.length > 0 ? inputs : [[1], ...rest]
+  };
+}
+
+/** The network port, or null when it is not a whole number from 1024 to 65535. */
+export function validPort(value: unknown): number | null {
+  return isWholeIn(value, 1024, 65_535) ? value : null;
+}
+
+/**
+ * The Server to use out of anything. A remote one needs an http or https URL, kept as its origin: this throws when
+ * `baseUrl` is not one. Anything that is not remote is the local engine.
+ */
+export function validTarget(value: unknown): ServerTarget {
+  const target: Unchecked<{ mode: string; baseUrl: string; token: string }> = fields(value);
+  if (target.mode === 'remote') {
+    const url = new URL(typeof target.baseUrl === 'string' ? target.baseUrl : '');
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      throw new Error('The Server URL must be http or https.');
+    }
+
+    return { mode: 'remote', baseUrl: url.origin, token: typeof target.token === 'string' ? target.token : '' };
+  }
+
+  return { mode: 'local' };
+}
+
 /** The part of Electron's safeStorage the store uses (OS keychain, DPAPI or the Linux secret service). */
 export interface SecretCipher {
   /** False where secrets cannot be kept from other local users (no keyring on Linux): tokens are then clear text. */
@@ -95,6 +158,9 @@ export interface SettingsStoreOptions {
  * On disk the file stays plain JSON in the shape of `Settings`, except that a token is kept as `tokenEncrypted`
  * (base64 of the safeStorage cipher text) instead of `token` wherever safeStorage works. A file with clear-text tokens
  * (older versions, or no keyring) still reads, and is rewritten encrypted the first time it is read with a keyring.
+ *
+ * What is read is checked like what the renderer sends: the file may have been edited by hand, written by another
+ * version or half restored from a backup, and the app has to start whatever it holds.
  */
 interface StoredSecret {
   token?: unknown;
@@ -102,9 +168,9 @@ interface StoredSecret {
 }
 
 interface Stored {
-  audio?: Partial<AudioSettings>;
-  target?: { mode?: unknown; baseUrl?: unknown } & StoredSecret;
-  network?: Partial<Omit<NetworkSettings, 'token'>> & StoredSecret;
+  audio: unknown;
+  target: ({ mode?: unknown; baseUrl?: unknown } & StoredSecret) | undefined;
+  network: ({ enabled?: unknown; port?: unknown } & StoredSecret) | undefined;
 }
 
 /** A token as read: decrypted, and whether the file should be written again (clear text, or an old key). */
@@ -156,23 +222,32 @@ export class SettingsStore {
       return defaultSettings();
     }
 
-    let stored: Stored;
+    let parsed: unknown;
     try {
-      stored = JSON.parse(text) as Stored;
+      parsed = JSON.parse(text);
     } catch (error) {
       this.log(`${this.file} is not valid JSON (${String(error)}); using the defaults.`);
       return defaultSettings();
     }
 
-    const defaults = defaultSettings();
+    if (!isObject(parsed)) {
+      this.log(`${this.file} does not hold a settings object; using the defaults.`);
+      return defaultSettings();
+    }
+
+    const stored: Stored = {
+      audio: parsed['audio'],
+      target: this.section(parsed, 'target'),
+      network: this.section(parsed, 'network')
+    };
     const available = await this.cipher.available();
     const loose = this.tightenMode();
     const network = await this.secret(stored.network, 'network', available);
     const target = await this.target(stored.target, available);
     const settings: Settings = {
-      audio: { ...defaults.audio, ...stored.audio },
+      audio: this.audio(stored.audio),
       target: target.value,
-      network: { ...defaults.network, ...withoutSecret(stored.network), token: network.token }
+      network: { ...this.network(stored.network), token: network.token }
     };
 
     // A clear-text token from an older version (or one under a rotated key), now that it can be kept encrypted.
@@ -233,8 +308,66 @@ export class SettingsStore {
     }
 
     const secret = await this.secret(stored, 'remote Server', available);
-    const baseUrl = typeof stored.baseUrl === 'string' ? stored.baseUrl : '';
-    return { value: { mode: 'remote', baseUrl, token: secret.token }, rewrite: secret.rewrite };
+    try {
+      const value = validTarget({ mode: 'remote', baseUrl: stored.baseUrl, token: secret.token });
+      return { value, rewrite: secret.rewrite };
+    } catch {
+      // Without a usable address there is no Server to show, and the editor is where one switches back: go local.
+      this.log(
+        `the remote Server address in ${this.file} (${JSON.stringify(stored.baseUrl)}) is not an http or https URL; ` +
+          'using the local engine.'
+      );
+      return { value: { mode: 'local' }, rewrite: false };
+    }
+  }
+
+  /** A section of the file when it is an object, as it should be; otherwise as if it were missing, with a log line. */
+  private section(parsed: Record<string, unknown>, name: 'target' | 'network'): Record<string, unknown> | undefined {
+    const value = parsed[name];
+    if (value === undefined || isObject(value)) {
+      return value;
+    }
+
+    this.log(`"${name}" in ${this.file} is not an object; using the defaults for it.`);
+    return undefined;
+  }
+
+  /** The stored audio settings, each field checked; the fields that were not usable are named in the log. */
+  private audio(stored: unknown): AudioSettings {
+    const audio = validAudio(stored);
+    if (stored === undefined) {
+      return audio;
+    }
+
+    if (!isObject(stored)) {
+      this.log(`"audio" in ${this.file} is not an object; using the defaults for it.`);
+      return audio;
+    }
+
+    // A file from an older version lacks the newer fields: those take their defaults quietly.
+    const replaced = (Object.keys(audio) as (keyof AudioSettings)[]).filter(
+      key => stored[key] !== undefined && JSON.stringify(stored[key]) !== JSON.stringify(audio[key])
+    );
+    if (replaced.length > 0) {
+      this.log(`the audio settings in ${this.file} had unusable values (${replaced.join(', ')}); they were replaced.`);
+    }
+
+    return audio;
+  }
+
+  /** Whether the network is on and its port. A port that is not one turns the setting off, at the default port. */
+  private network(stored: Stored['network']): Omit<NetworkSettings, 'token'> {
+    const defaults = defaultSettings().network;
+    const port = stored?.port === undefined ? defaults.port : validPort(stored.port);
+    if (port === null) {
+      this.log(
+        `the network port in ${this.file} (${JSON.stringify(stored?.port)}) is not a whole number from 1024 to ` +
+          '65535; control from other devices is off.'
+      );
+      return { enabled: false, port: defaults.port };
+    }
+
+    return { enabled: stored?.enabled === true, port };
   }
 
   private async secret(stored: StoredSecret | undefined, what: string, available: boolean): Promise<ReadSecret> {
@@ -341,11 +474,6 @@ export class SettingsStore {
   }
 }
 
-function withoutSecret<T extends StoredSecret>(stored: T | undefined): Omit<T, 'token' | 'tokenEncrypted'> {
-  if (!stored) {
-    return {} as Omit<T, 'token' | 'tokenEncrypted'>;
-  }
-
-  const { token: _token, tokenEncrypted: _tokenEncrypted, ...rest } = stored;
-  return rest;
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

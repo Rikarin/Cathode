@@ -86,6 +86,17 @@ await build({
     asarUnpack: ['editor/**'],
     extraResources: [{ from: engine, to: 'engine' }],
     npmRebuild: false,
+    // The shipped binary is Cathode and nothing else: it cannot be run as a plain Node (ELECTRON_RUN_AS_NODE), takes
+    // no NODE_OPTIONS and no --inspect, and loads its code only from app.asar, whose contents it checks (macOS and
+    // Windows). Otherwise any local program could run its own code under Cathode's identity and microphone
+    // permission. electron-builder flips the fuses before it signs.
+    electronFuses: {
+      runAsNode: false,
+      enableNodeOptionsEnvironmentVariable: false,
+      enableNodeCliInspectArguments: false,
+      enableEmbeddedAsarIntegrityValidation: true,
+      onlyLoadAppFromAsar: true
+    },
     icon: join(workspace, 'apps/desktop/assets/icon.png'),
     artifactName: '${productName}-${version}-${os}-${arch}.${ext}',
     mac: {

@@ -1,6 +1,6 @@
 import type { ElectronApplication, Page } from '@playwright/test';
 import { execFileSync, spawn } from 'node:child_process';
-import { readdirSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { expect, test } from './fixtures';
@@ -131,6 +131,23 @@ test('the editor shows when the engine host is down, and its log says why', asyn
   await expect.poll(async () => (await seen()).some(text => text.startsWith('The engine stopped'))).toBe(true);
   await expect(status).toContainText('Connected to the engine', { timeout: 30_000 });
   await expect(processes).toContainText('Engine host: running');
+});
+
+test('the app and both engine processes log to files', async ({ app, window }) => {
+  await expect(window.getByTestId('engine-status')).toContainText('Connected to the engine');
+  const folder = await app.evaluate(({ app }) => app.getPath('logs'));
+  const log = (name: string) => {
+    try {
+      return readFileSync(join(folder, name), 'utf8');
+    } catch {
+      return '';
+    }
+  };
+
+  await expect.poll(() => log('host.log')).toMatch(/^\S+Z cathode-host .* serving on/m);
+  await expect.poll(() => log('server.log')).toContain('Now listening on');
+  await expect.poll(() => log('main.log')).toMatch(/Cathode \S+ starting[^]*engine host: running/);
+  expect(log('main.log')).toContain('Server: running');
 });
 
 interface Desktop {
