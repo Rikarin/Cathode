@@ -31,6 +31,52 @@ describe('values', () => {
     expect(parseValue('loud', 'dB')).toBeNull();
   });
 
+  it('parses a value back in any unit the engine uses, as it is shown', () => {
+    expect(parseValue('8 :1', ':1')).toBe(8);
+    expect(parseValue('7 st', 'st')).toBe(7);
+    expect(parseValue('-12st', 'st')).toBe(-12);
+    expect(parseValue('0.5 x', 'x')).toBe(0.5);
+    expect(parseValue('90 °', '°')).toBe(90);
+    expect(parseValue('120 bpm', 'BPM')).toBe(120);
+    expect(parseValue('500 ms', 's')).toBe(0.5);
+    expect(parseValue('2 s', 's')).toBe(2);
+    const shown: [number, string][] = [
+      [1250, 'Hz'],
+      [80, 'Hz'],
+      [-6, 'dB'],
+      [3, 'dB'],
+      [350, 'ms'],
+      [1500, 'ms'],
+      [2.5, 's'],
+      [42, '%'],
+      [4, ':1'],
+      [12, 'st'],
+      [1.5, 'x'],
+      [0.25, '']
+    ];
+    for (const [value, unit] of shown) {
+      expect(parseValue(formatValue(value, unit), unit)).toBe(value);
+    }
+  });
+
+  it('parses a decimal comma, a trailing point, a typographic minus and minus infinity', () => {
+    expect(parseValue('2,5', 'dB')).toBe(2.5);
+    expect(parseValue('2,5 kHz', 'Hz')).toBe(2500);
+    expect(parseValue(',5', '')).toBe(0.5);
+    expect(parseValue('5.', '%')).toBe(5);
+    expect(parseValue('\u22126 dB', 'dB')).toBe(-6);
+    expect(parseValue('-∞ dB', 'dB')).toBe(Number.NEGATIVE_INFINITY);
+    expect(parseValue('-inf', 'dB')).toBe(Number.NEGATIVE_INFINITY);
+  });
+
+  it('does not guess at text with a second number in it, or with none', () => {
+    expect(parseValue('1.2.3', 'dB')).toBeNull();
+    expect(parseValue('4 5', '%')).toBeNull();
+    expect(parseValue('', 'dB')).toBeNull();
+    expect(parseValue('dB', 'dB')).toBeNull();
+    expect(parseValue('–', 'dB')).toBeNull();
+  });
+
   it('converts peaks to decibels with a floor', () => {
     expect(toDecibels(1)).toBe(0);
     expect(toDecibels(0.5)).toBeCloseTo(-6.02, 2);

@@ -128,6 +128,57 @@ describe('CthKnob', () => {
     expect(host.value()).toBe(12);
   });
 
+  it('keeps the field open and marks it when the typed text has no value, until it is edited or left', () => {
+    const { dial, host, element, fixture } = render();
+    const field = () => element.querySelector('input');
+
+    dial.dispatchEvent(new MouseEvent('dblclick'));
+    fixture.detectChanges();
+    const editor = field() as HTMLInputElement;
+    editor.value = 'loud';
+    editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    fixture.detectChanges();
+    expect(field()).toBe(editor);
+    expect(editor.getAttribute('aria-invalid')).toBe('true');
+    expect(host.commits).toHaveLength(0);
+
+    editor.value = '2,5';
+    editor.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(editor.hasAttribute('aria-invalid')).toBe(false);
+    editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    fixture.detectChanges();
+    expect(field()).toBeNull();
+    expect(host.value()).toBe(2.5);
+    expect(host.commits).toEqual([2.5]);
+
+    // Leaving the field with such text closes it and changes nothing.
+    dial.dispatchEvent(new MouseEvent('dblclick'));
+    fixture.detectChanges();
+    const again = field() as HTMLInputElement;
+    again.value = 'loud';
+    again.dispatchEvent(new FocusEvent('blur'));
+    fixture.detectChanges();
+    expect(field()).toBeNull();
+    expect(host.value()).toBe(2.5);
+    expect(host.commits).toEqual([2.5]);
+  });
+
+  it('reads back the value it shows, minus infinity as the minimum', () => {
+    const { dial, host, element, fixture } = render();
+    host.value.set(-12);
+    fixture.detectChanges();
+
+    dial.dispatchEvent(new MouseEvent('dblclick'));
+    fixture.detectChanges();
+    const editor = element.querySelector('input') as HTMLInputElement;
+    expect(editor.value).toBe('-12.0 dB');
+    editor.value = '-∞ dB';
+    editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(host.value()).toBe(-12);
+    expect(host.commits).toEqual([-12]);
+  });
+
   it('cancels typing with Escape: the value stays, focus returns to the dial and the key goes no further', () => {
     const { dial, host, element, fixture } = render();
     const escapes: Event[] = [];
