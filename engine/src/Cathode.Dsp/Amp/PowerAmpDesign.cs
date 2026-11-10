@@ -136,7 +136,9 @@ public readonly record struct PresenceOutDesign(SwitchRole Switch, bool WhileOn 
 /// </summary>
 /// <param name="FeedbackResistor">From the tap to the shunt resistor.</param>
 /// <param name="ShuntResistor">From the bottom of the phase inverter tail to ground.</param>
-/// <param name="Presence">The presence pot, in series with the presence cap across the shunt.</param>
+/// <param name="Presence">
+///     The presence pot, in series with the presence cap (and <see cref="PresenceSeries" />) across the shunt.
+/// </param>
 /// <param name="PresenceCap">The presence cap.</param>
 /// <param name="DepthFrequency">Below it, the depth control lowers the feedback.</param>
 /// <param name="TapGain">The tap's voltage relative to an 8 Ω secondary (√2 for a 16 Ω tap).</param>
@@ -167,6 +169,13 @@ public sealed record FeedbackDesign(
     public bool PresenceIsShunt { get; init; }
 
     /// <summary>
+    ///     A fixed resistor in series with the presence pot and cap across the shunt (the Rect-o-Verb's 2.7k), which
+    ///     limits how much of the feedback the presence can take out at 10; 0 for none. Not with
+    ///     <see cref="PresenceIsShunt" /> or <see cref="Series" />.
+    /// </summary>
+    public double PresenceSeries { get; init; }
+
+    /// <summary>
     ///     The feedback fraction's zero and pole time constants at Presence rotation <paramref name="presence" />
     ///     (0..1), the cap divided by <paramref name="frequency" />: β(s) = <see cref="Beta" /> (1 + s τ₁) / (1 + s
     ///     τ₂), from Z / (R_f + Z) with the shunt's impedance Z (first order in either wiring).
@@ -181,7 +190,7 @@ public sealed record FeedbackDesign(
             return (a * b * c / rx, b * c * (rf + a) / (rf + rx));
         }
 
-        var rp = Presence.Ohms * (1 - Presence.Fraction(presence));
+        var rp = PresenceSeries + Presence.Ohms * (1 - Presence.Fraction(presence));
         return (rp * c, c * (rf * (rx + rp) + rx * rp) / (rf + rx));
     }
 
@@ -214,7 +223,7 @@ public sealed record FeedbackDesign(
             var (a, b) = ((1 - p) * rx, p * rx);
             (n0, n1, d0, d1) = (1, b * c, rx, a * b * c);
         } else {
-            var rp = Presence.Ohms * (1 - Presence.Fraction(presence));
+            var rp = PresenceSeries + Presence.Ohms * (1 - Presence.Fraction(presence));
             (n0, n1, d0, d1) = (1, (rp + rx) * c, rx, rx * rp * c);
         }
 
@@ -301,7 +310,7 @@ public sealed record FeedbackDesign(
             var p = Presence.Fraction(presence);
             z = (1 - p) * rx + p * rx / (1 + s * p * rx * c);
         } else {
-            var rp = Presence.Ohms * (1 - Presence.Fraction(presence));
+            var rp = PresenceSeries + Presence.Ohms * (1 - Presence.Fraction(presence));
             z = 1 / (1 / rx + s * c / (1 + s * rp * c));
         }
 

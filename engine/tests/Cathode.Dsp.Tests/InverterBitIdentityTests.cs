@@ -8,9 +8,9 @@ namespace Cathode.Dsp.Tests;
 ///     (49fe687). An intended change to an inverter or to <see cref="PowerAmp" /> regenerates the table from this
 ///     test's output (the power-amp renders of the Mesa, Soldano and Engl models were regenerated when their supplies
 ///     took their drawings' preamp draws and filter caps; their inverter tables did not move; the Powerball's render
-///     again when its inverter's grid leak was corrected to the drawing's 100k). The hashes are macOS ARM64 renders, so
-///     the test runs there only
-///     (<see cref="BaselinePlatform" />).
+///     again when its inverter's grid leak was corrected to the drawing's 100k; the Rect-o-Verb's when its feedback
+///     took the rhythm channel's presence pot, which this render leaves at noon). The hashes are macOS ARM64 renders,
+///     so the test runs there only (<see cref="BaselinePlatform" />).
 /// </summary>
 public class InverterBitIdentityTests(ITestOutputHelper output) {
     /// <summary>(inverter table, power amp render) per model, from 49fe687.</summary>
@@ -48,7 +48,7 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         { "Express", (0x3C6D880CF487CCF8, 0x052A5010005DAEEB) },
         { "Lone Star", (0xEF23C177E7AB0CDD, 0xC231447E9AD36884) },
         { "Mark V", (0x3DA801BA1355FEFD, 0x78933BBAB444EB1F) },
-        { "Rect-o-Verb", (0x2A1BCEFCC98E2CDB, 0xBB5AFC5116095590) },
+        { "Rect-o-Verb", (0x2A1BCEFCC98E2CDB, 0xFE228C0D60918594) },
         { "Triple Rectifier", (0xA743C4E16D9DAC79, 0x5B11C2A97AF5269A) },
         { "Powerball", (0x581B90237DB38239, 0xC18642751A42C71C) },
         { "Savage 120", (0x96BE26A30C20DFDD, 0xFE6DD5C86DB23352) },

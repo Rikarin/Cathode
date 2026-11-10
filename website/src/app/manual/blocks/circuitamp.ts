@@ -94,7 +94,8 @@ bite and cut, down to soften harsh tops. Because it acts in the feedback loop, i
 with no feedback it has nothing to work on. On the Mark IIC+ and Mark IV the presence is a rheostat in series with the
 feedback, as on the amps: turning it up lowers the feedback at every frequency and the treble's most, so the amp also
 gets a little louder and looser; at 0 it is at its darkest and tightest. A few models wire their presence elsewhere
-(the Rectifiers' is shown as Control 2: a preamp treble control on the two-channel Dual Rectifier and the Rect-o-Verb;
+(the Rectifiers' is shown as Control 2: a preamp treble control on the two-channel Dual Rectifier and on the
+Rect-o-Verb's lead channel, and in the feedback on its rhythm channel;
 on the three-channel Dual Rectifier and the Triple Rectifier it is in the feedback in Raw and Vintage and a preamp
 control in Modern, and on the three-channel's orange channel a preamp control in Raw and in the feedback otherwise, so
 in that channel's Modern it does next to nothing, as on the drawing); the ODS 70s calls it *Accent*. On the Chieftain and Hot Cat 30 this knob is the amp's
@@ -161,6 +162,9 @@ Each switches the real components on the model's schematic. Some worth knowing:
 
 - **Dual and Triple Rectifiers, *Modern*:** the Modern voicing, which also takes the global feedback out, as on the
   real amp.
+- **Rect-o-Verb, *Rhythm* and *Pushed*:** *Rhythm* plays the clean rhythm channel in place of the lead channel, with
+  the same knobs; it is much quieter at the same settings, so turn *Master* up. *Pushed* drives the rhythm channel
+  harder and does nothing on the lead channel. *Presence* is the playing channel's.
 - **Powerball, *Focused*:** swaps the open middle pot for the focused one (*Mid Focused*, Control 1) and doubles the
   treble cap.
 - **Mark V, *IIC+ Mode*:** with *Mark IV Mode* (Switch 2), selects the channel-3 mode; both off is Extreme.
@@ -530,7 +534,8 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       Express: 'Trainwreck Express, from a redraw of the circuit: raw, responsive EL34 crunch. Medium confidence.',
       'Lone Star': 'Mesa/Boogie Lone Star, both channels: warm cleans and a smooth drive mode.',
       'Mark V': 'Mesa/Boogie Mark V channel 3 with its IIC+, Mark IV and Extreme modes.',
-      'Rect-o-Verb': 'Mesa/Boogie Rect-o-Verb (first series) lead channel: a smaller Rectifier.',
+      'Rect-o-Verb':
+        'Mesa/Boogie Rect-o-Verb (first series), both channels: a smaller Rectifier. Its reverb is not built.',
       'Triple Rectifier':
         'Mesa/Boogie Triple Rectifier: built as the three-channel Dual Rectifier with six 6L6s, as no schematic was found.',
       Powerball:
