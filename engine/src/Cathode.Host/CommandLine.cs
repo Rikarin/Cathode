@@ -1,5 +1,8 @@
+using Cathode.Engine.Graph;
+using Cathode.Ipc;
 using System.Collections.Frozen;
 using System.Globalization;
+using System.Text.Json;
 
 namespace Cathode.Host;
 
@@ -44,11 +47,67 @@ sealed class CommandLine {
 
     public string? Text(string name) => options.GetValueOrDefault(name);
 
-    public int Int(string name, int fallback) =>
-        options.TryGetValue(name, out var v) && v is not null ? int.Parse(v, CultureInfo.InvariantCulture) : fallback;
+    /// <summary>
+    ///     A whole number from <paramref name="min" /> to <paramref name="max" />; anything else (text, a fraction, a
+    ///     value out of range or too large for an int) is a <see cref="FormatException" /> that names the option.
+    /// </summary>
+    public int Int(string name, int fallback, int min, int max) {
+        if (!options.TryGetValue(name, out var v) || v is null) {
+            return fallback;
+        }
 
-    public double Double(string name, double fallback) =>
-        options.TryGetValue(name, out var v) && v is not null
-            ? double.Parse(v, CultureInfo.InvariantCulture)
-            : fallback;
+        return int.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
+            && value >= min
+            && value <= max
+                ? value
+                : throw new FormatException(
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"--{name} must be a whole number from {min} to {max}, not '{v}'."
+                    )
+                );
+    }
+
+    /// <summary>
+    ///     A number from <paramref name="min" /> to <paramref name="max" />; anything else (text, NaN, a value out of
+    ///     range) is a <see cref="FormatException" /> that names the option.
+    /// </summary>
+    public double Double(string name, double fallback, double min, double max) {
+        if (!options.TryGetValue(name, out var v) || v is null) {
+            return fallback;
+        }
+
+        return double.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+            && value >= min
+            && value <= max
+                ? value
+                : throw new FormatException(
+                    string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"--{name} must be a number from {min} to {max}, not '{v}'."
+                    )
+                );
+    }
+
+    /// <summary>The sample rate to ask the device for (<c>--rate</c>, 48 kHz by default).</summary>
+    public double Rate() => Double("rate", 48_000, 8_000, 384_000);
+
+    /// <summary>
+    ///     The buffer size to ask the device for (<c>--buffer</c>, 64 frames by default), up to the shim's
+    ///     <c>CTH_MAX_FRAMES</c>.
+    /// </summary>
+    public int Buffer() => Int("buffer", 64, 16, 4096);
+
+    /// <summary>
+    ///     Reads a graph file (<c>--graph</c>). A file that is not a graph is a <see cref="FormatException" /> that
+    ///     names it; a missing or unreadable one is the <see cref="IOException" /> the file system gives.
+    /// </summary>
+    public static GraphDefinition ReadGraph(string path) {
+        try {
+            return JsonSerializer.Deserialize(File.ReadAllText(path), GraphJsonContext.Default.GraphDefinition)
+                ?? throw new FormatException($"{path} holds no graph.");
+        } catch (JsonException e) {
+            throw new FormatException($"{path} is not a graph: {e.Message}", e);
+        }
+    }
 }

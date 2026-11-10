@@ -2,6 +2,7 @@ using Cathode.Engine;
 using Cathode.Engine.Graph;
 using Cathode.Host;
 using System.Reflection;
+using System.Text.Json;
 
 // Cathode engine host: a NativeAOT executable. --serve runs the engine for Cathode.Server over a Unix domain
 // socket (docs/adr/0004-state-ownership.md); the other commands are diagnostics.
@@ -26,6 +27,10 @@ try {
 } catch (Exception e) when (e is InvalidOperationException
                                 or DllNotFoundException
                                 or FormatException
+                                or OverflowException
+                                or IOException
+                                or UnauthorizedAccessException
+                                or JsonException
                                 or GraphValidationException) {
     Console.Error.WriteLine($"error: {e.Message}");
     return 1;

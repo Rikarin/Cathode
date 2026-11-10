@@ -22,8 +22,8 @@ static class ServeCommand {
 
     public static async Task<int> RunAsync(CommandLine options) {
         var socketPath = options.Text("socket") ?? throw new InvalidOperationException("--socket <path> is required.");
-        var rate = options.Double("rate", 48_000);
-        var buffer = options.Int("buffer", 64);
+        var rate = options.Rate();
+        var buffer = options.Buffer();
         // Per process, so a restarted host never truncates a file a Server still has mapped (Windows forbids that).
         var telemetry = options.Text("telemetry") ?? $"{socketPath}.{Environment.ProcessId}.telemetry";
 

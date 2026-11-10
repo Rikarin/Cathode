@@ -47,6 +47,8 @@ public sealed class NullBackend : IDisposable {
         OutputBus? outputs = null,
         ThreadPriority priority = ThreadPriority.Highest
     ) {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sampleRate);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(blockSize);
         this.sampleRate = sampleRate;
         this.blockSize = blockSize;
         this.outputs = outputs;
