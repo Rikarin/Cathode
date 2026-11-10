@@ -58,12 +58,24 @@ public sealed unsafe class NamModel : ICaptureModel {
     }
 
     /// <summary>
-    ///     Process-global: use the fast tanh approximation in models loaded afterwards (and in LSTM processing).
-    ///     The NAM plugin enables it; it is roughly 1.5x faster for WaveNet models.
+    ///     Whether models use the fast tanh approximation: on unless <see cref="SetFastTanh" /> turned it off, as in
+    ///     the NAM plugin (ADR-0003: inaudible, and a WaveNet costs less than half the CPU of exact tanh).
     /// </summary>
-    public static void SetFastTanh(bool enabled) => NamNative.SetFastTanh(enabled ? 1 : 0);
+    public static bool FastTanh { get; private set; } = true;
+
+    /// <summary>
+    ///     Process-global: use the fast tanh approximation in models loaded afterwards (and in LSTM processing).
+    ///     On by default; the golden renders turn it off to match upstream's.
+    /// </summary>
+    public static void SetFastTanh(bool enabled) {
+        NamNative.SetFastTanh(enabled ? 1 : 0);
+        FastTanh = enabled;
+    }
 
     public static NamModel Load(string path) {
+        // The core starts with exact tanh, so the switch is applied on every load rather than left to a caller of
+        // SetFastTanh: every model the engine loads runs with the setting above.
+        NamNative.SetFastTanh(FastTanh ? 1 : 0);
         if (NamNative.Load(path, out var handle) != 0) {
             throw new InvalidDataException($"Could not load NAM model '{path}': {NamNative.LastErrorMessage()}");
         }

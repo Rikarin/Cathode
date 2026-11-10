@@ -30,7 +30,7 @@ public class NamAmpBlockTests {
     [MemberData(nameof(GoldenModels))]
     public void Matches_the_upstream_reference_render(string model, string referenceName, double? size) {
         RequireNative();
-        NamModel.SetFastTanh(false); // upstream render uses exact tanh
+        using var exact = new ExactTanh(); // upstream render uses exact tanh
         var input = WavFile.Read(NamAssets.Golden("input.wav")).Channels[0];
         var reference = WavFile.Read(NamAssets.Golden($"{referenceName}.ref.wav")).Channels[0];
 
@@ -45,7 +45,7 @@ public class NamAmpBlockTests {
     public void Golden_comparison_detects_a_tenth_of_a_decibel() {
         // Guards against a golden test that passes vacuously (an earlier stimulus was digital silence).
         RequireNative();
-        NamModel.SetFastTanh(false);
+        using var exact = new ExactTanh();
         var input = WavFile.Read(NamAssets.Golden("input.wav")).Channels[0];
         var reference = WavFile.Read(NamAssets.Golden("wavenet_a1_standard.ref.wav")).Channels[0];
 
@@ -63,6 +63,7 @@ public class NamAmpBlockTests {
         RequireNative();
         var input = WavFile.Read(NamAssets.Golden("input.wav")).Channels[0];
         var reference = WavFile.Read(NamAssets.Golden("wavenet_a1_standard.ref.wav")).Channels[0];
+        var before = NamModel.FastTanh;
         try {
             NamModel.SetFastTanh(true);
             using var block = CreateBlock("wavenet_a1_standard", false);
@@ -70,8 +71,34 @@ public class NamAmpBlockTests {
 
             Assert.True(Analysis.Esr(reference, output) < 1e-3, $"ESR {Analysis.Esr(reference, output):E2}");
         } finally {
-            NamModel.SetFastTanh(false);
+            NamModel.SetFastTanh(before);
         }
+    }
+
+    [Fact]
+    public void A_model_the_engine_loads_runs_with_fast_tanh_without_anyone_switching_it_on() {
+        // Nothing here calls SetFastTanh, as nothing in the serve path does: the core's own default is exact tanh,
+        // which costs a WaveNet more than twice the CPU (ADR-0003). The tests that need exact tanh put the switch
+        // back, so this sees what a fresh engine sees.
+        RequireNative();
+        Assert.True(NamModel.FastTanh);
+        var input = WavFile.Read(NamAssets.Golden("input.wav")).Channels[0];
+        var exact = WavFile.Read(NamAssets.Golden("wavenet_a1_standard.ref.wav")).Channels[0];
+        using var block = (NamAmpBlock)BlockRegistry.CreateDefault().AddNativeBlocks().Create("nam");
+        block.LoadAsset(
+            Cathode.Dsp.Blocks.CaptureAmpBlock.ModelSlot,
+            Path.Combine(NamAssets.ModelsDirectory, "wavenet_a1_standard.nam")
+        );
+        block.Params.SetTarget(Cathode.Dsp.Blocks.CaptureAmpBlock.Normalize, 0);
+        block.Params.SetTarget(Cathode.Dsp.Blocks.CaptureAmpBlock.Calibrate, 0);
+        block.Prepare(Spec);
+
+        var output = Render(block, input, static _ => Block);
+
+        // The approximation leaves a residual far above the -80 dB the exact render nulls to, and stays inaudible.
+        var relativeDb = Analysis.NullResidualDb(output, exact) - Analysis.ToDb(Analysis.Rms(exact));
+        Assert.True(relativeDb > -70, $"the render nulls against exact tanh to {relativeDb:0.0} dB: fast tanh is off");
+        Assert.True(Analysis.Esr(exact, output) < 1e-3, $"ESR {Analysis.Esr(exact, output):E2}");
     }
 
     [Fact]
@@ -180,7 +207,7 @@ public class NamAmpBlockTests {
     [Fact]
     public void Graph_loads_the_model_as_an_asset_and_renders_it() {
         RequireNative();
-        NamModel.SetFastTanh(false);
+        using var exact = new ExactTanh();
         var definition = new GraphDefinition {
             Nodes = [
                 new() { Id = "in", Type = NodeTypes.Input, Row = 0, Column = 0 },
@@ -253,6 +280,15 @@ public class NamAmpBlockTests {
         Assert.Contains(error.Errors, static e => e.Contains("'missing'", StringComparison.Ordinal));
         Assert.Contains(error.Errors, static e => e.Contains("'garbage'", StringComparison.Ordinal));
         Assert.Contains(error.Errors, static e => e.Contains("no asset slot", StringComparison.Ordinal));
+    }
+
+    /// <summary>Exact tanh, as upstream's renders use, until disposed; then the switch is as it was.</summary>
+    sealed class ExactTanh : IDisposable {
+        readonly bool before = NamModel.FastTanh;
+
+        public ExactTanh() => NamModel.SetFastTanh(false);
+
+        public void Dispose() => NamModel.SetFastTanh(before);
     }
 
     static void RequireNative() =>
