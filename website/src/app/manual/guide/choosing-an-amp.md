@@ -88,9 +88,9 @@ The JC-120 is a glassy, very clean transistor amp: no breakup, so effects stay p
 
 ### Bass and others
 
-**SVT**, **Portaflex B-15N**, **Bassman 135**, **Bass 400**, and the small Gibson **Scout GA-17RVT**.
+**SVT**, **Portaflex B-15N**, **Bassman 135**, **Bass 400**, the small Gibson **Scout GA-17RVT**, and the Silvertone **Twin Twelve 1484**.
 
-Bass amps work on guitar too: the SVT and Bass 400 make thick, heavy crunch; the Portaflex is warm and round.
+Bass amps work on guitar too: the SVT and Bass 400 make thick, heavy crunch; the Portaflex is warm and round. The Twin Twelve 1484 is the 1960s mail-order 6L6 head of garage rock: no negative feedback, a loose low end and a ragged breakup when turned up. It has **Volume**, **Bass** and **Treble**; **Channel 2** is its second channel, a little louder and with a gentler bass control.
 
 ## The front panel
 

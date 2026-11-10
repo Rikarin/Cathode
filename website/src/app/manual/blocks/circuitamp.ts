@@ -37,6 +37,8 @@ usually go after the Cab, as they would in an effects loop or a studio. The amp 
   stays clean longest; a Deluxe or Princeton breaks up early and sweetly.
 - **Tweed (raw, compressed, early breakup):** Champ 5F1, Princeton 5F2-A, Tweed Deluxe 5E3, Bassman 5F6-A, Tweed
   Twin. The *Jumped* versions run both channels at once, the classic way to play them.
+- **1960s mail-order and garage:** Twin Twelve 1484 (Silvertone): no feedback, loose and ragged when turned up;
+  *Channel 2* is its second channel. Its tremolo and reverb are not built.
 - **British crunch and classic rock:** JTM45, Plexi, Plexi 100W, 1959SLP, 1987X, 1959T Tremolo, Bluesbreaker 1962,
   18 W 1974X, Major 1967, JCM800 2203 and 2204, Hiwatt DR103 and DR504.
 - **Chime and class A:** AC30, AC15, DC-30, Chieftain, Hot Cat 30, Tiny Terror, Liverpool, Express.
@@ -634,6 +636,8 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'Vibrolux 6G11': 'Fender brownface Vibrolux 6G11 with its bias tremolo.',
       'Bassman 135': 'Fender silverface Bassman 135 bass amp, Bass and Normal channels.',
       'Scout GA-17RVT': 'Gibson Scout: a small 60s combo with its bias tremolo.',
+      'Twin Twelve 1484':
+        'Silvertone 1484 Twin Twelve, both channels: a raw 60s 6L6 head with no feedback (its tremolo and reverb are not built).',
       'Major 1967': 'Marshall Major 1967, 200 W: huge, loud and clean until it is very loud.',
       'Bass 400': 'Mesa/Boogie Bass 400 with its graphic EQ.',
       'JVM410H Clean/Crunch': 'Marshall JVM410H Clean and Crunch channels.',

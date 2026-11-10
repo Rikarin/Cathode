@@ -153,6 +153,7 @@ public class WdfDeviceTests(ITestOutputHelper output) {
     [InlineData("12AY7", -4.0, 250.0, 1.75e-3, 25e3)]
     [InlineData("5751", -3.0, 250.0, 1.2e-3, 58e3)]
     [InlineData("6EU7", -2.0, 250.0, 1.6e-3, 62.5e3)]
+    [InlineData("6CG7", -8.0, 250.0, 2.6e-3, 7.7e3)]
     public void Triode_presets_have_the_datasheet_slopes(
         string tube,
         double vgk,
@@ -166,6 +167,7 @@ public class WdfDeviceTests(ITestOutputHelper output) {
             "12AU7" => TriodeModel.Ecc82,
             "12AY7" => TriodeModel.TwelveAY7,
             "5751" => TriodeModel.FiveSevenFiveOne,
+            "6CG7" => TriodeModel.SixCG7,
             _ => TriodeModel.SixEU7
         };
         var jacobian = new double[4];

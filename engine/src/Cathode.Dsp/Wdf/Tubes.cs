@@ -16,8 +16,8 @@ namespace Cathode.Dsp.Wdf;
 /// <param name="GridExponent">Grid-current exponent ξ.</param>
 /// <remarks>
 ///     The presets are Koren's published fits, except where a note says otherwise: the 12AX7 and the 12AT7 are refitted
-///     to their datasheet points (Koren's ran the 12AX7 cold and the 12AT7 hot), and the 12AY7, 5751 and 6EU7 were
-///     fitted here from the start. The grid law uses Dempwolf's 12AX7 fit for all of them (without his
+///     to their datasheet points (Koren's ran the 12AX7 cold and the 12AT7 hot), and the 12AY7, 5751, 6EU7 and 6CG7
+///     were fitted here from the start. The grid law uses Dempwolf's 12AX7 fit for all of them (without his
 ///     constant offset current, so that no current flows at deep cut-off): about 10 µA at 0 V grid-cathode, rising
 ///     steeply beyond, which is what makes a stage block and bias-shift when driven hard.
 /// </remarks>
@@ -82,6 +82,17 @@ public readonly record struct TriodeModel(
     ///     gives 136 V).
     /// </summary>
     public static TriodeModel SixEU7 { get; } = new(100, 1.0, 988, 503, 4_240);
+
+    /// <summary>
+    ///     6CG7 / 6FQ7: a medium-μ twin triode, the 6SN7GT on a nine-pin base (the Silvertone 1484's driver and phase
+    ///     inverter). Fitted by least squares on log errors to Tung-Sol's 6SN7GT sheet (plates 1584 to 1586, 7-45): the
+    ///     tabulated class-A points (90 V, 0 V: 10 mA, 3.0 mS, 6.7k; 250 V, -8 V: 9 mA, 2.6 mS, 7.7k) and 21 points
+    ///     read by eye off the average plate characteristics (0 to -10 V at 1, 2.5, 5 and 10 mA). All five parameters
+    ///     were free: the chart points come out within 5 % RMS, 14 % at worst; the tabulated points at 10.0 mA, 3.1 mS,
+    ///     7.0k and 8.5 mA, 2.5 mS, 8.1k (μ 22 and 20 against the sheet's 20 and 20). With μ held at 20 the chart is 10
+    ///     % off RMS. No 6CG7 sheet was read: the equivalence is the usual one, and the issue's (#372).
+    /// </summary>
+    public static TriodeModel SixCG7 { get; } = new(22.55, 1.283, 1_184, 121.3, 267.5);
 
     /// <summary>
     ///     <paramref name="count" /> of these triodes in parallel (plates, grids and cathodes tied) as one: plate and

@@ -42,6 +42,7 @@ export const AMP_MODELS: Record<string, { family: AmpFamily; basedOn: string }> 
   'Hot Rod Deluxe': { family: 'fender', basedOn: 'Fender Hot Rod Deluxe III' },
   'Blues Junior': { family: 'fender', basedOn: 'Fender Blues Junior' },
   'Scout GA-17RVT': { family: 'fender', basedOn: 'Gibson Scout GA-17RVT' },
+  'Twin Twelve 1484': { family: 'fender', basedOn: 'Silvertone 1484 Twin Twelve' },
 
   // Marshall and British
   JTM45: { family: 'british', basedOn: 'Marshall JTM45' },
