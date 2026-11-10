@@ -34,6 +34,31 @@ public class RigTests {
         Assert.Equal(2, crossings); // 0.5 s at 4 Hz
     }
 
+    [Theory]
+    [InlineData(256)]
+    [InlineData(1_024)]
+    public void Modulation_runs_at_the_control_rate_whatever_the_device_buffer(int buffer) {
+        // A 20 Hz square LFO on the level: at a 1,024-frame buffer one evaluation per callback would give 2.3 points
+        // per cycle. Cut into control sub-blocks, a buffer that is a multiple of them renders bit for bit what 64-frame
+        // buffers do.
+        var input = Signals.Step(48_000);
+
+        var reference = Render(Spec, CathodeEngine.ControlBlockSize);
+        var large = Render(new(Spec.SampleRate, buffer), buffer);
+
+        Assert.Equal(reference, large);
+
+        float[] Render(ProcessSpec spec, int frames) {
+            var engine = new CathodeEngine(spec);
+            var definition = Graph();
+            definition.Modifiers.Add(Modifier("lfo1", -40f, 0f));
+            engine.Publish(Compiler.Compile(definition, spec, 1));
+            Set(engine, "lfo1Rate", 20f);
+            Set(engine, "lfo1Shape", (float)Dsp.Modulation.LfoShape.Square);
+            return OfflineRenderer.Render(engine, input, input, frames).Left;
+        }
+    }
+
     [Fact]
     public void The_envelope_follower_opens_a_parameter_with_the_playing() {
         var engine = Engine(Modifier("env", -60f, 0f));
