@@ -70,5 +70,53 @@
   "1.0.0-rc.3/Texas Flood/2": [
     -15.94,
     -10.46
+  ],
+  "1.0.0-rc.4/Comfortably Numb Solo/1": [
+    -17.99,
+    -7.68
+  ],
+  "1.0.0-rc.4/Comfortably Numb Solo/2": [
+    -15.98,
+    -10.33
+  ],
+  "1.0.0-rc.4/Legacy Edits/1": [
+    -13.42,
+    -8.72
+  ],
+  "1.0.0-rc.4/Legacy Edits/2": [
+    -16.24,
+    -10.36
+  ],
+  "1.0.0-rc.4/Texas Flood/1": [
+    -17.99,
+    -10.73
+  ],
+  "1.0.0-rc.4/Texas Flood/2": [
+    -16.04,
+    -10.56
+  ],
+  "1.0.0-rc.5/Comfortably Numb Solo/1": [
+    -17.99,
+    -7.68
+  ],
+  "1.0.0-rc.5/Comfortably Numb Solo/2": [
+    -15.98,
+    -10.33
+  ],
+  "1.0.0-rc.5/Legacy Edits/1": [
+    -13.11,
+    -9.65
+  ],
+  "1.0.0-rc.5/Legacy Edits/2": [
+    -15.9,
+    -11.46
+  ],
+  "1.0.0-rc.5/Texas Flood/1": [
+    -17.99,
+    -10.73
+  ],
+  "1.0.0-rc.5/Texas Flood/2": [
+    -16.04,
+    -10.56
   ]
 }

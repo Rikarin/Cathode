@@ -60,13 +60,21 @@ The tag is the version. `release.yml` passes it on as `CATHODE_VERSION`, and eve
 Without a tag, builds use the defaults in `editor/package.json` and `engine/Directory.Build.props`. Keep the two equal
 (`VersioningTests` checks), and move them to the coming release when you tag it.
 
-Before tagging, add the release's section to [`CHANGELOG.md`](../CHANGELOG.md).
+Before tagging:
+
+1. Add the release's section to [`CHANGELOG.md`](../CHANGELOG.md).
+2. Add the release's folder to the legacy corpus (`engine/tests/assets/legacy/<version>/`,
+   [03-testing-strategy.md](03-testing-strategy.md) §9): build the commit you are about to tag, start its Server on an
+   empty data folder and run `engine/tests/assets/legacy/make-corpus.mjs` against it, then record the folder's levels.
+   The script's header has the commands. `LegacyCorpusTests` compares the folders with the changelog's release
+   headings, so the tagged commit's tests fail without it. If the release changes a stored schema, add its line to
+   `LegacyCorpusTests.Schemas`.
 
 ### The preset format
 
-Presets carry `schemaVersion` (`Preset.CurrentSchemaVersion`, 1 since 1.0). Every place that reads a stored preset
-passes its JSON through `PresetMigrations` first: the library files, snapshots, templates and `.cthpreset` imports.
-So a preset saved by an earlier release keeps loading.
+Presets carry `schemaVersion` (`Preset.CurrentSchemaVersion`: 1 in 1.0.0-rc.1 to rc.3, 2 since rc.4). Every place that
+reads a stored preset passes its JSON through `PresetMigrations` first: the library files, snapshots, templates and
+`.cthpreset` imports. So a preset saved by an earlier release keeps loading.
 
 Parameter values are stored sparsely, so new parameters, block types and amp models need no new schema. Only a change
 that would make an older file read wrongly does. That covers a renamed, re-ranged or re-meant parameter, or a moved
