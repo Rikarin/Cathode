@@ -214,9 +214,11 @@ public static class DualRectifier {
     ///     <paramref name="treble" /> to the 250k linear treble pot (<paramref name="modern" /> more while Switch 1 is
     ///     on), 47k slope, 20 nF to the 1M audio bass rheostat, 20 nF from the slope to the 25k linear middle pot's
     ///     wiper (with <paramref name="middleOnWiper" /> off, to the top of the middle wired as a rheostat, as the
-    ///     Solo 50 / Rectoverb drawing has it); on the treble wiper the presence shunt (22k, 3 nF and
-    ///     <paramref name="presence" /> as a rheostat, Control 2) and the 1M audio master, through
-    ///     <paramref name="masterSeries" /> ohms where the drawing has a resistor ahead of it (0 for none).
+    ///     Solo 50 / Rectoverb drawing has it); on the treble wiper the presence shunt (<paramref name="shunt" />, 3 nF
+    ///     and <paramref name="presence" /> as a rheostat, Control 2) and the 1M audio master, through
+    ///     <paramref name="masterSeries" /> ohms where the drawing has a resistor ahead of it (0 for none). With
+    ///     <paramref name="shuntMode" />, the pot is in the shunt only while that switch is on: while it is off the
+    ///     relays have the pot in the feedback and ground the 3 nF.
     /// </summary>
     internal static StageNetlist FollowerAndStack(
         double supply,
@@ -224,7 +226,9 @@ public static class DualRectifier {
         double? modern,
         Pot presence,
         bool middleOnWiper = true,
-        double masterSeries = 0
+        double masterSeries = 0,
+        double shunt = 22e3,
+        SwitchRole? shuntMode = null
     ) {
         var net = new StageNetlist();
         var (rail, follower, slope, trebleTop, trebleFoot, middleTop) =
@@ -250,10 +254,15 @@ public static class DualRectifier {
             net.Rheostat(middleTop, StageNetlist.Ground, middlePot, PotRole.Middle);
         }
 
-        var (shunt, shuntCap) = (net.Node(), net.Node());
-        net.Resistor(wiper, shunt, 22e3);
-        net.Capacitor(shunt, shuntCap, 3e-9);
+        var (shuntFoot, shuntCap) = (net.Node(), net.Node());
+        net.Resistor(wiper, shuntFoot, shunt);
+        net.Capacitor(shuntFoot, shuntCap, 3e-9);
         net.Rheostat(shuntCap, StageNetlist.Ground, presence, PotRole.Control2);
+        if (shuntMode is { } role) {
+            // The relay's closed contact across the pot, 1 Ω.
+            net.SwitchedResistor(shuntCap, StageNetlist.Ground, 1, 0, role);
+        }
+
         var masterTop = wiper;
         if (masterSeries > 0) {
             masterTop = net.Node();

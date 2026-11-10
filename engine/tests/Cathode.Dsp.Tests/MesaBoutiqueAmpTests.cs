@@ -279,7 +279,7 @@ public class MesaBoutiqueAmpTests(ITestOutputHelper output) {
 
     static readonly string[] Models = [
         "Liverpool", "ODS 70s", "Dual Rectifier", "Dual Rectifier 3-Ch", "Subway Blues", "TriAxis Rhythm",
-        "TriAxis Lead 1", "TriAxis Lead 2"
+        "TriAxis Lead 1", "TriAxis Lead 2", "Dual Rectifier 3-Ch Orange"
     ];
 
     public static TheoryData<string> Types => [..Models];
@@ -292,7 +292,9 @@ public class MesaBoutiqueAmpTests(ITestOutputHelper output) {
         Assert.Equal("Accent", Label("presence", "ODS 70s"));
         Assert.Equal([string.Empty, "Modern", "Tube Rectifier", "Spongy"], Switches("Dual Rectifier"));
         Assert.Equal(["Raw", "Modern", "Tube Rectifier", "Spongy"], Switches("Dual Rectifier 3-Ch"));
+        Assert.Equal(["Raw", "Modern", "Tube Rectifier", "Spongy"], Switches("Dual Rectifier 3-Ch Orange"));
         Assert.Equal("Presence", Label("control2", "Dual Rectifier"));
+        Assert.Equal("Presence", Label("control2", "Dual Rectifier 3-Ch Orange"));
         foreach (var type in Models) {
             Assert.Empty(Label("cut", type));
             Assert.Empty(Label("depth", type));
@@ -483,6 +485,7 @@ public class MesaBoutiqueAmpTests(ITestOutputHelper output) {
     [Theory]
     [InlineData("Dual Rectifier")]
     [InlineData("Dual Rectifier 3-Ch")]
+    [InlineData("Dual Rectifier 3-Ch Orange")]
     public void Modern_takes_the_feedback_out(string type) {
         double Level(bool modern) {
             using var block = Create(
@@ -498,6 +501,44 @@ public class MesaBoutiqueAmpTests(ITestOutputHelper output) {
         var (vintage, modern) = (Level(false), Level(true));
         output.WriteLine($"{type}: Vintage {vintage:0.0} dB, Modern {modern:0.0} dB at 400 Hz");
         Assert.True(modern > vintage + 3);
+    }
+
+    /// <summary>
+    ///     The three-channel Rectifiers' one presence pot (Control 2) is where the mode's relays put it. With the
+    ///     Feedback knob at 0 nothing in the feedback is heard, so the pot then moves the treble only where it is the
+    ///     preamp shunt's rheostat (channel 3 in Modern, channel 2 in Raw) and does nothing in Vintage, where it sits
+    ///     in the feedback; with the feedback in, it brightens Vintage.
+    /// </summary>
+    [Theory]
+    [InlineData("Dual Rectifier 3-Ch", CircuitAmpBlock.Switch1)]
+    [InlineData("Triple Rectifier", CircuitAmpBlock.Switch1)]
+    [InlineData("Dual Rectifier 3-Ch Orange", CircuitAmpBlock.Bright)]
+    public void Three_channel_presence_pot_follows_the_mode(string type, int shuntMode) {
+        double Lift(bool shunt, bool feedback) {
+            double Treble(float presence) {
+                using var block = Create(
+                    type,
+                    (CircuitAmpBlock.Gain, 2f),
+                    (CircuitAmpBlock.Master, 3f),
+                    (CircuitAmpBlock.Feedback, feedback ? 5f : 0f),
+                    (shuntMode, shunt ? 1f : 0f),
+                    (CircuitAmpBlock.Control2, presence)
+                );
+                var rendered = BlockRender.Mono(block, Signals.Sine(6_000, Rate, 24_000, 1e-4f), 64);
+                return Analysis.ToDb(Analysis.MagnitudeAt(rendered.AsSpan(12_000).ToArray(), 6_000, Rate));
+            }
+
+            return Treble(10f) - Treble(0f);
+        }
+
+        var (shunt, idle, inFeedback) = (Lift(true, false), Lift(false, false), Lift(false, true));
+        output.WriteLine(
+            $"{type}: Presence 0 to 10 at 6 kHz: in the shunt {shunt:+0.00;-0.00} dB, in the feedback with the "
+            + $"feedback out {idle:+0.00;-0.00} dB, in the feedback {inFeedback:+0.00;-0.00} dB"
+        );
+        Assert.True(shunt > 1);
+        Assert.InRange(idle, -0.05, 0.05);
+        Assert.True(inFeedback > 1);
     }
 
     static int TypeOf(string name) => AmpDesign.All.ToList().FindIndex(a => a.Name == name);

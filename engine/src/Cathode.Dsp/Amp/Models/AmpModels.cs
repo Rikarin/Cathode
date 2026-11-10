@@ -99,6 +99,7 @@ public sealed partial record AmpDesign {
         MarshallAfd100.Design,
         MarkIIC.Rhythm,
         MarkIV.Rhythm1,
-        MarkIV.Rhythm2
+        MarkIV.Rhythm2,
+        DualRectifier3Channel.Orange
     ];
 }

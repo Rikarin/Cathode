@@ -467,6 +467,33 @@ public partial class AmpStageTests {
     }
 
     /// <summary>
+    ///     The Rect-o-Verb's presence branch (0.1 µF, a fixed 2.7k and the 25k pot across the 4.7k shunt): the feedback
+    ///     filter's β(s) and <see cref="FeedbackDesign.Response" /> equal Z / (R_f + Z) for Z = 4k7 ∥ (2k7 + r_p +
+    ///     1/sC) at every setting, so at 10 the treble's feedback falls only to the 4.7k ∥ 2.7k divider's.
+    /// </summary>
+    [Fact]
+    public void Presence_series_resistor_matches_its_circuit() {
+        var design = RectoVerb.Design.Power.Feedback;
+        Assert.Equal(2.7e3, design.PresenceSeries);
+        var (rf, rx, c) = (design.FeedbackResistor, design.ShuntResistor, design.PresenceCap);
+        foreach (var presence in new[] { 0.0, 0.25, 0.5, 1.0 }) {
+            var rp = 2.7e3 + 25e3 * (1 - presence);
+            var (tau1, tau2) = design.PresenceTimes(presence);
+            foreach (var frequency in new[] { 100.0, 1_000, 3_000, 10_000 }) {
+                var s = new System.Numerics.Complex(0, 2 * Math.PI * frequency);
+                var z = 1 / (1 / rx + 1 / (rp + 1 / (s * c)));
+                var circuit = z / (rf + z);
+                var model = design.Beta * (1 + s * tau1) / (1 + s * tau2);
+                Assert.True((circuit - model).Magnitude < 1e-9 * circuit.Magnitude);
+                Assert.True((circuit - design.Response(frequency, presence)).Magnitude < 1e-9 * circuit.Magnitude);
+            }
+        }
+
+        var floor = 1 / (1 / 4.7e3 + 1 / 2.7e3);
+        Assert.Equal(floor / (47e3 + floor), design.Response(1e6, 1).Magnitude, 1e-4);
+    }
+
+    /// <summary>
     ///     The Hiwatts' fixed 470 Ω with 10 nF across the 2k2 shunt, beside the presence pot and its 0.1 µF: the
     ///     feedback filter's two sections equal Z / (R_f + Z) for Z = 2k2 ∥ (r_p + 1/sC) ∥ (470 + 1/sC_b) at every
     ///     setting, written out here from the parts; the mid band's fraction is about the plain divider's (0.18), the

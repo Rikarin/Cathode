@@ -138,6 +138,15 @@ public sealed record SpeakerDesign(
 }
 
 /// <summary>
+///     A relay that takes the presence pot out of the feedback while <paramref name="Switch" /> is on (or, with
+///     <paramref name="WhileOn" /> false, while it is off): the feedback's presence then stays at
+///     <paramref name="Rotation" /> whatever the knob. 0, the pot's whole track in series with the cap, is the nearest
+///     the network comes to no presence branch (the three-channel Rectifier's channel 2 in Raw); another rotation is a
+///     fixed resistor the relay puts in the pot's place (the Rect-o-Verb's 5.6k on the lead channel).
+/// </summary>
+public readonly record struct PresenceOutDesign(SwitchRole Switch, bool WhileOn = true, double Rotation = 0);
+
+/// <summary>
 ///     Global negative feedback from a speaker tap to the bottom of the phase inverter's tail: the feedback resistor
 ///     into a shunt resistor, with the presence control (a pot in series with a cap) across the shunt, which lowers the
 ///     feedback, and so lifts the response, at high frequencies; or, with <see cref="PresenceIsShunt" />, the presence
@@ -148,7 +157,9 @@ public sealed record SpeakerDesign(
 /// </summary>
 /// <param name="FeedbackResistor">From the tap to the shunt resistor.</param>
 /// <param name="ShuntResistor">From the bottom of the phase inverter tail to ground.</param>
-/// <param name="Presence">The presence pot, in series with the presence cap across the shunt.</param>
+/// <param name="Presence">
+///     The presence pot, in series with the presence cap (and <see cref="PresenceSeries" />) across the shunt.
+/// </param>
 /// <param name="PresenceCap">The presence cap.</param>
 /// <param name="DepthFrequency">Below it, the depth control lowers the feedback.</param>
 /// <param name="TapGain">The tap's voltage relative to an 8 Ω secondary (√2 for a 16 Ω tap).</param>
@@ -192,6 +203,13 @@ public sealed record FeedbackDesign(
     public bool PresenceIsShunt { get; init; }
 
     /// <summary>
+    ///     A fixed resistor in series with the presence pot and cap across the shunt (the Rect-o-Verb's 2.7k), which
+    ///     limits how much of the feedback the presence can take out at 10; 0 for none. Not with
+    ///     <see cref="PresenceIsShunt" /> or <see cref="Series" />.
+    /// </summary>
+    public double PresenceSeries { get; init; }
+
+    /// <summary>
     ///     The feedback fraction's zero and pole time constants at Presence rotation <paramref name="presence" />
     ///     (0..1), the cap divided by <paramref name="frequency" />: β(s) = <see cref="Beta" /> (1 + s τ₁) / (1 + s
     ///     τ₂), from Z / (R_f + Z) with the shunt's impedance Z (first order in either wiring).
@@ -206,7 +224,7 @@ public sealed record FeedbackDesign(
             return (a * b * c / rx, b * c * (rf + a) / (rf + rx));
         }
 
-        var rp = Presence.Ohms * (1 - Presence.Fraction(presence));
+        var rp = PresenceSeries + Presence.Ohms * (1 - Presence.Fraction(presence));
         return (rp * c, c * (rf * (rx + rp) + rx * rp) / (rf + rx));
     }
 
@@ -239,7 +257,7 @@ public sealed record FeedbackDesign(
             var (a, b) = ((1 - p) * rx, p * rx);
             (n0, n1, d0, d1) = (1, b * c, rx, a * b * c);
         } else {
-            var rp = Presence.Ohms * (1 - Presence.Fraction(presence));
+            var rp = PresenceSeries + Presence.Ohms * (1 - Presence.Fraction(presence));
             (n0, n1, d0, d1) = (1, (rp + rx) * c, rx, rx * rp * c);
         }
 
@@ -395,7 +413,7 @@ public sealed record FeedbackDesign(
             var p = Presence.Fraction(presence);
             z = (1 - p) * rx + p * rx / (1 + s * p * rx * c);
         } else {
-            var rp = Presence.Ohms * (1 - Presence.Fraction(presence));
+            var rp = PresenceSeries + Presence.Ohms * (1 - Presence.Fraction(presence));
             z = 1 / (1 / rx + s * c / (1 + s * rp * c));
         }
 
@@ -793,6 +811,14 @@ public enum PowerTopology {
 ///     brighter, and the Circuit Amp's Presence knob (which these panels name after the control) turns it, from noon
 ///     by default. The Cut knob and the feedback's presence then do nothing (the presence stays at noon).
 /// </param>
+/// <param name="PresencePot">
+///     The model control that turns the feedback's presence pot in place of the Presence knob: one presence pot that
+///     the amp's relays move between the feedback and a preamp stage (the three-channel Rectifiers', on Control 2).
+///     Null for the Presence knob.
+/// </param>
+/// <param name="PresenceOut">
+///     A front-panel switch whose relay takes the presence pot out of the feedback (see the type); null for none.
+/// </param>
 public sealed record PowerAmpDesign(
     string Name,
     PentodeModel Tube,
@@ -827,7 +853,9 @@ public sealed record PowerAmpDesign(
     double ScreenSupply = 0,
     SwitchRole? FeedbackOffSwitch = null,
     LoopStageDesign? Loop = null,
-    bool Brilliance = false
+    bool Brilliance = false,
+    PotRole? PresencePot = null,
+    PresenceOutDesign? PresenceOut = null
 ) {
     /// <summary>1 when single-ended, else 2.</summary>
     public int Sides => Topology == PowerTopology.SingleEnded ? 1 : 2;

@@ -778,8 +778,18 @@ public sealed partial class CircuitAmpBlock
             feedback = 0;
         }
 
+        // The feedback's presence pot: the Presence knob, or the model control its relays put there.
+        var presence = Knob(Params.Advance(Presence, frames));
+        if (design.Power.PresencePot is { } presencePot) {
+            presence = preamp.Rotation(presencePot);
+        }
+
+        if (design.Power.PresenceOut is { } presenceOut && preamp.IsOn(presenceOut.Switch) == presenceOut.WhileOn) {
+            presence = presenceOut.Rotation;
+        }
+
         var power = new PowerControls(
-            Knob(Params.Advance(Presence, frames)),
+            presence,
             Knob(Params.Advance(Depth, frames)),
             Knob(Params.Advance(Cut, frames)),
             Knob(Params.Advance(Sag, frames)),

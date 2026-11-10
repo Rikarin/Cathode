@@ -22,6 +22,8 @@ public partial class AmpStageTests {
             { "Mark V", 0.05, -16 },
             { "Rect-o-Verb", 0.002, -15 },
             { "Rect-o-Verb", 0.05, -9 },
+            { "Rect-o-Verb Rhythm", 0.002, -45 },
+            { "Rect-o-Verb Rhythm", 0.05, -45 },
             { "Powerball", 0.0005, -25 },
             { "Powerball", 0.05, -10 },
             { "Savage 120", 0.002, -80 },
@@ -31,7 +33,15 @@ public partial class AmpStageTests {
     [Theory]
     [MemberData(nameof(MesaEnglChains))]
     public void Mesa_and_Engl_chains_match_the_reference(string type, double amplitude, double limitDb) {
-        var designs = AmpDesign.All.Single(a => a.Name == type).Preamp.Take(4).ToArray();
+        // A model whose preamp is a channel switch: its stock channel, or with " Rhythm" its other one.
+        const string rhythm = " Rhythm";
+        var other = type.EndsWith(rhythm, StringComparison.Ordinal);
+        var preamp = AmpDesign.All.Single(a => a.Name == (other ? type[..^rhythm.Length] : type)).Preamp;
+        if (preamp[0] is ChannelSwitchStageDesign channel) {
+            preamp = other ? channel.On : channel.Off;
+        }
+
+        var designs = preamp.Take(4).ToArray();
         var controls = new AmpControls(0.5, 0.5, 0.5, 0.5, 1, false);
 
         var stages = designs.Select(static d => d.Create(Rate)).ToArray();
@@ -97,6 +107,8 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
             { "Mark V", 1, 0, 1 },
             { "Mark V", 0, 1, 0 },
             { "Rect-o-Verb", 0, 0, 0 },
+            { "Rect-o-Verb", 1, 0, 0 },
+            { "Rect-o-Verb", 1, 1, 0 },
             { "Triple Rectifier", 1, 1, 1 },
             { "Powerball", 0, 0, 0 },
             { "Powerball", 1, 1, 0 },
@@ -155,6 +167,10 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         Assert.Equal("80", Label("eq1", "Mark V"));
         Assert.Equal("Presence", Label("control2", "Rect-o-Verb"));
         Assert.Equal(
+            ["Rhythm", "Pushed"],
+            new[] { "switch1", "switch2" }.Select(static id => Label(id, "Rect-o-Verb"))
+        );
+        Assert.Equal(
             ["Modern", "Tube Rectifier", "Spongy"],
             new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "Triple Rectifier"))
         );
@@ -191,6 +207,30 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         var (silicon, tube) = (Supply(false), Supply(true));
         output.WriteLine($"B+ under drive: silicon {silicon:0.0} V, 5U4G {tube:0.0} V");
         Assert.True(tube < silicon - 10);
+    }
+
+    /// <summary>
+    ///     The Rect-o-Verb's rhythm channel (Switch 1) is the clean one: at the same knobs its three stages amplify a
+    ///     small signal far less than the lead channel's five. Pushed (Switch 2) bridges the 3.3M ahead of its last
+    ///     stage, so it is louder, and it does nothing on the lead channel.
+    /// </summary>
+    [Fact]
+    public void Rect_o_Verb_rhythm_channel_is_cleaner_and_Pushed_drives_it() {
+        double At(float rhythm, float pushed) {
+            using var block = Create(
+                "Rect-o-Verb",
+                [..Switches(rhythm, pushed, 0), (CircuitAmpBlock.Gain, 5f), (CircuitAmpBlock.Master, 3f)]
+            );
+            return Level(block, 1_000, 1e-5f);
+        }
+
+        var (lead, leadPushed, clean, pushed) = (At(0, 0), At(0, 1), At(1, 0), At(1, 1));
+        output.WriteLine(
+            $"1 kHz: lead {lead:0.0} dB (Pushed {leadPushed:0.0}), rhythm {clean:0.0} dB, Pushed {pushed:0.0} dB"
+        );
+        Assert.Equal(lead, leadPushed);
+        Assert.True(clean < lead - 15);
+        Assert.True(pushed > clean + 6);
     }
 
     /// <summary>
