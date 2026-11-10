@@ -149,7 +149,9 @@ public partial class AmpStageTests {
             1,
             false,
             Switch1: other && onSwitch1,
-            Switch3: other && !onSwitch1
+            Switch3: other && !onSwitch1,
+            // The Savage's Hi Balance at noon, where its model ships.
+            Cut: 0.5
         );
         var designs = Playing(AmpDesign.All.Single(a => a.Name == type).Preamp, controls).Take(count).ToArray();
 
@@ -226,7 +228,9 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
             { "Savage 120", 0, 0, 0 },
             { "Savage 120", 1, 1, 0 },
             { "Savage 120", 0, 0, 1 },
-            { "Savage 120", 1, 1, 1 }
+            { "Savage 120", 1, 1, 1 },
+            { "Savage 120 Clean", 0, 0, 0 },
+            { "Savage 120 Clean", 1, 1, 1 }
         };
 
     /// <summary>
@@ -303,6 +307,15 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
             new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "Savage 120"))
         );
         Assert.Equal("Lead", Label("control1", "Savage 120"));
+        Assert.Equal("Crunch 2", Label("bright", "Savage 120"));
+        Assert.Equal("Hi Balance", Label("cut", "Savage 120"));
+        Assert.Equal(
+            ["Contour", "Preshape", "Crunch 1"],
+            new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "Savage 120 Clean"))
+        );
+        Assert.Equal("Crunch 1 Gain", Label("control1", "Savage 120 Clean"));
+        Assert.Equal("Volume", Label("control2", "Savage 120 Clean"));
+        Assert.Empty(Label("cut", "Savage 120 Clean")!);
         Assert.Equal(6, AmpDesign.All.Single(static a => a.Name == "Triple Rectifier").Power.TubesPerSide * 2);
     }
 
@@ -398,7 +411,9 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
                 (CircuitAmpBlock.Switch3, smooth ? 1f : 0f),
                 (CircuitAmpBlock.Gain, gain),
                 (CircuitAmpBlock.Treble, treble),
-                (CircuitAmpBlock.Master, 3f)
+                (CircuitAmpBlock.Master, 3f),
+                // Hi Balance at noon, the model's default.
+                (CircuitAmpBlock.Cut, 5f)
             );
 
         static double Small(bool smooth) {
@@ -537,6 +552,64 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
     }
 
     /// <summary>
+    ///     The Savage's Crunch 2 (the Bright switch) takes V2A straight to V3B, past the Lead pot and V2B: less gain
+    ///     than the lead, and the Lead knob does nothing in it. Hi Balance (the Cut knob) is in circuit in Smooth only,
+    ///     where it moves the highs.
+    /// </summary>
+    [Fact]
+    public void Savage_Crunch_2_skips_the_lead_stage_and_Hi_Balance_works_in_Smooth() {
+        static double At(double frequency, params (int, float)[] settings) {
+            using var block = Create("Savage 120", [(CircuitAmpBlock.Gain, 3f), ..settings]);
+            return Level(block, frequency, 1e-6f);
+        }
+
+        const int Crunch = CircuitAmpBlock.Bright, Lead = CircuitAmpBlock.Control1, Smooth = CircuitAmpBlock.Switch3;
+        var crunch = At(1_000, (Crunch, 1f)) - At(1_000);
+        var lead = At(1_000, (Crunch, 1f), (Lead, 10f)) - At(1_000, (Crunch, 1f), (Lead, 0f));
+        var balance = At(5_000, (Smooth, 1f), (CircuitAmpBlock.Cut, 10f))
+            - At(5_000, (Smooth, 1f), (CircuitAmpBlock.Cut, 0f));
+        var rough = At(5_000, (CircuitAmpBlock.Cut, 10f)) - At(5_000, (CircuitAmpBlock.Cut, 0f));
+        output.WriteLine(
+            $"Crunch 2 against Lead {crunch:0.0} dB; the Lead knob in Crunch 2 {lead:0.00} dB; Hi Balance 0 to 10 at "
+            + $"5 kHz: Smooth {balance:0.0} dB, Rough {rough:0.00} dB"
+        );
+        Assert.InRange(crunch, -20, -3);
+        Assert.Equal(0, lead, 6);
+        Assert.True(balance > 10, $"Hi Balance moves 5 kHz by {balance:0.0} dB in Smooth");
+        Assert.Equal(0, rough, 6);
+        Assert.Equal(
+            5f,
+            CircuitAmpBlock.Info.Params.Single(static p => p.Id == "cut").TypeDefaults![TypeOf("Savage 120")]
+        );
+    }
+
+    /// <summary>
+    ///     The Savage's channel 1: Preshape takes the gain's feed from the 10 nF in place of the shaping network (far
+    ///     more level, most of it in the lows), Bright lifts the highs, and Crunch 1 adds V4B behind its own gain.
+    /// </summary>
+    [Fact]
+    public void Savage_Clean_has_Preshape_Bright_and_Crunch_1() {
+        static double At(double frequency, params (int, float)[] settings) {
+            using var block = Create("Savage 120 Clean", [(CircuitAmpBlock.Gain, 3f), ..settings]);
+            return Level(block, frequency, 1e-5f);
+        }
+
+        const int Preshape = CircuitAmpBlock.Switch2, Crunch = CircuitAmpBlock.Switch3;
+        var (low, high) = (At(100, (Preshape, 1f)) - At(100), At(5_000, (Preshape, 1f)) - At(5_000));
+        var bright = At(5_000, (CircuitAmpBlock.Bright, 1f)) - At(5_000);
+        var crunch = At(1_000, (Crunch, 1f), (CircuitAmpBlock.Control1, 10f)) - At(1_000);
+        var hidden = At(1_000, (CircuitAmpBlock.Control1, 10f)) - At(1_000, (CircuitAmpBlock.Control1, 0f));
+        output.WriteLine(
+            $"Preshape {low:0.0} dB at 100 Hz, {high:0.0} at 5 kHz; Bright {bright:0.0} dB at 5 kHz; Crunch 1 full "
+            + $"{crunch:0.0} dB; its gain in Clean {hidden:0.00} dB"
+        );
+        Assert.True(low > 20 && high < low - 10);
+        Assert.True(bright > 5);
+        Assert.True(crunch > 10);
+        Assert.Equal(0, hidden, 6);
+    }
+
+    /// <summary>
     ///     Every knob swept end to end in each channel while a loud chord plays: finite, bounded, Newton converging.
     /// </summary>
     [Theory]
@@ -672,6 +745,8 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
             // The Powerball's lead has a middle pot for each Style; its channel 1 (Switch 3) has one.
             ("Powerball", CircuitAmpBlock.Control1) => s1 > 0 && s3 == 0,
             ("Powerball", CircuitAmpBlock.Middle) => s1 == 0 || s3 > 0,
+            // The Savage's Lead pot is out of the path in Crunch 2, its Crunch 1 gain in Clean.
+            ("Savage 120 Clean", CircuitAmpBlock.Control1) => s3 > 0,
             _ => true
         };
 

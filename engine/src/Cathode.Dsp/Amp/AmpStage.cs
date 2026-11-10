@@ -51,7 +51,13 @@ public enum PotRole {
     ///     The presence knob, for the part of a presence control that sits in a preamp stage (the Hiwatt's pot, whose
     ///     plate-side half shunts treble off V2B's plate); the power amp's feedback network takes the knob as well.
     /// </summary>
-    Presence
+    Presence,
+
+    /// <summary>
+    ///     The Circuit Amp's Cut knob as a pot of the preamp's own (<see cref="AmpControls.Cut" />), on a model whose
+    ///     power amp has no cut control and whose panel names the knob: the Savage 120's Hi Balance.
+    /// </summary>
+    Cut
 }
 
 /// <summary>Which front-panel switch engages a switched element of a stage.</summary>
@@ -146,6 +152,7 @@ public readonly record struct AmpControls(
             PotRole.Equalizer4 => Slider(Equalizer.Band4),
             PotRole.Equalizer5 => Slider(Equalizer.Band5),
             PotRole.Presence => Presence,
+            PotRole.Cut => Cut,
             _ => Control2
         };
 

@@ -29,9 +29,12 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
             output.WriteLine($"{AmpDesign.All[type].Name} gain {gain}: peak {peak:0.0} dBFS, rms {rms:0.0} dBFS");
             // The Princeton AA964 has two stages, the second inside the feedback loop: at 5 it is still clean and
             // quiet (13 dB under the Princeton Reverb, which has a third), and its trim is held down by full drive. So
-            // is the Gibson Scout's (two stages after an audio-taper volume, no feedback, a class-A pair).
+            // is the Gibson Scout's (two stages after an audio-taper volume, no feedback, a class-A pair), and the
+            // Savage 120 Clean's (its Preshape network takes 20 dB off ahead of the gain, and 120 W of 6550s set the
+            // trim: 18.4 dB between this chord at 5 and full drive).
             var quiet = AmpDesign.All[type] == PrincetonAA964.Design
-                || AmpDesign.All[type] == GibsonScout.Design;
+                || AmpDesign.All[type] == GibsonScout.Design
+                || AmpDesign.All[type] == Savage120.Clean;
             var floor = gain == 3f ? -30 : quiet && gain == 5f ? -18 : -12;
             Assert.InRange(peak, floor, 0.5);
         }
@@ -274,15 +277,69 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
     /// </summary>
     public static TheoryData<int, float, double, OversamplingPhase, int> BadSamples =>
         new() {
-            { 0, float.NaN, 48_000, OversamplingPhase.Minimum, 0 },
-            { 0, float.PositiveInfinity, 48_000, OversamplingPhase.Minimum, 0 },
-            { 1, float.NaN, 48_000, OversamplingPhase.Minimum, 0 },
-            { 1, float.NegativeInfinity, 48_000, OversamplingPhase.Minimum, 0 },
-            { 1, float.NaN, 48_000, OversamplingPhase.Linear, 0 },
-            { 1, float.NaN, 96_000, OversamplingPhase.Minimum, 0 },
-            { 1, float.PositiveInfinity, 96_000, OversamplingPhase.Minimum, 2 },
-            { 2, float.NaN, 48_000, OversamplingPhase.Minimum, 0 },
-            { 2, float.PositiveInfinity, 48_000, OversamplingPhase.Minimum, 1 }
+            {
+                0,
+                float.NaN,
+                48_000,
+                OversamplingPhase.Minimum,
+                0
+            },
+            {
+                0,
+                float.PositiveInfinity,
+                48_000,
+                OversamplingPhase.Minimum,
+                0
+            },
+            {
+                1,
+                float.NaN,
+                48_000,
+                OversamplingPhase.Minimum,
+                0
+            },
+            {
+                1,
+                float.NegativeInfinity,
+                48_000,
+                OversamplingPhase.Minimum,
+                0
+            },
+            {
+                1,
+                float.NaN,
+                48_000,
+                OversamplingPhase.Linear,
+                0
+            },
+            {
+                1,
+                float.NaN,
+                96_000,
+                OversamplingPhase.Minimum,
+                0
+            },
+            {
+                1,
+                float.PositiveInfinity,
+                96_000,
+                OversamplingPhase.Minimum,
+                2
+            },
+            {
+                2,
+                float.NaN,
+                48_000,
+                OversamplingPhase.Minimum,
+                0
+            },
+            {
+                2,
+                float.PositiveInfinity,
+                48_000,
+                OversamplingPhase.Minimum,
+                1
+            }
         };
 
     [Theory]
@@ -300,6 +357,7 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         var type = AmpDesign.All.ToList().IndexOf(designs[model]);
         const int At = 9_000;
         var sine = Signals.Sine(220, rate, (int)rate, 0.2f);
+
         float[] Render(float sample) {
             using var block = new CircuitAmpBlock { OversamplingPhase = phase };
             block.Params.SetTarget(CircuitAmpBlock.Type, type);
