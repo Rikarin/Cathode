@@ -209,6 +209,16 @@ export function isDialogOpen(target: EventTarget | null): boolean {
   return !!root?.querySelector('[aria-modal="true"]');
 }
 
+/**
+ * Whether the page has text selected: an address or the access token in Settings, a log, an error message. ⌘C and ⌘X
+ * then belong to the browser, which copies that text; consuming the key for the grid would cancel the copy.
+ */
+export function hasSelectedText(target: EventTarget | null): boolean {
+  const root = (target as Node | null)?.ownerDocument ?? (typeof document === 'undefined' ? null : document);
+  const selection = root?.getSelection();
+  return !!selection && !selection.isCollapsed && selection.toString().length > 0;
+}
+
 /** The shortcut an event presses, if any: modifiers must match exactly (⌥ is ignored, it shows Block Info). */
 export function findShortcut(
   event: Pick<KeyboardEvent, 'key' | 'code' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'>,
@@ -270,6 +280,10 @@ export class ShortcutService {
     const shortcut = findShortcut(event);
     if (shortcut && yieldsToControl(shortcut) && controlTakesKey(event.target, event.key)) {
       return false; // Space on a focused button presses it; it does not bypass the selected block
+    }
+
+    if ((shortcut?.id === 'copy' || shortcut?.id === 'cut') && hasSelectedText(event.target)) {
+      return false; // the selected text is what the user means to copy, not the block
     }
 
     // Behind a modal dialog the rig is out of sight: only the shortcuts that are safe there run.

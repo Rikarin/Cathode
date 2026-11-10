@@ -3,6 +3,7 @@ import {
   Shortcuts,
   controlTakesKey,
   findShortcut,
+  hasSelectedText,
   isDialogOpen,
   isOnControl,
   isTyping,
@@ -413,6 +414,37 @@ describe('ShortcutService.dispatch and the focused element', () => {
     pane.remove();
     expect(press(shortcuts, document.body, key('g'))).toBe(true);
     expect(isDialogOpen(document.body)).toBe(false);
+  });
+
+  it('leaves ⌘C and ⌘X to the browser while text is selected, so an address or the token can be copied', () => {
+    const ran: string[] = [];
+    const shortcuts = new ShortcutService();
+    shortcuts.register({ copy: () => ran.push('copy'), cut: () => ran.push('cut'), paste: () => ran.push('paste') });
+    const address = element('span');
+    address.textContent = 'http://192.168.1.20:5270';
+    const selection = document.getSelection();
+    if (!selection) {
+      throw new Error('No selection in this DOM');
+    }
+
+    selection.selectAllChildren(address);
+    expect(hasSelectedText(address)).toBe(true);
+    for (const event of [key('c', { metaKey: true }), key('x', { ctrlKey: true })]) {
+      expect(press(shortcuts, document.body, event)).toBe(false);
+      expect(event.defaultPrevented).toBe(false);
+    }
+
+    expect(press(shortcuts, document.body, key('v', { metaKey: true }))).toBe(true);
+    expect(ran).toEqual(['paste']);
+
+    // Nothing selected: the keys are the grid's again.
+    selection.removeAllRanges();
+    expect(hasSelectedText(address)).toBe(false);
+    const copy = key('c', { metaKey: true });
+    expect(press(shortcuts, document.body, copy)).toBe(true);
+    expect(copy.defaultPrevented).toBe(true);
+    expect(press(shortcuts, document.body, key('x', { metaKey: true }))).toBe(true);
+    expect(ran).toEqual(['paste', 'copy', 'cut']);
   });
 
   it('dispatches to the handler registered last; unregistering an older one leaves it in place', () => {

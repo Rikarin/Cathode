@@ -25,7 +25,7 @@ test('it is off by default and turns on from Audio setup', async ({ window }) =>
   await expect(window.getByRole('img', { name: /^QR code for http:.*\?token=/ })).toBeVisible();
   const token = (await window.getByTestId('network-token').textContent())?.trim() ?? '';
   expect(token.length).toBeGreaterThanOrEqual(32);
-  await window.getByRole('button', { name: 'Copy' }).click();
+  await window.getByRole('button', { name: 'Copy the access token' }).click();
   await expect(window.getByText('Copied the access token.')).toBeVisible();
 
   // The editor is there for anyone; the API only with the token.
