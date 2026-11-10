@@ -112,7 +112,14 @@ on the Savage). At 0 the feedback is stock. The DSL100's *Deep* is a switch, as 
     cut: `The Vox-style cut control (AC30, AC15, DC-30): a pot and cap across the phase inverter's outputs that shunt
 treble away before the power tubes. Turning it **up** removes more treble (it works backwards to a treble knob). Use it
 to tame the top end of a bright class-A amp. The Chieftain, Hot Cat 30 and Tiny Terror have the same circuit wired the
-other way, as their *Brilliance* or *Tone* (see *Presence*).`,
+other way, as their *Brilliance* or *Tone* (see *Presence*).
+
+Two models without a cut control put a knob of their own here. On the Powerball it is *Gate Threshold*, the lead
+channel's noise gate (the knob on the amp's rear panel): at 0, and up to about 1.3, the gate is off; above that it
+mutes the lead channel whenever the signal falls under the threshold, and turning it up raises the threshold. A played
+note passes untouched. Set it just high enough that the amp is quiet between notes; set too high it cuts the tails of
+held notes. It does nothing in channel 1. On the Savage 120 it is *Hi Balance*, which works, and shows, only with
+*Smooth* on: it sets how much high end reaches the extra tube stage that Smooth adds. It starts at 5.`,
 
     master: `The master volume, on models that have one, at its real place in the circuit (on most amps between the
 preamp and the phase inverter). It sets how hard the phase inverter and the power tubes are driven. At high settings
@@ -241,7 +248,10 @@ power amp keeps its feedback only in the top of the treble and runs open below i
 forward in the mids, and the Presence knob then works on that top range only.`,
 
     fatsw: `Moves the tone stack's frequencies down (to 0.6 times stock): fuller lows and low mids, as the "Fat" switch
-does on amps that have one. Hidden where the model has its own Fat switch, and where its preamp has no tone stack.`,
+does on amps that have one. Hidden where the model has its own Fat switch, and where its preamp has no tone stack.
+
+On the Powerball it is *Bottom*, the amp's own low boost: its three Bottom buttons (channel 1, Lo Lead and Hi Lead) on
+one switch, which acts on the mode that plays. A gentle lift of the lows, strongest in channel 1.`,
 
     cutsw: `A 150 Hz high-pass at the input (if *Low Cut* is set higher, the higher one wins). Tightens a boomy amp or a
 dark guitar and keeps the low end from smearing high-gain sounds. Hidden on the SVT, which has its own *Bass Cut*.`,

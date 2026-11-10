@@ -67,6 +67,13 @@ public sealed record AmpPanel {
     public string? Switch3 { get; init; }
 
     /// <summary>
+    ///     The name of the Circuit Amp's Fat switch on a model that wires it into its own circuit
+    ///     (<see cref="SwitchRole.Fat" />): the Powerball's "Bottom". Null for the generic Fat, where a model takes it
+    ///     (<see cref="AmpFeatures.Has" />).
+    /// </summary>
+    public string? Fat { get; init; }
+
+    /// <summary>
     ///     The pairs of this panel's switches that are one three-position switch on the amp (its middle position is
     ///     both off): the Mark V's IIC+ / Mark IV / Extreme, the SVT's Ultra Lo / off / Bass Cut. The block has only
     ///     on/off switches, so both of a pair can be on, a position the amp does not have; <see cref="Settle" /> then
@@ -166,6 +173,7 @@ public sealed record AmpPanel {
             "switch1" => Switch1,
             "switch2" => Switch2,
             "switch3" => Switch3,
+            "fatsw" => Fat ?? fallback,
             "control1" => Control1,
             "control2" => Control2,
             "tremrate" => TremoloRate ?? fallback,

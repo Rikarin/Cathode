@@ -28,7 +28,8 @@ public static class AmpFeatures {
                 && MasterPaths(design) != 0
                 && design.Power.ShuntMaster is null
                 && design.Power.Topology == PowerTopology.PushPull,
-            "fatsw" => !panel.HasSwitch("Fat") && Any(preamp, HasStackCap),
+            // The model's own switch on Fat (the Powerball's Bottom), else the generic one.
+            "fatsw" => panel.Fat is not null || (!panel.HasSwitch("Fat") && Any(preamp, HasStackCap)),
             "stackfreq" => Any(preamp, HasStackCap),
             "brightcap" => Any(preamp, HasBrightCap),
             "pretube" => Any(preamp, HasTwelveAX7),
@@ -59,8 +60,8 @@ public static class AmpFeatures {
     /// </summary>
     static bool Any(IReadOnlyList<AmpStageDesign> stages, Func<AmpStageDesign, bool> has) =>
         stages.Any(s => s is ChannelSwitchStageDesign channels
-            ? Any(channels.Off, has) || Any(channels.On, has)
-            : has(s)
+                ? Any(channels.Off, has) || Any(channels.On, has)
+                : has(s)
         );
 
     /// <summary>
@@ -119,8 +120,7 @@ public static class AmpFeatures {
     ///     feedback network has a presence cap (<see cref="FeedbackDesign.HasPresenceCap" />). An amp without global
     ///     feedback (the AC30) counts while it has the cap: its Feedback knob past noon puts the network in.
     /// </summary>
-    static bool HasPresenceNetwork(AmpDesign design) =>
-        design.Panel.HasTubes && design.Power.Feedback.HasPresenceCap;
+    static bool HasPresenceNetwork(AmpDesign design) => design.Panel.HasTubes && design.Power.Feedback.HasPresenceCap;
 
     /// <summary>
     ///     Whether <paramref name="design" /> has at least <paramref name="count" /> top-level stages with a

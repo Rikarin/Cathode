@@ -545,6 +545,7 @@ public sealed partial class CircuitAmpBlock
             // Amp off puts out), whatever the interface's calibration. Input Trim still trims it.
             volts = lineMaster / (preampScale * inputVolts) * volts;
         }
+
         if (saturate || location == EqBeforePowerAmp || treble) {
             var eq = location == EqBeforePowerAmp;
             for (var i = 0; i < inner.Length; i++) {
@@ -776,7 +777,9 @@ public sealed partial class CircuitAmpBlock
                     Params.Advance(Eq1 + 3, frames),
                     Params.Advance(Eq1 + 4, frames)
                 ),
-                Presence: Knob(Params.Current(Presence))
+                Presence: Knob(Params.Current(Presence)),
+                Fat: Params.Current(Fat) >= 0.5f,
+                Cut: Knob(Params.Current(Cut))
             )
         );
         // The tremolo: the model's own oscillator where it has one (Speed in hertz, Intensity as the knob's rotation),
@@ -1023,7 +1026,8 @@ readonly record struct AdvancedFeatures(
     public static AdvancedFeatures Of(AmpDesign design) =>
         new(
             AmpFeatures.Has(design, "mvloc") ? AmpFeatures.MasterPaths(design) : 0,
-            AmpFeatures.Has(design, "fatsw"),
+            // The generic Fat only: a model's own switch on it reaches its stages as a switch.
+            design.Panel.Fat is null && AmpFeatures.Has(design, "fatsw"),
             AmpFeatures.Has(design, "presshift"),
             AmpFeatures.Has(design, "cutsw"),
             AmpFeatures.Has(design, "overdrive"),

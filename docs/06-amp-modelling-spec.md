@@ -65,7 +65,7 @@ The codes K, E, M and D were this section's recommendations before the work. The
 |---|---|---|---|---|
 | Input Boost / Boost Type / Boost Level | on/off; pedal voicings; dB (0–20 *unverified*) | off | A built-in boost pedal | 🆕 **✓** `boost` (six Drive circuits at the amp's 2x rate), `boostdrive`, `boosttone`, `boostlevel` (docs/08 §4) |
 | Saturation Switch / Saturation Drive | OFF / ON AUTH / ON IDEAL; 0–10 | model | The common "saturation" mod between preamp and stack (adds a clipping stage) | 🆕 **✓** `saturation` and `satdrive`: a diode-style clipper between preamp and power amp (generic, not each model's own mod) |
-| Fat Switch | off/on | off | Moves the tone stack's centre frequency down | **✓** a model's own Fat switch on `switch1`–`switch3`; on a model without one, `fatsw` (the stack's frequencies × 0.6) |
+| Fat Switch | off/on | off | Moves the tone stack's centre frequency down | **✓** a model's own Fat switch on `switch1`–`switch3`; on a model without one, `fatsw` (the stack's frequencies × 0.6), which a model can also wire into its circuit under its own name (`SwitchRole.Fat`, `AmpPanel.Fat`: the Powerball's *Bottom*) |
 | Cut Switch | off/on | off | Low cut at the input | **✓** a model's own Bass Cut; on a model without one, `cutsw` (the input high-pass at 150 Hz at least) |
 | Preamp Tube Type | enum (12AX7 variants, EF86, …) | model | Triode characteristics | **✓** `pretube` (Stock, 12AX7, 12AY7, 5751, 12AT7, 12AU7: every 12AX7 of the preamp; the inverter keeps its own) |
 | Bright Cap | pF | model | Bright-cap value | **✓** `brightcap` (the model's bright caps scaled, 25–400 %), beside `bright` |

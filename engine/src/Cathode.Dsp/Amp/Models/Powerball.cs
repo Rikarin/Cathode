@@ -3,7 +3,7 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Engl Powerball (E645): channel 2 (lead) in its Lo and Hi modes, and channel 1 (Clean and
+///     Engl Powerball (E645): channel 2 (lead) in its Lo and Hi modes with its noise gate, and channel 1 (Clean and
 ///     Crunch) on Switch 3. Channel 2: V5A (100k, 1k ‖ 22 µF) into 47 nF and 2.2M, then 1 nF with 470k to ground into
 ///     the channel-2 gain (100k into 1M audio, 100 pF from the 100k's top to the wiper, 470k from the wiper to ground)
 ///     and V5B's 1M grid leak; V5B (100k, 1.5k ‖ 22 µF); 47 nF and 2.2M, then the Lo network (470 pF, 220k over 470k
@@ -75,9 +75,19 @@ namespace Cathode.Dsp.Amp.Models;
 ///         with 10 nF) as the depth control; the tap and primary (1.9k) are typical values.
 ///     </para>
 ///     <para>
-///         Not wired yet: the lead channel's noise gate (IC4, the J175 T8 and the threshold pot P20), whose values both
-///         sources give, and the three Bottom buttons (issue #307); the Bottom network's R32 and 10 nF hang on the bass
-///         pot's top as a load.
+///         The noise gate (the Cut knob, "Gate Threshold": the rear panel's Noise Gate Threshold, P20). From 645-1:
+///         V6B's output through R25 1M into R76 and C26 100 nF with R77 470k; IC4A (LM324) amplifies it by 1 + R79 /
+///         R78 (10k, 4.7k) about the reference rail, IC4B inverts that, and each output charges the hold capacitor
+///         through a diode; R82 10k takes the held voltage to comparator IC4C, whose other input stands on the divider
+///         from +24 V through P20 (20k linear, a rheostat) and R83 4.7k into R85 22k; its output drives the gate of T8
+///         (J175) through R38 22k, and T8 shunts the lead volume's wiper to ground through R39 4.7k. From the corrected
+///         copy: R76 100k, the rail at 12 V (10k from +24 V into R84 10k), 1 µF on the rectifier with 100k to the rail
+///         after R82 (a release of 0.11 s), and 100 nF with 1M on T8's gate (2.2 ms). The divider gives 11.3 V with P20
+///         all in and 19.8 V with it out, so the comparator never falls below 13 % of the knob's travel: Engl's manual
+///         says the gate works "past about 9 o'clock" and that turning further right raises the level it engages at.
+///         The J175's 125 Ω on resistance and 3 to 6 V pinch-off (4.5 V here) are from Vishay's J/SST174 series data
+///         sheet. Guesses: 0.5 V for the diode, the LM324's output reaching 22 V (2 V under its supply), so 10 V above
+///         the rail. The knob's default is 0, the gate off.
 ///     </para>
 ///     <para>
 ///         Channel 1 (Switch 3), from the same sheets. The channel relays are drawn at rest in channel 1: RE1A feeds
@@ -101,6 +111,29 @@ public static class Powerball {
     // (#296), then as 396, 374 and 366 V on CE3 and two assumed nodes below it.
     const double InverterRail = 410;
     const double PreampRail = 396;
+
+    /// <summary>
+    ///     The lead channel's noise gate (see the remarks): the detector's divider (R76 100k ‖ R77 470k under R25 1M)
+    ///     times IC4A's gain, its coupling (C6 100 nF into R25 and the divider), and the comparator, JFET and timing
+    ///     values listed there.
+    /// </summary>
+    static NoiseGateDesign Gate { get; } = new(
+        82.5e3 / (1e6 + 82.5e3) * (1 + 10e3 / 4.7e3),
+        1 / (2 * Math.PI * 100e-9 * (1e6 + 82.5e3)),
+        0.5,
+        10,
+        1e-6 * (10e3 + 100e3),
+        24,
+        12,
+        new(20e3, PotTaper.Linear),
+        4.7e3,
+        22e3,
+        4.7e3,
+        125,
+        4.5,
+        22,
+        100e-9 * (22e3 * 1e6 / (22e3 + 1e6))
+    );
 
     /// <summary>
     ///     Four 6L6GC at 440 V and 31 mA each (470 Ω screens, 330k bias feeds) into an assumed 1.9k primary, the
@@ -138,7 +171,7 @@ public static class Powerball {
             new ChannelSwitchStageDesign(
                 "Stack",
                 SwitchRole.Switch3,
-                [new NetworkStageDesign("Stack", LeadStack()) { SupplyNode = 1 }],
+                [new NetworkStageDesign("Stack", LeadStack()) { SupplyNode = 1, Gate = Gate }],
                 [new NetworkStageDesign("Ch 1 Stack", ChannelOneStack()) { SupplyNode = 1 }]
             ) { SupplyNode = 1 },
             new NetworkStageDesign("V7A", Follower()),
@@ -150,12 +183,13 @@ public static class Powerball {
         Panel = AmpPanel.Standard with {
             Middle = "Mid Open",
             Depth = "Depth Punch",
-            Cut = null,
+            Cut = "Gate Threshold",
             Control1 = "Mid Focused",
             Control2 = "Channel Volume",
             Switch1 = "Focused",
             Switch2 = "Gain Hi",
-            Switch3 = "Channel 1"
+            Switch3 = "Channel 1",
+            Fat = "Bottom"
         },
         // From CE10 (V7 and the inverter): R26 4.7k to CE3 10 µF (V5, V6), as drawn. The drawing prints no voltages,
         // so each of the four triodes on CE3 draws an equal share of the preamp's 6 mA, 0.75 mA.
@@ -306,6 +340,7 @@ public static class Powerball {
         foreach (var top in new[] { loTop, hiTop }) {
             net.Resistor(treble, top, 470e3);
             net.Resistor(top, StageNetlist.Ground, 100e3);
+            net.SwitchedResistor(bottom, top, 0, 680e3, SwitchRole.Fat);
         }
 
         var lo = net.Pot(loTop, StageNetlist.Ground, new(250e3, PotTaper.Linear), PotRole.Control2);
@@ -327,6 +362,7 @@ public static class Powerball {
         net.Capacitor(coupled, idle, 1e-9);
         net.Resistor(idle, StageNetlist.Ground, Parallel(470e3, 1.1e6));
         net.Capacitor(coupled, cut, 1.5e-9);
+        net.SwitchedCapacitor(coupled, cut, 1.5e-9, SwitchRole.Fat);
         net.Resistor(cut, StageNetlist.Ground, 470e3);
         net.Resistor(cut, top, 100e3);
         var wiper = net.Pot(top, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Gain);

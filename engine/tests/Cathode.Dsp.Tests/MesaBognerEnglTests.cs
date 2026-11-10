@@ -293,6 +293,8 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
             new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "Powerball"))
         );
         Assert.Equal("Bright", Label("bright", "Powerball"));
+        Assert.Equal("Gate Threshold", Label("cut", "Powerball"));
+        Assert.Equal("Bottom", Label("fatsw", "Powerball"));
         Assert.Equal("Channel Volume", Label("control2", "Powerball"));
         Assert.Equal("Mid Open", Label("middle", "Powerball"));
         Assert.Equal("Mid Focused", Label("control1", "Powerball"));
@@ -458,6 +460,80 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         );
         Assert.InRange(powerball, Math.Min(peavey, rectifier) - 8, Math.Max(peavey, rectifier) + 8);
         Assert.True(dynamics > 15, $"a 0.2 mV note plays only {dynamics:0.0} dB below a 0.1 V one");
+    }
+
+    /// <summary>
+    ///     The Powerball's noise gate (the Cut knob, "Gate Threshold"). At 0 it is off, as on the amp below about 9
+    ///     o'clock: a small signal passes in proportion. Turned up, a signal under the threshold is shunted (the J175
+    ///     through 4.7k: more than 15 dB down), a played note passes untouched, a higher setting closes on a louder
+    ///     signal, and channel 1, which has no gate, does not change.
+    /// </summary>
+    [Fact]
+    public void Powerball_gate_shuts_a_quiet_lead_and_leaves_a_played_note() {
+        static double At(float threshold, float amplitude, float channel = 0) {
+            using var block = Create(
+                "Powerball",
+                (CircuitAmpBlock.Cut, threshold),
+                (CircuitAmpBlock.Switch3, channel)
+            );
+            return Level(block, 220, amplitude);
+        }
+
+        var off = At(0, 1e-5f) - At(0, 1e-6f);
+        var (low, high) = (At(2, 1e-5f) - At(0, 1e-5f), At(2, 1e-4f) - At(0, 1e-4f));
+        var higher = At(8, 1e-4f) - At(0, 1e-4f);
+        var played = At(8, 0.1f) - At(0, 0.1f);
+        var clean = At(8, 1e-4f, 1) - At(0, 1e-4f, 1);
+        output.WriteLine(
+            $"Gate off: {off:0.0} dB for 20 dB more in; at 2: {low:0.0} dB at 10 µV, {high:0.0} dB at 100 µV; at 8: "
+            + $"{higher:0.0} dB at 100 µV, {played:0.00} dB at 0.1 V; channel 1 {clean:0.00} dB"
+        );
+        Assert.Equal(20, off, 0.5);
+        Assert.True(low < -15, $"the gate at 2 takes a 10 µV signal down by {low:0.0} dB");
+        Assert.Equal(0, high, 0.1);
+        Assert.True(higher < -15, $"the gate at 8 takes a 100 µV signal down by {higher:0.0} dB");
+        Assert.Equal(0, played, 0.1);
+        Assert.Equal(0, clean, 6);
+
+        // The comparator's divider: never under the rail's 12 V below 13 % of the knob, 7.8 V over it at the top.
+        var gate = AmpDesign.All.Single(static a => a.Name == "Powerball")
+            .Preamp.OfType<ChannelSwitchStageDesign>()
+            .SelectMany(static c => c.Off)
+            .OfType<NetworkStageDesign>()
+            .Single(static s => s.Gate is not null)
+            .Gate!;
+        Assert.True(gate.ThresholdAt(0) < 0 && gate.ThresholdAt(0.1) < 0 && gate.ThresholdAt(0.2) > 0);
+        Assert.Equal(24 * 22e3 / 26.7e3 - 12, gate.ThresholdAt(1), 1e-9);
+        Assert.Equal(1, gate.GainAt(gate.GateHigh, 100e3));
+        Assert.Equal(4.825e3 / 104.825e3, gate.GainAt(0, 100e3), 1e-12);
+    }
+
+    /// <summary>
+    ///     The Powerball's Bottom (the Fat switch): in the lead the low boost into the volume (R32 330k, 10 nF, 680k),
+    ///     in channel 1 the second 1.5 nF on the coupling cap. Both lift 80 Hz and leave 4 kHz within a decibel.
+    /// </summary>
+    [Fact]
+    public void Powerball_Bottom_lifts_the_lows_of_the_channel_that_plays() {
+        static double At(float channel, double frequency, float bottom) {
+            using var block = Create(
+                "Powerball",
+                (CircuitAmpBlock.Switch3, channel),
+                (CircuitAmpBlock.Fat, bottom),
+                (CircuitAmpBlock.Gain, 3f)
+            );
+            return Level(block, frequency, 1e-6f);
+        }
+
+        static double Lift(float channel, double frequency) => At(channel, frequency, 1) - At(channel, frequency, 0);
+
+        var (lead, leadHigh, clean, cleanHigh) = (Lift(0, 80), Lift(0, 4_000), Lift(1, 80), Lift(1, 4_000));
+        output.WriteLine(
+            $"Bottom: lead {lead:0.0} dB at 80 Hz, {leadHigh:0.0} at 4 kHz; channel 1 {clean:0.0} and {cleanHigh:0.0}"
+        );
+        Assert.InRange(lead, 1, 6);
+        Assert.InRange(clean, 3, 9);
+        Assert.Equal(0, leadHigh, 1.0);
+        Assert.Equal(0, cleanHigh, 1.0);
     }
 
     /// <summary>
