@@ -47,6 +47,30 @@ public class RigTests {
         Assert.True(Analysis.Peak(left.AsSpan(14_400, 4_800)) > 0.6, "loud playing opens the level");
     }
 
+    [Fact]
+    public void An_adsr_setting_changed_while_the_engine_runs_shapes_the_envelope() {
+        // The engine is built with the defaults (10 ms attack, sustain 0.5); the settings arrive afterwards, as they
+        // do from the Server.
+        var sustained = Engine(Modifier("adsr1", -60f, 0f));
+        Set(sustained, "adsr1Sustain", 1f);
+        var slow = Engine(Modifier("adsr1", -60f, 0f));
+        Set(slow, "adsr1Attack", 5_000f);
+        var deaf = Engine(Modifier("adsr1", -60f, 0f));
+        Set(deaf, "adsr1Threshold", -10f);
+        var quiet = Enumerable.Repeat(0.1f, 48_000).ToArray(); // -20 dB: over the default threshold, under this one
+
+        var (held, _) = OfflineRenderer.Render(sustained, Signals.Step(48_000), Signals.Step(48_000), 64);
+        var (rising, _) = OfflineRenderer.Render(slow, Signals.Step(48_000), Signals.Step(48_000), 64);
+        var (closed, _) = OfflineRenderer.Render(deaf, quiet, quiet, 64);
+
+        // Sustain 1 holds the level at the modifier's maximum, 0 dB (the default 0.5 would be -30 dB).
+        Assert.InRange(Analysis.Peak(held.AsSpan(36_000, 12_000)), 0.95, 1.0);
+        // A 5 s attack is a fifth of the way up after a second: -48 dB, where the default would sit at -30 dB.
+        Assert.InRange(Analysis.Peak(rising.AsSpan(47_000, 1_000)), 0.003, 0.005);
+        // Under the threshold the envelope is released and idle: the modifier's minimum, -60 dB, on the -20 dB input.
+        Assert.InRange(Analysis.Peak(closed.AsSpan(36_000, 12_000)), 0.00009, 0.00011);
+    }
+
     [Theory]
     [InlineData(0.5, 120)]
     [InlineData(0.4, 150)]

@@ -76,8 +76,8 @@ public sealed class Modulation(ParamBank rig, double sampleRate) {
 
         // ADSRs, gated by the input level crossing their threshold.
         var levelDb = 20 * Math.Log10(Math.Max(this.follower, 1e-6));
-        values[(int)ModSource.Adsr1] = adsr1.Advance(rig, levelDb, seconds);
-        values[(int)ModSource.Adsr2] = adsr2.Advance(rig, levelDb, seconds);
+        values[(int)ModSource.Adsr1] = adsr1.Advance(rig, levelDb, frames, seconds);
+        values[(int)ModSource.Adsr2] = adsr2.Advance(rig, levelDb, frames, seconds);
 
         values[(int)ModSource.Lfo1] = Lfo(1, ref lfo1Phase, ref lfo1Held, bpm, sampleTime, frames);
         values[(int)ModSource.Lfo2] = Lfo(2, ref lfo2Phase, ref lfo2Held, bpm, sampleTime, frames);
@@ -162,12 +162,12 @@ public sealed class Modulation(ParamBank rig, double sampleRate) {
         int stage; // 0 idle, 1 attack, 2 decay/sustain, 3 release
         double level;
 
-        public float Advance(ParamBank rig, double inputDb, double seconds) {
-            var threshold = rig.Current(thresholdIndex);
-            var attack = rig.Current(attackIndex) * 0.001;
-            var decay = rig.Current(decayIndex) * 0.001;
-            var sustain = rig.Current(sustainIndex);
-            var release = rig.Current(releaseIndex) * 0.001;
+        public float Advance(ParamBank rig, double inputDb, int frames, double seconds) {
+            var threshold = rig.Advance(thresholdIndex, frames);
+            var attack = rig.Advance(attackIndex, frames) * 0.001;
+            var decay = rig.Advance(decayIndex, frames) * 0.001;
+            var sustain = rig.Advance(sustainIndex, frames);
+            var release = rig.Advance(releaseIndex, frames) * 0.001;
             var gate = stage is 1 or 2 ? inputDb > threshold - HysteresisDb : inputDb > threshold;
             if (gate && stage is 0 or 3) {
                 stage = 1;
