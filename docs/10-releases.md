@@ -16,7 +16,8 @@ prerelease. [`release.yml`](../.github/workflows/release.yml) then:
    cross-compile.
 2. Builds the headless package on Linux x64 and Linux ARM64 runners (`packaging/headless/build.sh`), installs it on the
    runner with `install.sh` and checks it: the host passes `--self-test`, the services start, the server reports the
-   engine connected, the web editor loads and the API refuses a request without the token. Then it uninstalls it.
+   engine connected, the web editor loads and the API refuses a request without the token. Then it uninstalls it
+   with `--purge` and checks that nothing is left.
 3. Runs the tagged commit's tests: [`engine.yml`](../.github/workflows/engine.yml) (the engine tests on three OSes and
    the NativeAOT host's self-test) and [`editor.yml`](../.github/workflows/editor.yml) (the generated API client,
    type-check, lint, unit tests, Storybook and the desktop app's Playwright tests), called as reusable workflows, and

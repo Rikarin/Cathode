@@ -35,7 +35,9 @@ usermod -a -G audio cathode
 # Stop a running copy before its files are replaced.
 systemctl stop cathode-server cathode-host 2>/dev/null || true
 
-rm -rf /opt/cathode/bin /opt/cathode/editor
+# The server unpacks each version's native libraries into a folder of their own in its cache: drop the last
+# version's (systemd makes the folder again, CacheDirectory=).
+rm -rf /opt/cathode/bin /opt/cathode/editor /var/cache/cathode
 mkdir -p /opt/cathode
 cp -R "$here/bin" "$here/editor" /opt/cathode/
 cp "$here/VERSION" /opt/cathode/

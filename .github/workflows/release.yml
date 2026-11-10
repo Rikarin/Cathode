@@ -193,6 +193,10 @@ jobs:
           curl -fs http://127.0.0.1:5180/ | grep -q 'name="cathode-server" content="same-origin"'
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:5180/api/v1/system)" = 401
           sudo ./uninstall.sh --purge
+          # A purge leaves nothing: not the settings, the data, the server's unpacked bundle or the socket folder.
+          for left in /opt/cathode /etc/cathode /var/lib/cathode /var/cache/cathode /run/cathode; do
+            if [ -e "$left" ]; then echo "::error::uninstall.sh --purge left $left"; exit 1; fi
+          done
       - if: failure()
         run: |
           sudo systemctl status cathode-host cathode-server --no-pager || true

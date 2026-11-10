@@ -1,6 +1,7 @@
 #!/bin/sh
-# Removes the Cathode headless rig: the services and /opt/cathode. Settings (/etc/cathode) and presets
-# (/var/lib/cathode) stay unless --purge is given. Run as root: sudo ./uninstall.sh [--purge]
+# Removes the Cathode headless rig: the services, /opt/cathode, the server's unpacked bundle (/var/cache/cathode) and
+# the socket folder (/run/cathode). Settings (/etc/cathode) and presets (/var/lib/cathode) stay unless --purge is
+# given. Run as root: sudo ./uninstall.sh [--purge]
 set -eu
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -11,7 +12,9 @@ fi
 systemctl disable --now cathode-server cathode-host 2>/dev/null || true
 rm -f /etc/systemd/system/cathode-host.service /etc/systemd/system/cathode-server.service
 systemctl daemon-reload
-rm -rf /opt/cathode
+# The cache and the socket folder hold nothing of the user's, and systemd makes them again for a later install
+# (/run/cathode outlives a stopped host: RuntimeDirectoryPreserve).
+rm -rf /opt/cathode /var/cache/cathode /run/cathode
 
 if [ "${1:-}" = "--purge" ]; then
   rm -rf /etc/cathode /var/lib/cathode
