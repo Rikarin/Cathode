@@ -73,6 +73,20 @@ public partial class AmpStageTests {
                 -35
             },
             {
+                "model t input",
+                false,
+                false,
+                0.5,
+                -40
+            },
+            {
+                "model t input",
+                true,
+                false,
+                3.0,
+                -35
+            },
+            {
                 "follower stack",
                 false,
                 false,
@@ -108,6 +122,7 @@ public partial class AmpStageTests {
             "jcm800 input" => (MarshallParts.JCM800Input(290), 0.0),
             "jtm45 input" => ((NetworkStageDesign)JTM45.Design.Preamp[0], 0.0),
             "plexi 100w input" => ((NetworkStageDesign)SuperLead100.Design.Preamp[0], 0.0),
+            "model t input" => ((NetworkStageDesign)SunnModelT.Design.Preamp[0], 0.0),
             "follower stack" => (MarshallParts.FollowerStack("V2B", 300, 100e3, MarshallParts.JTM45Stack, 1e6), 175.0),
             _ => ((NetworkStageDesign)LaneyGH100L.Design.Preamp[0], 0.0)
         };
@@ -373,17 +388,21 @@ public class MarshallModelTests(ITestOutputHelper output) {
     public void The_tone_knobs_all_at_0_still_pass_signal(string model) {
         var type = TypeOf(model);
         var input = Signals.Sine(440, Rate, 24_000, 0.01f);
-        double Level(float knobs) => Analysis.ToDb(
-            Analysis.Rms(
-                Render(
-                    type,
-                    input,
-                    (CircuitAmpBlock.Bass, knobs),
-                    (CircuitAmpBlock.Middle, knobs),
-                    (CircuitAmpBlock.Treble, knobs)
-                ).AsSpan(12_000)
-            )
-        );
+
+        double Level(float knobs) =>
+            Analysis.ToDb(
+                Analysis.Rms(
+                    Render(
+                            type,
+                            input,
+                            (CircuitAmpBlock.Bass, knobs),
+                            (CircuitAmpBlock.Middle, knobs),
+                            (CircuitAmpBlock.Treble, knobs)
+                        )
+                        .AsSpan(12_000)
+                )
+            );
+
         var (noon, closed) = (Level(5), Level(0));
         output.WriteLine($"{model}: {noon:0.0} dB at noon, {closed:0.0} dB with the three at 0");
         Assert.True(closed > noon - 30, $"{closed:0.0} dB with the tone knobs at 0, {noon:0.0} dB at noon");

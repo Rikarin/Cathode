@@ -270,14 +270,17 @@ public static class MarshallParts {
     ///     channel's coupling cap hangs on the idle triode's plate: its rest voltage behind 100k in parallel with r_p.
     ///     Switches as
     ///     <see cref="TwoChannelInput" />. Jumpered, the one plate drives both volumes' 1M loads instead of each its
-    ///     own, a fraction of a decibel at 100k.
+    ///     own, a fraction of a decibel at 100k. <paramref name="stopper" /> is the resistance between the jack and
+    ///     the grid: 34k for a Marshall's high input, 68k where each channel has one jack and one 68k (the Sunn Model
+    ///     T).
     /// </summary>
     public static NetworkStageDesign SharedCathodeInput(
         double supply,
         double cathodeResistor,
         double cathodeBypass,
         ChannelDesign bright,
-        ChannelDesign normal
+        ChannelDesign normal,
+        double stopper = 34e3
     ) {
         var (_, restPlate, restCathode) =
             OperatingPoint.CommonCathode(TriodeModel.Ecc83, 0, supply, 100e3, 2 * cathodeResistor);
@@ -290,7 +293,7 @@ public static class MarshallParts {
         net.Supply(idleRail, restPlate);
         net.Resistor(net.Input, jack, Closed);
         net.Resistor(jack, StageNetlist.Ground, 1e6);
-        net.Resistor(jack, grid, 34e3);
+        net.Resistor(jack, grid, stopper);
         net.Resistor(rail, plate, 100e3);
         net.Resistor(cathode, StageNetlist.Ground, 2 * cathodeResistor);
         net.Capacitor(cathode, StageNetlist.Ground, cathodeBypass / 2);
@@ -325,7 +328,7 @@ public static class MarshallParts {
     static int Volume(StageNetlist net, int plate, int mix, ChannelDesign channel) {
         var top = net.Node();
         net.Capacitor(plate, top, channel.CouplingCap);
-        var wiper = net.Pot(top, StageNetlist.Ground, new(1e6, PotTaper.Audio), channel.Volume);
+        var wiper = net.Pot(top, StageNetlist.Ground, new(1e6, channel.Taper), channel.Volume);
         if (channel.BrightCap > 0) {
             net.Capacitor(top, wiper, channel.BrightCap, CapacitorRole.Bright);
         }
@@ -341,7 +344,8 @@ public static class MarshallParts {
     /// <summary>
     ///     One channel of a two-channel Marshall's first tube, as <see cref="TwoChannelInput" /> wires it: its cathode
     ///     network (unused where the channels share one), coupling cap, volume pot with an optional bright cap across
-    ///     its upper half, mixing resistor with an optional bypass cap.
+    ///     its upper half, mixing resistor with an optional bypass cap. The volume is a 1M pot of
+    ///     <paramref name="Taper" />.
     /// </summary>
     public sealed record ChannelDesign(
         double CathodeResistor,
@@ -350,6 +354,7 @@ public static class MarshallParts {
         PotRole Volume,
         double BrightCap,
         double MixingResistor,
-        double MixingBypass
+        double MixingBypass,
+        PotTaper Taper = PotTaper.Audio
     );
 }

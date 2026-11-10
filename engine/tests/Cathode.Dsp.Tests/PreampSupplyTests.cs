@@ -16,9 +16,12 @@ public class PreampSupplyTests {
     /// <summary>
     ///     The models whose tail is slow for reasons of their own, with the level they reach: the SVT's preamp settles
     ///     with a decaying wobble of about 1 Hz that the supply does not cause (Preamp Sag 0, Sag 0 and the power amp
-    ///     off leave it as it is).
+    ///     off leave it as it is). The Sunn Model T's power amp rings at about 1.7 Hz after a loud chord, falling 25 dB
+    ///     a second: its heavy feedback (22k into 10k from the 16 Ω tap, as drawn) around two low-frequency poles, the
+    ///     0.25 µF couplers on 100k and the output transformer's inductance. Preamp Sag 0 leaves it as it is, and it is
+    ///     gone with the feedback out (the Feedback knob at 0: -160 dB at the same point).
     /// </summary>
-    static readonly Dictionary<string, double> SlowTails = new() { ["SVT"] = -100 };
+    static readonly Dictionary<string, double> SlowTails = new() { ["SVT"] = -100, ["Sunn Model T"] = -90 };
 
     /// <summary>The user's 5150 settings, which motorboated with every stage on the one preamp node.</summary>
     static readonly Dictionary<string, double> User5150 = new() {
@@ -178,7 +181,7 @@ public class PreampSupplyTests {
         var chain = channel.Power.Decoupling;
         Assert.InRange(design.Power.PhaseInverter.Supply - chain.Voltage(0), -3, 3);
         AmpStageDesign[] stages = [
-            ..design.Preamp.SelectMany(static IEnumerable<AmpStageDesign> (s) =>
+            ..design.Preamp.SelectMany(static IEnumerable<AmpStageDesign>(s) =>
                 s is ChannelSwitchStageDesign c ? [..c.Off, ..c.On] : [s]
             )
         ];

@@ -76,9 +76,11 @@ The Lone Star is a clean and edge-of-breakup amp with a drive channel.
 
 ### High gain
 
-**5150**, **5150III**, **Legacy VL100**, **Powerball**, **Savage 120**, **Prometheus**, **Prometheus Clean**.
+**5150**, **5150III**, **Legacy VL100**, **Powerball**, **Savage 120**, **Prometheus**, **Prometheus Clean**, **Sunn Model T**.
 
 Modern metal and hard rock. The 5150 and 5150III are tight and aggressive, with a **Resonance** control for the low end; the 5150's **Pre Gain** is the gain and **Post Gain** the master. The Powerball and Savage 120 are German high-gain amps with mid controls of their own (**Focused**, **Contour**). The Legacy VL100 is a smooth lead amp. The Prometheus models are a Lichtlaerm Audio design whose circuit was inferred without a published schematic.
+
+The Sunn Model T is the odd one here: a 150 W amp from the early 1970s with little preamp gain of its own, loud and clean with a huge low end. It has a **Brite Vol**, a **Normal Vol** and a master; **Both In** plays both channels at once, **Normal Input** the darker one alone. Doom and drone players turn everything up or put a fuzz in front.
 
 ### Solid state
 

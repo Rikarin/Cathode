@@ -46,6 +46,7 @@ usually go after the Cab, as they would in an effects loop or a studio. The amp 
 - **High gain:** SLO-100, 5150, 5150III, Dual Rectifier, Dual Rectifier 3-Ch, Dual Rectifier 3-Ch Orange, Triple
   Rectifier, Rect-o-Verb, Mark IIC+ (and its clean rhythm channel, Mark IIC+ Rhythm), Mark IV (and its clean and
   crunch channels, Mark IV Rhythm 1 and Rhythm 2), Mark V, TriAxis, Legacy VL100, Powerball, Savage 120, Prometheus.
+- **Loud, clean and heavy (doom, drone, a fuzz in front):** Sunn Model T.
 - **Bass:** SVT, Portaflex B-15N, Bassman 135, Bass 400.
 - **Solid state:** JC-120 and Valvestate 8080 (a tube preamp into a transistor power amp). Their tube-only knobs are
   hidden.
@@ -642,7 +643,8 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'Quick Rod': 'Splawn Quick Rod, both channels with its gear switches (the power amp is assumed).',
       AFD100: 'Marshall AFD100 (Slash), #34 and AFD modes.',
       'Dual Rectifier 3-Ch Orange':
-        'Mesa/Boogie Dual Rectifier three-channel Solo Head, channel 2 (orange), with Raw, Vintage and Modern.'
+        'Mesa/Boogie Dual Rectifier three-channel Solo Head, channel 2 (orange), with Raw, Vintage and Modern.',
+      'Sunn Model T': 'Sunn Model T (1973, 150 W, four 6550), Brite and Normal channels: the doom and drone amp.'
     },
     pretube: {
       Stock: "The schematic's own preamp tubes.",
