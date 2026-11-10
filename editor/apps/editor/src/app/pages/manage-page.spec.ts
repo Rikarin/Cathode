@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { ApiError, type Bank, type PresetSummary, type Setlist } from '@cathode/api-client';
 import { ConnectionService } from '../core/connection';
+import { type AsksBeforeLeaving, askBeforeLeaving } from '../core/leave-guard';
 import { Notify } from '../core/notify';
 import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
@@ -123,7 +124,7 @@ describe('ManagePage Save', () => {
       dirty(): boolean;
       changed(): void;
     };
-    return { page, sent, server, errors, successes };
+    return { page, fixture, sent, server, errors, successes };
   }
 
   it('keeps what a failed Save had not stored yet, names the step, and sends only that on the next Save', async () => {
@@ -155,6 +156,54 @@ describe('ManagePage Save', () => {
     expect(sent).toEqual(['PATCH /api/v1/presets/b/metadata', 'PUT /api/v1/banks/gig', 'DELETE /api/v1/presets/c']);
     expect(successes).toEqual(['Saved.']);
     expect(page.dirty()).toBe(false);
+  });
+
+  it('asks before it is left with unsaved changes, and not otherwise', async () => {
+    const { page, fixture } = await render();
+    const guarded = page as unknown as {
+      canLeave(): boolean | Promise<boolean>;
+      confirmLeave(): boolean;
+      answerLeave(leave: boolean): void;
+      beforeUnload(event: Event): void;
+    };
+    expect(guarded.canLeave()).toBe(true);
+    const clean = new Event('beforeunload', { cancelable: true });
+    guarded.beforeUnload(clean);
+    expect(clean.defaultPrevented).toBe(false);
+
+    page.session().rename('a', 'Able');
+    page.changed();
+
+    const stay = guarded.canLeave();
+    expect(guarded.confirmLeave()).toBe(true);
+    guarded.answerLeave(false);
+    await expect(stay).resolves.toBe(false);
+    expect(page.session().plan().meta).toEqual([['a', { name: 'Able' }]]);
+
+    const leave = guarded.canLeave();
+    guarded.answerLeave(true);
+    await expect(leave).resolves.toBe(true);
+
+    // Reloading or closing the tab: the browser asks.
+    const unload = new Event('beforeunload', { cancelable: true });
+    guarded.beforeUnload(unload);
+    expect(unload.defaultPrevented).toBe(true);
+    fixture.destroy();
+  });
+
+  it('keeps the router on the page until the Discard question is answered', async () => {
+    const { page } = await render();
+    const guarded = page as unknown as AsksBeforeLeaving & { answerLeave(leave: boolean): void };
+    const guard = (asked: AsksBeforeLeaving) =>
+      TestBed.runInInjectionContext(() => askBeforeLeaving(asked, null as never, null as never, null as never));
+    expect(guard(guarded)).toBe(true);
+
+    page.session().rename('a', 'Able');
+    page.changed();
+    const answer = guard(guarded) as Promise<boolean>;
+    guarded.answerLeave(false);
+
+    await expect(answer).resolves.toBe(false);
   });
 
   it('does not ask the Server to delete a preset a setlist holds: it saves the rest and says where it is used', async () => {

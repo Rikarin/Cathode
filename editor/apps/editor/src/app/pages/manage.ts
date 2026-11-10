@@ -67,7 +67,7 @@ export function nextSelection(
 /**
  * Manage Presets' changes, held until Save: banks are edited as working copies (swap, move, copy between slots and
  * banks), and renames, metadata, copies and deletions are queued. Nothing reaches the Server until {@link plan} is
- * carried out; Close discards. A Save that fails part-way keeps what it had not stored yet. Every slot and preset touched is marked changed. The factory bank and its presets are
+ * carried out; leaving the page discards them. A Save that fails part-way keeps what it had not stored yet. Every slot and preset touched is marked changed. The factory bank and its presets are
  * read-only: nothing lands in its slots, and its presets are not renamed or deleted (their colour and favourite can
  * change); they can be placed in, or copied into, the user's banks.
  */
