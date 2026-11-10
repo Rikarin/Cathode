@@ -93,6 +93,7 @@ public sealed class AmpChannel {
     readonly double[] restInputs; // per stage: its rest input in the circuit's own order
     readonly double[] supplies; // per supply node: its supply as a fraction of nominal, with the preamp sag applied
     readonly bool separateSupply; // the preamp's own supply (a rack preamp): no sag reaches it
+    double preampRest; // the last stage's rest output: the DC a direct-coupled power amp's input sits at
     bool reordered;
     FirstOrder lowCut = FirstOrder.Unity;
     double sampleRate;
@@ -101,8 +102,8 @@ public sealed class AmpChannel {
     PowerSettings powerSettings = PowerSettings.Stock;
     PowerControls powerControls;
 
-    bool
-        powerMoved; // the Power Amp switch, a power setting or a power knob moved since the supply was last put at rest
+    // The Power Amp switch, a power setting or a power knob moved since the supply was last put at rest.
+    bool powerMoved;
 
     public AmpDesign Design { get; }
     public IReadOnlyList<AmpStage> Stages => stages;
@@ -310,8 +311,8 @@ public sealed class AmpChannel {
         Power.Configure(power);
         Power.ConfigureLoop(preamp);
         SolidState?.Configure(power);
-        powerMoved |= power.Bias != powerControls.Bias
-            || power.Sag != powerControls.Sag; // the knobs the supply follows
+        // The knobs the supply follows.
+        powerMoved |= power.Bias != powerControls.Bias || power.Sag != powerControls.Sag;
         powerControls = power;
         if (powerMoved && !channelSettings.PowerAmp) {
             RestPowerAmp();
@@ -440,6 +441,7 @@ public sealed class AmpChannel {
 
         if (stages.Length > 0) {
             Power.SetSourceResistance(resistance);
+            preampRest = stages[order[^1]].RestOutput;
         }
     }
 
@@ -506,11 +508,21 @@ public sealed class AmpChannel {
         Power.SetLoopSupply(supplies[0]);
 
         if (!channelSettings.PowerAmp) {
-            return x;
+            return PreampOut(x);
         }
 
         return SolidState is { } solid ? solid.Tick(x) : Power.Tick(x);
     }
+
+    /// <summary>
+    ///     The preamp's output as the block's, with the power amp off: without the DC the last stage rests at. Where
+    ///     that stage is coupled straight into the power amp (the Princeton 5F2-A's plate, the Liverpool's follower)
+    ///     its output sits at tens to hundreds of volts, which the power amp takes as its bias and which, sent out as
+    ///     it was, stood on the output as a constant offset of half to one and a half times full scale. With the
+    ///     preamp off too the input passes as it is.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    double PreampOut(double x) => channelSettings.Preamp ? x - preampRest : x;
 
     /// <summary>
     ///     <see cref="Tick" />'s first half, for a block that inserts a stage between the preamp and the power amp: the
@@ -553,7 +565,7 @@ public sealed class AmpChannel {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double TickPowerAmp(double x) {
         if (!channelSettings.PowerAmp) {
-            return x;
+            return PreampOut(x);
         }
 
         return SolidState is { } solid ? solid.Tick(x) : Power.Tick(x);

@@ -69,7 +69,9 @@ feeds back, so a voice with feedback gets more filtered on every pass.`,
 LFO move it. The defaults rise an octave per voice (500 Hz, 1, 2 and 4 kHz).`,
 
     'filter#Q': `The resonance of this voice's filter (for Band Pass, how narrow it is), before **Master Filter Q** scales
-it. High values give a ringing, vocal tone.`,
+it. High values give a ringing, vocal tone. A resonance or a Peak boost never makes a voice's repeats build up: the
+voice's feedback is turned down by as much as the filter's peak adds, so the peak repeats at the **Feedback** you set
+and the rest dies away faster.`,
 
     'filter#Gain': `Peak filters only: how much the band is boosted or cut.`,
 

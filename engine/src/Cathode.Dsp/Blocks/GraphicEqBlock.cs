@@ -42,13 +42,23 @@ public sealed class GraphicEqBlock : DspBlock {
                 ),
             BlockParams.Level,
             BlockParams.Balance,
-            ParamDescriptor.Float("masterQ", "Master Q", 0.25f, 4f, 1f, string.Empty, ParamTaper.Log),
-            ParamDescriptor.Choice("qMode", "Q Mode", ["Constant Q", "Variable Q"]),
+            ParamDescriptor.Float("masterQ", "Master Q", 0.25f, 4f, 1f, string.Empty, ParamTaper.Log)
+                .HiddenOn(GraphicEqualizer.Layouts.Count, Networks),
+            ParamDescriptor.Choice("qMode", "Q Mode", ["Constant Q", "Variable Q"])
+                .HiddenOn(GraphicEqualizer.Layouts.Count, Networks),
             ParamDescriptor.Choice("type", "Type", GraphicEqualizer.LayoutNames),
-            ParamDescriptor.Switch("shelves", "Outer Shelves")
+            ParamDescriptor.Switch("shelves", "Outer Shelves").HiddenOn(GraphicEqualizer.Layouts.Count, Networks)
         ],
         maxInstances: 4
     );
+
+    /// <summary>
+    ///     The passive types, which run their component networks: Master Q, Q Mode and Outer Shelves do not apply.
+    /// </summary>
+    static int[] Networks => [
+        ..Enumerable.Range(0, GraphicEqualizer.Layouts.Count)
+            .Where(static l => GraphicEqualizer.Layouts[l].Network != PassiveNetwork.None)
+    ];
 
     public GraphicEqBlock()
         : base(Info) { }

@@ -44,7 +44,7 @@ Many knobs only apply to some types; the editor hides the ones the current type 
 
   params: {
     type: `Which pitch effect the block is. Each type uses its own set of knobs; see the options below.`,
-    mix: `The balance between dry and shifted sound (a straight crossfade: both at −6 dB at 50 %). For harmonies 40–60 % is typical; for subtle doubling 25–40 %. Whammy and Virtual Capo ignore it and are always fully wet, because a shifted copy just a few milliseconds behind the dry would comb-filter at small shifts.`,
+    mix: `The balance between dry and shifted sound (a straight crossfade: both at −6 dB at 50 %). For harmonies 40–60 % is typical; for subtle doubling 25–40 %. Whammy and Virtual Capo have no Mix (nor Kill Dry or Global Mix) and are always fully wet, because a shifted copy just a few milliseconds behind the dry would comb-filter at small shifts.`,
     level: `The block's output volume.`,
     balance: `Turns the opposite side down to shift the block's output left or right.`,
 
@@ -105,7 +105,7 @@ Many knobs only apply to some types; the editor hides the ones the current type 
     feedbackMode: `What the voice Feedback repeats. **Delay** repeats each voice through its own delay at the same pitch, like an echo. **Shifter** sends each repeat back into the shifter, so the pitch keeps climbing or falling with every repeat (the classic "pitch spiral").`,
 
     inputMode: `**Mono** shifts the selected input (see **Input Select**) in every voice. **Stereo** shifts the left input in voices 1 and 3 and the right in voices 2 and 4, and keeps the sides apart for the single-voice types, so a stereo signal stays stereo.`,
-    tracking: `How the pitch tracker follows your playing. **Smooth** changes note only once you are clearly on a new one, so bends and vibrato don't flip the harmony. **Fast** reacts sooner, for quick lines. **Off** stops tracking: the harmony stays on its last interval and the shifters run free.`,
+    tracking: `How the pitch tracker follows your playing. **Smooth** changes note only once you are clearly on a new one, so bends and vibrato don't flip the harmony. **Fast** reacts sooner, for quick lines. **Off** stops tracking: the harmony stays on its last interval and the shifters run free. Not on the Octave Divider and Crystals, which do not track the pitch.`,
     splice: `The shortest splice of the time-domain shifter (Detune, Whammy Mono and Off, Arpeggiator, Virtual Capo). Longer splices warble less on sustained notes but smear fast passages more.`,
     inputGain: `The level going into the shifters. Lower it if the shifted voices sound strained or distorted.`,
     lowCut: `A high-pass filter on the shifted (wet) signal only. Raise it to keep octave-down voices from muddying the low end.`,

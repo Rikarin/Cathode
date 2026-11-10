@@ -153,6 +153,7 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
     readonly float[] filterFrequency = new float[Voices];
     readonly float[] filterQ = new float[Voices];
     readonly float[] filterGain = new float[Voices];
+    readonly float[] filterTrim = new float[Voices]; // one over the voice filter's peak gain
     readonly float[] chorusRate = new float[Voices];
     readonly float[] chorusDepth = new float[Voices];
     readonly double[] chorusPhase = new double[Voices];
@@ -613,12 +614,17 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
             var level = Params.Current(Tap1Level + k) / 100f;
             tapLeft[k] = level * left;
             tapRight[k] = level * right;
-            feedback[k] = Params.Current(Tap1Feedback + k) / 100f * masterFeedback;
-            cross[k] = Params.Current(Cross1 + k) / 100f * masterFeedback;
             filterType[k] = (int)Params.Current(Filter1Type + k);
             filterFrequency[k] = Params.Current(Filter1Frequency + k) * filterFrequencyScale;
             filterQ[k] = Params.Current(Filter1Q + k) * filterQScale;
             filterGain[k] = Params.Current(Filter1Gain + k);
+
+            // The voice's filter is inside every loop its output feeds, so its peak gain (a resonance, a Peak's boost)
+            // is loop gain: a 20 % feedback through a low-pass at Q 10 is a loop gain of two, and the voice howls
+            // against the limiter for ever. Taken out of the feedbacks, as the Plex's filter is (#163).
+            filterTrim[k] = 1f / PlexBlock.FilterPeakGain(filterType[k], filterQ[k], filterGain[k]);
+            feedback[k] = Params.Current(Tap1Feedback + k) / 100f * masterFeedback * filterTrim[k];
+            cross[k] = Params.Current(Cross1 + k) / 100f * masterFeedback * filterTrim[k];
             chorusRate[k] = Params.Current(Chorus1Rate + k);
             chorusDepth[k] = Params.Current(Chorus1Depth + k) * chorusScale * 0.001f * sampleRate;
             combGlide[k].Begin(Params.Current(Comb1Time + k) * 0.001f * sampleRate, n);
@@ -674,7 +680,14 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
             Params.Advance(EnvelopeAttack, n),
             Params.Advance(EnvelopeRelease, n)
         );
-        var seriesFeedback = Params.Advance(SeriesFeedback, n) / 100f * masterFeedback;
+        // The series loop runs through all four voices' filters.
+        var seriesFeedback = Params.Advance(SeriesFeedback, n)
+            / 100f
+            * masterFeedback
+            * filterTrim[0]
+            * filterTrim[1]
+            * filterTrim[2]
+            * filterTrim[3];
         var seriesSend = Params.Advance(SeriesSend, n) / 100f;
         var seriesReturn = Params.Advance(SeriesReturn, n) / 100f;
 

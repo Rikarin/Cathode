@@ -8,7 +8,7 @@ namespace Cathode.Dsp.Tests;
 ///     Properties every registered block must satisfy (docs/03-testing-strategy.md §3). New blocks join this suite
 ///     automatically by being registered in <see cref="BlockRegistry.CreateDefault" />.
 /// </summary>
-public class BlockConformanceTests {
+public partial class BlockConformanceTests {
     const int MaxBlock = 64;
 
     /// <summary>
@@ -210,24 +210,19 @@ public class BlockConformanceTests {
     [MemberData(nameof(BlockTypes))]
     public void A_parameter_changed_while_the_block_runs_reaches_its_target(string typeId) {
         var descriptor = Registry.GetDescriptor(typeId);
-        var typeParam = descriptor.Params.FirstOrDefault(static p => p.Id == "type");
-        var types = typeParam is null ? 1 : (int)typeParam.Max + 1;
         var input = Signals.Noise(20 * MaxBlock, 23, 0.1f);
         var stuck = new List<string>();
-        for (var type = 0; type < types; type++) {
-            using var block = Registry.Create(typeId);
-            if (typeParam is not null) {
-                block.Params.SetTarget(descriptor.IndexOf("type"), type);
-                block.Params.ResetToDefaults();
-            }
-
+        for (var type = 0; type < TypeCount(descriptor); type++) {
+            using var block = OfType(descriptor, type);
             block.Prepare(Spec);
             BlockRender.Mono(block, input, MaxBlock);
             var moved = new List<int>();
             var longestMs = 0f;
             for (var i = 0; i < block.Params.Count; i++) {
                 var p = block.Params.Descriptor(i);
-                if (p.Kind != ParamKind.Float || p.Smoothing == ParamSmoothing.Step || !Shown(block, p, type)) {
+                if (p.Kind != ParamKind.Float
+                    || p.Smoothing == ParamSmoothing.Step
+                    || !Shown(block, descriptor, p, type)) {
                     continue;
                 }
 
@@ -244,7 +239,7 @@ public class BlockConformanceTests {
             BlockRender.Mono(block, Signals.Noise(frames, 29, 0.1f), MaxBlock);
 
             stuck.AddRange(
-                moved.Where(i => block.Params.IsRamping(i) && !NeedsNoSmoother(typeId, Id(block, i), type))
+                moved.Where(i => block.Params.IsRamping(i) && !NeedsNoSmoother(typeId, Id(block, i)))
                     .Select(i => $"{Id(block, i)} (type {type})")
             );
         }
@@ -258,7 +253,7 @@ public class BlockConformanceTests {
     ///     Smoothed parameters a block rightly never advances: the ones it reads from the target, off the audio thread
     ///     or at an event, where a ramp has no meaning.
     /// </summary>
-    static bool NeedsNoSmoother(string typeId, string param, int type) =>
+    static bool NeedsNoSmoother(string typeId, string param) =>
         typeId switch {
             // The mic slots are rendered into the IR on the control thread, from the targets.
             "cab" => param.Length > 2 && param[0] == 'm' && char.IsAsciiDigit(param[1]),
@@ -268,29 +263,14 @@ public class BlockConformanceTests {
             "fxloop" => param == "latency",
             // Read when the LFO restarts (engage, reset, a new note).
             "tremolo" => param == "startPhase",
-            // Auto-Swell's two knobs, which the Volume type does not run (the descriptor shows them on both).
-            "volpan" => type == 0 && param is "threshold" or "attack",
             _ => false
         };
 
     /// <summary>Whether the editor shows <paramref name="p" /> on the block's type with its current settings.</summary>
-    static bool Shown(IDspBlock block, ParamDescriptor p, int type) {
-        if (p.TypeLabels is { } labels && labels[type].Length == 0) {
-            return false;
-        }
-
-        if (p.VisibleWhen is not { } condition) {
-            return true;
-        }
-
-        for (var i = 0; i < block.Params.Count; i++) {
-            if (block.Params.Descriptor(i).Id == condition.Param) {
-                return condition.Values.Contains(block.Params.GetTarget(i));
-            }
-        }
-
-        return true;
-    }
+    static bool Shown(IDspBlock block, BlockDescriptor descriptor, ParamDescriptor p, int type) =>
+        OnType(p, type)
+        && Conditions(p, type)
+            .All(condition => condition.Values.Contains(block.Params.GetTarget(descriptor.IndexOf(condition.Param))));
 
     static IDspBlock Create(string typeId, float[]? normalised) {
         var block = Registry.Create(typeId);

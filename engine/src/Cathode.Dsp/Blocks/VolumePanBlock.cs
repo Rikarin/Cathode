@@ -52,8 +52,9 @@ public sealed class VolumePanBlock() : DspBlock(Info) {
             ParamDescriptor.Float("volume", "Volume", 0f, 100f, 100f, "%"),
             ParamDescriptor.Choice("taper", "Taper", Tapers),
             ParamDescriptor.Choice("type", "Type", ["Volume", "Auto-Swell"]),
-            ParamDescriptor.Float("threshold", "Threshold", -80f, 0f, -40f, "dB"),
-            ParamDescriptor.Float("attack", "Attack", 10f, 2_000f, 300f, "ms", ParamTaper.Log),
+            // Auto-Swell's two knobs: the Volume type does not run the swell.
+            ParamDescriptor.Float("threshold", "Threshold", -80f, 0f, -40f, "dB").ShownOn(2, AutoSwell),
+            ParamDescriptor.Float("attack", "Attack", 10f, 2_000f, 300f, "ms", ParamTaper.Log).ShownOn(2, AutoSwell),
             ParamDescriptor.Choice("inputSelect", "Input Select", ["Stereo", "Left Only", "Right Only"]),
             ParamDescriptor.Float("panLeft", "Pan Left", -100f, 100f, -100f, "%"),
             ParamDescriptor.Float("panRight", "Pan Right", -100f, 100f, 100f, "%")

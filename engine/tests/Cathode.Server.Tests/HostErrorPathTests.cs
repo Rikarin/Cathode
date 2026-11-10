@@ -18,6 +18,12 @@ namespace Cathode.Server.Tests;
 ///     host serves the next request.
 /// </summary>
 public sealed class HostErrorPathTests : IDisposable {
+    /// <summary>
+    ///     What one export of the loop may allocate: the file stream and its buffer, the path strings and the reply
+    ///     (4,624 bytes measured on .NET 10, macOS), with room. A copy of the loop would be eight bytes a frame.
+    /// </summary>
+    const long ExportBudget = 32_000;
+
     readonly string socketPath = Path.Combine(
         Path.GetTempPath(),
         $"cth-{Guid.NewGuid().ToString("n")[..8]}.sock"
@@ -314,10 +320,58 @@ public sealed class HostErrorPathTests : IDisposable {
         }
     }
 
+    /// <summary>
+    ///     An export has a defined answer in every state: refused while the loop is being written (recording or
+    ///     overdubbing), with no file left behind, and written once it plays. The host must not collect during a
+    ///     session, so the export copies the loop to the file in chunks: its managed allocation stays that of opening a
+    ///     file, however long the loop (in two arrays this one would take a megabyte).
+    /// </summary>
+    [Fact]
+    public void An_export_is_refused_while_the_loop_is_written_and_allocates_little_once_it_plays() {
+        using var service = new EngineHostService(ProcessSpec.Default, "test");
+        service.Log = log.Enqueue;
+        var folder = Directory.CreateTempSubdirectory("cth-export-");
+        try {
+            var path = Path.Combine(folder.FullName, "loop.wav");
+            var export = new IpcMessage { Type = IpcTypes.ExportLooper, Id = 1, Path = path };
+            service.Handle(new() { Type = IpcTypes.LoadGraph, Generation = 1, Graph = GraphTemplates.Basic() });
+
+            service.Handle(new() { Type = IpcTypes.Looper, Action = "record" });
+            Pump(service, 2_000);
+            Assert.Equal(LooperState.Recording, service.Engine.Looper!.State);
+            var recording = service.Handle(export);
+
+            service.Handle(new() { Type = IpcTypes.Looper, Action = "overdub" });
+            Pump(service, 10);
+            Assert.Equal(LooperState.Overdubbing, service.Engine.Looper.State);
+            var overdubbing = service.Handle(export);
+            var leftBehind = File.Exists(path);
+
+            service.Handle(new() { Type = IpcTypes.Looper, Action = "play" });
+            Pump(service, 1);
+            Assert.Equal(LooperState.Playing, service.Engine.Looper.State);
+            var playing = IpcMessage.Fail(0, "not run");
+            var allocated = Testing.AllocationProbe.Measure(() => playing = service.Handle(export));
+
+            Assert.Equal((IpcTypes.Error, 1L), (recording.Type, recording.Id));
+            Assert.Contains("recording or overdubbing", recording.Error, StringComparison.Ordinal);
+            Assert.Equal(IpcTypes.Error, overdubbing.Type);
+            Assert.Equal(recording.Error, overdubbing.Error);
+            Assert.False(leftBehind, "a refused export left a file");
+            Assert.True(playing.Type == IpcTypes.Ok, playing.Error);
+            var frames = service.Engine.Looper.Length;
+            Assert.InRange(frames, 1_990 * service.Engine.Spec.MaxBlockSize, 2_010 * service.Engine.Spec.MaxBlockSize);
+            Assert.True(new FileInfo(path).Length >= 8L * frames); // two channels of 32-bit float
+            Assert.True(allocated < ExportBudget, $"exporting {frames} frames allocated {allocated} bytes");
+        } finally {
+            folder.Delete(true);
+        }
+    }
+
     [Fact]
     public void Exporting_while_the_looper_records_is_answered_and_the_host_keeps_running() {
-        // The audio thread keeps appending to the loop while the control thread copies it. Whether such an export
-        // succeeds or is refused is the looper's business; the request must be answered either way.
+        // The audio thread keeps appending to the loop while the control thread asks for it. Every export that finds
+        // the looper still recording afterwards was refused: the state leaves Recording only once.
         using var service = new EngineHostService(ProcessSpec.Default, "test");
         service.Log = log.Enqueue;
         var folder = Directory.CreateTempSubdirectory("cth-export-");
@@ -342,15 +396,22 @@ public sealed class HostErrorPathTests : IDisposable {
             Assert.True(SpinWait.SpinUntil(() => looper.Length > 48_000, TimeSpan.FromSeconds(10)));
             var path = Path.Combine(folder.FullName, "recording.wav");
 
-            var replies = new List<IpcMessage>();
+            var replies = new List<(IpcMessage Reply, bool StillRecording)>();
             for (var i = 0; i < 5 && looper.State == LooperState.Recording; i++) {
-                replies.Add(service.Handle(new() { Type = IpcTypes.ExportLooper, Id = 10 + i, Path = path }));
+                var reply = service.Handle(new() { Type = IpcTypes.ExportLooper, Id = 10 + i, Path = path });
+                replies.Add((reply, looper.State == LooperState.Recording));
             }
 
             var hello = service.Handle(new() { Type = IpcTypes.Hello, Id = 2 });
 
             Assert.NotEmpty(replies); // the looper was recording when the first export started
-            Assert.All(replies, static reply => Assert.True(reply.Type is IpcTypes.Ok or IpcTypes.Error, reply.Type));
+            Assert.All(
+                replies,
+                static r => Assert.True(
+                    r.StillRecording ? r.Reply.Type == IpcTypes.Error : r.Reply.Type is IpcTypes.Ok or IpcTypes.Error,
+                    $"{r.Reply.Type}: {r.Reply.Error}"
+                )
+            );
             Assert.Equal(IpcTypes.Ok, hello.Type);
         } finally {
             Volatile.Write(ref running, false);
