@@ -43,7 +43,8 @@ Either proves the file was built by this repository's `release.yml` from the tag
 (`--bundle` checks against the published bundle; without it `gh` fetches the attestation from GitHub.)
 
 Running the workflow by hand (Actions, release, Run workflow) builds everything as workflow artifacts without
-publishing. [`desktop.yml`](../.github/workflows/desktop.yml) still builds the desktop app on every push to master.
+publishing. [`desktop.yml`](../.github/workflows/desktop.yml) still builds the desktop app on every push to master,
+as a snapshot: it sets `CATHODE_VERSION` to the default version plus the commit (`1.2.3+abc1234`).
 
 Signing is optional (see the top of `release.yml`): without certificates, macOS builds are signed ad hoc and Windows
 builds are unsigned.

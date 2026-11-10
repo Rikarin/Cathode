@@ -5,7 +5,7 @@
 // Signing is used when electron-builder's usual variables are set (CSC_LINK and CSC_KEY_PASSWORD; on macOS also
 // APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID to notarise). Without them macOS builds are signed ad hoc, so
 // they run on the machine that built them; elsewhere Gatekeeper asks the user to allow them. CATHODE_VERSION overrides
-// the version (CI passes the release tag).
+// the version (release.yml passes the tag, desktop.yml a snapshot version).
 import { build } from 'electron-builder';
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';

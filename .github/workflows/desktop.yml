@@ -2,7 +2,9 @@ name: desktop
 
 # Builds the desktop app (`pnpm dist`: the editor, Electron and the engine sidecars) on each OS, since NativeAOT cannot
 # cross-compile: a .dmg and .zip for Apple Silicon Macs, an NSIS installer for Windows x64 and an AppImage for Linux
-# x64, and uploads them as workflow artifacts. Version tags are built and released by release.yml.
+# x64, and uploads them as workflow artifacts. Version tags are built and released by release.yml. A build from here
+# is a snapshot: its version is the one in editor/package.json plus the commit (1.2.3+abc1234), so its files and the
+# version its engine reports are told apart from the tagged release of that version.
 #
 # Signing is optional. Without secrets, macOS builds are signed ad hoc (Gatekeeper asks users to allow them) and Windows
 # builds are unsigned. Set CSC_LINK (base64 .p12) and CSC_KEY_PASSWORD to sign, and on macOS APPLE_ID,
@@ -50,10 +52,12 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update -q && sudo apt-get install -y -q libasound2-dev
       - run: pnpm install --frozen-lockfile
+      - name: Set the snapshot version
+        shell: bash
+        run: echo "CATHODE_VERSION=$(node -p "require('./package.json').version")+${GITHUB_SHA::7}" >> "$GITHUB_ENV"
       - name: Build and package
         shell: bash
         env:
-          CATHODE_VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
