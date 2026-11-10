@@ -2,7 +2,8 @@ name: desktop
 
 # Builds the desktop app (`pnpm dist`: the editor, Electron and the engine sidecars) on each OS, since NativeAOT cannot
 # cross-compile: a .dmg and .zip for Apple Silicon Macs, an NSIS installer for Windows x64 and an AppImage for Linux
-# x64, and uploads them as workflow artifacts. Before that it starts the packaged app on its runner and runs the
+# x64, and the same for the extra targets (Intel Macs, Windows on ARM, ARM64 Linux; docs/10-releases.md, "Desktop
+# targets"), whose failure is shown but does not fail the run. It uploads them as workflow artifacts. Before that it starts the packaged app on its runner and runs the
 # packaged-app and sidecar Playwright tests against it. A build from here is a snapshot: its version is the one in
 # editor/package.json plus the commit (1.2.3+abc1234), so its files and the version its engine reports are told apart
 # from the tagged release of that version. Version tags are built and released by release.yml.
@@ -46,7 +47,11 @@ jobs:
           - { os: macos-latest, name: macos-arm64 }
           - { os: windows-latest, name: windows-x64 }
           - { os: ubuntu-latest, name: linux-x64 }
+          - { os: macos-15-intel, name: macos-x64, extra: true }
+          - { os: windows-11-arm, name: windows-arm64, extra: true }
+          - { os: ubuntu-24.04-arm, name: linux-arm64, extra: true }
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.extra || false }}
     timeout-minutes: 45
     defaults:
       run:
@@ -84,6 +89,8 @@ jobs:
           APPLE_TEAM_ID: ${{ github.ref == 'refs/heads/master' && secrets.APPLE_TEAM_ID || '' }}
           # Without a certificate, do not let electron-builder pick one up from the runner's keychain.
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ github.ref == 'refs/heads/master' && secrets.CSC_LINK != '' }}
+          # "Name <name@host>": with it Linux also gets a .deb (package.mjs); without it, the AppImage only.
+          CATHODE_DEB_MAINTAINER: ${{ vars.CATHODE_DEB_MAINTAINER }}
         run: pnpm dist
       # The app as packaged, started from where electron-builder left it unpacked beside the installers: it runs the
       # engine it carries (resources/engine), serves its own editor and stops cleanly, and the sidecar tests pass
@@ -111,4 +118,5 @@ jobs:
             editor/dist/release/*.zip
             editor/dist/release/*.exe
             editor/dist/release/*.AppImage
+            editor/dist/release/*.deb
           if-no-files-found: error

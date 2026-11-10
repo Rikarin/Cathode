@@ -5,6 +5,9 @@ name: release
 # - The desktop app (the editor, Electron and the engine sidecars): a .dmg and .zip for Apple Silicon Macs, an NSIS
 #   installer for Windows x64 and an AppImage for Linux x64. Each is started on its runner as packaged and checked: it
 #   runs the engine it carries, serves its editor, passes the sidecar tests and leaves nothing running when it quits.
+#   The same for Intel Macs, Windows on ARM and ARM64 Linux desktops, built and checked the same way on runners of
+#   their own; a release does not wait for those three (docs/10-releases.md, "Desktop targets"). Linux also gets a
+#   .deb when the repository variable CATHODE_DEB_MAINTAINER names its maintainer.
 # - The headless rig (the engine and server with the web editor, systemd services and an install script) for small
 #   Linux computers without a display, x64 and ARM64: cathode-server-<version>-linux-<arch>.tar.gz. Each is installed
 #   on its runner and checked: the services start, the web editor loads and the API wants the token.
@@ -166,7 +169,13 @@ jobs:
           - { os: windows-latest, name: windows-x64 }
           # Packages the engine from linux-engine (glibc 2.36 and newer); only Electron comes from this runner.
           - { os: ubuntu-24.04, name: linux-x64 }
+          # The extra targets (docs/10-releases.md, "Desktop targets"): built and tested like the three above, but a
+          # leg that fails does not fail the release, which is then published without that target's files.
+          - { os: macos-15-intel, name: macos-x64, extra: true }
+          - { os: windows-11-arm, name: windows-arm64, extra: true }
+          - { os: ubuntu-24.04-arm, name: linux-arm64, extra: true }
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.extra || false }}
     timeout-minutes: 60 # notarisation waits on Apple
     permissions:
       contents: read
@@ -219,6 +228,8 @@ jobs:
           APPLE_TEAM_ID: ${{ needs.tag.outputs.release == 'true' && secrets.APPLE_TEAM_ID || '' }}
           # Without a certificate, do not let electron-builder pick one up from the runner's keychain.
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ needs.tag.outputs.release == 'true' && secrets.CSC_LINK != '' }}
+          # "Name <name@host>": with it Linux also gets a .deb (package.mjs); without it, the AppImage only.
+          CATHODE_DEB_MAINTAINER: ${{ vars.CATHODE_DEB_MAINTAINER }}
         run: pnpm dist
       - name: The C library the Linux engine needs
         if: runner.os == 'Linux'
@@ -253,7 +264,7 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          files=(*.dmg *.zip *.exe *.AppImage)
+          files=(*.dmg *.zip *.exe *.AppImage *.deb)
           if [ "${#files[@]}" = 0 ]; then echo "::error::no installers in editor/dist/release"; exit 1; fi
           if command -v sha256sum > /dev/null; then hash=(sha256sum); else hash=(shasum -a 256); fi
           "${hash[@]}" -- "${files[@]}" | sed -E 's/^([0-9a-f]{64}) [ *]/\1  /' > "$SUMS"
@@ -273,6 +284,7 @@ jobs:
             editor/dist/release/*.zip
             editor/dist/release/*.exe
             editor/dist/release/*.AppImage
+            editor/dist/release/*.deb
             editor/dist/release/SHA256SUMS.desktop-${{ matrix.name }}
           if-no-files-found: error
 

@@ -4,7 +4,7 @@ Cathode ships two ways:
 
 | Package | For | Contents |
 |---|---|---|
-| **Desktop app** | A Mac, Windows or Linux computer with a display | The editor, Electron and the engine sidecars (cathode-host and cathode-server on loopback). macOS: `.dmg` and `.zip` (Apple Silicon). Windows: NSIS installer (x64). Linux: AppImage (x64). |
+| **Desktop app** | A Mac, Windows or Linux computer with a display | The editor, Electron and the engine sidecars (cathode-host and cathode-server on loopback). macOS: `.dmg` and `.zip` (Apple Silicon). Windows: NSIS installer (x64). Linux: AppImage (x64). Extra targets, see [Desktop targets](#desktop-targets): Intel Macs, Windows on ARM, ARM64 Linux, and a `.deb` on Linux. |
 | **Headless rig** | A small Linux computer in the rig (Raspberry Pi 5, mini PC) with an audio interface and no display | `cathode-server-<version>-linux-<arch>.tar.gz` (x64, arm64): cathode-host, cathode-server, the editor's web build, two systemd services and an install script. Played from any browser on the network or from the desktop app's remote-server connection. |
 
 ## Releasing
@@ -13,8 +13,8 @@ Push a version tag: `git tag v1.2.3 && git push origin v1.2.3`. A tag with a suf
 prerelease. [`release.yml`](../.github/workflows/release.yml) first checks that the tag points at a commit on master,
 and builds nothing if it does not. Then it:
 
-1. Builds the desktop app on macOS, Windows and Linux (`pnpm dist`), each on its own OS since NativeAOT cannot
-   cross-compile, and starts the packaged app on its runner (`CATHODE_PACKAGED=1`, `packaged.spec.ts` and
+1. Builds the desktop app on macOS, Windows and Linux (`pnpm dist`), each on its own OS and CPU since NativeAOT cannot
+   cross-compile (see [Desktop targets](#desktop-targets)), and starts the packaged app on its runner (`CATHODE_PACKAGED=1`, `packaged.spec.ts` and
    `sidecars.spec.ts`): it runs the engine in its `resources/engine`, the server reports the engine connected and
    serves the editor, and quitting leaves no engine process behind.
    On Linux the engine is not built by these jobs: the `linux-engine` job links it in a Debian 12 container for x64
@@ -33,6 +33,36 @@ Each build job hashes its installers where it built them and attests their build
 through Sigstore with the job's GitHub identity, `actions/attest-build-provenance`). The release job checks every
 downloaded file against those build-time hashes, merges them into `SHA256SUMS`, refuses a file that has none, and
 attests `SHA256SUMS` itself.
+
+### Desktop targets
+
+The desktop app is built for six OS and CPU pairs, each on a runner of its own (NativeAOT cannot cross-compile, and
+`publish-engine.mjs` and `package.mjs` build for the machine they run on):
+
+| Target | Runner | Files | A release waits for it |
+|---|---|---|---|
+| macOS, Apple Silicon | `macos-latest` | `Cathode-<version>-mac-arm64.dmg`, `.zip` | yes |
+| Windows x64 | `windows-latest` | `Cathode-<version>-win-x64.exe` | yes |
+| Linux x64 | `ubuntu-24.04` | `Cathode-<version>-linux-x86_64.AppImage` | yes |
+| macOS, Intel | `macos-15-intel` | `Cathode-<version>-mac-x64.dmg`, `.zip` | no |
+| Windows ARM64 | `windows-11-arm` | `Cathode-<version>-win-arm64.exe` | no |
+| Linux ARM64 | `ubuntu-24.04-arm` | `Cathode-<version>-linux-arm64.AppImage` | no |
+
+The first three are the supported targets of 1.0: a release is not published unless each builds and passes the
+packaged-app tests. The other three are extra: they run the same steps and the same tests (`continue-on-error` on
+their matrix legs in `release.yml` and `desktop.yml`), their files are published, hashed and attested like the rest
+when the leg passes, and a leg that fails leaves the release without that target instead of holding it back. They
+have run nowhere but on those runners, and nobody has played through them on real hardware yet; the README and the
+manual say so. To make one a supported target, remove `extra: true` from its leg in both workflows once it has been
+passing on master and someone has used it with an interface. GitHub offers the Intel Mac runner until August 2027.
+
+**The `.deb`.** On Linux `package.mjs` also builds a `.deb` (`Cathode-<version>-linux-amd64.deb`, `-arm64.deb`) when
+`CATHODE_DEB_MAINTAINER` is set to `Name <name@host>`. A Debian package must name a maintainer with an address, and
+the project has none of its own, so the workflows read it from the repository variable of that name (Settings ▸
+Secrets and variables ▸ Actions ▸ Variables): set it once and every later build carries the `.deb`; leave it unset
+and Linux gets the AppImage only. The package installs to `/opt/Cathode`, adds the menu entry, the icon and the
+`.cthpreset` association, and depends on `libc6 (>= 2.36)` and `libasound2` for the engine besides Electron's own
+libraries. There is no `.rpm`.
 
 ### Verifying a download
 

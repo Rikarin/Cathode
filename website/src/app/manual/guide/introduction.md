@@ -12,7 +12,7 @@ It is free and open source (GPL-3.0-or-later). It borrows its ideas from the Fra
 
 ## What you need
 
-- **A computer.** A Mac with Apple Silicon, a Windows 10 or 11 PC (x64), or a Linux PC (x64). The headless server runs on Linux x64 or ARM64.
+- **A computer.** A Mac with Apple Silicon, a Windows 10 or 11 PC (x64), or a Linux PC (x64). There are extra builds for Intel Macs, Windows 11 on ARM and ARM64 Linux desktops, which have not been tried with a real interface yet (see [Getting started](/manual/getting-started)). The headless server runs on Linux x64 or ARM64.
 - **An audio interface** with an instrument input (often marked _Hi-Z_, _Inst_ or with a guitar symbol). The interface turns your guitar's signal into numbers the computer can work with, and back into sound. Cathode needs one device that has both inputs and outputs.
 - **Something to listen on.** Headphones, studio monitors, or a full-range speaker (FRFR, see the [glossary](/manual/glossary)). A guitar amp works too, with care: see [What to plug into](/manual/audio-setup#what-to-plug-into).
 - **Optional:** a MIDI foot controller and expression pedals for playing live.
