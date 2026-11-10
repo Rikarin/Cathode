@@ -30,6 +30,11 @@ usually go after the Cab, as they would in an effects loop or a studio. The amp 
 3. Set Gain for the amount of dirt you want, then shape the tone with Bass, Middle and Treble.
 4. Set the loudness with *Level*. Level is a clean digital volume after the amp and changes nothing about the tone.
 
+A cranked power amp with no Cab block after it (into a real power amp and cabinet, say) puts out very short spikes
+above its usual peak level: the speaker load kicks back when the output tubes cut off, as it does on the real amp.
+They are too short to hear, but they can light the output clip warning on a preset that does not sound that loud.
+Leave a few dB of headroom in *Level*; a Cab block after the amp removes them.
+
 **Picking a model.** A short guide by family:
 
 - **Fender clean and edge-of-breakup:** Blackface, Deluxe Reverb, Twin Reverb, Super Reverb, Princeton Reverb,

@@ -25,9 +25,16 @@ namespace Cathode.Dsp.Blocks;
 ///     </para>
 ///     <para>
 ///         1.0 at the input is 1 V at the guitar jack; full scale at the output is the largest swing the output tubes
-///         can make (each plate from B+ down to 0 V, the other up to twice B+), less a few decibels of trim per model,
-///         so a power amp driven into clipping peaks a few decibels under full scale. A NaN or infinite input sample
-///         is taken as silence, since it would otherwise stay in the circuit's state until a reset.
+///         can make into a resistive load (each plate from B+ down to 0 V, the other up to twice B+), less a few
+///         decibels of trim per model. The load is a speaker, so a power amp driven into clipping is not held under
+///         full scale: when the tubes cut off, the current in the voice coil and the leakage inductance flies back
+///         through the speaker's losses, the primary's capacitance and the core loss, and nothing clamps the plates
+///         (the diodes some amps put from each plate to ground are not modelled). Most cranked models then peak at
+///         about full scale in the audio band with spikes one to four samples wide up to 5 dB over it; a
+///         single-ended amp flat out, or a power stage driven far harder than its own preamp can, is 2 to 3 dB over
+///         in the audio band too (<c>AmpFullScaleTests</c> pins the numbers). A Cab block after the amp removes the
+///         spikes; without one, leave the headroom in Level. A NaN or infinite input sample is taken as silence,
+///         since it would otherwise stay in the circuit's state until a reset.
 ///     </para>
 ///     <para>
 ///         A solid-state model (<see cref="AmpDesign.SolidState" />, the JC-120) runs a
