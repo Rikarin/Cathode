@@ -7,6 +7,7 @@ import {
   type Connection,
   type LibraryKind,
   type PresetSummary,
+  type RestoreResult,
   type Setlist,
   unwrap
 } from '@cathode/api-client';
@@ -51,6 +52,30 @@ export function withSetlist(list: readonly Setlist[], setlist: Setlist): Setlist
   return [...list.filter(s => s.id !== setlist.id), setlist].sort((a, b) =>
     a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
   );
+}
+
+/** The file a library backup is saved as and restored from. */
+export const BackupFileExtension = '.cthbackup';
+
+/** What a restore put into the library, as a sentence: “Restored 12 presets, 3 IRs and captures and the global settings.” */
+export function restoreSummary(result: RestoreResult): string {
+  const count = (n: number, one: string, many: string) => (n > 0 ? [`${n} ${n === 1 ? one : many}`] : []);
+  const parts = [
+    ...count(result.presets, 'preset', 'presets'),
+    ...count(result.blockPresets, 'block preset', 'block presets'),
+    ...count(result.templates, 'template', 'templates'),
+    ...count(result.snapshots, 'snapshot', 'snapshots'),
+    ...count(result.banks, 'bank', 'banks'),
+    ...count(result.setlists, 'setlist', 'setlists'),
+    ...count(result.assets, 'new IR or capture', 'new IRs and captures'),
+    ...(result.settings ? ['the global settings'] : [])
+  ];
+  if (parts.length === 0) {
+    return 'The backup held nothing to restore.';
+  }
+
+  const last = parts.pop();
+  return `Restored ${parts.length > 0 ? `${parts.join(', ')} and ${last}` : last}.`;
 }
 
 /** The preset library and the asset store (captures and impulse responses). */
@@ -313,6 +338,29 @@ export class LibraryStore {
       this.notify.success(
         `Imported "${result.preset.name}"${result.renamed ? ' (renamed)' : ''} with ${result.assetsAdded} new asset(s).`
       );
+    });
+  }
+
+  /** Saves the whole library (settings, presets, banks, setlists, IRs and captures) as one .cthbackup file. */
+  async backup(): Promise<void> {
+    await this.download('/api/v1/library/backup', `Cathode backup${BackupFileExtension}`);
+  }
+
+  /**
+   * Puts a .cthbackup file into the library (an entry with the id of one already there replaces it; the global
+   * settings are replaced) and reads the library again. Resolves to what was restored, or undefined if it failed.
+   */
+  async restore(file: File): Promise<RestoreResult | undefined> {
+    return this.notify.run(async () => {
+      const result = unwrap(
+        await this.connection.client.POST('/api/v1/library/restore', {
+          body: file as unknown as never,
+          bodySerializer: body => body as unknown as BodyInit,
+          headers: { 'Content-Type': 'application/zip' }
+        })
+      );
+      await this.resync();
+      return result;
     });
   }
 

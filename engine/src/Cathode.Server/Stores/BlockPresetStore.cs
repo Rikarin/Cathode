@@ -186,7 +186,7 @@ public sealed class BlockPresetStore(
     ///     an Amp's values and channels as a preset's (<see cref="PresetMigrations.UpgradeAmpChannel" />). A file
     ///     without a version is schema 1.
     /// </summary>
-    static JsonNode? Upgrade(JsonNode? node) {
+    internal static JsonNode? Upgrade(JsonNode? node) {
         if (node is not JsonObject preset
             || PresetMigrations.VersionOf(preset) is not { } version
             || version >= BlockPreset.CurrentSchemaVersion) {

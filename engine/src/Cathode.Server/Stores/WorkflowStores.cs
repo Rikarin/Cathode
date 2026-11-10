@@ -52,6 +52,12 @@ public sealed class SnapshotStore(
         return new(snapshot.Id, snapshot.PresetId, snapshot.Name, snapshot.Created);
     }
 
+    /// <summary>Stores a snapshot from a backup under its own id, replacing one already there.</summary>
+    public void Restore(PresetSnapshot snapshot) {
+        PresetShape.Check(snapshot.Preset);
+        files.Save(snapshot);
+    }
+
     public bool Delete(string id) => StoreIds.IsValid(id) && files.Delete(id);
 }
 
@@ -89,6 +95,13 @@ public sealed class TemplateStore(
         preset.Name = name.Trim();
         files.Save(preset);
         return PresetStore.Summary(preset, DateTimeOffset.UtcNow);
+    }
+
+    /// <summary>Stores a template from a backup under its own id, replacing one already there.</summary>
+    public void Restore(Preset template) {
+        PresetShape.Check(template);
+        template.Factory = null;
+        files.Save(template);
     }
 
     public bool Delete(string id) => StoreIds.IsValid(id) && files.Delete(id);

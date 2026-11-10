@@ -2,6 +2,7 @@ using Cathode.Contracts;
 using Cathode.Server.Rig;
 using Cathode.Server.Stores;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using static Cathode.Server.Api.CathodeApi;
 
 namespace Cathode.Server.Api;
@@ -67,6 +68,30 @@ static class LiveApi {
             .Produces(200, contentType: "application/zip")
             .WithName("ExportLive")
             .WithSummary("The working copy as a preset package, saved or not (stored presets: /presets/{id}/export).");
+        live.MapPost(
+                "/render",
+                async (HttpRequest request, Reamp reamp, double? tail, CancellationToken cancellationToken) => {
+                    if (request.ContentLength > Reamp.MaxBytes) {
+                        throw new RigException(413, $"A recording is limited to {Reamp.MaxBytes / (1024 * 1024)} MB.");
+                    }
+
+                    return Results.File(
+                        await reamp.RenderAsync(request.Body, tail ?? 0, cancellationToken),
+                        "audio/wav",
+                        "reamp.wav"
+                    );
+                }
+            )
+            .Accepts<Stream>("audio/wav")
+            .Produces(200, contentType: "audio/wav")
+            .WithMetadata(new RequestSizeLimitAttribute(Reamp.MaxBytes))
+            .WithName("RenderLive")
+            .WithSummary(
+                "Reamp: plays a WAV recording (a DI track) into Input 1 of the working copy, offline and faster than "
+                + "real time, and answers with Output 1 as a stereo float WAV at the recording's sample rate, in time "
+                + "with it. ?tail= adds up to 60 seconds for delays and reverbs to ring out. The rig that is playing "
+                + "is not interrupted; its mute and the metronome are left out of the render."
+            );
         live.MapPost(
                 "/save",
                 async (SaveRequest request, LiveRig rig, HttpContext http) =>

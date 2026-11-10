@@ -15,6 +15,7 @@ import { AssetPicker } from './asset-picker';
       <cth-asset-picker
         label="Capture"
         accept=".nam,.aidax,.json"
+        [hint]="noCaptures"
         [assets]="library.models()"
         [reference]="block().assets['model']"
         (picked)="live.setAsset(block().id, 'model', $event.ref)"
@@ -28,6 +29,9 @@ import { AssetPicker } from './asset-picker';
   `
 })
 export class AmpPanel {
+  protected readonly noCaptures =
+    'Cathode comes with no captures, and without one this block only runs its tone controls. Upload a NAM (.nam) or ' +
+    'AIDA-X (.aidax) file; the manual’s “Neural captures and impulse responses” chapter says where to find them.';
   protected readonly live = inject(LiveStore);
   protected readonly library = inject(LibraryStore);
 

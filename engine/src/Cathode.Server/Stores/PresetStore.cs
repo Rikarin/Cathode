@@ -133,6 +133,9 @@ public sealed class PresetStore(
         }
     }
 
+    /// <summary>The user's colour tags and favourite flags on factory presets (for a backup).</summary>
+    public FactoryPresetMark[] Marks() => [..marks.All().Select(static e => e.Item)];
+
     public bool Delete(string id) =>
         FactoryPresets.IsFactoryId(id)
             ? throw RigException.Conflict("Factory presets cannot be deleted.")

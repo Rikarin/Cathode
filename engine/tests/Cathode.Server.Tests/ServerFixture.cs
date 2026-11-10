@@ -14,9 +14,10 @@ using Xunit.Sdk;
 namespace Cathode.Server.Tests;
 
 /// <summary>
-///     A Server with a throwaway data folder and, by default, an in-process engine (null audio). Pass a socket path
-///     to talk to a separate cathode-host over IPC instead, a token to require one on every request, and an editor
-///     folder to serve the editor's web build at the root, as a headless rig does.
+///     A Server with a throwaway data folder and, by default, an in-process engine (null audio), offline renders in
+///     process too. Pass a socket path to talk to a separate cathode-host over IPC instead (offline renders then
+///     start the built cathode-host, as in production), a token to require one on every request, and an editor folder
+///     to serve the editor's web build at the root, as a headless rig does.
 /// </summary>
 public sealed class ServerFixture(string? socketPath = null, string? token = null, string? editorDirectory = null)
     : WebApplicationFactory<Program> {
@@ -103,7 +104,9 @@ public sealed class ServerFixture(string? socketPath = null, string? token = nul
     protected override void ConfigureWebHost(IWebHostBuilder builder) {
         builder.UseSetting("Cathode:DataDirectory", dataDirectory);
         if (socketPath is null) {
-            builder.ConfigureTestServices(static services => services.AddSingleton<IEngineLinks, InProcessEngineLinks>()
+            builder.ConfigureTestServices(static services => services
+                .AddSingleton<IEngineLinks, InProcessEngineLinks>()
+                .AddSingleton<IOfflineRenderer, InProcessOfflineRenderer>()
             );
         }
 
@@ -113,6 +116,7 @@ public sealed class ServerFixture(string? socketPath = null, string? token = nul
 
         if (socketPath is not null) {
             builder.UseSetting("Cathode:Engine:SocketPath", socketPath);
+            builder.UseSetting("Cathode:Engine:HostPath", HostCommandLineTests.HostDll());
         }
 
         if (editorDirectory is not null) {

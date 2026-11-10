@@ -200,7 +200,7 @@ Before you leave:
 
 - [ ] Every preset of the set is saved, and the set is a setlist with no missing presets (or a bank in set order).
 - [ ] Presets are levelled, and you have played each one at stage volume.
-- [ ] You have a backup: the presets exported as `.cthpreset` files, or a copy of Cathode's [data folder](/manual/the-editor#where-things-are-kept).
+- [ ] You have a backup: a `.cthbackup` file from [Library ▸ Backup](/manual/library#backing-up-and-restoring-the-library), or the presets exported as `.cthpreset` files.
 - [ ] The MIDI controller, its cable and its power supply are packed; the layout and mappings work.
 - [ ] Spare cables for the interface's inputs and outputs, and its power supply.
 

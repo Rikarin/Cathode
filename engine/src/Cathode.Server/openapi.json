@@ -487,6 +487,40 @@
         }
       }
     },
+    "/api/v1/live/render": {
+      "post": {
+        "tags": [
+          "Live"
+        ],
+        "summary": "Reamp: plays a WAV recording (a DI track) into Input 1 of the working copy, offline and faster than real time, and answers with Output 1 as a stereo float WAV at the recording\u0027s sample rate, in time with it. ?tail= adds up to 60 seconds for delays and reverbs to ring out. The rig that is playing is not interrupted; its mute and the metronome are left out of the render.",
+        "operationId": "RenderLive",
+        "parameters": [
+          {
+            "name": "tail",
+            "in": "query",
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "audio/wav": {
+              "schema": {
+                "$ref": "#/components/schemas/Stream"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/v1/live/save": {
       "post": {
         "tags": [
@@ -2769,6 +2803,51 @@
           },
           "404": {
             "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/v1/library/backup": {
+      "get": {
+        "tags": [
+          "Library"
+        ],
+        "summary": "The whole library as one .cthbackup file: the global settings, the user\u0027s presets, block presets, templates, snapshots, setlists and banks, and every IR and capture. Factory content is not in it.",
+        "operationId": "BackupLibrary",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/library/restore": {
+      "post": {
+        "tags": [
+          "Library"
+        ],
+        "summary": "Puts a .cthbackup file into the library: an entry with the id of one already there replaces it, everything else stays, and the global settings are replaced. The working copy is not touched. Answers with what was restored and what was left out (and why).",
+        "operationId": "RestoreLibrary",
+        "requestBody": {
+          "content": {
+            "application/zip": {
+              "schema": {
+                "$ref": "#/components/schemas/Stream"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RestoreResult"
+                }
+              }
+            }
           }
         }
       }
@@ -5994,6 +6073,60 @@
         },
         "description": "Replaces a block with a new one of \u0060Type\u0060 in the same cell, keeping its cables."
       },
+      "RestoreResult": {
+        "required": [
+          "presets",
+          "blockPresets",
+          "templates",
+          "snapshots",
+          "setlists",
+          "banks",
+          "assets",
+          "settings",
+          "skipped"
+        ],
+        "type": "object",
+        "properties": {
+          "presets": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "blockPresets": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "templates": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "snapshots": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "setlists": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "banks": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "assets": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "settings": {
+            "type": "boolean"
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "What a restore put into the library: how many of each kind it wrote (an entry with the id of one already\nthere replaced it), whether the global settings were replaced, and what it left out with the reason\n(\u0060Skipped\u0060: a block preset of a block this Cathode does not have, a bank that points at a missing preset)."
+      },
       "RtaRequest": {
         "required": [
           "enabled",
@@ -6494,6 +6627,9 @@
     },
     {
       "name": "Block Library"
+    },
+    {
+      "name": "Library"
     },
     {
       "name": "Setlists"

@@ -24,7 +24,7 @@
 | Latency | No official figure. Hardware modellers are typically ~1–3 ms analog-to-analog *(unverified)* | Target **< 6 ms round trip at 64 samples** on ASIO or CoreAudio |
 | Instrument input | 1 MΩ, **Auto-Z**, selectable impedance 1M/230k/90k/70k/32k/22k (± capacitor), done as *real analog circuitry* | ⚡ This can't be done in software. Recommend an interface with a true Hi-Z input. Optionally model pickup loading with a **digital pickup-load EQ** (RLC resonance) as an approximation |
 | Analog I/O | In 1–4, Out 1–4 with Humbuster, AES/S/PDIF, headphones | Generic **N-in / N-out routing matrix** onto whatever channels the interface exposes |
-| USB audio | 8 in / 8 out. Reamp via USB 5–8 | Native with any interface. Add **built-in reamp** (render a DI file through the preset) as a bonus feature |
+| USB audio | 8 in / 8 out. Reamp via USB 5–8 | Native with any interface. **Built-in reamp**: `POST /live/render` renders a DI file through the working copy offline (Preset ▸ Reamp a recording…) |
 | MIDI | In/Out/Thru, plus 2 pedal jacks | MIDI via the OS (USB-MIDI). Expression pedals arrive through a MIDI controller |
 | FASLINK II | Proprietary link to FC-6/FC-12 | ⚡ Replace with **generic MIDI foot-controller support** plus a layout model |
 | Presets | 512 (Mk I) / 1024 (Mk II) | Unlimited (disk). Add banks and setlists for live use |
@@ -159,7 +159,7 @@ Fractal's amp algorithm generations show the scale of the target. The Circuit ti
 | IR capture | Built in (flat SS power amp, or amp + load). Cab-Lab 3 for mixing | **IR capture utility** (sweep, deconvolve, trim) plus an IR mixer/export |
 | Global EQ and output | EQ and level per analog output, Global Mix offset, Noisegate offset, Global power-amp modelling off, output copy modes | Global settings resource |
 | Leveling | VU meters in grid zoom, Leveling panel in Axe-Edit | LUFS/peak meters per block and a **preset leveling** tool (auto-match loudness across scenes) |
-| Firmware and backup | Fractal-Bot backup and restore | Library export/import, auto-backup |
+| Firmware and backup | Fractal-Bot backup and restore | Library export/import; the whole library as one `.cthbackup` file (`GET /library/backup`, `POST /library/restore`). No automatic backup yet |
 
 ---
 

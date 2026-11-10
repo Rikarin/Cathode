@@ -65,6 +65,9 @@ Both services run as the unprivileged `cathode` user inside a systemd sandbox, s
 (WAV, NAM models, preset packages) or in the engine's IPC cannot reach the rest of the machine. Check the result with
 `systemd-analyze security cathode-server cathode-host`.
 
+A reamp (`POST /live/render`) is a second `cathode-host` that the server starts as its own child, so it runs inside the
+server's sandbox, not the host's: no devices, no real-time scheduling, and its files in the shared private `/tmp`.
+
 | Directive                                                   | cathode-server                                      | cathode-host                                         |
 | ----------------------------------------------------------- | --------------------------------------------------- | ---------------------------------------------------- |
 | `NoNewPrivileges`, `CapabilityBoundingSet=` (empty)         | yes, no capabilities                                | yes, no capabilities (systemd applies `Nice` and the RT limits before it starts) |

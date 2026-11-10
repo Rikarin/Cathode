@@ -1,12 +1,43 @@
 using Cathode.Server.Stores;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using static Cathode.Server.Api.CathodeApi;
 
 namespace Cathode.Server.Api;
 
-/// <summary>Setlists and banks: lists of presets, read, written and deleted by id.</summary>
+/// <summary>
+///     Setlists and banks: lists of presets, read, written and deleted by id. And the whole library as one file:
+///     backup and restore (<see cref="LibraryBackup" />).
+/// </summary>
 static class LibraryApi {
     public static void Map(RouteGroupBuilder api) {
+        var library = api.MapGroup("/library").WithTags("Library");
+        library.MapGet(
+                "/backup",
+                (LibraryBackup backup, CancellationToken cancellationToken) => ZipFile(
+                    $"Cathode backup {DateTime.Now:yyyy-MM-dd}{LibraryBackup.Extension}",
+                    file => backup.WriteAsync(file, cancellationToken)
+                )
+            )
+            .Produces(200, contentType: "application/zip")
+            .WithName("BackupLibrary")
+            .WithSummary(
+                "The whole library as one .cthbackup file: the global settings, the user's presets, block presets, "
+                + "templates, snapshots, setlists and banks, and every IR and capture. Factory content is not in it."
+            );
+        library.MapPost(
+                "/restore",
+                async (HttpRequest request, LibraryBackup backup, CancellationToken cancellationToken) =>
+                    TypedResults.Ok(await backup.RestoreAsync(request.Body, cancellationToken))
+            )
+            .Accepts<Stream>("application/zip")
+            .WithName("RestoreLibrary")
+            .WithMetadata(new RequestSizeLimitAttribute(LibraryBackup.MaxBackupBytes))
+            .WithSummary(
+                "Puts a .cthbackup file into the library: an entry with the id of one already there replaces it, "
+                + "everything else stays, and the global settings are replaced. The working copy is not touched. "
+                + "Answers with what was restored and what was left out (and why)."
+            );
         MapEntries(
             api.MapGroup("/setlists").WithTags("Setlists"),
             "Setlist",

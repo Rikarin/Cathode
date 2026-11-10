@@ -19,7 +19,7 @@ Click a preset to select it. The bar at the bottom shows its name and descriptio
 
 > **Note:** A preset that sits in a bank (or a setlist) cannot be deleted from here, so that no program change or setlist entry is left pointing at nothing. Instead of asking to delete it, Cathode lists where it is used, for example "bank “Gig”, slot 3", and **Manage presets** takes you to its banks. Remove it from them there first, or delete it there.
 
-At the top right, **Import…** adds a `.cthpreset` file, and **Export list…** saves a text file listing your presets.
+At the top right, **Import…** adds a `.cthpreset` file, **Export list…** saves a text file listing your presets, and **Backup** saves or restores the whole Library (see [Backing up and restoring the Library](#backing-up-and-restoring-the-library)).
 
 ### The factory bank
 
@@ -125,6 +125,23 @@ In the IR cabs section, **IR tools** has three more tools:
 
 [Neural captures and impulse responses](/manual/nam-and-irs) explains all of these in depth.
 
+## Backing up and restoring the Library
+
+A **`.cthbackup`** file is the whole Library in one file: your presets, banks, setlists, block presets, templates and snapshots, every IR and capture, the global settings, and your favourites and colours on factory presets. Use it to keep a copy, or to move a rig from the desktop app to a headless rig (or back). Factory presets and factory block presets are not in it: every Cathode has its own.
+
+**To back up:** in **Library ▸ Presets**, click **Backup ▸ Back up the library…**. Your browser or the app saves the file. A Library with many captures and IRs makes a large file.
+
+**To restore:** click **Backup ▸ Restore from a backup…**, choose a `.cthbackup` file and confirm. A restore adds to the Library:
+
+- Anything in the backup that the Library also has (the same preset, bank, setlist and so on) is replaced by the backup's copy.
+- Everything else in the Library stays. A restore deletes nothing.
+- The global settings are replaced by the backup's.
+- The preset you are editing is not touched. Load it again to get the restored version.
+
+If part of a backup cannot be restored (for example a bank that points at a preset the backup does not hold), the rest still is, and Cathode lists what was left out and why.
+
+> **Note:** A backup made by a newer version of Cathode than yours is refused as a whole, and nothing changes. Update Cathode to restore it. Backups from older versions always restore.
+
 ## Where the Library is stored
 
-Everything in the Library is kept in Cathode's data folder (see [Where things are kept](/manual/the-editor#where-things-are-kept)). To back up your whole Library, copy that folder while Cathode is closed. To move a few presets to another computer, export them as `.cthpreset` files.
+Everything in the Library is kept in Cathode's data folder (see [Where things are kept](/manual/the-editor#where-things-are-kept)). To back up your whole Library, use **Backup** (above), or copy that folder while Cathode is closed. To move a few presets to another computer, export them as `.cthpreset` files.

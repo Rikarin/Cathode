@@ -255,6 +255,29 @@ public sealed partial class AssetStore {
         }
     }
 
+    /// <summary>
+    ///     Gives a stored asset the name, colour tag, favourite flag and date a backup recorded for it; false when the
+    ///     asset is not in the store.
+    /// </summary>
+    public bool Describe(AssetInfo recorded) {
+        lock (gate) {
+            if (!index.TryGetValue(recorded.Ref, out var info)) {
+                return false;
+            }
+
+            index[recorded.Ref] = info with {
+                Name = Path.GetFileName(recorded.Name) is { } name && !string.IsNullOrWhiteSpace(name)
+                    ? name.Trim()
+                    : info.Name,
+                Color = recorded.Color is { Length: > 0 } ? recorded.Color : null,
+                Favorite = recorded.Favorite,
+                Added = recorded.Added
+            };
+            SaveIndex();
+            return true;
+        }
+    }
+
     /// <summary>A colour tag as stored: an empty one clears it.</summary>
     static string? NullIfEmpty(string color) => color.Length == 0 ? null : color;
 

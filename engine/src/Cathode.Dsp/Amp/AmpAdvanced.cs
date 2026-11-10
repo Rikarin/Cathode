@@ -157,6 +157,9 @@ public static class AmpFeatures {
         return paths;
     }
 
+    /// <summary>Whether <paramref name="design" /> has a master volume in its preamp, in any channel.</summary>
+    public static bool HasMaster(AmpDesign design) => MasterPaths(design) != 0;
+
     /// <summary>Whether <paramref name="role" /> is on with Switch 1 to 3 at <paramref name="switches" />.</summary>
     static bool IsOn(SwitchRole role, int switches) =>
         role switch {

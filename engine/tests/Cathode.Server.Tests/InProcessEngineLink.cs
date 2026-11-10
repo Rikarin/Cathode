@@ -1,9 +1,11 @@
 using Cathode.Audio;
 using Cathode.Dsp;
+using Cathode.Engine.Graph;
 using Cathode.Engine.Telemetry;
 using Cathode.EngineHost;
 using Cathode.Ipc;
 using Cathode.Server.Engine;
+using Cathode.Server.Rig;
 
 namespace Cathode.Server.Tests;
 
@@ -68,4 +70,22 @@ public sealed class InProcessEngineLinks : IEngineLinks {
 
     public Task<IEngineLink> ConnectAsync(CancellationToken cancellationToken) =>
         Task.FromResult<IEngineLink>(new InProcessEngineLink());
+}
+
+/// <summary>
+///     Offline renders in the test's process: what cathode-host's <c>--render</c> runs (<see cref="OfflineReamp" />),
+///     without starting a process for each.
+/// </summary>
+public sealed class InProcessOfflineRenderer : IOfflineRenderer {
+    public Task RenderAsync(RenderJob job, CancellationToken cancellationToken) =>
+        Task.Run(
+            () => {
+                try {
+                    OfflineReamp.Run(job);
+                } catch (GraphValidationException e) {
+                    throw new RigException(422, "The preset could not be rendered.", e.Errors);
+                }
+            },
+            cancellationToken
+        );
 }

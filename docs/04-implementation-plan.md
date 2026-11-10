@@ -103,6 +103,7 @@ Ordered by value to a guitarist:
   - JSON per preset (atomic writes, safe ids)
   - **banks** (128 slots, for MIDI program change) and **setlists** (preset plus starting scene), with referential integrity
   - **`.cthpreset`** import/export: a zip of the preset and its assets, with hardened import (strict names, hash-verified assets, size limits enforced while reading, no overwrites)
+  - **`.cthbackup`** backup/restore: a zip of the whole library (global settings, presets, block presets, templates, snapshots, setlists, banks, marks on factory presets, assets and their index), read with the same hardening and put back through the stores (`Stores/LibraryBackup.cs`)
 - [x] Undo/redo (snapshots of the working copy; knob drags coalesce into one step)
 - [x] `/ws` events and telemetry as JSON text, with a `connected` handshake so clients never miss a change. *Changed:* binary frames and per-channel subscriptions are deferred (ADR-0004)
 - [x] Asset store for IRs and models: content-addressed (SHA-256), deduplicated, size-limited
@@ -305,7 +306,7 @@ Gate for each model: ESR/MRSTFT within target across a knob sweep, plus an ABX p
 - [x] Editor workflow on top of the PS stream: ⌘L opens Preset Leveling, ⌘I resets the selected block's channel, and the preset picker, Go to, ⌘PgUp/PgDn, F5 and New from template ask before discarding unsaved edits (`PresetSwitcher`).
 
 - [x] Factory presets: 70 ship, embedded in the Server and levelled to one loudness ([02 §7.5](02-architecture.md#75-editor-workflow-as-built))
-- [ ] Factory IRs (our own captures or properly licensed) and factory NAM captures (own or licensed): none ship
+- [ ] Factory IRs (our own captures or properly licensed) and factory NAM captures (own or licensed): none ship. Until one does, the pickers of the Amp NAM, IR Player and Cab blocks say so while the library has none and point at uploading and at the file-less alternatives
 - [ ] Installers (signed and notarised), auto-update, crash reporting (opt-in), telemetry-free by default
 - [x] User docs: the manual on the website (`website/src/app/manual`), with a page per block whose parameter tables are generated from the descriptors, and 21 guide chapters. CI fails when the generated tables are stale or a knob has no description (`website.yml`)
 - [x] CPU estimate in the editor ("Est. n %" beside the meters), from the block costs `Cathode.Bench` records in the catalog

@@ -5,6 +5,7 @@ import { type PresetSummary, type SnapshotSummary, unwrap } from '@cathode/api-c
 import { provideIcons } from '@ng-icons/core';
 import {
   matAddRound,
+  matAudioFileRound,
   matCameraAltRound,
   matDeleteRound,
   matDeleteSweepRound,
@@ -30,16 +31,18 @@ import { CompareStore } from '../state/compare.store';
 import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
 import { PresetSwitcher } from '../state/preset-switcher';
+import { ReampDialog } from './reamp-dialog';
 import { ShortcutHint } from './shortcuts';
 
 /**
- * The preset commands beyond save: export, revert, clear, snapshots (stored on the Server, so every editor shares them) and
- * templates.
+ * The preset commands beyond save: export, revert, clear, snapshots (stored on the Server, so every editor shares them),
+ * templates and reamp (a recording rendered through the preset).
  */
 @Component({
   selector: 'cth-preset-menu',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    ReampDialog,
     ShortcutHint,
     XuiAlertDialogImports,
     XuiButtonImports,
@@ -52,6 +55,7 @@ import { ShortcutHint } from './shortcuts';
   providers: [
     provideIcons({
       matAddRound,
+      matAudioFileRound,
       matCameraAltRound,
       matDeleteRound,
       matDeleteSweepRound,
@@ -89,6 +93,16 @@ import { ShortcutHint } from './shortcuts';
         </button>
         <button type="button" xuiMenuItem icon="matHistoryRound" (click)="openSnapshots()">Snapshots…</button>
         <xui-menu-divider />
+        <button
+          type="button"
+          xuiMenuItem
+          icon="matAudioFileRound"
+          data-testid="reamp-recording"
+          (click)="reampOpen.set(true)"
+        >
+          Reamp a recording…
+        </button>
+        <xui-menu-divider />
         <button type="button" xuiMenuItem icon="matRestoreRound" [disabled]="!live.state()?.dirty" (click)="revert()">
           Revert to saved
         </button>
@@ -125,6 +139,10 @@ import { ShortcutHint } from './shortcuts';
       [(open)]="confirmDeleteTemplate"
       (confirmed)="deleteTemplate()"
     />
+
+    @if (reampOpen()) {
+      <cth-reamp-dialog [(open)]="reampOpen" />
+    }
 
     @if (snapshotsOpen()) {
       <xui-dialog
@@ -313,6 +331,7 @@ export class PresetMenu {
   protected readonly infoAuthor = signal('');
   protected readonly infoTags = signal('');
   protected readonly infoDescription = signal('');
+  protected readonly reampOpen = signal(false);
   protected readonly snapshotsOpen = signal(false);
   protected readonly templatesOpen = signal(false);
   protected readonly saveTemplateOpen = signal(false);

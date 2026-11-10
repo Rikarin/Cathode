@@ -14,6 +14,7 @@ export type PresetPosition = Schemas['PresetPosition'];
 export type PresetStep = Schemas['PresetStep'];
 export type PresetSummary = Schemas['PresetSummary'];
 export type AssetInfo = Schemas['AssetInfo'];
+export type RestoreResult = Schemas['RestoreResult'];
 export type AssetUsage = Schemas['AssetUsage'];
 export type SystemInfo = Schemas['SystemInfo'];
 export type EngineStatus = Schemas['EngineStatus'];

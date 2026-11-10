@@ -155,7 +155,7 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
     /// <summary>
     ///     The package's assets by reference, each verified to hash to its name before anything enters the store.
     /// </summary>
-    static async Task<Dictionary<string, ZipArchiveEntry>> VerifiedAssetsAsync(
+    internal static async Task<Dictionary<string, ZipArchiveEntry>> VerifiedAssetsAsync(
         ZipArchive zip,
         CancellationToken cancellationToken
     ) {
@@ -200,12 +200,17 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
         return added;
     }
 
-    static async Task WriteJsonAsync(ZipArchive zip, string name, byte[] json, CancellationToken cancellationToken) {
+    internal static async Task WriteJsonAsync(
+        ZipArchive zip,
+        string name,
+        byte[] json,
+        CancellationToken cancellationToken
+    ) {
         await using var stream = await zip.CreateEntry(name, CompressionLevel.Optimal).OpenAsync(cancellationToken);
         await stream.WriteAsync(json, cancellationToken);
     }
 
-    static async Task<T> ReadJsonAsync<T>(
+    internal static async Task<T> ReadJsonAsync<T>(
         ZipArchive zip,
         string name,
         JsonTypeInfo<T> typeInfo,
@@ -235,7 +240,7 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
     /// <summary>
     ///     Copies at most <paramref name="limit" /> bytes, counting what is actually read (headers can lie).
     /// </summary>
-    static async Task CopyLimitedAsync(
+    internal static async Task CopyLimitedAsync(
         Stream source,
         Stream target,
         long limit,

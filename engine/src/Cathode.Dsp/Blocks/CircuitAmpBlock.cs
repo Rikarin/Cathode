@@ -1028,7 +1028,7 @@ readonly record struct AdvancedFeatures(
             AmpFeatures.Has(design, "cutsw"),
             AmpFeatures.Has(design, "overdrive"),
             AmpFeatures.Has(design, "hitreble"),
-            AmpFeatures.MasterPaths(design) != 0
+            AmpFeatures.HasMaster(design)
         );
 
     /// <summary>Whether Master Location acts with the switches as given: the playing channel has a master.</summary>
