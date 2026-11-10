@@ -33,13 +33,17 @@ namespace Cathode.Dsp.Amp.Models;
 ///         path from the bass wiper to the volume's wiper.
 ///     </para>
 ///     <para>
-///         No master volume: none is drawn on the preamp, overdrive or output sheet. The preamp sheet ends on V2's 10
-///         nF and the Normal/Overdrive switch (Normal straight on, Overdrive out to the first trim and back from the
-///         second), and the output sheet starts on a 10 nF into the inverter's grid and its 1M leak, with nothing
-///         between the two. So the model has none either and its Master knob is hidden: the Volume (on the overdrive, the OD
-///         Level trim) is the only level control ahead of the inverter. Later Overdrive Specials have a Master on the
-///         panel (<see cref="OverdriveSpecial" />); whether the amp these sheets were drawn from had one that the
-///         redraws leave out is not known.
+///         No master volume (#195): none is drawn on the preamp, overdrive or output sheet. The preamp sheet ends on
+///         V2's 10 nF and the Normal/Overdrive switch (Normal straight on, Overdrive out to the first trim and back
+///         from the second), and the output sheet starts on a 10 nF into the inverter's grid and its 1M leak, with
+///         nothing between the two. So the model has none either and its Master knob is hidden: the Volume (on the
+///         overdrive, the OD Level trim) is the only level control ahead of the inverter. That fits the one amp of
+///         the era with these features whose panel is described in print: Guitar Player's piece on the 1977 combo
+///         no. 0077 (https://www.guitarplayer.com/gear/examining-a-77-dumble-overdrive-special-1x12) lists the
+///         bright, deep and accent switches these sheets have, the overdrive's level and ratio on the front, and a
+///         master volume only as a control added later on the rear panel. Later Overdrive Specials have a Master on
+///         the front (<see cref="OverdriveSpecial" />, from its own drawing); putting that amp's 1M pot here would
+///         be a part no 1970s drawing shows.
 ///     </para>
 ///     <para>
 ///         Guesses, marked: the power tubes are not named on the drawing (6L6GC, as in Robben Ford's ODS; the 2 × 6L6
