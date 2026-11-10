@@ -6,7 +6,7 @@ namespace Cathode.Dsp.Amp.Models;
 ///     Fender Super Reverb AB763 (40 W): the Normal or Vibrato channel (<see cref="AmpPanel.Switch1" />), each V1A into
 ///     the Fender stack (0.022 µF mid cap) and the 1M volume with its 120 pF bright switch, V1B, the AB763 mixing
 ///     network, a 12AT7 long-tail pair, two 6L6GC in fixed bias at 460 V on a GZ34, the 125A9A transformer (4.2k : 2
-///     Ω), and 820 Ω / 100 Ω feedback from the 2 Ω tap (about 41 % less feedback voltage than from a 4 Ω tap). Only the
+///     Ω), and 820 Ω / 100 Ω feedback from the 2 Ω tap (about 29 % less feedback voltage than from a 4 Ω tap). Only the
 ///     Vibrato channel has a middle pot; the Normal channel has the fixed 6.8k. Sources: see <see cref="Ab763" />;
 ///     docs/06 §3.1.
 /// </summary>

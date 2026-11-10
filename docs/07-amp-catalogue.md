@@ -14,7 +14,7 @@ Every real amp we model, plan to model, or might model, with where it stands in 
 - Add a capture you found to `engine/tests/assets/references/manifest.json` (see `docs/06-amp-modelling-spec.md` §4).
   Tone3000 ("T3K" licence) and CC BY-NC files are local-only: never commit them.
 
-Last updated: 2026-10-24 (after the second round of family streams merged).
+Last updated: 2026-11-10 (88 types, through the Quick Rod, AFD100, DSL100 and JMP-1; duplicate rows merged and the counts redone).
 
 ## Status key
 
@@ -25,6 +25,7 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 | 📋 Planned | On the list (spec tier 1 or 2), schematic available |
 | ⏸ Waiting | Wanted, but no reliable schematic yet: a circuit model would be guesswork. Find a schematic first |
 | 💤 Not planned | Popular, not researched yet. Candidates for later |
+| ↪ See … | The amp has its own row elsewhere in this file and is counted there; this row only adds the Axe model names |
 
 "References we have" lists what is in the manifest now: **GPL** files are fetched by `cathode-references fetch`;
 **T3K** files you download by hand (`cathode-references status` prints the pages and file names).
@@ -35,7 +36,7 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 
 | Amp | Status | Cathode type | References we have | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Blackface (Deluxe/Twin-style, generic) | ✅ Done | Blackface | — | — | 1x12 / 2x12 open back |
+| Blackface (generic AB763 Super Reverb-style channel: two 6L6GC, 4.2k, with an added master and presence) | ✅ Done | Blackface | — | — | 4x10 open back |
 | Deluxe Reverb AB763 | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Deluxe Reverb | T3K: '68 Custom Deluxe (modified circuit) | Stock AB763 Deluxe, direct out, volume sweep | 1x12 open, Jensen C12K/C12N |
 | Twin Reverb AB763 | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Twin Reverb | GPL: Twin Normal Bright, Twin Vibrato Bright | Settings stated; Normal without Bright | 2x12 open, JBL D120 / Jensen C12N |
 | Super Reverb AB763 | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Super Reverb | T3K: '64 Super Reverb, 5 settings | More volume steps | 4x10 open, Jensen P10R/P10Q |
@@ -80,9 +81,9 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 |---|---|---|---|---|---|
 | AC30 Top Boost | ✅ Done (JMI OS/010, OS/065 values) | AC30 | T3K: AC30S1 gain sweep | AC30 TB / C2 / HW direct out | 2x12 open, Celestion Blue / Alnico |
 | AC30 Normal channel | ✅ Done | AC30, Switch 1 "Normal Ch" | — | | 2x12 open, Blue |
-| AC15 (EF86) | ✅ Done (mixing and cut assumed; no vibrato-tremolo: no AC15 drawing could be read) | AC15 | GPL: AC15 Top Boost; T3K: AC15C1 Normal (6 settings) and Top Boost | Vintage EF86 channel captures | 1x12 open, Blue / G12M |
+| AC15 (EF86) | ✅ Done (mixing and cut assumed; no vibrato-tremolo: no AC15 drawing could be read) | AC15 | Stand-ins, not this amp: GPL: AC15 Top Boost (version not stated; mapped to the AC30 type, the AC15 type having no top-boost channel); T3K: AC15C1 Normal (6 settings, on the type's 12AX7 channel) and Top Boost (the AC15C1 is a current circuit with no EF86) | Vintage EF86 channel captures | 1x12 open, Blue / G12M |
 | Matchless DC-30 | ✅ Done | DC-30 | GPL: Matchless SC30 channel 1 | DC-30 both channels | 2x12 open, G12H30 / Vintage 30 |
-| Dumble Overdrive Special | ✅ Done (a 1997 ODS 100, traced: clean and overdrive) | ODS 97 | GPL: Dumble kit low/high, Dumble clone clean/medium/high (all mapped, knobs fitted) | Real ODS captures with settings; the 1970s ODS (Rock/Jazz, Deep) and HRM circuits | 1x12 / 2x12 open, EV12L |
+| Dumble Overdrive Special | ✅ Done (a 1997 ODS 100, traced: clean and overdrive; the 1970s ODS with Rock/Jazz and Deep is its own type, see the Dumble ODS row in the additions below) | ODS 97, ODS 70s | GPL: Dumble kit low/high, Dumble clone clean/medium/high (all mapped to ODS 97, knobs fitted) | Real ODS captures with settings; an HRM schematic | 1x12 / 2x12 open, EV12L |
 | Two-Rock (Dumble-style) | ⏸ Waiting (no schematic published; the ODS work does not carry over without one) | — | (Dumble captures above) | Schematic or trace | 1x12 / 2x12 open |
 | Bad Cat Hot Cat / Black Cat | ✅ Done (Hot Cat 30, both inputs; its Brilliance on the Presence knob, clockwise brighter; the master read as a divider, the drawing having it as a dead rheostat; Black Cat ⏸: no schematic, Bad Cat never published one) | Hot Cat 30 | — | Hot Cat 30 captures, Gain and Clean inputs | 2x12 open |
 | Dr Z Maz 18 | ⏸ Waiting (searched 2026-10: no schematic or trace; specs only: 2 x EL84 cathode bias, 5AR4) | — | — | Schematic | 1x12 / 2x12 open |
@@ -91,12 +92,9 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 | Divided by 13 | ⏸ Waiting (searched 2026-10: no schematic or trace for the JRT 9/15, CJ 11 or FTR 37) | — | — | Schematic | 1x12 / 2x12 |
 | Budda Superdrive | ⏸ Waiting (searched 2026-10: no schematic or trace) | — | — | Schematic | 2x12 |
 | Trainwreck Express | ✅ Done (redraw A1a of the schematicheaven collection, hearsay: medium confidence; presence pot as the tail's shunt) | Express | — | Captures with settings; a measured trace | 2x12 / 4x12 |
-| Supro (1960s) | ⏸ Waiting (1624T values read; needs a paraphase phase inverter in the library) | — | — | | 1x12 open |
-| Gibson GA-40 Les Paul | ⏸ Waiting (factory drawing read; needs a 5879 tube table and a paraphase inverter) | — | — | | 1x12 open |
-| Magnatone (Custom 280 / 15) | ⏸ Waiting (drawings read; the dry path runs through the varistor vibrato, and 6CZ5 curves are missing) | — | — | | 2x12 open |
-| Supro 1624T Dual-Tone | ⏸ Waiting (values read from a clean redraw, el34world `Supro_1624t_schematic_263.pdf`, power amp confirmed by AmpBooks; its floating paraphase inverter is not in the library) | — | — | A paraphase inverter in `PowerAmp`; B+ and OT (AmpBooks models 7k) | 1x12 open |
-| Gibson GA-40 Les Paul (5879 version) | ⏸ Waiting (factory drawing with a voltage table, el34world `Gibson_ga_40_les_paul_with_5879.pdf`, read; needs a 5879 pentode table and a self-balancing paraphase inverter) | — | — | 5879 curves; OT primary (about 10k on the 1954 parts list) | 1x12 open, Jensen P12Q |
-| Magnatone Custom 280 (280-A / 280-B) | ⏸ Waiting (factory drawings read, el34world `Magnatone_280a.pdf`, `Magnatone_280b.png`; the dry path runs through the varistor vibrato network, whose static resistance is not given; 6CZ5 curves missing) | — | — | Varistor data; OT primary. Custom 15 drawings exist (`Magnatone_m15a_revf.png`) but are not read | 2x12 open |
+| Supro 1624T Dual-Tone (1960s) | ⏸ Waiting (values read from a clean redraw, el34world `Supro_1624t_schematic_263.pdf`, power amp confirmed by AmpBooks; a floating paraphase inverter is in the library now (`FloatingParaphaseDesign`, built for the B-15N) but has not been checked against the 1624T's; there is no 6973 output-tube table) | — | — | 6973 curves; the inverter checked against the drawing; B+ and OT (AmpBooks models 7k) | 1x12 open |
+| Gibson GA-40 Les Paul (5879 version) | ⏸ Waiting (factory drawing with a voltage table, el34world `Gibson_ga_40_les_paul_with_5879.pdf`, read; its self-balancing paraphase inverter can be built now (`FloatingParaphaseDesign`); still needs a 5879 pentode table) | — | — | 5879 curves; OT primary (about 10k on the 1954 parts list) | 1x12 open, Jensen P12Q |
+| Magnatone Custom 280 (280-A / 280-B) and Custom 15 | ⏸ Waiting (factory drawings read, el34world `Magnatone_280a.pdf`, `Magnatone_280b.png`; the dry path runs through the varistor vibrato network, which needs a varistor element and the varistors' V-I curve, not on the drawings; 6CZ5 curves missing) | — | — | Varistor data: Tim Robbins's "Magnatone vibrato design" (dalmura.com.au, 2015, revised 2023) is about these varistors and has not been read; 6CZ5 curves; OT primary. Custom 15 drawings exist (`Magnatone_m15a_revf.png`) but are not read | 2x12 open |
 
 ## High gain
 
@@ -104,7 +102,7 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 |---|---|---|---|---|---|
 | Soldano SLO-100 | ✅ Done | SLO-100: OD channel; Switch 1 the normal channel (Crunch, Bright) | GPL: Soldano crunch and high (model not stated); T3K: SLO-100 pack | Normal channel clean and crunch captures; OD gain sweep | 4x12 closed, Vintage 30 / G12T-75 |
 | Mesa/Boogie Mark IIC+ | ✅ Done (presence: the rheostat in series with the feedback, as drawn) | Mark IIC+, lead (Switch 1 Treble Shift, Switch 2 Deep, Switch 3 Bass Shift; Bright is Volume 1's and the Lead Master's pull together); Mark IIC+ Rhythm, the rhythm channel from the factory scan (the same amp without the lead circuit and the lead master) | GPL: IIC+ Drive-knob model, IIC+ Drive 8; T3K: IIC+ pack | EQ in and out, Lead Drive sweep | 1x12 / 4x12 closed, EVM12L / Vintage 30 |
-| Peavey 5150 / 6505 | ✅ Done (lead; the supply page unread, its preamp rails derived from the assumed chain); rhythm ⏸ | 5150, lead | GPL: 5150 block letter, 6505+ red (two sources) | Rhythm channel: its network is on the factory "Initial Preamp Stage" page, but the relay states (K1, K2, K4) per channel and crunch setting are on a page the excerpts lack; a full factory set or a trace of the switching logic. Read so far from the contacts: K2A takes V1B's input from the Clean Pre (pin 3) or the Ultra Pre (pin 4), K2B the post gain; K4 is Crunch by what it does (pin 3: R19 470k ‖ 270 pF in series and R23 39k + 0.1 µF to ground at the Clean Pre's top; pin 4: R43 2.2M ‖ 470 pF and no shunt, about 20 dB more); the Bright switch S1C puts C10 470 pF across R21 1M. Still open: which channel closes K1 (C26 22 µF across V1B's cathode and R20 220k from V2A's grid to ground). The lead model assumes neither is in; if K1 rests with K2 in the rhythm channel, the lead has both | 4x12 closed, Sheffield / Vintage 30 |
+| Peavey 5150 / 6505 | ✅ Done (lead; the supply page unread, its preamp rails derived from the assumed chain); rhythm ⏸ | 5150, lead | GPL: 5150 block letter; 6505+ red (two sources: the 6505+ is the 5150 II, a later amp with a changed preamp and no type of its own, so these are stand-ins on the 5150 type) | Rhythm channel: its network is on the factory "Initial Preamp Stage" page, but the relay states (K1, K2, K4) per channel and crunch setting are on a page the excerpts lack; a full factory set or a trace of the switching logic. Read so far from the contacts: K2A takes V1B's input from the Clean Pre (pin 3) or the Ultra Pre (pin 4), K2B the post gain; K4 is Crunch by what it does (pin 3: R19 470k ‖ 270 pF in series and R23 39k + 0.1 µF to ground at the Clean Pre's top; pin 4: R43 2.2M ‖ 470 pF and no shunt, about 20 dB more); the Bright switch S1C puts C10 470 pF across R21 1M. Still open: which channel closes K1 (C26 22 µF across V1B's cathode and R20 220k from V2A's grid to ground). The lead model assumes neither is in; if K1 rests with K2 in the rhythm channel, the lead has both. Also wanted: captures of a 5150 or 6505 (not a 6505+) with settings | 4x12 closed, Sheffield / Vintage 30 |
 | EVH 5150III | ✅ Done (red, drawn from a redraw of the 100S Stealth's channel 3, which stands in for the standard 100 W head's red channel); blue and green ⏸: the MARKTHERENCE repository has "Channel 1" and "Channel 2" redraws beside the red one, but the Channel 2 file cannot be built as drawn: its parts C2, R4 and R6 are deleted and a wire jumpers C4 470 nF, so V1's plate reaches the 250k gain pot and the next grid through 10k with no coupling cap; no factory drawing found | 5150III, red | T3K: 5150III OB1 v2 | Blue and red channels; a factory drawing of the standard 100 W head, or a second trace of the blue channel's first coupling | 4x12 closed, G12EVH / Vintage 30 |
 | Mesa/Boogie Dual Rectifier | ✅ Done (factory two-channel drawing, 1993, red channel; Modern takes the feedback out) | Dual Rectifier, red | GPL: Mini Rectifier (not the same amp) | Dual/Triple Rec, modern and vintage modes, tube vs SS rectifier | 4x12 closed, Vintage 30 |
 | Bogner Ecstasy | ⏸ Waiting (only a modded "83K" redraw and an OD-channel-only redraw of unknown version; no 100B/101B or 20th Anniversary drawing found) | — | GPL: Ecstasy Blue *pedal* (not the amp) | Blue/red channels; a stock 100B/101B schematic | 4x12 closed, Vintage 30 / Greenback |
@@ -124,8 +122,8 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 | PRS Archon | ⏸ Waiting (no service schematic found on PRS's site or elsewhere; specs only, 6 × 12AX7, 4 × 6L6 or 2 × 6CA7) | — | — | Schematic; the Clean/Lead/Bright variants | 4x12 closed |
 | Krank Revolution | ⏸ Waiting (a reverse-engineered Rev 1 preamp and power amp are MEF attachments, thread 987426, login only; not read, and not factory) | — | — | Read the MEF trace | 4x12 closed |
 | Victory Kraken / Sheriff | ⏸ Waiting (nothing found; Victory publishes none) | — | — | Schematic | 4x12 closed |
-| Randall Satan / RG100 | ⏸ Waiting (Satan: nothing found. RG100: a legible factory scan of the solid-state RG80/RG100 on el34world, but it is 4558 op-amps and JFETs, which the stage library cannot build yet) | — | — | Satan schematic; op-amp and JFET network stages for the RG100 | 4x12 closed |
-| Hughes & Kettner TriAmp | ⏸ Waiting (owner manuals only; a MkII service manual is mentioned on forums but not found) | — | — | Service manual | 4x12 closed |
+| Randall Satan / RG100 | ⏸ Waiting (Satan: nothing found. RG100: a legible factory scan of the solid-state RG80/RG100 on el34world; it is 4558 op-amps and JFETs. Op-amp stages can be built now (`StageNetlist.OpAmp`, as in the JC-120, Valvestate 8080 and JCM900); the JFET stages cannot yet) | — | — | Satan schematic; a JFET element in the stage library for the RG100 | 4x12 closed |
+| Hughes & Kettner TriAmp | ⏸ Waiting (nothing read yet. Found November 2026 and not opened: a 1999 TriAmp service document with schematics on manualmachine.com, `/hk/triamp/5152155-schematic`, and a 29-page service manual on elektrotanya; which mark they cover is not checked. A MkII service manual is mentioned on forums but not found) | — | — | Read the service document; MkII and Mark 3 drawings | 4x12 closed |
 | Wizard Modern Classic | ⏸ Waiting (an MCII schematic and turret layout by a forum member are ampgarage attachments, login only, viewtopic.php?p=398776; the thread text gives only the inverter and feedback values) | — | — | Read the ampgarage trace | 4x12 closed |
 | Mesa/Boogie Mark V | ✅ Done (factory drawing), channel 3 with its IIC+ / Mark IV / Extreme modes | Mark V | GPL (not usable): ToneLibrary SmartAmp Mark 5 high gain (WaveNet format the harness does not run; settings and rig unstated) | Channels 1 and 2; 45 W / 10 W modes | 4x12 / 1x12 closed |
 | Mesa/Boogie Triple Rectifier | ✅ Done as a variant (no schematic; the three-channel Dual Rectifier with six 6L6) | Triple Rectifier | — | A Triple Rectifier drawing | 4x12 closed, Vintage 30 |
@@ -176,7 +174,7 @@ built from the documented features and fitted to captures.
 | Marshall Valvestate 8080 / 8100 | ✅ Done (Marshall drawings PC0689 issue 5 and PC0689P issue 9, vector PDFs at schematicheaven `marshallamps/valvestate80_80w_8080_8100_8412.pdf`; both channels, solid-state power amp; its current feedback not modelled; the preamp-tube parameters act on the boost channel's ECC83) | Valvestate 8080 | — | Captures | 1x12 / 4x12 closed |
 
 No free (GPL / CC) direct-out capture of any of these was found: GuitarML ToneLibrary and pelennor2170/NAM_models
-hold none (searched October 2026; ToneLibrary's Bassman files are the 5F6-A), so the four models are schematic-only. Sources, readings and guesses are in
+hold none (searched October 2026; ToneLibrary's Bassman files are the 5F6-A), so the five models are schematic-only. Sources, readings and guesses are in
 `docs/06-amp-modelling-spec.md` §3.5 and in each model file. The bass cabs (8 × 10, 1 × 15) are not Cab-block IRs yet:
 the B-15 runs on the Circuit Amp's closed 8 × 10 speaker curve.
 
@@ -184,14 +182,18 @@ the B-15 runs on the Circuit Amp's closed 8 × 10 speaker curve.
 
 ## Counts
 
-Counted over every table in this file, including the two sections added from Fractal's lists.
+Counted over every table in this file, including the two sections added from Fractal's lists (recounted 2026-11-10).
+Each row is counted once by its status; the seven ↪ rows point at an amp counted in its own row. A row can stand for
+more than one type (a Jumped variant, a second channel) and two rows can share one, so the Done count is not the
+number of types.
 
 | Status | Rows |
 |---|---|
-| ✅ Done | 76 |
-| 📋 Planned (schematic found, not built yet) | 4 |
-| ⏸ Waiting on a schematic or better data | 64 |
-| 💤 Not researched yet | 2 |
+| ✅ Done (78, one of them partly), done as a variant of another model (1), or covered by another type (1) | 80 |
+| 🔨 In progress | 0 |
+| 📋 Planned (schematic found, not built yet) | 0 |
+| ⏸ Waiting on a schematic or better data | 54 |
+| 💤 Not planned (not researched yet) | 2 |
 
 ### Circuit Amp types by index
 
@@ -261,7 +263,8 @@ Firmware 12 is old: the current Axe-Fx III has over 300 models, so amps added si
 "FAS" designs (FAS Modern, FAS Lead, FAS Brootalz, FAS Skull Crusher, FAS Bass and the like) are not real amps and are
 left out, as are pure variants of amps already listed (for example "Big Hair", a JCM800 mod, or the Van Halen Plexi).
 
-Every amp below was missing from the catalogue. The Axe model names are given so you can find captures of the same amp.
+Every amp below was missing from the catalogue, except the ↪ rows, which repeat an amp from the tables above to give
+its Axe model names. The Axe model names are given so you can find captures of the same amp.
 
 ### Fender
 
@@ -300,15 +303,15 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 |---|---|---|---|---|---|
 | Dumble ODS (HRM and Robben Ford versions) | ✅ Done as the 1970s ODS (schematicheaven `dumbleamps/` preamp, overdrive, supply and output redraws: Rock/Jazz, Deep, Bright, Accent; no HRM drawing found, so no HRM stack; no Master: none is drawn on the sheets, so the model has none) | ODS 70s (Switch 1 Overdrive, Switch 2 Jazz, Switch 3 Deep, Presence = Accent) | — (the GPL Dumble kit and clone captures stay on ODS 97: their circuits are not stated) | HRM schematic; captures of a 1970s ODS; whether the 1970s amp had a Master the redraws leave out | 1x12 / 2x12 open |
 | Fuchs Overdrive Supreme | ⏸ Waiting (searched 2026-10: no schematic) | — | Fox ODS, Fox ODS Deep | Schematic | 1x12 / 2x12 open |
-| Two-Rock Jet 35 | ⏸ Waiting (searched 2026-10: no schematic) | — | Two Stone J35 1 / 2 | Schematic | 1x12 open |
+| Two-Rock Jet 35 | ↪ See the Two-Rock row (⏸ Waiting; searched 2026-10: no schematic) | — | Two Stone J35 1 / 2 | Schematic | 1x12 open |
 | Bludotone Ojai | ⏸ Waiting (searched 2026-10: no schematic; said to follow Robben Ford's "Tan" Dumble) | — | Bludojai Clean / Lead 1 / Lead 2 | Schematic | 1x12 / 2x12 open |
 | Carr Rambler | ⏸ Waiting (searched 2026-10: no schematic) | — | Car Roamer, FAS Class-A | Schematic | 1x12 / 2x12 open |
 | Budda Twinmaster | ⏸ Waiting (searched 2026-10: no schematic) | — | Buttery | Schematic | 2x12 open |
-| Divided by 13 CJ 11 / FTR 37 | ⏸ Waiting (see the Divided by 13 row) | — | Div/13 CJ, CJ Boost, FT37 High / Low | Schematic | 1x12 / 2x12 |
-| Dr Z Route 66 / MAZ 8 / MAZ 38 SR | ⏸ Waiting (see the Dr Z row) | — | Mr Z Hwy 66, MZ-8, MZ-38 | Schematic | 1x12 / 2x12 open |
-| Morgan AC20 Deluxe | ⏸ Waiting (see the Morgan row) | — | AC-20 12AX7 / EF86, Bass / Treble | Schematic | 1x12 open |
-| Bad Cat Hot Cat 30 | ✅ Done | Hot Cat 30 | Hot Kitty | Captures | 2x12 open |
-| Matchless Chieftain | ✅ Done | Chieftain | Boutique 1 / 2 | Captures | 2x12 open |
+| Divided by 13 CJ 11 / FTR 37 | ↪ See the Divided by 13 row (⏸ Waiting) | — | Div/13 CJ, CJ Boost, FT37 High / Low | Schematic | 1x12 / 2x12 |
+| Dr Z Route 66 / MAZ 8 / MAZ 38 SR | ↪ See the Dr Z row (⏸ Waiting) | — | Mr Z Hwy 66, MZ-8, MZ-38 | Schematic | 1x12 / 2x12 open |
+| Morgan AC20 Deluxe | ↪ See the Morgan row (⏸ Waiting) | — | AC-20 12AX7 / EF86, Bass / Treble | Schematic | 1x12 open |
+| Bad Cat Hot Cat 30 | ↪ See the Bad Cat row (✅ Done) | Hot Cat 30 | Hot Kitty | Captures | 2x12 open |
+| Matchless Chieftain | ↪ See the Matchless Chieftain row (✅ Done) | Chieftain | Boutique 1 / 2 | Captures | 2x12 open |
 | Trainwreck Liverpool | ✅ Done (Mark Abbott's hand drawings of the two Liverpools he saw, schematicheaven `newamps/trainwreck_liverpool.pdf`; R7/C8 at his recommended 68k / 2.2 nF) | Liverpool (Switch 1 Clarity, Bright 500 pF) | — | Captures with settings | 2x12 |
 | Trainwreck Rocket | ⏸ Waiting (only DIY drafts behind the ampgarage login) | — | Wrecker Rocket | Schematic | 1x12 / 2x12 |
 | Komet 60 / Concorde | ⏸ Waiting (drawings only behind the ampgarage login; Komet restricts them) | — | Comet 60, Comet Concourse | Schematic | 2x12 / 4x12 |
@@ -333,7 +336,7 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 | Cameron Atomica | ⏸ Waiting (descriptions only: a Super Lead with a Jose-style master and a diode-clipping switch; the Ceriatone Molecular is a clone, also without a schematic) | — | Atomica High / Low | Schematic | 4x12 closed |
 | Hook Captain 34 | ⏸ Waiting (nothing found) | — | Capt Hook 1A–3B | Schematic | 4x12 closed |
 | Splawn Nitro | ⏸ Waiting (nothing for the Nitro; Splawn says it has no schematics; a Quick Rod schematic circulates behind member-only sites) | — | Spawn Nitrous 1 / 2 | Schematic | 4x12 closed |
-| Fryette D60 | ⏸ Waiting (see Deliverance: only a modified 2-channel D60 drawing of unknown origin, PedalPCB forum post 322300) | — | Fryette D60 Less / More | Schematic or trace | 4x12 closed |
+| Fryette D60 | ↪ See the Fryette row (⏸ Waiting: only a modified 2-channel D60 drawing of unknown origin, PedalPCB forum post 322300) | — | Fryette D60 Less / More | Schematic or trace | 4x12 closed |
 
 ### Bass
 
@@ -345,7 +348,8 @@ Already in the catalogue and in the Axe list (no row added): Bassman 5F6-A, Cham
 Tweed Deluxe 5E3, Deluxe Reverb, Twin Reverb, Super Reverb, Princeton Reverb, Vibrolux, Vibroverb, Supro 1624T, JTM45,
 the Plexi 50 W and 100 W, JMP 2204, JCM800 2203 and 2204, Silver Jubilee, JVM410H, Friedman BE-100 and Dirty Shirley,
 Hiwatt DR103, Orange Rockerverb, Splawn Quick Rod, Suhr Badger, AC15, AC30 Top Boost, Matchless DC-30, Trainwreck
-Express, SLO-100, Mark IIC+, Mark IV, Dual Rectifier, Lone Star, 5150, 6505+, 5150III, Bogner Ecstasy, Überschall and
+Express, SLO-100, Mark IIC+, Mark IV, Dual Rectifier, Lone Star, 5150 / 6505 (the Axe list's 6505+ is the 5150 II: it has
+no row or type of its own, and its captures stand in on the 5150 row), 5150III, Bogner Ecstasy, Überschall and
 Shiva, Diezel VH4 and Herbert, Engl Powerball and Savage, Carvin Legacy, Cameron CCV, Ampeg SVT and B-15, Roland JC-120.
 
 ### Added from Fractal's current wiki list (October 2026)
