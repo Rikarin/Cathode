@@ -154,10 +154,7 @@ public sealed unsafe class NativeAudioSession : IDisposable {
     GCHandle self;
     nint stream;
     long exceptions;
-    readonly Lock watchdogLock = new();
-    bool running;
-    ulong lastCallbacks;
-    long lastCallbackAt; // Stopwatch timestamp when the callback count last moved (or the stream started)
+    readonly CallbackWatchdog watchdog = new(CallbackStall);
     Exception? callbackException; // the first exception not yet taken by TakeCallbackException
 
     public double SampleRate { get; private set; }
@@ -186,23 +183,14 @@ public sealed unsafe class NativeAudioSession : IDisposable {
                 return status;
             }
 
-            lock (watchdogLock) {
-                if (!running) {
-                    return status;
-                }
-
-                NativeMethods.Stats(stream, out var s);
-                var now = System.Diagnostics.Stopwatch.GetTimestamp();
-                if (s.Callbacks != lastCallbacks) {
-                    lastCallbacks = s.Callbacks;
-                    lastCallbackAt = now;
-                    return status;
-                }
-
-                return System.Diagnostics.Stopwatch.GetElapsedTime(lastCallbackAt, now) >= CallbackStall
-                    ? AudioDeviceStatus.Lost
-                    : status;
+            if (!watchdog.Running) {
+                return status;
             }
+
+            NativeMethods.Stats(stream, out var s);
+            return watchdog.Stalled(s.Callbacks, System.Diagnostics.Stopwatch.GetTimestamp())
+                ? AudioDeviceStatus.Lost
+                : status;
         }
     }
 
@@ -288,19 +276,12 @@ public sealed unsafe class NativeAudioSession : IDisposable {
             throw new InvalidOperationException($"Could not start audio device: {LastErrorMessage()}");
         }
 
-        lock (watchdogLock) {
-            NativeMethods.Stats(stream, out var s);
-            lastCallbacks = s.Callbacks;
-            lastCallbackAt = System.Diagnostics.Stopwatch.GetTimestamp();
-            running = true;
-        }
+        NativeMethods.Stats(stream, out var s);
+        watchdog.Start(s.Callbacks, System.Diagnostics.Stopwatch.GetTimestamp());
     }
 
     public void Stop() {
-        lock (watchdogLock) {
-            running = false;
-        }
-
+        watchdog.Stop();
         if (NativeMethods.Stop(stream) != 0) {
             throw new InvalidOperationException($"Could not stop audio device: {LastErrorMessage()}");
         }

@@ -1,6 +1,7 @@
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Looping;
 using Cathode.Testing;
+using System.Diagnostics;
 
 namespace Cathode.Dsp.Tests;
 
@@ -412,6 +413,80 @@ public class LooperBlockTests {
         Assert.Equal(0.25f, looper.Tick(0f, 0f).Left);
         for (var i = 1; i < length; i++) {
             Assert.Equal(0f, looper.Tick(0f, 0f).Left);
+        }
+    }
+
+    /// <summary>
+    ///     The cost of the callback an Erase or an Undo arrives in, on a loop of the full
+    ///     <see cref="Looper.MaxSeconds" /> with an overdub pass over all of it. Done in one go, the Erase zeroes
+    ///     230 MB and the Undo walks 14 million samples, tens of milliseconds either way, where a 64-sample callback
+    ///     has 1.3 ms. Each must return within a fraction of that and leave the rest to the slices, which must be as
+    ///     cheap. The fastest of three runs counts, as another process can take the core during any one. (An Undo
+    ///     pressed while the Undo before it is still being restored finishes that one first, in one go: see
+    ///     <see cref="Looper" />. It is not measured here.)
+    /// </summary>
+    [Theory]
+    [InlineData(LooperAction.Clear)]
+    [InlineData(LooperAction.Undo)]
+    public void An_erase_or_an_undo_of_a_full_length_loop_fits_in_a_callback(LooperAction action) {
+        const double budgetMs = 0.25;
+        using var looper = new Looper(48_000, Looper.MaxSeconds);
+        looper.Configure(LooperSettings.Default with { MaxSamples = looper.Capacity });
+        var left = new float[64];
+        var right = new float[64];
+        var pressed = double.MaxValue;
+        var slices = double.MaxValue;
+        for (var run = 0; run < 3; run++) {
+            looper.Apply(LooperAction.Record);
+            while (looper.State == LooperState.Recording) {
+                Fill();
+                looper.Process(left, right);
+            }
+
+            looper.Apply(LooperAction.Overdub);
+            for (var done = 0; done < looper.Capacity; done += left.Length) {
+                Fill();
+                looper.Process(left, right);
+            }
+
+            Assert.Equal(looper.Capacity, looper.Length);
+            var start = Stopwatch.GetTimestamp();
+            looper.Apply(action);
+            looper.Process(left, right);
+            pressed = Math.Min(pressed, Stopwatch.GetElapsedTime(start).TotalMilliseconds);
+
+            // The rest of the work is spread over many callbacks, each as cheap. Their 99th percentile counts: on a
+            // busy machine a few of some two thousand callbacks lose the core for milliseconds.
+            var times = new List<double>();
+            while (looper.HasPendingWork) {
+                start = Stopwatch.GetTimestamp();
+                looper.Process(left, right);
+                times.Add(Stopwatch.GetElapsedTime(start).TotalMilliseconds);
+            }
+
+            Assert.True(
+                times.Count >= looper.Capacity / Looper.SliceSamples - 1,
+                $"the pending work took {times.Count} callbacks"
+            );
+            times.Sort();
+            slices = Math.Min(slices, times[times.Count * 99 / 100]);
+            looper.Apply(LooperAction.Clear);
+            while (looper.HasPendingWork) {
+                looper.Process(left, right);
+            }
+        }
+
+        // Measured on an M-series Mac: 7 µs for the Erase and 15 µs for the Undo.
+        Assert.True(
+            pressed < budgetMs && slices < budgetMs,
+            FormattableString.Invariant(
+                $"{action} took {pressed:0.000} ms in its callback and {slices:0.000} ms in a slice of the work after"
+            )
+        );
+
+        void Fill() {
+            Array.Fill(left, 0.25f);
+            Array.Fill(right, 0.25f);
         }
     }
 
