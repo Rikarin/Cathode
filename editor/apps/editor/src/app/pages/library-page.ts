@@ -16,6 +16,7 @@ import { XuiTableImports } from '@xui/table';
 import { XuiTagImports } from '@xui/tag';
 import { XuiTextImports } from '@xui/text';
 import { Notify } from '../core/notify';
+import { ShortcutHint } from '../shell/shortcuts';
 import { BlockFileExtension, BlockPresetsStore } from '../state/block-presets.store';
 import { CatalogStore } from '../state/catalog.store';
 import { LibraryStore } from '../state/library.store';
@@ -41,6 +42,7 @@ export const PresetRowHeight = 48;
     AssetToolbar,
     GlobalBlocks,
     ScrollingModule,
+    ShortcutHint,
     XuiAlertDialogImports,
     XuiButtonImports,
     XuiDialogImports,
@@ -277,15 +279,20 @@ export const PresetRowHeight = 48;
         (drop)="libraryDrop($event)"
       >
         <p xuiText class="text-foreground-muted text-sm">
-          {{ blockPresets.presets().length - blockPresets.user().length }} factory presets for {{ factoryTypes() }}
-          block types. Recall one from a block's page; save a channel or a whole block there (⌘B) to add your own. Drop
-          .cthblock files here, or on a grid cell, to import them.
+          {{ blockPresets.presets().length - blockPresets.user().length }} factory presets for
+          {{ factoryTypes() }} block types. Recall one from a block's page; save a channel or a whole block there ({{
+            'saveBlock' | cthShortcut
+          }}) to add your own. Drop .cthblock files here, or on a grid cell, to import them.
         </p>
         @if (blockPresets.folders().length === 0) {
           <xui-non-ideal-state
             class="flex-1"
             title="No block presets of your own yet"
-            description="Open a block, then save its channel or the whole block (⌘B). It shows up here, ready for any preset."
+            [description]="
+              'Open a block, then save its channel or the whole block (' +
+              ('saveBlock' | cthShortcut) +
+              '). It shows up here, ready for any preset.'
+            "
           />
         }
         @for (folder of blockPresets.folders(); track folder.name) {

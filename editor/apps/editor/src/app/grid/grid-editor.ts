@@ -38,7 +38,7 @@ import { XuiContextMenuImports } from '@xui/context-menu';
 import { XuiMenuImports } from '@xui/menu';
 import { blockDefault } from '../block-editor/type-labels';
 import { EventStream } from '../core/events';
-import { ShortcutService } from '../shell/shortcuts';
+import { ShortcutHint, ShortcutService } from '../shell/shortcuts';
 import { BlockFileExtension, BlockPresetsStore } from '../state/block-presets.store';
 import { CatalogStore } from '../state/catalog.store';
 import { GlobalStore } from '../state/global.store';
@@ -133,7 +133,7 @@ export function dropAction(
 @Component({
   selector: 'cth-grid-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BlockPicker, CthBlockTile, CthMeter, XuiContextMenuImports, XuiMenuImports],
+  imports: [BlockPicker, CthBlockTile, CthMeter, ShortcutHint, XuiContextMenuImports, XuiMenuImports],
   providers: [
     provideIcons({
       matAddRound,
@@ -377,10 +377,10 @@ export function dropAction(
           @if (!isIo(block) && block.type !== 'shunt') {
             <xui-menu-divider title="All scenes" />
             <button type="button" xuiMenuItem (click)="ui.allScenes({ bypassed: false }, block)">
-              Engage in all scenes<span menuItemLabel>⇧Space</span>
+              Engage in all scenes<span menuItemLabel>{{ 'engageAll' | cthShortcut }}</span>
             </button>
             <button type="button" xuiMenuItem (click)="ui.allScenes({ bypassed: true }, block)">
-              Bypass in all scenes<span menuItemLabel>⇧⌘Space</span>
+              Bypass in all scenes<span menuItemLabel>{{ 'bypassAll' | cthShortcut }}</span>
             </button>
           }
           @if (hasChannels(block)) {
@@ -391,16 +391,16 @@ export function dropAction(
           <xui-menu-divider />
           @if (!isIo(block) && block.type !== 'shunt') {
             <button type="button" xuiMenuItem icon="matContentCutRound" (click)="cut(block)">
-              Cut<span menuItemLabel>⌘X</span>
+              Cut<span menuItemLabel>{{ 'cut' | cthShortcut }}</span>
             </button>
             <button type="button" xuiMenuItem icon="matContentCopyRound" (click)="copy(block)">
-              Copy<span menuItemLabel>⌘C</span>
+              Copy<span menuItemLabel>{{ 'copy' | cthShortcut }}</span>
             </button>
           }
           @if (pasteAction(block) !== null) {
             <button type="button" xuiMenuItem icon="matContentPasteRound" (click)="paste()">
               {{ pasteAction(block) === 'settings' ? 'Paste settings (all channels)' : 'Paste' }}
-              <span menuItemLabel>⌘V</span>
+              <span menuItemLabel>{{ 'paste' | cthShortcut }}</span>
             </button>
           }
           @if (!isIo(block)) {
@@ -414,11 +414,11 @@ export function dropAction(
             </button>
           }
           <button type="button" xuiMenuItem icon="matLinkOffRound" (click)="live.disconnect(block.id)">
-            Disconnect all cables<span menuItemLabel>⌘D</span>
+            Disconnect all cables<span menuItemLabel>{{ 'disconnect' | cthShortcut }}</span>
           </button>
           @if (!isIo(block) && block.type !== 'shunt') {
             <button type="button" xuiMenuItem icon="matSaveRound" (click)="ui.saveBlockOpen.set(true)">
-              Save to the Library…<span menuItemLabel>⌘B</span>
+              Save to the Library…<span menuItemLabel>{{ 'saveBlock' | cthShortcut }}</span>
             </button>
             @if (block.global) {
               <button type="button" xuiMenuItem icon="matLinkOffRound" (click)="live.unlinkGlobal(block.id)">
@@ -525,10 +525,10 @@ export function dropAction(
           Add block…<span menuItemLabel>↵</span>
         </button>
         <button type="button" xuiMenuItem icon="matCableRound" (click)="addShunt()">
-          Add shunt<span menuItemLabel>⌘U</span>
+          Add shunt<span menuItemLabel>{{ 'shunt' | cthShortcut }}</span>
         </button>
         <button type="button" xuiMenuItem icon="matContentPasteRound" [disabled]="!clipboard()" (click)="paste()">
-          Paste<span menuItemLabel>⌘V</span>
+          Paste<span menuItemLabel>{{ 'paste' | cthShortcut }}</span>
         </button>
         <xui-menu-divider />
         <button

@@ -7,7 +7,9 @@ import {
   isDialogOpen,
   isOnControl,
   isTyping,
-  shortcutKeys
+  shortcutHint,
+  shortcutKeys,
+  shortcutLabel
 } from './shortcuts';
 
 function key(key: string, options: Partial<KeyboardEventInit> & { code?: string } = {}): KeyboardEvent {
@@ -67,8 +69,44 @@ describe('keyboard shortcuts', () => {
     }
 
     expect(shortcutKeys(saveAs, true)).toEqual(['⌘', '⇧', 'S']);
-    expect(shortcutKeys(saveAs, false)).toEqual(['Ctrl', '⇧', 'S']);
+    expect(shortcutKeys(saveAs, false)).toEqual(['Ctrl', 'Shift', 'S']);
     expect(shortcutKeys(scene8, true)).toEqual(['⌘', '8']);
+  });
+
+  it('writes a hint for a tooltip or a menu item with the keys the keyboard has', () => {
+    expect(shortcutHint('save', true)).toBe('⌘S');
+    expect(shortcutHint('saveAs', true)).toBe('⇧⌘S');
+    expect(shortcutHint('bypassAll', true)).toBe('⇧⌘Space');
+    expect(shortcutHint('songNext', true)).toBe('⇧⌘PgDn');
+    expect(shortcutHint('settings', true)).toBe('⌘,');
+    expect(shortcutHint('help', true)).toBe('?');
+
+    expect(shortcutHint('save', false)).toBe('Ctrl+S');
+    expect(shortcutHint('saveAs', false)).toBe('Ctrl+Shift+S');
+    expect(shortcutHint('bypassAll', false)).toBe('Ctrl+Shift+Space');
+    expect(shortcutHint('engageAll', false)).toBe('Shift+Space');
+    expect(shortcutHint('songNext', false)).toBe('Ctrl+Shift+PgDn');
+    expect(shortcutHint('mute', false)).toBe('M');
+    expect(() => shortcutHint('nothing')).toThrow();
+  });
+
+  it('shows no Mac key symbol off macOS, in any shortcut’s keys, hint or label', () => {
+    for (const shortcut of Shortcuts) {
+      const shown = [
+        ...shortcutKeys(shortcut, false),
+        shortcutHint(shortcut.id, false),
+        shortcutLabel(shortcut, false)
+      ];
+      expect(shown.join(' ')).not.toMatch(/[⌘⌥⇧⌃]/);
+    }
+
+    const blockInfo = Shortcuts.find(s => s.id === 'blockInfo');
+    if (!blockInfo) {
+      throw new Error('No blockInfo shortcut');
+    }
+
+    expect(shortcutLabel(blockInfo, true)).toBe('Block Info (or hold ⌥)');
+    expect(shortcutLabel(blockInfo, false)).toBe('Block Info (or hold Alt)');
   });
 
   it('stays out of text fields but not checkboxes', () => {

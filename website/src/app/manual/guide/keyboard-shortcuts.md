@@ -1,6 +1,6 @@
 Every keyboard shortcut in the editor. Press **?** in Cathode to see the same list in **Settings ▸ Keyboard shortcuts**.
 
-On Windows and Linux, read **⌘** as **Ctrl** and **⌥** as **Alt**. Shortcuts do nothing while you are typing in a text field. While a dialog is open (Settings, the Tuner, a confirmation), only the Tuner, Settings, Keyboard shortcuts, mute and clip light shortcuts work, so a stray key cannot change the preset behind it. The grid commands work on the Editor page, on the selected cell; the others work on every page.
+On Windows and Linux, read **⌘** as **Ctrl**, **⌥** as **Alt** and **⇧** as **Shift**; Cathode's own tooltips, menus and shortcut list show the keys that way there. Shortcuts do nothing while you are typing in a text field. While a dialog is open (Settings, the Tuner, a confirmation), only the Tuner, Settings, Keyboard shortcuts, mute and clip light shortcuts work, so a stray key cannot change the preset behind it. The grid commands work on the Editor page, on the selected cell; the others work on every page.
 
 ## Presets
 

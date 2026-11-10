@@ -15,6 +15,7 @@ import {
   signal,
   viewChild
 } from '@angular/core';
+import { keyNames } from './platform';
 import { CTH_KNOB_PREFERENCES, circularNormal } from './preferences';
 import { type Taper, formatValue, fromNormal, parseValue, toNormal } from './values';
 
@@ -237,10 +238,12 @@ export class CthKnob {
   readonly shown = computed(() => this.live() ?? this.value());
   protected readonly shownNormal = computed(() => toNormal(this.shown(), this.range()));
   protected readonly shownDisplay = computed(() => formatValue(this.shown(), this.unit()));
+  /** The modifier keys as this platform names them (⌥ on a Mac, Alt elsewhere). */
+  private readonly keys = keyNames();
   protected readonly tooltip = computed(() =>
     this.live() === null
-      ? `${this.label()}: ${this.display()} (double-click to type, ⌥-click to reset)`
-      : `${this.label()}: ${this.shownDisplay()}, modulated from ${this.display()} (double-click to type, ⌥-click to reset)`
+      ? `${this.label()}: ${this.display()} (double-click to type, ${this.keys.alt}-click to reset)`
+      : `${this.label()}: ${this.shownDisplay()}, modulated from ${this.display()} (double-click to type, ${this.keys.alt}-click to reset)`
   );
   protected readonly track = arc(0, 1);
   /** The shown value's stretch of the track, in degrees along it (bipolar ranges fill from the centre). */

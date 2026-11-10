@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import type { PresetSummary, Setlist, SetlistEntry } from '@cathode/api-client';
+import { keyNames } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
 import {
   matAddRound,
@@ -274,7 +275,8 @@ const PresetMime = 'application/x-cathode-preset';
             }
           </ol>
           <p class="text-foreground-subtle shrink-0 border-t border-(--hairline) px-3 py-2 text-xs">
-            Drag a song to move it, or focus it and press ⌥↑ or ⌥↓; Delete removes it. Changes are saved at once.
+            Drag a song to move it, or focus it and press {{ keys.alt }}↑ or {{ keys.alt }}↓; Delete removes it. Changes
+            are saved at once.
           </p>
         } @else {
           <xui-non-ideal-state
@@ -381,6 +383,8 @@ const PresetMime = 'application/x-cathode-preset';
   `
 })
 export class SetlistsPage {
+  /** The modifier keys as this platform names them, for the hint under the songs. */
+  protected readonly keys = keyNames();
   protected readonly library = inject(LibraryStore);
   protected readonly player = inject(SetlistPlayer);
   private readonly notify = inject(Notify);

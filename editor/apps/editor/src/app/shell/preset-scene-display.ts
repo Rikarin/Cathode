@@ -18,6 +18,7 @@ import { XuiTooltipImports } from '@xui/tooltip';
 import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
 import { UiStore } from '../state/ui.store';
+import { ShortcutHint } from './shortcuts';
 
 /** Where the loaded preset stands in the preset order, for the readout: its number, and what the number counts. */
 export interface PresetPlace {
@@ -78,7 +79,7 @@ export function presetBank(
 @Component({
   selector: 'cth-preset-scene-display',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [XuiIconImports, XuiMenuImports, XuiTooltipImports],
+  imports: [ShortcutHint, XuiIconImports, XuiMenuImports, XuiTooltipImports],
   providers: [provideIcons({ matExpandMoreRound, matKeyboardArrowDownRound, matKeyboardArrowUpRound })],
   host: { class: 'flex min-w-0 flex-col gap-1' },
   template: `
@@ -89,7 +90,7 @@ export function presetBank(
           class="cth-stepper rounded-t"
           aria-label="Next preset"
           data-testid="preset-next"
-          [xuiTooltip]="'Next preset (⌘PgDn)'"
+          [xuiTooltip]="'Next preset (' + ('presetNext' | cthShortcut) + ')'"
           (click)="stepPreset.emit(1)"
         >
           <ng-icon xui name="matKeyboardArrowUpRound" size="xs" />
@@ -99,7 +100,7 @@ export function presetBank(
           class="cth-stepper rounded-b"
           aria-label="Previous preset"
           data-testid="preset-previous"
-          [xuiTooltip]="'Previous preset (⌘PgUp)'"
+          [xuiTooltip]="'Previous preset (' + ('presetPrevious' | cthShortcut) + ')'"
           (click)="stepPreset.emit(-1)"
         >
           <ng-icon xui name="matKeyboardArrowDownRound" size="xs" />

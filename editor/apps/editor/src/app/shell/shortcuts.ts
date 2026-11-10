@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, Pipe, type PipeTransform, signal } from '@angular/core';
+import { isMac, keyNames } from '@cathode/audio-ui';
 
 /**
  * A keyboard shortcut. `key` is `KeyboardEvent.key` (case-insensitive for letters) or, for keys that change with ⇧
@@ -87,21 +88,8 @@ export const Shortcuts: readonly Shortcut[] = [
   { id: 'help', group: 'Other', label: 'Keyboard shortcuts', key: '?', shift: true }
 ];
 
-/** How a shortcut reads, on macOS or elsewhere. */
-export function shortcutKeys(shortcut: Shortcut, mac = isMac()): string[] {
-  const keys: string[] = [];
-  if (shortcut.mod) {
-    keys.push(mac ? '⌘' : 'Ctrl');
-  }
-
-  if (shortcut.shift && shortcut.key !== '?') {
-    keys.push('⇧');
-  }
-
-  if (shortcut.alt) {
-    keys.push(mac ? '⌥' : 'Alt');
-  }
-
+/** How a shortcut's key itself reads, without its modifiers. */
+function keyName(shortcut: Shortcut): string {
   const names: Record<string, string> = {
     PageUp: 'PgUp',
     PageDown: 'PgDn',
@@ -110,8 +98,51 @@ export function shortcutKeys(shortcut: Shortcut, mac = isMac()): string[] {
     Space: 'Space'
   };
   const key = shortcut.code ? shortcut.code.replace(/^Digit/, '') : (shortcut.key ?? '');
-  keys.push(names[key] ?? (key.length === 1 ? key.toUpperCase() : key));
+  return names[key] ?? (key.length === 1 ? key.toUpperCase() : key);
+}
+
+/** How a shortcut reads, key by key, on macOS (⌘ ⇧ S) or elsewhere (Ctrl Shift S): the keycaps of the shortcut list. */
+export function shortcutKeys(shortcut: Shortcut, mac = isMac()): string[] {
+  const names = keyNames(mac);
+  const keys: string[] = [];
+  if (shortcut.mod) {
+    keys.push(names.mod);
+  }
+
+  if (shortcut.shift && shortcut.key !== '?') {
+    keys.push(names.shift);
+  }
+
+  if (shortcut.alt) {
+    keys.push(names.alt);
+  }
+
+  keys.push(keyName(shortcut));
   return keys;
+}
+
+/**
+ * A shortcut as one short hint for a tooltip or a menu item, written as the platform writes it: "⇧⌘S" on macOS (the
+ * modifiers in Apple's order, no separator), "Ctrl+Shift+S" elsewhere. Every hint in a template comes from here (the
+ * `cthShortcut` pipe), so none names a key the user's keyboard does not have.
+ */
+export function shortcutHint(id: string, mac = isMac()): string {
+  const shortcut = Shortcuts.find(s => s.id === id);
+  if (!shortcut) {
+    throw new Error(`No shortcut "${id}"`);
+  }
+
+  if (!mac) {
+    return shortcutKeys(shortcut, false).join('+');
+  }
+
+  const shift = shortcut.shift && shortcut.key !== '?';
+  return `${shortcut.alt ? '⌥' : ''}${shift ? '⇧' : ''}${shortcut.mod ? '⌘' : ''}${keyName(shortcut)}`;
+}
+
+/** A shortcut's label for the shortcut list: a modifier it mentions (⌥) reads as the platform names it. */
+export function shortcutLabel(shortcut: Shortcut, mac = isMac()): string {
+  return shortcut.label.replaceAll('⌥', keyNames(mac).alt);
 }
 
 /** Whether an event comes from somewhere the user types: shortcuts stay out of the way there. */
@@ -235,8 +266,12 @@ export function findShortcut(
   );
 }
 
-function isMac(): boolean {
-  return typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+/** A shortcut's keys by its id, for a tooltip or a menu item: `'save' | cthShortcut` is "⌘S", or "Ctrl+S" off macOS. */
+@Pipe({ name: 'cthShortcut' })
+export class ShortcutHint implements PipeTransform {
+  transform(id: string): string {
+    return shortcutHint(id);
+  }
 }
 
 /**

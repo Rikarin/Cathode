@@ -479,6 +479,7 @@ xUI currently has **no knob, meter or VU component**. Build them in `editor/libs
 The editor's software-editor features, built in the ED stream. They follow Fractal's editor in what they do, not in how they look.
 
 - **Shortcuts.** One table in `shell/shortcuts.ts` drives two things: dispatch (`ShortcutService`, through a document `keydown`) and the `?` help overlay.
+  - Key hints in tooltips, menus and page text come from the same table (the `cthShortcut` pipe, and `keyNames()` in audio-ui for a bare modifier), so they read ⌘, ⌥ and ⇧ on macOS and Ctrl, Alt and Shift elsewhere. No template writes a key symbol itself.
   - Handlers register per page. The app owns the preset, scene, channel, block, edit and tuner commands. The grid owns the cell commands (Q, ⌘X/C/V/D/U, Delete), because it knows the focused cell; those that change the grid (⌘X/V/D/U, Delete) act only while the grid has the focus.
   - Nothing fires while focus is in a text field. Bare keys (Space, letters, Delete; not ⌘ shortcuts or F-keys) also leave a focused control alone (a button, switch, checkbox, radio, slider, menu item, tab), so Space presses it instead of bypassing the block.
   - While a modal dialog is open (Settings, the Tuner, a confirmation) only the shortcuts that open or close a dialog (⌘T, ⌘, and ?), M (mute) and ⌘K (clip lights) run. The rest would change the rig behind the dialog, out of sight.
