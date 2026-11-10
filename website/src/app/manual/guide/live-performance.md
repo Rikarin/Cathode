@@ -34,7 +34,7 @@ A **setlist** is the running order of a gig: a list of songs, each one a preset 
 3. For each song, choose the **scene** it starts on. Give it a **name** of its own if the preset's name is not the song's ("Opener", "Encore"); leave it empty to show the preset's name.
 4. Put the songs in order: drag a song by its grip (the dotted handle on the left), use its arrow buttons, or focus it and press **⌥↑** or **⌥↓**. **×**, or **Delete** on a focused song, takes it out of the setlist; the preset stays in the library.
 
-Every change is saved as you make it: there is no Save button. Right-click a setlist in the list (or use the buttons above its songs) to **Rename**, **Duplicate** or **Delete** it. A copy is a good start for a second set or a shorter version of the same gig.
+Every change is saved as you make it: there is no Save button. Right-click a setlist in the list (or use the buttons above its songs) to **Rename**, **Duplicate** or **Delete** it. With the list focused, **↑** and **↓** move through the setlists. A copy is a good start for a second set or a shorter version of the same gig.
 
 A song whose preset is no longer in the library (its file was deleted or moved outside Cathode) shows **Missing preset** with a warning sign. Cathode does not let you delete a preset a setlist still uses, so this only happens when files change behind its back. Remove the song, or put the preset back. While it is missing, playing the set skips that song.
 

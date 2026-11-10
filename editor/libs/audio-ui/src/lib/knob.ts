@@ -67,10 +67,13 @@ const SettleMs = 800;
         #editor
         class="border-border bg-surface-inset text-foreground focus-visible:outline-focus h-6 w-20 rounded-md border px-1 text-center text-xs tabular-nums"
         [value]="display()"
+        [class.border-error]="invalid()"
         [attr.aria-label]="label() + ' value'"
+        [attr.aria-invalid]="invalid() || null"
+        (input)="invalid.set(false)"
         (keydown.enter)="commitTyping(editor.value)"
-        (keydown.escape)="typing.set(false)"
-        (blur)="commitTyping(editor.value)"
+        (keydown.escape)="cancelTyping($event)"
+        (blur)="commitTyping(editor.value, true)"
       />
     } @else {
       <span
@@ -217,6 +220,8 @@ export class CthKnob {
   readonly mode = input<'linear' | 'circular' | null>(null);
 
   protected readonly typing = signal(false);
+  /** The typed text has no value in it: the field stays open, marked, until it is edited, cancelled or left. */
+  protected readonly invalid = signal(false);
   /** True while the user sets the value (dragging, or just after a key or wheel step): the knob shows `value` then. */
   protected readonly editing = signal(false);
   protected readonly Sweep = Sweep;
@@ -364,6 +369,7 @@ export class CthKnob {
     }
 
     this.commitWheel();
+    this.invalid.set(false);
     this.typing.set(true);
     // After the input renders: a microtask runs before change detection, while it is not there yet.
     afterNextRender(
@@ -376,18 +382,38 @@ export class CthKnob {
     );
   }
 
-  protected commitTyping(text: string): void {
+  /**
+   * Takes the typed value. Text with no value in it keeps the field open and marks it, so a value that was not
+   * taken does not look as if it was; when the field is being left instead, it closes and the value stays.
+   */
+  protected commitTyping(text: string, leaving = false): void {
     if (!this.typing()) {
       return;
     }
 
-    this.typing.set(false);
     const parsed = parseValue(text, this.unit());
+    if (parsed === null && !leaving) {
+      this.invalid.set(true);
+      return;
+    }
+
+    this.typing.set(false);
     if (parsed !== null) {
       this.value.set(Math.min(this.max(), Math.max(this.min(), parsed)));
       this.committed.emit(this.value());
     }
 
+    this.dial().nativeElement.focus();
+  }
+
+  /**
+   * Escape in the typed-value field: the value stays, and focus goes back to the dial (the field leaves the page, and
+   * focus would fall to the document with it). The key stops here, so a dialog around the knob stays open.
+   */
+  protected cancelTyping(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.typing.set(false);
     this.dial().nativeElement.focus();
   }
 

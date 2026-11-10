@@ -333,7 +333,7 @@ import { UiStore } from './state/ui.store';
             (stepPreset)="presetPicker()?.step($event)"
             (chooseBank)="presetPicker()?.loadBank($event)"
           />
-          <div class="ms-auto flex shrink-0 items-center gap-1" aria-label="Preset actions">
+          <div class="ms-auto flex shrink-0 items-center gap-1" role="group" aria-label="Preset actions">
             <button
               type="button"
               xuiButton

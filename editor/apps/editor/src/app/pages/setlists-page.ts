@@ -35,6 +35,8 @@ import { XuiMenuImports } from '@xui/menu';
 import { XuiNonIdealStateImports } from '@xui/non-ideal-state';
 import { XuiSelectImports } from '@xui/select';
 import { XuiTagImports } from '@xui/tag';
+import { LongPressMenu } from '../controls/long-press-menu';
+import { RovingKeys } from '../controls/roving-keys';
 import { newId } from '../core/new-id';
 import { Notify } from '../core/notify';
 import { LibraryStore } from '../state/library.store';
@@ -62,6 +64,8 @@ const PresetMime = 'application/x-cathode-preset';
     XuiAlertDialogImports,
     XuiButtonImports,
     XuiCalloutImports,
+    LongPressMenu,
+    RovingKeys,
     XuiContextMenuImports,
     XuiDialogImports,
     XuiFormFieldImports,
@@ -112,7 +116,9 @@ const PresetMime = 'application/x-cathode-preset';
             <ng-icon xui name="matAddRound" size="sm" />
           </button>
         </div>
+        <!-- One tab stop, at the setlist shown; Up, Down, Home and End move through the list (cthRovingKeys). -->
         <ul
+          cthRovingKeys
           class="flex min-h-0 flex-col gap-0.5 overflow-y-auto p-1.5 text-sm"
           role="listbox"
           aria-labelledby="setlists-label"
@@ -121,9 +127,10 @@ const PresetMime = 'application/x-cathode-preset';
             <li
               role="option"
               class="aria-selected:bg-primary not-aria-selected:hover:bg-hover-overlay flex h-7 shrink-0 cursor-pointer items-center gap-1 rounded-[5px] px-2 aria-selected:font-medium aria-selected:text-white"
-              tabindex="0"
+              [attr.tabindex]="s.id === setlist()?.id ? 0 : -1"
               [attr.aria-selected]="s.id === setlist()?.id"
               [attr.data-testid]="'setlist-' + s.id"
+              cthLongPressMenu
               [xuiContextMenuTriggerFor]="setlistActions"
               [xuiContextMenuTriggerData]="{ id: s.id }"
               (click)="select(s.id)"

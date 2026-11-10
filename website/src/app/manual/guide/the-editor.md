@@ -94,7 +94,7 @@ The left column holds the block's identity and state:
 - **Block Library** (when the Library holds entries for this block type): recall a saved setting, with **Into all channels** to fill every channel at once.
 - **Bypass mode:** what the block does when bypassed (see [Bypass modes](/manual/the-grid#bypass-modes)).
 
-The right side holds the controls. Some blocks have a panel of their own on top (the Cab's microphones, the Amp NAM's capture, the IR Player, Tone Match, Pitch). Below it, the block's knobs, switches and choices are grouped into pages, listed as tabs down the panel's left edge (**Basic**, **Tone**, **Advanced**…); the page you last opened is remembered for each block type. The **Output** group on the right holds the block's level, mix, balance and pan.
+The right side holds the controls. Some blocks have a panel of their own on top (the Cab's microphones, the Amp NAM's capture, the IR Player, Tone Match, Pitch). Below it, the block's knobs, switches and choices are grouped into pages, listed as tabs down the panel's left edge (**Basic**, **Tone**, **Advanced**…); the page you last opened is remembered for each block type. With the keyboard, **Tab** to the tab of the page showing, then **↑** and **↓** (or **Home** and **End**) change page. The **Output** group on the right holds the block's level, mix, balance and pan.
 
 Some pages also draw a chart at their right, among the knobs:
 
@@ -108,9 +108,9 @@ Every knob, switch and choice is documented on the block's own page in this manu
 - **Drag** up and down to turn a knob. Hold **⇧** for fine steps.
 - **Scroll** over a knob to turn it (you can reverse or turn this off in Preferences).
 - With a knob focused, the **arrow keys** move it by 1 % of its travel (0.1 % with ⇧), **Page Up** and **Page Down** by 10 %, **Home** and **End** to the ends.
-- **Double-click** a knob or its value to type a value. The current value is selected, so typing replaces it.
-- **⌥-click** (Alt-click) resets it to its default.
-- **Right-click** a knob for **Add modifier…**, **Learn MIDI controller**, **Add to the preset's Perform page**, **Add to the global Perform page** and **Set in other presets…**. Switches and choices offer the last three.
+- **Double-click** a knob or its value to type a value. The current value is selected, so typing replaces it. Type the number with or without its unit, with a point or a comma for decimals; **1.2k** is 1200. Text that holds no value keeps the field open, marked in red: correct it, or press **Esc** to leave the knob as it was.
+- **⌥-click** (Alt-click) resets it to its default. So does **Reset to default** in its right-click menu.
+- **Right-click** a knob for **Add modifier…**, **Learn MIDI controller**, **Add to the preset's Perform page**, **Add to the global Perform page**, **Set in other presets…** and **Reset to default**. Switches and choices offer the Perform pages and **Set in other presets…**. On a touch screen, touch and hold the control instead.
 
 A small dot beside a knob means a modifier drives it. While it runs, the knob turns with the value it is getting, and a mark on its track shows the value you set.
 

@@ -51,24 +51,45 @@ export function formatValue(value: number, unit: string): string {
   }
 }
 
-/** Parses what a user typed into a value control: "1.2k", "1.2 kHz", "-6", "350ms", "2 s" (for unit ms). */
+/**
+ * Parses what a user typed into a value control, or returns null when there is no number in it: "1.2k", "1.2 kHz",
+ * "-6", "350ms", "2 s" (for unit ms), "8 :1" (for unit :1), "2,5" (a decimal comma). Everything {@link formatValue}
+ * writes reads back, so "-∞" (or "-inf") is negative infinity: the control's minimum once clamped. Text after the
+ * number that is not a unit this knows is ignored, unless it has digits of its own ("1.2.3", "4 5").
+ */
 export function parseValue(text: string, unit: string): number | null {
-  const match = /^\s*([-+]?\d*\.?\d+)\s*(k|khz|hz|ms|s|db|%)?\s*$/i.exec(text);
+  const typed = text.trim().replace(/\u2212/g, '-');
+  if (/^-\s*(∞|inf(inity)?)\s*\D*$/i.test(typed)) {
+    return Number.NEGATIVE_INFINITY;
+  }
+
+  const match = /^([-+]?(?:\d+(?:[.,]\d*)?|[.,]\d+))(.*)$/.exec(typed);
   if (!match) {
     return null;
   }
 
-  const number = Number(match[1]);
-  const suffix = match[2]?.toLowerCase();
+  const [, digits = '', rest = ''] = match;
+  const number = Number(digits.replace(',', '.'));
+  const suffix = rest.replace(/\s+/g, '').toLowerCase();
+  const own = unit.replace(/\s+/g, '').toLowerCase();
+  // The control's own unit first: ":1" has a digit, and "s" must not read as a scale of itself.
+  if (suffix === '' || suffix === own) {
+    return number;
+  }
+
   if (suffix === 'k' || suffix === 'khz') {
     return number * 1000;
   }
 
-  if (unit === 'ms' && suffix === 's') {
+  if (own === 'ms' && suffix === 's') {
     return number * 1000;
   }
 
-  return number;
+  if (own === 's' && suffix === 'ms') {
+    return number / 1000;
+  }
+
+  return /\d/.test(suffix) ? null : number;
 }
 
 /** dBFS of a linear peak, floored. */

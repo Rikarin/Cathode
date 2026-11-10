@@ -13,6 +13,7 @@ import {
   matDashboardCustomizeRound,
   matDynamicFeedRound,
   matLinkOffRound,
+  matRestartAltRound,
   matSettingsInputComponentRound,
   matTuneRound
 } from '@ng-icons/material-icons/round';
@@ -20,6 +21,7 @@ import { XuiContextMenuImports } from '@xui/context-menu';
 import { XuiMenuImports } from '@xui/menu';
 import { XuiSelectImports } from '@xui/select';
 import { XuiTooltipImports } from '@xui/tooltip';
+import { LongPressMenu } from '../controls/long-press-menu';
 import { ModifierDialog } from '../controls/modifier-dialog';
 import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
@@ -33,8 +35,8 @@ import { UiStore } from '../state/ui.store';
 /**
  * One parameter of the selected block, generated from its descriptor: a knob for continuous values, a select for
  * choices, a switch for on/off. Edits go to the channel the block uses in the active scene.
- * Right-click a continuous parameter to give it a modifier or learn a MIDI controller for it; a dot marks a modified
- * parameter. While its modifier runs, the control follows the live value (a knob marks the value set on its track).
+ * Right-click a continuous parameter (or touch and hold it) to give it a modifier, learn a MIDI controller for it or
+ * reset it to its default; a dot marks a modified parameter. While its modifier runs, the control follows the live value (a knob marks the value set on its track).
  */
 @Component({
   selector: 'cth-param-control',
@@ -42,6 +44,7 @@ import { UiStore } from '../state/ui.store';
   imports: [
     CthKnob,
     CthToggle,
+    LongPressMenu,
     ModifierDialog,
     XuiContextMenuImports,
     XuiMenuImports,
@@ -53,6 +56,7 @@ import { UiStore } from '../state/ui.store';
       matDashboardCustomizeRound,
       matDynamicFeedRound,
       matLinkOffRound,
+      matRestartAltRound,
       matSettingsInputComponentRound,
       matTuneRound
     })
@@ -61,7 +65,7 @@ import { UiStore } from '../state/ui.store';
   template: `
     @switch (param().kind) {
       @case ('float') {
-        <div class="relative flex w-20 justify-center" [xuiContextMenuTriggerFor]="menu">
+        <div class="relative flex w-20 justify-center" cthLongPressMenu [xuiContextMenuTriggerFor]="menu">
           @if (modifier(); as m) {
             <span
               class="bg-primary absolute top-8 right-2 size-2 rounded-full"
@@ -107,13 +111,24 @@ import { UiStore } from '../state/ui.store';
             <button type="button" xuiMenuItem icon="matDynamicFeedRound" (click)="batchSet()">
               Set in other presets…
             </button>
+            <xui-menu-divider />
+            <!-- What ⌥-click does, for a finger and for the keyboard (the menu key on a focused knob). -->
+            <button
+              type="button"
+              xuiMenuItem
+              icon="matRestartAltRound"
+              data-testid="reset-to-default"
+              (click)="set(param().default)"
+            >
+              Reset to default
+            </button>
           </xui-menu>
         </ng-template>
         <cth-modifier-dialog [block]="block().id" [param]="param()" [(open)]="editing" />
       }
       @case ('enum') {
         @if (variant() === 'sidebar') {
-          <div class="flex flex-col gap-1.5" [xuiContextMenuTriggerFor]="settingMenu">
+          <div class="flex flex-col gap-1.5" cthLongPressMenu [xuiContextMenuTriggerFor]="settingMenu">
             <span class="text-foreground-muted text-[11px] font-semibold tracking-wide uppercase" [id]="labelId()">
               {{ param().name }}
             </span>
@@ -128,7 +143,11 @@ import { UiStore } from '../state/ui.store';
           </div>
         } @else {
           <!-- One knob-sized cell, so knobs, toggles and selects make a uniform grid. -->
-          <div class="flex w-20 flex-col items-center gap-1.5" [xuiContextMenuTriggerFor]="settingMenu">
+          <div
+            class="flex w-20 flex-col items-center gap-1.5"
+            cthLongPressMenu
+            [xuiContextMenuTriggerFor]="settingMenu"
+          >
             <span class="h-6" aria-hidden="true"></span>
             <div class="flex h-[52px] w-full items-center">
               <xui-select
@@ -150,6 +169,7 @@ import { UiStore } from '../state/ui.store';
       @case ('bool') {
         <cth-toggle
           class="w-20"
+          cthLongPressMenu
           [xuiContextMenuTriggerFor]="settingMenu"
           [label]="param().name"
           [color]="accent()"

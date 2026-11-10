@@ -13,6 +13,7 @@ import { XuiFormFieldImports } from '@xui/form-field';
 import { XuiIconImports } from '@xui/icon';
 import { XuiInputImports } from '@xui/input';
 import { XuiMenuImports } from '@xui/menu';
+import { LongPressMenu } from '../controls/long-press-menu';
 import { ConnectionService } from '../core/connection';
 import type { AsksBeforeLeaving } from '../core/leave-guard';
 import { newId } from '../core/new-id';
@@ -42,6 +43,7 @@ export const LibraryEntryHeight = 24;
     ScrollingModule,
     XuiAlertDialogImports,
     XuiButtonImports,
+    LongPressMenu,
     XuiContextMenuImports,
     XuiDialogImports,
     XuiFormFieldImports,
@@ -79,6 +81,7 @@ export const LibraryEntryHeight = 24;
                 class="group data-selected:bg-primary not-data-selected:hover:bg-hover-overlay flex h-7 shrink-0 cursor-pointer items-center gap-1.5 rounded-[5px] px-2 data-selected:font-medium data-selected:text-white"
                 [attr.data-selected]="bank.id === shownBankId() || null"
                 [attr.data-testid]="'bank-' + bank.id"
+                cthLongPressMenu
                 [xuiContextMenuTriggerFor]="bankActions"
                 [xuiContextMenuDisabled]="bank.factory ?? false"
                 [xuiContextMenuTriggerData]="{ id: bank.id }"
