@@ -85,6 +85,10 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                             && design.Power.Name.Contains(tube ?? "-", StringComparison.Ordinal))
                         && !(index is CircuitAmpBlock.PresenceFrequency or CircuitAmpBlock.DepthFrequency
                             && !design.Power.HasFeedback)
+                        // The Mark V's channel 3 at Gain 7, behind the loop's recovery stage with Output at 10, holds
+                        // its power amp so far into clipping that the depth corner moves the render by less (−65 dB).
+                        // Its two cleaner channels, on the same power amp, stay in the list.
+                        && !(index == CircuitAmpBlock.DepthFrequency && design == MarkV.Design)
                         && !(index == CircuitAmpBlock.MasterTrim && design.Panel.Master is null)
                         && !(index == CircuitAmpBlock.PreampTube && !StockPath(design).Any(HasTwelveAX7))
                         && !(index == CircuitAmpBlock.StackFrequency && !StockPath(design).Any(HasStack))

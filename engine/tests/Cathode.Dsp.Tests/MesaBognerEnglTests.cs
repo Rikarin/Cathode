@@ -281,6 +281,7 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         Assert.Equal("Output", Label("master", "Mark V"));
         Assert.Equal("80", Label("eq1", "Mark V"));
         Assert.Equal("Presence", Label("control2", "Rect-o-Verb"));
+        Assert.Equal("Output", Label("control1", "Rect-o-Verb"));
         Assert.Equal(
             ["Rhythm", "Pushed"],
             new[] { "switch1", "switch2" }.Select(static id => Label(id, "Rect-o-Verb"))
@@ -348,6 +349,40 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         Assert.Equal(lead, leadPushed);
         Assert.True(clean < lead - 15);
         Assert.True(pushed > clean + 6);
+    }
+
+    /// <summary>
+    ///     The Rect-o-Verb's loop stands between the masters and the inverter in both channels: the follower V4a, the
+    ///     gain stage V4b (120k, 2.2k ‖ 2.2 µF) and the 250k audio Output Level on Control 1, which is a volume (silent
+    ///     at 0) and at 10 leaves the loop with a gain of tens.
+    /// </summary>
+    [Theory]
+    [InlineData(0f)]
+    [InlineData(1f)]
+    public void Rect_o_Verb_loop_stage_and_output_level_follow_the_masters(float rhythm) {
+        var design = AmpDesign.All.Single(static a => a.Name == "Rect-o-Verb");
+        Assert.Equal(["Channel", "V4a", "V4b"], design.Preamp.Select(static s => s.Name));
+        var loop = ((NetworkStageDesign)design.Preamp[2]).Netlist.Elements;
+        Assert.Contains(loop, static e => e.Role == PotRole.Control1 && e.Pot.Ohms == 250e3);
+        Assert.Contains(loop, static e => e is { Kind: ElementKind.Resistor, Value: 120e3 });
+        Assert.Contains(loop, static e => e is { Cathode: true, Value: 2.2e3 });
+
+        double At(float level) {
+            using var block = Create(
+                "Rect-o-Verb",
+                [
+                    ..Switches(rhythm, 0, 0), (CircuitAmpBlock.Gain, 3f), (CircuitAmpBlock.Master, 2f),
+                    (CircuitAmpBlock.Control1, level)
+                ]
+            );
+            return Level(block, 1_000, 1e-6f);
+        }
+
+        var (off, noon, full) = (At(0f), At(5f), At(10f));
+        output.WriteLine($"1 kHz, Output Level 0 / 5 / 10: {off:0.0} / {noon:0.0} / {full:0.0} dB");
+        Assert.True(off < noon - 40);
+        // An audio taper: a tenth of the track at noon.
+        Assert.InRange(full - noon, 14, 24);
     }
 
     /// <summary>

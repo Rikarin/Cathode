@@ -48,9 +48,11 @@ Leave a few dB of headroom in *Level*; a Cab block after the amp removes them.
 - **Smooth, vocal overdrive:** ODS 97, ODS 70s, Cornford MK50H II, Lone Star, Subway Blues.
 - **Hot-rodded British and modern rock:** Silver Jubilee, JCM900 4100 and 4502, DSL100, JVM410H, BE-100 and
   BE-100 HBE, AFD100, Quick Rod, Laney GH100L, Hot Rod Deluxe.
-- **High gain:** SLO-100, 5150, 5150III, Dual Rectifier, Dual Rectifier 3-Ch, Dual Rectifier 3-Ch Orange, Triple
-  Rectifier, Rect-o-Verb, Mark IIC+ (and its clean rhythm channel, Mark IIC+ Rhythm), Mark IV (and its clean and
-  crunch channels, Mark IV Rhythm 1 and Rhythm 2), Mark V, TriAxis, Legacy VL100, Powerball, Savage 120, Prometheus.
+- **High gain:** SLO-100, 5150, 5150III, Dual Rectifier and Dual Rectifier 3-Ch (each with its other channels:
+  Dual Rectifier Orange, Dual Rectifier 3-Ch Orange and Clean), Triple Rectifier (with Triple Rectifier Orange and
+  Clean), Rect-o-Verb, Mark IIC+ (and its clean rhythm channel, Mark IIC+ Rhythm), Mark IV (and its clean and
+  crunch channels, Mark IV Rhythm 1 and Rhythm 2), Mark V (and its channels 1 and 2, Mark V Clean and Mark V
+  Crunch), TriAxis, Legacy VL100, Powerball, Savage 120, Prometheus.
 - **Bass:** SVT, Portaflex B-15N, Bassman 135, Bass 400.
 - **Solid state:** JC-120 and Valvestate 8080 (a tube preamp into a transistor power amp). Their tube-only knobs are
   hidden.
@@ -97,14 +99,16 @@ brownface Deluxe) it appears as *Tone*.`,
     presence: `Lifts the upper treble in the power amp. On most models it works through the global negative feedback:
 the presence pot and cap reduce the feedback at high frequencies, so the power amp's gain rises there. Turn it up for
 bite and cut, down to soften harsh tops. Because it acts in the feedback loop, its effect also depends on *Feedback*:
-with no feedback it has nothing to work on. On the Mark IIC+ and Mark IV the presence is a rheostat in series with the
+with no feedback it has nothing to work on. On the Mark IIC+, Mark IV and Mark V the presence is a rheostat in series with the
 feedback, as on the amps: turning it up lowers the feedback at every frequency and the treble's most, so the amp also
 gets a little louder and looser; at 0 it is at its darkest and tightest. A few models wire their presence elsewhere
 (the Rectifiers' is shown as Control 2: a preamp treble control on the two-channel Dual Rectifier and on the
 Rect-o-Verb's lead channel, and in the feedback on its rhythm channel;
 on the three-channel Dual Rectifier and the Triple Rectifier it is in the feedback in Raw and Vintage and a preamp
 control in Modern, and on the three-channel's orange channel a preamp control in Raw and in the feedback otherwise, so
-in that channel's Modern it does next to nothing, as on the drawing); the ODS 70s calls it *Accent*. On the Chieftain and Hot Cat 30 this knob is the amp's
+in that channel's Modern it does next to nothing, as on the drawing; on the three-channel's clean channel it is a
+preamp treble control at the master, and on the two-channel's orange channel it is in the feedback, so it does nothing
+in that channel's Modern); the ODS 70s calls it *Accent*. On the Chieftain and Hot Cat 30 this knob is the amp's
 *Brilliance*, on the Tiny Terror its *Tone*: a pot and cap across the power tubes' grids, like a Vox cut but wired the
 other way, so turning it **up** puts more resistance in front of the cap and brings the treble back (0 is darkest).`,
 
@@ -157,7 +161,8 @@ own name and meaning: *Brilliance* (AC15), *Brilliant* (Prometheus Clean), *Thic
 and the Lead Master's. On the DSL100 it is the amp's *Deep* switch, which is not a bright at all: it puts the amp's
 resonant network (a simulated inductor, tuned to about 53 Hz) across the feedback, for a broad lift in the bass. On the
 three-channel Dual Rectifier and the Triple Rectifier, *Raw* and *Modern* (Switch 1) are the amp's one Raw / Vintage /
-Modern switch: both off is Vintage, and with both on the model is in Modern. On the Powerball it is channel 1's Bright
+Modern switch: both off is Vintage, and with both on the model is in Modern. On Dual Rectifier Orange it is *Clean*,
+one end of that channel's Clean / Normal / Modern style (Switch 1 is Modern, both off is Normal). On the Powerball it is channel 1's Bright
 and does nothing in the lead channel. The value of the cap is on the Advanced page as *Bright Cap*.`,
 
     level: `The block's output level in dB, after everything else. A clean digital volume: it does not change the amp's
@@ -173,11 +178,16 @@ Each switches the real components on the model's schematic. Some worth knowing:
   real amp.
 - **Rect-o-Verb, *Rhythm* and *Pushed*:** *Rhythm* plays the clean rhythm channel in place of the lead channel, with
   the same knobs; it is much quieter at the same settings, so turn *Master* up. *Pushed* drives the rhythm channel
-  harder and does nothing on the lead channel. *Presence* is the playing channel's.
+  harder and does nothing on the lead channel. *Presence* is the playing channel's. *Output* (Control 1) is the
+  amp's Output Level, after both channels' masters and the effects loop's tube stage: the masters set how hard the
+  loop stage is driven, Output how hard the power amp is.
 - **Powerball, *Focused*:** in the lead channel it swaps the open middle pot for the focused one (*Mid Focused*,
   Control 1) and doubles the treble cap; in channel 1 it doubles the treble cap and makes the middle's cap smaller.
 - **Mark V, *IIC+ Mode*:** with *Mark IV Mode* (Switch 2), selects the channel-3 mode; both off is Extreme. The amp
-  has one three-position switch, so with both on the model is in Mark IV mode.
+  has one three-position switch, so with both on the model is in Mark IV mode. On Mark V Clean the pair is *Fat* and
+  *Tweed* (both off is Clean; both on is Tweed) and Switch 3 is the amp's *Bold* switch; on Mark V Crunch it is
+  *Edge* and *Mark I* (both off is Crunch; both on is Mark I). On all three, *Master* (Control 1) is the channel's
+  master and *Output* is the amp's Output control after the effects loop's tube stage.
 - **TriAxis, *Yellow*:** with *Red* (Switch 2), the preamp's mode switches.
 - **AFD100, *AFD*:** off is the #34 mode, on is AFD.
 - **JC-120, *Distortion On*:** the effect channel's distortion (on the real amp, the switch at the bottom of the
@@ -193,7 +203,8 @@ same parts the real switch does.
 
 Where the amp has one three-position switch, the model shows its two outer positions as two switches and both off is
 the middle position: *Bite Up* and *Bite Down* on the Prometheus, *Ultra Lo* and *Bass Cut* on the SVT, *IIC+ Mode*
-and *Mark IV Mode* on the Mark V, *Raw* and *Modern* on the three-channel Rectifiers. The amp cannot have both at
+and *Mark IV Mode* on the Mark V (*Fat* and *Tweed*, *Edge* and *Mark I* on its other channels), *Raw* and *Modern*
+on the three-channel Rectifiers. The amp cannot have both at
 once, so with both on the model takes the second of each pair as named here and ignores the first.`,
 
     switch3: `A model's third switch, where it has one: *Spongy* on the Rectifiers (a lower supply voltage, modelled as
@@ -209,7 +220,7 @@ on.`,
     control1: `A model's own extra knob, where it has one: a second volume (*Normal Vol* on Plexis and Bassmans,
 *Mic Vol* on the Tweed Deluxe, *Loudness 2*, *Volume II*), a lead drive (*Lead Drive* on the Mark IIC+ and IV,
 *Lead 1 Drive*, *Overdrive*, *Drive*), a channel master (*R1 Master* and *R2 Master* on the Mark IV's rhythm
-channels), or a tone control (*Edge* on the Hot Cat, *Mid Freq* on the SVT, *Hi Treble*
+channels), an output level after the masters (*Output* on the Rect-o-Verb), or a tone control (*Edge* on the Hot Cat, *Mid Freq* on the SVT, *Hi Treble*
 on the JC-120, *Mid Focused* on the Powerball, *Cut* on the Prometheus, a low cut before its gain stages). On jumped
 Plexi-style amps the two volumes blend the bright and normal channels. On the Quick Rod it is the *Solo Boost*, which
 starts at 0: the boost is off there, as on the amp until you press its footswitch; turn it up for the solo lift.`,
@@ -590,8 +601,10 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       Express: 'Trainwreck Express, from a redraw of the circuit: raw, responsive EL34 crunch. Medium confidence.',
       'Lone Star': 'Mesa/Boogie Lone Star, both channels: warm cleans and a smooth drive mode.',
       'Mark V': 'Mesa/Boogie Mark V channel 3 with its IIC+, Mark IV and Extreme modes.',
+      'Mark V Clean': 'Mesa/Boogie Mark V channel 1 with its Clean, Fat and Tweed modes and the Bold switch.',
+      'Mark V Crunch': 'Mesa/Boogie Mark V channel 2 with its Edge, Crunch and Mark I modes.',
       'Rect-o-Verb':
-        'Mesa/Boogie Rect-o-Verb (first series), both channels: a smaller Rectifier. Its reverb is not built.',
+        'Mesa/Boogie Rect-o-Verb (first series), both channels with its Output Level: a smaller Rectifier. For its reverb, put a Reverb block (Spring) after the Cab.',
       'Triple Rectifier':
         'Mesa/Boogie Triple Rectifier: built as the three-channel Dual Rectifier with six 6L6s, as no schematic was found.',
       Powerball:
@@ -653,7 +666,13 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'Quick Rod': 'Splawn Quick Rod, both channels with its gear switches (the power amp is assumed).',
       AFD100: 'Marshall AFD100 (Slash), #34 and AFD modes.',
       'Dual Rectifier 3-Ch Orange':
-        'Mesa/Boogie Dual Rectifier three-channel Solo Head, channel 2 (orange), with Raw, Vintage and Modern.'
+        'Mesa/Boogie Dual Rectifier three-channel Solo Head, channel 2 (orange), with Raw, Vintage and Modern.',
+      'Dual Rectifier Orange':
+        'Mesa/Boogie Dual Rectifier (two-channel, 1993), orange channel, with Clean, Normal and Modern styles.',
+      'Dual Rectifier 3-Ch Clean':
+        'Mesa/Boogie Dual Rectifier three-channel Solo Head, channel 1: Clean, and Pushed for a crunch.',
+      'Triple Rectifier Orange': 'Mesa/Boogie Triple Rectifier, channel 2 (orange), with Raw, Vintage and Modern.',
+      'Triple Rectifier Clean': 'Mesa/Boogie Triple Rectifier, channel 1: Clean, and Pushed for a crunch.'
     },
     pretube: {
       Stock: "The schematic's own preamp tubes.",

@@ -1076,6 +1076,10 @@ public sealed partial class CircuitAmpBlock
             feedback = 0;
         }
 
+        if (design.Power.FeedbackBoost is { } boost && preamp.IsOn(boost.Switch)) {
+            feedback *= boost.Factor;
+        }
+
         // The feedback's presence pot: the Presence knob, or the model control its relays put there.
         var presence = Knob(Glide(Presence));
         if (design.Power.PresencePot is { } presencePot) {
@@ -1107,6 +1111,15 @@ public sealed partial class CircuitAmpBlock
         // Presence Shift is the model's own pull shift where its presence has one, else the generic octave.
         var presenceShift = Now(PresenceShift) >= 0.5f && has.Presence;
         var ownShift = design.Power.Feedback.Series is { ShiftCap: > 0 };
+        // Where the amp's relays put the shift cap in (the Mark V in Extreme), the modes decide, not the parameter.
+        var shifted = presenceShift;
+        if (design.Power.ShiftUnless is { } modes) {
+            shifted = true;
+            for (var i = 0; i < modes.Count; i++) {
+                shifted &= !preamp.IsOn(modes[i]);
+            }
+        }
+
         var presenceFrequency = Percent(Glide(PresenceFrequency))
             * (presenceShift && !ownShift ? PresenceShiftFactor : 1);
         if (!has.Presence) {
@@ -1170,7 +1183,7 @@ public sealed partial class CircuitAmpBlock
             Now(Suppressor) >= 0.5f,
             Percent(Now(ScreenFrequency)),
             Now(ScreenQ),
-            presenceShift && ownShift
+            ownShift && shifted
         );
         var lowCut = Glide(LowCut);
         if (Now(InputCut) >= 0.5f && has.InputCut) {
@@ -1336,7 +1349,8 @@ readonly record struct AdvancedFeatures(
         new(
             AmpFeatures.Has(design, "mvloc") ? AmpFeatures.MasterPaths(design) : 0,
             AmpFeatures.Has(design, "fatsw"),
-            AmpFeatures.Has(design, "presshift"),
+            // The presence network itself: Presence Shift is hidden where the amp's relays work the shift cap.
+            AmpFeatures.Has(design, "presfreq"),
             AmpFeatures.Has(design, "cutsw"),
             AmpFeatures.Has(design, "overdrive"),
             AmpFeatures.Has(design, "hitreble"),

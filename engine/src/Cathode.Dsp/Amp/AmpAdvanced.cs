@@ -36,7 +36,9 @@ public static class AmpFeatures {
             "presag" => design.PreampSupply is not { Separate: true },
             "katc" => design.Power.CathodeBias,
             "mvtrim" => panel.Master is not null,
-            "presshift" or "presfreq" => HasPresenceNetwork(design),
+            "presfreq" => HasPresenceNetwork(design),
+            // Not where the amp's relays work the shift cap (the Mark V): the switch would do nothing.
+            "presshift" => HasPresenceNetwork(design) && design.Power.ShiftUnless is null,
             // The depth shelf is flat with the knob at 0, where a panel without one leaves it; a fixed low shelf in
             // the network itself (the BE-100's) is there whatever the knob.
             "depthfreq" => panel.Depth is not null

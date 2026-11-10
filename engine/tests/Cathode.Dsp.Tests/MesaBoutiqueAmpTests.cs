@@ -280,7 +280,8 @@ public class MesaBoutiqueAmpTests(ITestOutputHelper output) {
 
     static readonly string[] Models = [
         "Liverpool", "ODS 70s", "Dual Rectifier", "Dual Rectifier 3-Ch", "Subway Blues", "TriAxis Rhythm",
-        "TriAxis Lead 1", "TriAxis Lead 2", "Dual Rectifier 3-Ch Orange"
+        "TriAxis Lead 1", "TriAxis Lead 2", "Dual Rectifier 3-Ch Orange", "Dual Rectifier Orange",
+        "Dual Rectifier 3-Ch Clean", "Triple Rectifier Orange", "Triple Rectifier Clean"
     ];
 
     public static TheoryData<string> Types => [..Models];
@@ -299,6 +300,14 @@ public class MesaBoutiqueAmpTests(ITestOutputHelper output) {
         Assert.Equal(["Raw", "Modern", "Tube Rectifier", "Spongy"], Switches("Dual Rectifier 3-Ch Orange"));
         Assert.Equal("Presence", Label("control2", "Dual Rectifier"));
         Assert.Equal("Presence", Label("control2", "Dual Rectifier 3-Ch Orange"));
+        Assert.Equal(["Clean", "Modern", "Tube Rectifier", "Spongy"], Switches("Dual Rectifier Orange"));
+        Assert.Equal("Presence", Label("control2", "Dual Rectifier Orange"));
+        Assert.Equal(["Raw", "Modern", "Tube Rectifier", "Spongy"], Switches("Triple Rectifier Orange"));
+        foreach (var clean in (string[])["Dual Rectifier 3-Ch Clean", "Triple Rectifier Clean"]) {
+            Assert.Equal([string.Empty, "Pushed", "Tube Rectifier", "Spongy"], Switches(clean));
+            Assert.Equal("Presence", Label("control2", clean));
+        }
+
         foreach (var type in Models) {
             Assert.Empty(Label("cut", type));
             Assert.Empty(Label("depth", type));
@@ -490,6 +499,8 @@ public class MesaBoutiqueAmpTests(ITestOutputHelper output) {
     [InlineData("Dual Rectifier")]
     [InlineData("Dual Rectifier 3-Ch")]
     [InlineData("Dual Rectifier 3-Ch Orange")]
+    [InlineData("Dual Rectifier Orange")]
+    [InlineData("Triple Rectifier Orange")]
     public void Modern_takes_the_feedback_out(string type) {
         double Level(bool modern) {
             using var block = Create(
@@ -517,6 +528,7 @@ public class MesaBoutiqueAmpTests(ITestOutputHelper output) {
     [InlineData("Dual Rectifier 3-Ch", CircuitAmpBlock.Switch1)]
     [InlineData("Triple Rectifier", CircuitAmpBlock.Switch1)]
     [InlineData("Dual Rectifier 3-Ch Orange", CircuitAmpBlock.Bright)]
+    [InlineData("Triple Rectifier Orange", CircuitAmpBlock.Bright)]
     public void Three_channel_presence_pot_follows_the_mode(string type, int shuntMode) {
         double Lift(bool shunt, bool feedback) {
             return Treble(10f) - Treble(0f);
@@ -543,6 +555,90 @@ public class MesaBoutiqueAmpTests(ITestOutputHelper output) {
         Assert.True(shunt > 1);
         Assert.InRange(idle, -0.05, 0.05);
         Assert.True(inFeedback > 1);
+    }
+
+    /// <summary>
+    ///     The two-channel Dual Rectifier's orange channel by its LDR table. Clean lifts the three cathode bypasses
+    ///     and takes the 680k ‖ 2 nF branch out, so the preamp has far less gain, and doubles the feedback resistor's
+    ///     conductance. Its presence pot (Control 2) is the one in the feedback: it lifts the treble in Normal and
+    ///     does nothing in Modern, which has no feedback.
+    /// </summary>
+    [Fact]
+    public void Two_channel_orange_follows_the_ldr_table() {
+        static double Level(double hertz, params (int Index, float Value)[] settings) {
+            using var block = Create("Dual Rectifier Orange", settings);
+            var rendered = BlockRender.Mono(block, Signals.Sine(hertz, Rate, 24_000, 1e-4f), 64);
+            return Analysis.ToDb(Analysis.MagnitudeAt(rendered.AsSpan(12_000).ToArray(), hertz, Rate));
+        }
+
+        static (int, float)[] Quiet(params (int, float)[] more) =>
+            [(CircuitAmpBlock.Gain, 2f), (CircuitAmpBlock.Master, 3f), ..more];
+
+        var (normal, clean) = (Level(400, Quiet()), Level(400, Quiet((CircuitAmpBlock.Bright, 1f))));
+
+        double Lift(float modern) =>
+            Level(6_000, Quiet((CircuitAmpBlock.Switch1, modern), (CircuitAmpBlock.Control2, 10f)))
+            - Level(6_000, Quiet((CircuitAmpBlock.Switch1, modern), (CircuitAmpBlock.Control2, 0f)));
+
+        var (inFeedback, noFeedback) = (Lift(0f), Lift(1f));
+        output.WriteLine(
+            $"Normal {normal:0.0} dB, Clean {clean:0.0} dB at 400 Hz; Presence 0 to 10 at 6 kHz: Normal "
+            + $"{inFeedback:+0.00;-0.00} dB, Modern {noFeedback:+0.00;-0.00} dB"
+        );
+        Assert.True(clean < normal - 12);
+        Assert.True(inFeedback > 1);
+        Assert.InRange(noFeedback, -0.05, 0.05);
+
+        var design = AmpDesign.All.Single(static a => a.Name == "Dual Rectifier Orange");
+        Assert.Equal(SwitchRole.Bright, design.Power.FeedbackBoost?.Switch);
+        Assert.Equal(51.7 / 28.2, design.Power.FeedbackBoost!.Value.Factor, 1e-12);
+    }
+
+    /// <summary>
+    ///     The three-channel Rectifiers' channel 1: Pushed (2 nF across the 3.3M ahead of V1b) raises the gain, the
+    ///     presence (Control 2) is a treble shunt at the master whatever the feedback, and no switch takes the feedback
+    ///     out.
+    /// </summary>
+    [Theory]
+    [InlineData("Dual Rectifier 3-Ch Clean")]
+    [InlineData("Triple Rectifier Clean")]
+    public void Three_channel_clean_has_pushed_and_a_preamp_presence(string type) {
+        double Level(double hertz, params (int Index, float Value)[] settings) {
+            using var block = Create(
+                type,
+                [(CircuitAmpBlock.Gain, 2f), (CircuitAmpBlock.Master, 2f), ..settings]
+            );
+            var rendered = BlockRender.Mono(block, Signals.Sine(hertz, Rate, 24_000, 1e-4f), 64);
+            return Analysis.ToDb(Analysis.MagnitudeAt(rendered.AsSpan(12_000).ToArray(), hertz, Rate));
+        }
+
+        var (clean, pushed) = (Level(400), Level(400, (CircuitAmpBlock.Switch1, 1f)));
+        var lift = Level(6_000, (CircuitAmpBlock.Feedback, 0f), (CircuitAmpBlock.Control2, 10f))
+            - Level(6_000, (CircuitAmpBlock.Feedback, 0f), (CircuitAmpBlock.Control2, 0f));
+        output.WriteLine(
+            $"{type}: Clean {clean:0.0} dB, Pushed {pushed:0.0} dB at 400 Hz; Presence 0 to 10 at 6 kHz "
+            + $"{lift:+0.00;-0.00} dB"
+        );
+        Assert.True(pushed > clean + 3);
+        Assert.True(lift > 1);
+        var design = AmpDesign.All.Single(a => a.Name == type);
+        Assert.Null(design.Power.FeedbackOffSwitch);
+        Assert.False(design.Power.Feedback.HasPresenceCap);
+        Assert.Equal(3, design.Preamp.Count);
+    }
+
+    /// <summary>
+    ///     The Triple's other channels are the three-channel Dual Rectifier's into its six-tube power amp.
+    /// </summary>
+    [Theory]
+    [InlineData("Triple Rectifier Orange", "Dual Rectifier 3-Ch Orange")]
+    [InlineData("Triple Rectifier Clean", "Dual Rectifier 3-Ch Clean")]
+    public void Triple_channels_share_the_dual_preamp(string triple, string dual) {
+        var (six, four) = (AmpDesign.All.Single(a => a.Name == triple), AmpDesign.All.Single(a => a.Name == dual));
+        Assert.Same(four.Preamp, six.Preamp);
+        Assert.Equal(3, six.Power.TubesPerSide);
+        Assert.Equal(150, six.Power.RatedPower);
+        Assert.Equal(four.Power.Feedback, six.Power.Feedback);
     }
 
     static int TypeOf(string name) => AmpDesign.All.ToList().FindIndex(a => a.Name == name);

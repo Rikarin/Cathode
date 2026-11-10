@@ -13,8 +13,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     presence shunt on the treble wiper (22k and 3 nF, in Modern into the 100k linear presence pot) and the 1M audio
 ///     master; 20 nF into a long-tail pair (82k / 91k from 435 V, 470 Ω, 10k + 4.7k tail), feedback 47k with 0.1 µF
 ///     into the 4.7k except in Modern, with the presence pot and 0.1 µF across the 4.7k in Raw and Vintage; four 6L6GC
-///     at 475 V with 1k screens, the rectifier switch (silicon or two 5U4) and Bold/Spongy. Channel 2 (orange) is a
-///     type of its own, <see cref="Orange" />.
+///     at 475 V with 1k screens, the rectifier switch (silicon or two 5U4) and Bold/Spongy. Channel 2 (orange) and
+///     channel 1 (Clean / Pushed) are types of their own, <see cref="Orange" /> and <see cref="Clean" />.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -59,8 +59,21 @@ namespace Cathode.Dsp.Amp.Models;
 ///         the plates and the master's 10 pF are left out; the effects loop and the Output/Solo controls are bypassed.
 ///         Not printed: the output transformer (1.9k), the idle current (40 mA). Raw is on the Bright switch (the
 ///         amp's three-way is Raw / Vintage / Modern, here Raw and Modern with both off for Vintage; with both on
-///         the model is in Modern, <see cref="AmpPanel.ThreeWay" />). Channel 1 (Clean / Pushed: its own stack ahead
-///         of V2a, then V1b) is not modelled.
+///         the model is in Modern, <see cref="AmpPanel.ThreeWay" />).
+///     </para>
+///     <para>
+///         Channel 1 (<see cref="Clean" />) is the Rect-o-Verb's rhythm channel with this drawing's values
+///         (<see cref="RectoVerb" />): RY1a takes V1a's plate, with 1 nF to ground, into a stack of its own (250 pF,
+///         150k, 0.1 µF, 47 nF; 250k audio treble and bass, 25k audio middle) and the 1M audio gain (120 pF from its
+///         top to the wiper), then V2a with 20 pF at its grid and 15 µF straight across its cathode (RY1'a), 47 nF
+///         and 3.3M ‖ 39 pF into V1b (330k and 47 pF from grid to ground; 100k from 394 V; 1.5k unbypassed), 47 nF
+///         and 220k into the 1M audio master, with 250 pF and the channel's presence (2 nF into a 250k linear
+///         rheostat, Control 2) from the master's top to ground. Pushed (RY5, RY5') puts 2 nF beside the 250 pF
+///         treble cap, 2 nF across the 3.3M, and 1.5M ‖ (330k + 47 pF) ahead of the master, which Clean shorts.
+///         RY2a releases RY7, RY8 and RY9 on this channel, so the feedback is in (47k into the 4.7k) with neither
+///         presence pot in it. Guesses, marked: the J175 across V2a's 475k grid resistor is read as on (a closed
+///         contact) on channel 1, as the Rect-o-Verb's drawing wires its rhythm gain straight to the grid; the 10M
+///         and 20M beside RY5's caps (they keep them charged) are left out.
 ///     </para>
 /// </remarks>
 public static class DualRectifier3Channel {
@@ -89,6 +102,51 @@ public static class DualRectifier3Channel {
         Preamp = Preamp(null, new(25e3, PotTaper.Linear), 33e3, SwitchRole.Bright),
         Power = Power(new(25e3, PotTaper.Linear), new(SwitchRole.Bright))
     };
+
+    /// <summary>
+    ///     Channel 1 (Clean, and Pushed on Switch 1): V1a into its stack and gain, V2a, V1b and the master, with the
+    ///     channel's presence a preamp shunt on Control 2 and a feedback that no presence pot is in.
+    /// </summary>
+    public static AmpDesign Clean { get; } = Design with {
+        Name = "Dual Rectifier 3-Ch Clean",
+        Preamp = [
+            new NetworkStageDesign(
+                "V1a",
+                RectoVerb.RhythmInputAndStack(413, 100, 25e3, 20e-12, SwitchRole.Switch1)
+            ) { SupplyNode = 2 },
+            // The J175 across the 475k, as a closed contact.
+            new NetworkStageDesign("V2a", RectoVerb.SecondStage(0, 394, 1, 100)) { SupplyNode = 1 },
+            new NetworkStageDesign("V1b", CleanOutput()) { SupplyNode = 1 }
+        ],
+        Power = Power(new(25e3, PotTaper.Linear), null) with {
+            // No presence branch across the 4.7k: a placeholder cap (FeedbackDesign.SmallestPresenceCap).
+            Feedback = new(1, 47e3, 4.7e3, new(25e3, PotTaper.Linear), 1e-12),
+            PresencePot = null,
+            FeedbackOffSwitch = null
+        },
+        Panel = DualRectifier.Design.Panel with { Switch1 = "Pushed" }
+    };
+
+    /// <summary>
+    ///     Channel 1's V1b and master: the Rect-o-Verb's rhythm triode from 394 V (no 1.5M after the 47 nF, no cap
+    ///     across the plate resistor), 47 nF and 220k, then 1.5M ‖ (330k + 47 pF) that RY5'a shorts in Clean, into the
+    ///     1M audio master with 250 pF and the presence (2 nF and a 250k linear rheostat) from its top to ground.
+    /// </summary>
+    static StageNetlist CleanOutput() {
+        var net = new StageNetlist();
+        var pad = RectoVerb.RhythmStage(net, 394, 0, 0, SwitchRole.Switch1, 220e3);
+        var (top, branch, presence) = (net.Node(), net.Node(), net.Node());
+        net.Resistor(pad, top, 1.5e6);
+        net.Resistor(pad, branch, 330e3);
+        net.Capacitor(branch, top, 47e-12);
+        // RY5'a's closed contact in Clean.
+        net.SwitchedResistor(pad, top, 1, 0, SwitchRole.Switch1);
+        net.Capacitor(top, presence, 2e-9);
+        net.Rheostat(presence, StageNetlist.Ground, new(250e3, PotTaper.Linear), PotRole.Control2);
+        net.Capacitor(top, StageNetlist.Ground, 250e-12);
+        net.Output = net.Pot(top, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Master);
+        return net;
+    }
 
     /// <summary>
     ///     V1a to V3b with a channel's stack: <paramref name="modern" /> beside the 500 pF treble cap in Modern, and
