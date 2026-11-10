@@ -51,6 +51,7 @@ public sealed class TremoloBlock() : DspBlock(Info), IEngageAware {
     public const int BiasTrem = 2;
     public const int HarmonicTrem = 3;
     public const int OpticalTrem = 4;
+    public const int TypeCount = 5;
 
     const float BiasDrive = 1.5f;
     const double PhotocellAttackMs = 5;
@@ -89,8 +90,8 @@ public sealed class TremoloBlock() : DspBlock(Info), IEngageAware {
             BlockParams.Balance,
             ParamDescriptor.Choice("tempo", "Tempo", TempoDivisions.Names),
             ParamDescriptor.Float("duty", "LFO Duty", 0f, 100f, 50f, "%"),
-            ParamDescriptor.Float("phase", "LFO Phase", 0f, 180f, 0f, "°"),
-            ParamDescriptor.Float("panCenter", "Pan Center", -100f, 100f, 0f, "%"),
+            ParamDescriptor.Float("phase", "LFO Phase", 0f, 180f, 0f, "°").HiddenOn(TypeCount, Panner),
+            ParamDescriptor.Float("panCenter", "Pan Center", -100f, 100f, 0f, "%").ShownOn(TypeCount, Panner),
             ParamDescriptor.Float("crossover", "Crossover Freq", 100f, 3_000f, 700f, "Hz", ParamTaper.Log) with {
                 TypeLabels = [string.Empty, string.Empty, string.Empty, "Crossover Freq", string.Empty]
             },

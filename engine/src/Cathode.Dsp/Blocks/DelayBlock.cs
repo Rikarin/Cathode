@@ -248,7 +248,8 @@ public sealed class DelayBlock() : DspBlock(Info) {
             ParamDescriptor.Float("ratio", "L/R Time Ratio", 1f, 100f, 100f, "%")
                 .HiddenOn(TypeCount, Dual, MonoTape, Reverse),
             ParamDescriptor.Float("drive", "Drive", 0f, 10f, 0f),
-            ParamDescriptor.Float("bitReduction", "Bit Reduction", 0f, 20f, 0f, "bits"),
+            ParamDescriptor.Float("bitReduction", "Bit Reduction", 0f, 20f, 0f, "bits")
+                .HiddenOn(TypeCount, VintageDigital),
             Stereo.SpreadParam("spread", "Spread"),
             ParamDescriptor.Float("duckAttenuation", "Ducker Atten", 0f, 40f, 0f, "dB"),
             ParamDescriptor.Float("duckThreshold", "Ducker Threshold", -60f, 0f, -30f, "dB"),

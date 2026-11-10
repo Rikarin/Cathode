@@ -24,7 +24,7 @@ There is no dry/wet mix here: the effect works on the whole signal, and **Depth*
     balance: `Turns the opposite side down to shift the block's output left or right.`,
     tempo: `Locks the rate to the preset's tempo: one cycle per note value you pick (1/8 = two pulses per beat). When set, it replaces **Rate**.`,
     duty: `Skews the LFO. For Triangle, Square and Trapezoid it sets how much of each cycle is the rising part (or, for Square, how long it stays up); for Astable it sets the curvature. 50 % is symmetric. The other shapes ignore it.`,
-    phase: `Offsets the right channel's LFO from the left's (tremolo types only). At 0° both sides pulse together; at 180° one side is loud while the other is quiet, a stereo tremolo that seems to bounce between speakers. Panner ignores it.`,
+    phase: `Offsets the right channel's LFO from the left's (tremolo types only). At 0° both sides pulse together; at 180° one side is loud while the other is quiet, a stereo tremolo that seems to bounce between speakers. Hidden on Panner, which moves one signal between the sides.`,
     panCenter: `For Panner: moves the middle of the swing to the left (negative) or right (positive), so the sound pans around an off-centre point.`,
     crossover: `For Harmonic Trem: the frequency that splits the signal into a low and a high band, which then pulse in opposite directions. Around 500–800 Hz is typical of the vintage amps.`,
     trigger: `When set above its minimum, the LFO restarts at its Start Phase every time your playing rises above this level (it re-arms once the signal falls 6 dB below it). Set it just below your picking level and each new strum starts the pulse in time with you. At the minimum it is off.`,

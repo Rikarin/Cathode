@@ -2918,7 +2918,18 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 20,
         default: 0,
         unit: 'bits',
-        page: 'Advanced'
+        page: 'Advanced',
+        typeLabels: [
+          'Bit Reduction',
+          'Bit Reduction',
+          'Bit Reduction',
+          'Bit Reduction',
+          '',
+          'Bit Reduction',
+          'Bit Reduction',
+          'Bit Reduction',
+          'Bit Reduction'
+        ]
       },
       {
         id: 'spread',
@@ -8860,7 +8871,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 180,
         default: 0,
         unit: '°',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['LFO Phase', '', 'LFO Phase', 'LFO Phase', 'LFO Phase']
       },
       {
         id: 'panCenter',
@@ -8870,7 +8882,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 100,
         default: 0,
         unit: '%',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', 'Pan Center', '', '', '']
       },
       {
         id: 'crossover',
@@ -20478,7 +20491,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 30,
         default: 8,
         unit: 'ms',
-        taper: 'log'
+        taper: 'log',
+        typeLabels: ['', 'Time', 'Time', '']
       },
       {
         id: 'lowCut',
@@ -20488,7 +20502,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 2000,
         default: 150,
         unit: 'Hz',
-        taper: 'log'
+        taper: 'log',
+        typeLabels: ['Low Cut', 'Low Cut', '', 'Low Cut']
       },
       {
         id: 'highCut',
@@ -20498,7 +20513,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 20000,
         default: 12000,
         unit: 'Hz',
-        taper: 'log'
+        taper: 'log',
+        typeLabels: ['High Cut', 'High Cut', '', 'High Cut']
       },
       {
         id: 'level',
