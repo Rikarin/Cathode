@@ -57,6 +57,37 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task Helpers_that_describe_a_block_read_the_channel_it_is_running() {
+        // An EQ whose channel A (one band up 12 dB) ignores scenes, and a delay that follows them; scene 2 gives
+        // both channel B.
+        var band = GraphicEqBlock.Info.Params[0].Id;
+        await Post("/api/v1/live/blocks", new AddBlockRequest("geq", 0, 3));
+        await Patch("/api/v1/live/blocks/geq1/params?channel=A", new Dictionary<string, float> { [band] = 12 });
+        await Put("/api/v1/live/scenes/1/blocks/geq1", new SceneBlockState(false, "B"));
+        await Put("/api/v1/live/scenes/1/blocks/delay1", new SceneBlockState(false, "B"));
+        await Put("/api/v1/live/blocks/geq1/channels/A/scene-ignore", new SceneIgnoreRequest(true));
+
+        var state = await Put("/api/v1/live/scenes/active", new SceneSelectRequest(1));
+        Assert.Equal("A", state.Held!["geq1"].Channel);
+        Assert.Equal("A", state.LiveOf("geq1").Channel);
+        Assert.Equal("B", state.LiveOf("delay1").Channel);
+
+        // The chart shows the held channel, the one heard, not the flat channel B the scene names.
+        var response = (await client.GetFromJsonAsync<FrequencyResponse>("/api/v1/live/blocks/geq1/response", Token))!;
+        Assert.InRange(response.Db.Max(), 6f, 13f);
+
+        // Save All Blocks takes each block's single-channel values from the channel it is running: not scene 1's.
+        using var saved = await client.PostAsJsonAsync(
+            "/api/v1/live/block-presets",
+            new SaveAllBlocksRequest("Live"),
+            Token
+        );
+        var entries = (await saved.Content.ReadFromJsonAsync<BlockPreset[]>(Token))!;
+        Assert.Equal(120, entries.Single(static e => e.Type == "delay").Values["time"]);
+        Assert.Equal(12, entries.Single(static e => e.Type == "geq").Values[band]);
+    }
+
+    [Fact]
     public async Task Scene_ignore_holds_a_block_across_scenes_until_its_channel_stops_ignoring() {
         await Put("/api/v1/live/scenes/1/blocks/delay1", new SceneBlockState(true, "B"));
         var ignoring = await Put(

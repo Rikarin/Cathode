@@ -20,7 +20,14 @@ public sealed record LiveState(
     bool Muted = false,
     long Load = 0,
     PresetPosition? Position = null
-);
+) {
+    /// <summary>
+    ///     What a block is running now: its held state (Scene Ignore kept it) or else the active scene's. Helpers that
+    ///     describe what is heard read the channel from here, not from the scene.
+    /// </summary>
+    public SceneBlockState LiveOf(string block) =>
+        Held is not null && Held.TryGetValue(block, out var held) ? held : Preset.Scenes[ActiveScene].StateOf(block);
+}
 
 /// <summary>
 ///     A place in the preset order: a bank slot (<c>Bank</c>, <c>Slot</c> 0-127) or a setlist entry (<c>Setlist</c>,

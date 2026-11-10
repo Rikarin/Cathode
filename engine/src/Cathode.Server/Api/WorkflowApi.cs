@@ -140,7 +140,7 @@ static class WorkflowApi {
         live.MapPost(
                 "/block-presets",
                 async (SaveAllBlocksRequest request, LiveRig rig, BlockPresetStore store, BlockCatalog catalog) =>
-                    TypedResults.Ok(SaveAll((await rig.StateAsync()).Preset, request, store, catalog))
+                    TypedResults.Ok(SaveAll(await rig.StateAsync(), request, store, catalog))
             )
             .WithName("SaveAllBlocks")
             .WithSummary("Saves every block of the working copy (all channels and modifiers) to the Block Library.");
@@ -205,13 +205,17 @@ static class WorkflowApi {
             .WithSummary("Adds the entries of a .cthblock file as new user entries.");
     }
 
+    /// <summary>
+    ///     One Block Library entry per block of the working copy. An entry's single-channel values are those of the
+    ///     channel the block is running now.
+    /// </summary>
     static BlockPreset[] SaveAll(
-        Preset preset,
+        LiveState state,
         SaveAllBlocksRequest request,
         BlockPresetStore store,
         BlockCatalog catalog
     ) {
-        var scene = preset.Scenes[0];
+        var preset = state.Preset;
         var title = preset.Name.Length > 0 ? preset.Name : "Untitled";
         return [
             ..preset.Blocks.Where(b => catalog.Descriptor(b.Type) is not null && !BuiltInTypes.IsBuiltIn(b.Type))
@@ -221,7 +225,7 @@ static class WorkflowApi {
                             Type = b.Type,
                             Name = $"{title} {catalog.Info(b.Type)!.Name} ({b.Id})",
                             Folder = string.IsNullOrWhiteSpace(request.Folder) ? preset.Name : request.Folder,
-                            Values = new(b.Channels.GetValueOrDefault(scene.StateOf(b.Id).Channel) ?? []),
+                            Values = new(b.Channels.GetValueOrDefault(state.LiveOf(b.Id).Channel) ?? []),
                             Channels = b.Channels.ToDictionary(
                                 static c => c.Key,
                                 static c => new Dictionary<string, float>(c.Value)

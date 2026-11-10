@@ -69,7 +69,7 @@ public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection eng
     }
 
     /// <summary>
-    ///     The Cab block's Align page: a copy of the block on its active channel, built here on the Server (the slots'
+    ///     The Cab block's Align page: a copy of the block on the channel it is running, built here on the Server (the slots'
     ///     synthesis is the engine's own code), reports each slot's IR head and onset.
     /// </summary>
     public async Task<CabAlignment> CabAlignmentAsync(string blockId) {
@@ -81,7 +81,7 @@ public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection eng
         }
 
         const double rate = 48_000;
-        var channel = state.Preset.Scenes[state.ActiveScene].StateOf(block.Id).Channel;
+        var channel = state.LiveOf(block.Id).Channel;
         using var cab = new CabBlock();
         foreach (var (param, value) in block.Channels.GetValueOrDefault(channel) ?? []) {
             var index = CabBlock.Info.IndexOf(param);
@@ -143,7 +143,7 @@ public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection eng
     /// <summary>
     ///     A Cab block's current mixed IR (left and right, every slot that plays, DynaCab and IR pack slots included,
     ///     with the slots' and master cuts, proximity and smoothing baked in) at the engine's rate, as a stereo WAV.
-    ///     The block is rebuilt here from the active scene's channel and its assets, so it is exactly what the engine
+    ///     The block is rebuilt here from the channel it is running and its assets, so it is exactly what the engine
     ///     convolves.
     /// </summary>
     public async Task<byte[]> ExportCabAsync(string blockId) {
@@ -154,7 +154,7 @@ public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection eng
             throw new RigException(400, $"'{blockId}' is not a Cab block.");
         }
 
-        var channel = state.Preset.Scenes[state.ActiveScene].StateOf(blockId).Channel;
+        var channel = state.LiveOf(blockId).Channel;
         var rate = engine.Status().SampleRate is > 0 and var r ? r : 48_000;
         using var cab = new CabBlock();
         foreach (var (id, value) in block.Channels.GetValueOrDefault(channel) ?? []) {
