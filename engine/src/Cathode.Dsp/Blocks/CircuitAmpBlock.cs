@@ -175,10 +175,12 @@ namespace Cathode.Dsp.Blocks;
 ///         </item>
 ///         <item>
 ///             Generic switches where a model has no circuit of its own: <b>Presence Shift</b> (the presence
-///             frequency an octave down, on a model whose power amp has a presence network), <b>Fat</b> (the stack's
-///             frequencies down by 0.6, on a model with a tone stack in its preamp), <b>Input Cut</b> (a 150 Hz
-///             input high-pass at least), <b>High Treble</b> (5 flat: a ±12 dB shelf at 3 kHz before the power amp)
-///             and <b>Overdrive</b> (0: up to 20 dB more swing into the last gain stage).
+///             frequency an octave down, on a model whose power amp has a presence network; on the Mark IV's lead and
+///             Rhythm 2 it is the amp's own pull shift, a cap in series with the feedback,
+///             <see cref="SeriesPresence.ShiftCap" />), <b>Fat</b> (the stack's frequencies down by 0.6, on a model
+///             with a tone stack in its preamp), <b>Input Cut</b> (a 150 Hz input high-pass at least),
+///             <b>High Treble</b> (5 flat: a ±12 dB shelf at 3 kHz before the power amp) and <b>Overdrive</b> (0: up to
+///             20 dB more swing into the last gain stage).
 ///         </item>
 ///         <item>
 ///             <b>Tonestack Type</b> (Stock: any model's stack in a tone-stack stage) and <b>Tonestack Location</b>
@@ -793,8 +795,11 @@ public sealed partial class CircuitAmpBlock
         );
 
         // Presence Freq and Presence Shift move a presence network: stock on a model without one.
+        // Presence Shift is the model's own pull shift where its presence has one, else the generic octave.
+        var presenceShift = Params.Current(PresenceShift) >= 0.5f && features.Presence;
+        var ownShift = design.Power.Feedback.Series is { ShiftCap: > 0 };
         var presenceFrequency = Percent(Params.Advance(PresenceFrequency, frames))
-            * (Params.Current(PresenceShift) >= 0.5f ? PresenceShiftFactor : 1);
+            * (presenceShift && !ownShift ? PresenceShiftFactor : 1);
         if (!features.Presence) {
             presenceFrequency = 1;
         }
@@ -855,7 +860,8 @@ public sealed partial class CircuitAmpBlock
             Percent(Params.Current(InverterExcursion)) * excursion,
             Params.Current(Suppressor) >= 0.5f,
             Percent(Params.Current(ScreenFrequency)),
-            Params.Current(ScreenQ)
+            Params.Current(ScreenQ),
+            presenceShift && ownShift
         );
         var lowCut = Params.Advance(LowCut, frames);
         if (Params.Current(InputCut) >= 0.5f && features.InputCut) {

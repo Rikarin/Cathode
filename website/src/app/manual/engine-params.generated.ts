@@ -9371,7 +9371,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         name: 'Type',
         kind: 'choice',
         min: 0,
-        max: 87,
+        max: 90,
         default: 0,
         page: 'Basic',
         options: [
@@ -9462,7 +9462,10 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'DSL100',
           'JMP-1',
           'Quick Rod',
-          'AFD100'
+          'AFD100',
+          'Mark IIC+ Rhythm',
+          'Mark IV Rhythm 1',
+          'Mark IV Rhythm 2'
         ]
       },
       {
@@ -9561,6 +9564,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Gain',
           'Gain',
           'Gain',
+          'Gain',
+          'Volume',
+          'Gain',
           'Gain'
         ]
       },
@@ -9654,6 +9660,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Bass',
           'Bass',
           '',
+          'Bass',
+          'Bass',
+          'Bass',
           'Bass',
           'Bass',
           'Bass',
@@ -9759,6 +9768,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Middle',
           'Middle',
           'Middle',
+          'Middle',
+          'Middle',
+          'Middle',
           'Middle'
         ]
       },
@@ -9852,6 +9864,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Treble',
           'Treble',
           '',
+          'Treble',
+          'Treble',
+          'Treble',
           'Treble',
           'Treble',
           'Treble',
@@ -9957,6 +9972,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Presence',
           '',
           'Presence',
+          'Presence',
+          'Presence',
+          'Presence',
           'Presence'
         ]
       },
@@ -10056,6 +10074,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           '',
           '',
+          '',
+          '',
+          '',
           ''
         ]
       },
@@ -10073,6 +10094,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Cut',
           'Cut',
           'Cut',
+          '',
+          '',
+          '',
           '',
           '',
           '',
@@ -10254,6 +10278,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Volume',
           'Volume',
           'Master',
+          'Master',
+          'Master',
+          'Master',
           'Master'
         ]
       },
@@ -10350,6 +10377,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Bias',
           'Bias',
           '',
+          'Bias',
+          'Bias',
+          'Bias',
           'Bias',
           'Bias',
           'Bias',
@@ -10462,6 +10492,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Feedback',
           'Feedback',
           'Feedback',
+          'Feedback',
+          'Feedback',
+          'Feedback',
           'Feedback'
         ]
       },
@@ -10561,6 +10594,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Deep',
           '',
           'OD2',
+          '',
+          'Bright',
+          'Bright',
           ''
         ]
       },
@@ -10670,7 +10706,10 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Ultra Gain',
           'OD',
           'Clean',
-          'AFD'
+          'AFD',
+          'Treble Shift',
+          '',
+          'Fat'
         ]
       },
       {
@@ -10769,7 +10808,10 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Crunch / Lead 2',
           'Clean II / OD II',
           '2nd Gear',
-          'Low Input'
+          'Low Input',
+          'Deep',
+          '',
+          ''
         ]
       },
       {
@@ -10868,6 +10910,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Tone Shift',
           'Bass Shift',
           '3rd Gear',
+          '',
+          'Bass Shift',
+          '',
           ''
         ]
       },
@@ -10967,12 +11012,15 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           'Output',
           'Solo Boost',
-          ''
+          '',
+          '',
+          'R1 Master',
+          'R2 Master'
         ],
         typeDefaults: [
           5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
           5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-          5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 0, 5
+          5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 0, 5, 5, 5, 5
         ]
       },
       {
@@ -11070,6 +11118,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           '',
           'Presence',
+          '',
+          '',
+          '',
           '',
           ''
         ]
@@ -11171,7 +11222,10 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           '',
           '',
-          ''
+          '',
+          '80',
+          '80',
+          '80'
         ]
       },
       {
@@ -11271,7 +11325,10 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           '',
           '',
-          ''
+          '',
+          '240',
+          '240',
+          '240'
         ]
       },
       {
@@ -11371,7 +11428,10 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           '',
           '',
-          ''
+          '',
+          '750',
+          '750',
+          '750'
         ]
       },
       {
@@ -11471,7 +11531,10 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           '',
           '',
-          ''
+          '',
+          '2200',
+          '2200',
+          '2200'
         ]
       },
       {
@@ -11571,7 +11634,10 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           '',
           '',
-          ''
+          '',
+          '6600',
+          '6600',
+          '6600'
         ]
       },
       {
@@ -11701,6 +11767,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Preamp Tube',
           'Preamp Tube',
           'Preamp Tube',
+          'Preamp Tube',
+          'Preamp Tube',
+          'Preamp Tube',
           'Preamp Tube'
         ]
       },
@@ -11802,6 +11871,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Bright Cap',
           '',
           'Bright Cap',
+          'Bright Cap',
+          'Bright Cap',
+          'Bright Cap',
           'Bright Cap'
         ]
       },
@@ -11855,6 +11927,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Preamp Bias',
           'Preamp Bias',
           '',
+          'Preamp Bias',
+          'Preamp Bias',
+          'Preamp Bias',
           'Preamp Bias',
           'Preamp Bias',
           'Preamp Bias',
@@ -12001,6 +12076,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Preamp Sag',
           'Preamp Sag',
           '',
+          'Preamp Sag',
+          'Preamp Sag',
+          'Preamp Sag',
           'Preamp Sag',
           'Preamp Sag'
         ]
@@ -12312,6 +12390,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Power Tube',
           'Power Tube',
           'Power Tube',
+          'Power Tube',
+          'Power Tube',
+          'Power Tube',
           'Power Tube'
         ]
       },
@@ -12400,6 +12481,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Xfmr Match',
           'Xfmr Match',
           '',
+          'Xfmr Match',
+          'Xfmr Match',
+          'Xfmr Match',
           'Xfmr Match',
           'Xfmr Match',
           'Xfmr Match',
@@ -12514,6 +12598,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Xfmr Low Freq',
           'Xfmr Low Freq',
           'Xfmr Low Freq',
+          'Xfmr Low Freq',
+          'Xfmr Low Freq',
+          'Xfmr Low Freq',
           'Xfmr Low Freq'
         ]
       },
@@ -12602,6 +12689,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Xfmr High Freq',
           'Xfmr High Freq',
           '',
+          'Xfmr High Freq',
+          'Xfmr High Freq',
+          'Xfmr High Freq',
           'Xfmr High Freq',
           'Xfmr High Freq',
           'Xfmr High Freq',
@@ -12714,6 +12804,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Xfmr Drive',
           'Xfmr Drive',
           'Xfmr Drive',
+          'Xfmr Drive',
+          'Xfmr Drive',
+          'Xfmr Drive',
           'Xfmr Drive'
         ]
       },
@@ -12801,6 +12894,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Speaker load',
           'Speaker load',
           '',
+          'Speaker load',
+          'Speaker load',
+          'Speaker load',
           'Speaker load',
           'Speaker load',
           'Speaker load',
@@ -12915,6 +13011,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Load resonance',
           'Load resonance',
           'Load resonance',
+          'Load resonance',
+          'Load resonance',
+          'Load resonance',
           'Load resonance'
         ]
       },
@@ -13003,6 +13102,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Load Q',
           'Load Q',
           '',
+          'Load Q',
+          'Load Q',
+          'Load Q',
           'Load Q',
           'Load Q',
           'Load Q',
@@ -13117,6 +13219,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Load peak',
           'Load peak',
           'Load peak',
+          'Load peak',
+          'Load peak',
+          'Load peak',
           'Load peak'
         ]
       },
@@ -13205,6 +13310,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Load HF',
           'Load HF',
           '',
+          'Load HF',
+          'Load HF',
+          'Load HF',
           'Load HF',
           'Load HF',
           'Load HF',
@@ -13319,6 +13427,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Load impedance',
           'Load impedance',
           'Load impedance',
+          'Load impedance',
+          'Load impedance',
+          'Load impedance',
           'Load impedance'
         ]
       },
@@ -13419,6 +13530,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Presence Freq',
           'Presence Freq',
           '',
+          'Presence Freq',
+          'Presence Freq',
+          'Presence Freq',
           'Presence Freq',
           'Presence Freq'
         ]
@@ -13642,6 +13756,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Supply Type',
           'Supply Type',
           'Supply Type',
+          'Supply Type',
+          'Supply Type',
+          'Supply Type',
           'Supply Type'
         ]
       },
@@ -13729,6 +13846,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Rectifier',
           'Rectifier',
           '',
+          'Rectifier',
+          'Rectifier',
+          'Rectifier',
           'Rectifier',
           'Rectifier',
           'Rectifier',
@@ -14280,6 +14400,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Bias Trem Rate',
           'Bias Trem Rate',
           'Bias Trem Rate',
+          'Bias Trem Rate',
+          'Bias Trem Rate',
+          'Bias Trem Rate',
           'Bias Trem Rate'
         ]
       },
@@ -14374,6 +14497,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Intensity',
           'Bias Trem Depth',
           'Depth',
+          'Bias Trem Depth',
+          'Bias Trem Depth',
+          'Bias Trem Depth',
           'Bias Trem Depth',
           'Bias Trem Depth',
           'Bias Trem Depth',
@@ -14489,6 +14615,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Power Tube Hardness',
           'Power Tube Hardness',
           'Power Tube Hardness',
+          'Power Tube Hardness',
+          'Power Tube Hardness',
+          'Power Tube Hardness',
           'Power Tube Hardness'
         ]
       },
@@ -14541,6 +14670,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Preamp Hardness',
           'Preamp Hardness',
           '',
+          'Preamp Hardness',
+          'Preamp Hardness',
+          'Preamp Hardness',
           'Preamp Hardness',
           'Preamp Hardness',
           'Preamp Hardness',
@@ -14786,7 +14918,10 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Fat',
           '',
           'Fat',
-          'Fat'
+          'Fat',
+          'Fat',
+          'Fat',
+          ''
         ]
       },
       {
@@ -14836,6 +14971,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Input Cut',
           'Input Cut',
           '',
+          'Input Cut',
+          'Input Cut',
+          'Input Cut',
           'Input Cut',
           'Input Cut',
           'Input Cut',
@@ -14984,6 +15122,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'High Treble',
           'High Treble',
           'High Treble',
+          'High Treble',
+          'High Treble',
+          'High Treble',
           'High Treble'
         ]
       },
@@ -15083,6 +15224,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Overdrive',
           'Overdrive',
           'Overdrive',
+          'Overdrive',
+          'Overdrive',
+          'Overdrive',
           'Overdrive'
         ]
       },
@@ -15158,6 +15302,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Tonestack Type',
           '',
           'Tonestack Type',
+          '',
+          '',
+          '',
           '',
           '',
           '',
@@ -15295,7 +15442,10 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Tonestack Location',
           '',
           '',
-          ''
+          '',
+          'Tonestack Location',
+          'Tonestack Location',
+          'Tonestack Location'
         ]
       },
       {
@@ -15496,6 +15646,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           '',
           '',
+          '',
+          '',
+          '',
           ''
         ]
       },
@@ -15531,6 +15684,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           '',
           'CF Harmonics',
+          '',
+          '',
+          '',
           '',
           '',
           '',
@@ -15697,6 +15853,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Preamp Bias Excursion',
           'Preamp Bias Excursion',
           'Preamp Bias Excursion',
+          'Preamp Bias Excursion',
+          'Preamp Bias Excursion',
+          'Preamp Bias Excursion',
           'Preamp Bias Excursion'
         ]
       },
@@ -15797,7 +15956,10 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'PI Bias Excursion',
           'PI Bias Excursion',
           'PI Bias Excursion',
-          'PI Bias Excursion'
+          'PI Bias Excursion',
+          '',
+          '',
+          ''
         ]
       },
       {
@@ -15884,6 +16046,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Power Tube Bias Excursion',
           'Power Tube Bias Excursion',
           '',
+          'Power Tube Bias Excursion',
+          'Power Tube Bias Excursion',
+          'Power Tube Bias Excursion',
           'Power Tube Bias Excursion',
           'Power Tube Bias Excursion',
           'Power Tube Bias Excursion',
@@ -15998,6 +16163,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Excursion Time',
           'Excursion Time',
           'Excursion Time',
+          'Excursion Time',
+          'Excursion Time',
+          'Excursion Time',
           'Excursion Time'
         ]
       },
@@ -16086,6 +16254,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Recovery Time',
           'Recovery Time',
           '',
+          'Recovery Time',
+          'Recovery Time',
+          'Recovery Time',
           'Recovery Time',
           'Recovery Time',
           'Recovery Time',
@@ -16199,6 +16370,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Master Bias Excursion',
           'Master Bias Excursion',
           'Master Bias Excursion',
+          'Master Bias Excursion',
+          'Master Bias Excursion',
+          'Master Bias Excursion',
           'Master Bias Excursion'
         ]
       },
@@ -16285,6 +16459,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Plate Suppressor Diodes',
           'Plate Suppressor Diodes',
           '',
+          'Plate Suppressor Diodes',
+          'Plate Suppressor Diodes',
+          'Plate Suppressor Diodes',
           'Plate Suppressor Diodes',
           'Plate Suppressor Diodes',
           'Plate Suppressor Diodes',
@@ -16509,6 +16686,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Screen Freq',
           'Screen Freq',
           'Screen Freq',
+          'Screen Freq',
+          'Screen Freq',
+          'Screen Freq',
           'Screen Freq'
         ]
       },
@@ -16595,6 +16775,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Screen Q',
           'Screen Q',
           '',
+          'Screen Q',
+          'Screen Q',
+          'Screen Q',
           'Screen Q',
           'Screen Q',
           'Screen Q',

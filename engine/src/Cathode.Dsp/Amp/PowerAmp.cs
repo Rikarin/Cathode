@@ -99,6 +99,10 @@ public enum SupplyMode {
 ///     0 for the design's resistive feed to the screen node; above 0, the feed is a choke whose inductance gives the
 ///     node this quality factor, (1 / R) √(L / C), at its LC resonance.
 /// </param>
+/// <param name="PresenceShift">
+///     The presence's pull shift on a design that has one (<see cref="SeriesPresence.ShiftCap" />): the cap in series
+///     with the feedback. Nothing on any other design.
+/// </param>
 public readonly record struct PowerSettings(
     PentodeModel? Tube = null,
     double Match = 1,
@@ -126,7 +130,8 @@ public readonly record struct PowerSettings(
     double InverterExcursion = 1,
     bool Suppressor = false,
     double ScreenFrequency = 1,
-    double ScreenQ = 0
+    double ScreenQ = 0,
+    bool PresenceShift = false
 ) {
     public static PowerSettings Stock => new(null);
 }
@@ -476,7 +481,8 @@ public sealed class PowerAmp {
                 sampleRate,
                 settings.PresenceFrequency,
                 settings.DepthFrequency,
-                controls.Deep
+                controls.Deep,
+                settings.PresenceShift
             );
         }
 
@@ -1758,6 +1764,8 @@ struct PushPullStage : INonlinearDevice {
     FirstOrder branch; // the feedback's second section (FeedbackDesign.Branch or FeedbackDesign.Series)
     bool hasBranch;
     SecondOrder depth; // the depth control's shelf, or the Deep switch's resonant branch (FeedbackDesign.Deep)
+    FirstOrder shift; // the feedback's high-pass while a series presence's shift cap is in circuit (ShiftedTimes)
+    bool hasShift;
     FirstOrder cut;
     GridPair grids;
     double feedback; // feedback knob × tap gain / turns ratio: volts at the feedback filter per volt of primary
@@ -1872,7 +1880,9 @@ struct PushPullStage : INonlinearDevice {
     ///     (<see cref="FeedbackDesign.Series" />, <see cref="FeedbackDesign.SeriesTimes" />). A model with a Deep
     ///     switch (<see cref="FeedbackDesign.Deep" />, <paramref name="deep" /> its position) has that branch across
     ///     the shunt in place of the depth control: third order, the presence's section and a second-order one
-    ///     (<see cref="FeedbackDesign.DeepTimes" />), its resonance scaled by the depth frequency.
+    ///     (<see cref="FeedbackDesign.DeepTimes" />), its resonance scaled by the depth frequency. With
+    ///     <paramref name="presenceShift" /> on a series presence that has a shift cap, the cap is in the arm: a third
+    ///     section, a high-pass ahead of the other two (<see cref="FeedbackDesign.ShiftedTimes" />).
     /// </summary>
     public void SetFeedback(
         FeedbackDesign design,
@@ -1883,7 +1893,8 @@ struct PushPullStage : INonlinearDevice {
         double rate,
         double presenceFrequency = 1,
         double depthFrequency = 1,
-        bool deep = false
+        bool deep = false,
+        bool presenceShift = false
     ) {
         // Push-pull: the inverter's driven output is its inverted plate, so the primary voltage rises with the input.
         // Single-ended the input drives the grid directly and the plate falls as it rises: the tap is taken the other
@@ -1899,7 +1910,18 @@ struct PushPullStage : INonlinearDevice {
         }
 
         hasBranch = design.Branch is not null || design.Series is not null;
-        if (hasBranch) {
+        var shifted = presenceShift && design.Series is { ShiftCap: > 0 };
+        if (shifted && !hasShift) {
+            shift.Reset();
+        }
+
+        hasShift = shifted;
+        if (shifted) {
+            var (rise, pole0, zero1, pole1, zero2, pole2) = design.ShiftedTimes(presence, presenceFrequency);
+            shift.Design(0, rise, 1, pole0, rate);
+            this.presence.Design(1, zero1, 1, pole1, rate);
+            branch.Design(1, zero2, 1, pole2, rate);
+        } else if (hasBranch) {
             var (gain, zero1, pole1, zero2, pole2) = design.Series is not null
                 ? design.SeriesTimes(presence, presenceFrequency)
                 : design.BranchTimes(presence, presenceFrequency);
@@ -1980,11 +2002,11 @@ struct PushPullStage : INonlinearDevice {
 
         // Feedback, phase inverter and cut: the grid drive as a function of v.
         var tap = feedback * v;
-        var presenced = presence.Peek(tap);
+        var presenced = presence.Peek(hasShift ? shift.Peek(tap) : tap);
         var fed = depth.Peek(hasBranch ? branch.Peek(presenced) : presenced);
         var fedSlope = feedback * presence.B0 * depth.B0;
         if (hasBranch) {
-            fedSlope *= branch.B0;
+            fedSlope *= hasShift ? branch.B0 * shift.B0 : branch.B0;
         }
 
         var (ea, eb) = PushPullDrive(fed, fedSlope, out var slopeA, out var slopeB);
@@ -2081,7 +2103,7 @@ struct PushPullStage : INonlinearDevice {
     /// <summary>Advances every state for the converged primary voltage, and records the currents.</summary>
     public void Commit(ReadOnlySpan<double> voltages) {
         var v = voltages[0];
-        var presenced = presence.Process(feedback * v);
+        var presenced = presence.Process(hasShift ? shift.Process(feedback * v) : feedback * v);
         var fed = depth.Process(hasBranch ? branch.Process(presenced) : presenced);
         Fed = fed;
         double ea, eb;
@@ -2157,6 +2179,7 @@ struct PushPullStage : INonlinearDevice {
         loop?.Reset();
         presence.Reset();
         branch.Reset();
+        shift.Reset();
         depth.Reset();
         cut.Reset();
         grids.Reset();
@@ -2170,6 +2193,7 @@ struct PushPullStage : INonlinearDevice {
         loop?.FlushDenormals();
         presence.FlushDenormals();
         branch.FlushDenormals();
+        shift.FlushDenormals();
         depth.FlushDenormals();
         cut.FlushDenormals();
         grids.FlushDenormals();
@@ -2219,11 +2243,11 @@ struct PushPullStage : INonlinearDevice {
     /// </summary>
     [MethodImpl(MethodImplOptions.NoInlining)]
     readonly void EvaluateGeneral(double v, out double current, out double slope) {
-        var presenced = presence.Peek(feedback * v);
+        var presenced = presence.Peek(hasShift ? shift.Peek(feedback * v) : feedback * v);
         var fed = depth.Peek(hasBranch ? branch.Peek(presenced) : presenced);
         var fedSlope = feedback * presence.B0 * depth.B0;
         if (hasBranch) {
-            fedSlope *= branch.B0;
+            fedSlope *= hasShift ? branch.B0 * shift.B0 : branch.B0;
         }
 
         double ea, eb, slopeA, slopeB;

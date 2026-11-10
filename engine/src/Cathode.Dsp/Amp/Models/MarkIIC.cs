@@ -3,15 +3,17 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Mesa/Boogie Mark IIC+, lead channel: V1A (150k, 1.5k ‖ 0.47 µF, with a 15 µF bypass through 15k that the Bass
-///     Shift pull shorts) driving the Fender-topology stack directly (100k slope, 250 pF treble cap, 750 pF more with
+///     Mesa/Boogie Mark IIC+, both channels as two types. Lead (<see cref="Design" />): V1A (150k, 1.5k ‖ 0.47 µF,
+///     with a 15 µF bypass through 15k that the Bass Shift pull shorts) driving the Fender-topology stack directly (100k
+///     slope, 250 pF treble cap, 750 pF more with
 ///     Treble Shift, 0.1 µF, 47 nF; 250k treble and bass, 10k middle) and Volume 1 (1M audio, 180 pF pull-bright);
 ///     V1B; the lead drive (680k into 1M audio) into the V3A cascade (82k, 120 pF grid-to-cathode), a 270k/68k divider
 ///     into the V3B lead stage (270k plate with 1 nF across it, 3.3k with 0.22 µF through 15k, shorted by the
 ///     lead-bright pull), a 220k ‖ 250 pF / 100k ‖ 500 pF divider into V2B (1.5k unbypassed), the lead master shunting
 ///     the signal into a 150k/4.3k pad, the V4A recovery stage (120k, 1k ‖ 0.47 µF, 15 µF through 15k, shorted by the
 ///     deep pull), the master, the five-band graphic EQ, a long-tail pair and Simul-Class power (two 6L6GC in pentode
-///     beside two triode-strapped EL34).
+///     beside two triode-strapped EL34). Rhythm (<see cref="Rhythm" />): the same amp without the lead circuit, V1B
+///     going straight into V2B through 3.3M ‖ 20 pF, and without the lead master.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -21,8 +23,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///     </para>
 ///     <para>
 ///         Guesses, marked: the redraw draws V3A's 2.2 µF cathode cap unconnected; it is connected here (a cascade
-///         stage this hot is bypassed on every Mark lead circuit described in text). The rhythm path's 3.3M feed into
-///         V2B's grid, live in the lead mode too, is left out (about -33 dB under the lead signal). The graphic EQ is
+///         stage this hot is bypassed on every Mark lead circuit described in text). In the lead type the rhythm
+///         path's 3.3M feed into V2B's grid, live in the lead mode too, is left out (about -33 dB under the lead
+///         signal). The graphic EQ is
 ///         the behavioural constant-Q slot (<see cref="EqualizerStageDesign" />), not the LC network, whose topology
 ///         the redraws disagree on.
 ///     </para>
@@ -46,6 +49,17 @@ namespace Cathode.Dsp.Amp.Models;
 ///         15 µF bypass) are Switch 1 and Switch 3. Five pulls on four switches: the Lead Master's Bright pull (V3B's
 ///         0.22 µF bypass) shares the Bright switch with Volume 1's.
 ///     </para>
+///     <para>
+///         Rhythm channel, read from the factory scan's preamp page (el34world <c>Boogie_mkiic_plus.pdf</c>, sheet 1,
+///         "Mark IIC+ Guitar Preamplifier"): V1B's 0.047 µF with 100k to ground, then 3.3M with a cap across it (10 pF
+///         printed, "20 pF on Simul-Class": 20 pF here) into the next grid, which has 680k ‖ 47 pF to ground; that
+///         stage (100k plate, 1.5k unbypassed) is the one the lead circuit returns into, and LDR 4 opens the lead
+///         circuit's output and the lead master's ground in the rhythm mode. From there on the two modes share the
+///         path: 47k and 0.047 µF, 150k into 4.7k ‖ 47k, the recovery stage, the master. The scan names these two
+///         stages V2A and V2B; the type keeps the lead type's names (V2B, V4A) so the shared stages are called the
+///         same in both. Every other value is the lead type's. The reverb (between the 150k and the recovery stage's
+///         grid) is left out.
+///     </para>
 /// </remarks>
 public static class MarkIIC {
     public static AmpDesign Design { get; } = new(
@@ -56,7 +70,7 @@ public static class MarkIIC {
             new NetworkStageDesign("V3A", LeadDrive()),
             new NetworkStageDesign("V3B", LeadStage()),
             new NetworkStageDesign("V2B", LeadReturn()),
-            new NetworkStageDesign("V4A", Recovery()),
+            new NetworkStageDesign("V4A", Recovery(true)),
             new CouplingStageDesign("Master", 47e-9, new(1e6, PotTaper.Audio), PotRole.Master, 15e3),
             new EqualizerStageDesign("GEQ", EqualizerStageDesign.MarkBands)
         ],
@@ -98,6 +112,24 @@ public static class MarkIIC {
             Switch3 = "Bass Shift",
             Equalizer = ["80", "240", "750", "2200", "6600"]
         }
+    };
+
+    /// <summary>
+    ///     The rhythm channel: the lead type's V1A, stack, Volume 1 and V1B, then <see cref="RhythmReturn" /> in place
+    ///     of the lead circuit, the recovery stage without the lead master, the master, the EQ and the same power amp.
+    /// </summary>
+    public static AmpDesign Rhythm { get; } = Design with {
+        Name = "Mark IIC+ Rhythm",
+        Preamp = [
+            new NetworkStageDesign("V1A", InputAndStack()),
+            new TriodeStageDesign("V1B", TriodeModel.Ecc83, 408, 100e3, 1.5e3, 15e-6),
+            new NetworkStageDesign("V2B", RhythmReturn()),
+            new NetworkStageDesign("V4A", Recovery(false)),
+            new CouplingStageDesign("Master", 47e-9, new(1e6, PotTaper.Audio), PotRole.Master, 15e3),
+            new EqualizerStageDesign("GEQ", EqualizerStageDesign.MarkBands)
+        ],
+        OutputTrimDb = -7,
+        Panel = Design.Panel with { Control1 = null, Control2 = null }
     };
 
     /// <summary>
@@ -185,28 +217,56 @@ public static class MarkIIC {
     /// </summary>
     static StageNetlist LeadReturn() {
         var net = new StageNetlist();
-        var (coupled, grid, supply, plate, cathode) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (coupled, grid) = (net.Node(), net.Node());
         MesaParts.LeadDivider(net, net.Input, coupled, grid, 100e3 * 680e3 / (100e3 + 680e3), 547e-12);
-        net.Supply(supply, 425);
-        net.Resistor(supply, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
-        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-        net.Output = plate;
+        net.Output = ReturnTriode(net, grid);
         return net;
     }
 
     /// <summary>
-    ///     The lead master and the recovery stage V4A: 47k and 47 nF from V2B, the 250k audio lead master as a shunt to
-    ///     ground, 150k into 4.7k ‖ 47k, 120 pF grid-to-cathode; 120k plate, 1k ‖ 0.47 µF and 15 µF through 15k
-    ///     (shorted by the deep pull).
+    ///     The rhythm channel into V2B: 47 nF from V1B with 100k to ground, 3.3M ‖ 20 pF into the grid's 680k ‖ 47 pF;
+    ///     100k plate, 1.5k unbypassed.
     /// </summary>
-    static StageNetlist Recovery() {
+    static StageNetlist RhythmReturn() {
+        var net = new StageNetlist();
+        var (coupled, grid) = (net.Node(), net.Node());
+        net.Capacitor(net.Input, coupled, 47e-9);
+        net.Resistor(coupled, StageNetlist.Ground, 100e3);
+        net.Resistor(coupled, grid, 3.3e6);
+        net.Capacitor(coupled, grid, 20e-12);
+        net.Resistor(grid, StageNetlist.Ground, 680e3);
+        net.Capacitor(grid, StageNetlist.Ground, 47e-12);
+        net.Output = ReturnTriode(net, grid);
+        return net;
+    }
+
+    /// <summary>
+    ///     V2B itself, the stage both channels come back into: 100k plate, 1.5k unbypassed. Returns the plate.
+    /// </summary>
+    static int ReturnTriode(StageNetlist net, int grid) {
+        var (supply, plate, cathode) = (net.Node(), net.Node(), net.Node());
+        net.Supply(supply, 425);
+        net.Resistor(supply, plate, 100e3);
+        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
+        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
+        return plate;
+    }
+
+    /// <summary>
+    ///     The lead master and the recovery stage V4A: 47k and 47 nF from V2B, the 250k audio lead master as a shunt to
+    ///     ground (<paramref name="leadMaster" />; the rhythm mode disconnects it), 150k into 4.7k ‖ 47k, 120 pF
+    ///     grid-to-cathode; 120k plate, 1k ‖ 0.47 µF and 15 µF through 15k (shorted by the deep pull).
+    /// </summary>
+    static StageNetlist Recovery(bool leadMaster) {
         var net = new StageNetlist();
         var (series, master, grid, supply, plate, cathode, deep) =
             (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
         net.Resistor(net.Input, series, 47e3);
         net.Capacitor(series, master, 47e-9);
-        net.Rheostat(master, StageNetlist.Ground, new(250e3, PotTaper.Audio), PotRole.Control2);
+        if (leadMaster) {
+            net.Rheostat(master, StageNetlist.Ground, new(250e3, PotTaper.Audio), PotRole.Control2);
+        }
+
         net.Resistor(master, grid, 150e3);
         net.Resistor(grid, StageNetlist.Ground, 4.7e3 * 47e3 / (4.7e3 + 47e3));
         net.Capacitor(grid, cathode, 120e-12);

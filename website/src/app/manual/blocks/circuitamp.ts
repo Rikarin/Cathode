@@ -44,7 +44,8 @@ usually go after the Cab, as they would in an effects loop or a studio. The amp 
 - **Hot-rodded British and modern rock:** Silver Jubilee, JCM900 4100 and 4502, DSL100, JVM410H, BE-100 and
   BE-100 HBE, AFD100, Quick Rod, Laney GH100L, Hot Rod Deluxe.
 - **High gain:** SLO-100, 5150, 5150III, Dual Rectifier, Dual Rectifier 3-Ch, Triple Rectifier, Rect-o-Verb,
-  Mark IIC+, Mark IV, Mark V, TriAxis, Legacy VL100, Powerball, Savage 120, Prometheus.
+  Mark IIC+ (and its clean rhythm channel, Mark IIC+ Rhythm), Mark IV (and its clean and crunch channels, Mark IV
+  Rhythm 1 and Rhythm 2), Mark V, TriAxis, Legacy VL100, Powerball, Savage 120, Prometheus.
 - **Bass:** SVT, Portaflex B-15N, Bassman 135, Bass 400.
 - **Solid state:** JC-120 and Valvestate 8080 (a tube preamp into a transistor power amp). Their tube-only knobs are
   hidden.
@@ -191,7 +192,8 @@ win when both are on.`,
 
     control1: `A model's own extra knob, where it has one: a second volume (*Normal Vol* on Plexis and Bassmans,
 *Mic Vol* on the Tweed Deluxe, *Loudness 2*, *Volume II*), a lead drive (*Lead Drive* on the Mark IIC+ and IV,
-*Lead 1 Drive*, *Overdrive*, *Drive*), or a tone control (*Edge* on the Hot Cat, *Mid Freq* on the SVT, *Hi Treble*
+*Lead 1 Drive*, *Overdrive*, *Drive*), a channel master (*R1 Master* and *R2 Master* on the Mark IV's rhythm
+channels), or a tone control (*Edge* on the Hot Cat, *Mid Freq* on the SVT, *Hi Treble*
 on the JC-120, *Mid Focused* on the Powerball, *Cut* on the Prometheus, a low cut before its gain stages). On jumped
 Plexi-style amps the two volumes blend the bright and normal channels. On the Quick Rod it is the *Solo Boost*, which
 starts at 0: the boost is off there, as on the amp until you press its footswitch; turn it up for the solo lift.`,
@@ -221,7 +223,10 @@ drive control, and where the preamp has no gain stage to drive (the JC-120).`,
 
     presshift: `Moves the presence control's frequency down an octave, for a broader, lower-reaching presence lift. Shown
 on models whose power amp has a presence circuit in its feedback loop, whether or not the panel has a Presence knob;
-hidden on solid-state amps and on tube amps without one (the SVT, the blackface Fenders).`,
+hidden on solid-state amps and on tube amps without one (the SVT, the blackface Fenders). On the Mark IV and Mark IV
+Rhythm 2 it is the amp's own *Pull Shift* on the Presence knob instead: a small cap in series with the feedback, so the
+power amp keeps its feedback only in the top of the treble and runs open below it. The amp gets louder, looser and more
+forward in the mids, and the Presence knob then works on that top range only.`,
 
     fatsw: `Moves the tone stack's frequencies down (to 0.6 times stock): fuller lows and low mids, as the "Fat" switch
 does on amps that have one. Hidden where the model has its own Fat switch, and where its preamp has no tone stack.`,
@@ -535,12 +540,18 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'SLO-100':
         'Soldano SLO-100 overdrive channel (Switch 1 for the normal channel with its Crunch switch). Smooth, singing high gain.',
       'Mark IIC+': 'Mesa/Boogie Mark IIC+ lead channel with its five-band EQ: tight, focused, singing lead tone.',
+      'Mark IIC+ Rhythm':
+        'Mesa/Boogie Mark IIC+ rhythm channel: the same amp without the lead circuit, clean to a light break-up, with the five-band EQ.',
       '5150': 'Peavey 5150 lead channel: aggressive high gain, tight and bright.',
       'Dual Rectifier':
         'Mesa/Boogie Dual Rectifier (two-channel, 1993), red channel, with Modern, Tube Rectifier and Spongy switches. Thick, saturated modern high gain.',
       '5150III':
         'EVH 5150III red channel, modelled from the 100S (Stealth) version of the amp: tight, saturated high gain.',
       'Mark IV': 'Mesa/Boogie Mark IV lead channel with its five-band EQ.',
+      'Mark IV Rhythm 1':
+        'Mesa/Boogie Mark IV Rhythm 1, the clean channel, with its Bright pull, its own master and the five-band EQ.',
+      'Mark IV Rhythm 2':
+        'Mesa/Boogie Mark IV Rhythm 2, the crunch channel, with its Fat pull, its own master and the five-band EQ.',
       'Legacy VL100': 'Carvin Legacy VL100 (the Steve Vai amp) lead channel; Switch 1 for the clean channel.',
       Chieftain: 'Matchless Chieftain: boutique EL34 class A, rich and chimey.',
       'Hot Cat 30': 'Bad Cat Hot Cat 30, both inputs: hot-rodded class A with an Edge control.',

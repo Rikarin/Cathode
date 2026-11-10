@@ -306,18 +306,86 @@ public sealed record FeedbackDesign(
     }
 
     /// <summary>
+    ///     With <see cref="Series" /> and its <see cref="SeriesPresence.ShiftCap" /> in circuit (the pull shift): the
+    ///     cap C_p in series with the arm makes the feedback fraction third order and takes it to nothing at DC, β(s)
+    ///     = <c>Rise</c> s (1 + s <c>Zero1</c>) (1 + s <c>Zero2</c>) / ((1 + s <c>Pole0</c>) (1 + s <c>Pole1</c>) (1 +
+    ///     s <c>Pole2</c>)): <see cref="SeriesTimes" />' divider with 1 / (s C_p) added to Z_r. <c>Rise</c> is C_p
+    ///     (R_x + R_m); the zeros are <see cref="SeriesTimes" />'; the poles are a real cubic's roots (an RC
+    ///     network's), slowest first, each zero paired with the pole of the same rank after the slowest.
+    /// </summary>
+    public (double Rise, double Pole0, double Zero1, double Pole1, double Zero2, double Pole2) ShiftedTimes(
+        double presence,
+        double frequency = 1
+    ) {
+        var series = Series ?? default;
+        var arm = Presence.Ohms * Presence.Fraction(presence) + FeedbackResistor;
+        var leg = series.LegResistor * PresenceCap / frequency;
+        var shunt = series.ShuntLegResistor * series.ShuntLegCap;
+        var cap = series.ShiftCap / frequency;
+
+        // With Z_r = (r0 + r1 s) / (1 + s τ_l) + 1 / (s C_p) and Z_s = (h0 + h1 s) / (1 + s τ_m):
+        // β = s C_p (h0 + h1 s) (1 + s τ_l) / (s C_p (c0 + c1 s + c2 s²) + (1 + s τ_l) (1 + s τ_m)),
+        // c0..c2 being SeriesTimes' denominator.
+        var (r0, r1) = (arm + series.LegResistor, arm * leg);
+        var (h0, h1) = (ShuntResistor + series.ShuntLegResistor, ShuntResistor * shunt);
+        var c0 = r0 + h0;
+        var c1 = r1 + r0 * shunt + h1 + h0 * leg;
+        var c2 = r1 * shunt + h1 * leg;
+        var (slow, middle, fast) = RealRoots(leg + shunt + cap * c0, leg * shunt + cap * c1, cap * c2);
+        var (zeroA, zeroB) = (h1 / h0, leg);
+        var (zero1, zero2) = zeroA >= zeroB ? (zeroA, zeroB) : (zeroB, zeroA);
+        return (cap * h0, slow, zero1, middle, zero2, fast);
+    }
+
+    /// <summary>
+    ///     The time constants of 1 + d1 s + d2 s² + d3 s³ = (1 + s τ_a) (1 + s τ_b) (1 + s τ_c) where all three are
+    ///     real and positive (the poles of an RC network), largest first: the roots of τ³ - d1 τ² + d2 τ - d3 by the
+    ///     trigonometric formula on τ / d1, the two largest polished by Newton's method and the smallest taken from
+    ///     the product d3, which keeps its relative accuracy however far below the others it lies.
+    /// </summary>
+    static (double Slow, double Middle, double Fast) RealRoots(double d1, double d2, double d3) {
+        var (b, c) = (d2 / (d1 * d1), d3 / (d1 * d1 * d1));
+        var p = b - 1.0 / 3;
+        var q = -2.0 / 27 + b / 3 - c;
+        var (slow, middle) = (1.0 / 3, 1.0 / 3);
+        if (p < 0) {
+            var radius = 2 * Math.Sqrt(-p / 3);
+            var angle = Math.Acos(Math.Clamp(3 * q / (2 * p) * Math.Sqrt(-3 / p), -1, 1)) / 3;
+            slow = radius * Math.Cos(angle) + 1.0 / 3;
+            middle = radius * Math.Cos(angle - 2 * Math.PI / 3) + 1.0 / 3;
+        }
+
+        for (var i = 0; i < 3; i++) {
+            slow = Polish(slow);
+            middle = Polish(middle);
+        }
+
+        return (slow * d1, middle * d1, c / (slow * middle) * d1);
+
+        double Polish(double y) {
+            var slope = (3 * y - 2) * y + b;
+            return slope == 0 ? y : y - (((y - 1) * y + b) * y - c) / slope;
+        }
+    }
+
+    /// <summary>
     ///     The feedback fraction β(jω) at <paramref name="hz" /> straight from the network, Z / (R_f + Z) with the
     ///     shunt, the presence (at rotation <paramref name="presence" />) and <see cref="Branch" /> in parallel, or the
-    ///     <see cref="Series" /> wiring's divider (control thread; for tests and plots). With <see cref="Deep" />,
-    ///     its branch is across the shunt too, <paramref name="deep" /> its switch.
+    ///     <see cref="Series" /> wiring's divider, with its shift cap in the arm when <paramref name="shift" /> is set
+    ///     (control thread; for tests and plots). With <see cref="Deep" />, its branch is across the shunt too,
+    ///     <paramref name="deep" /> its switch.
     /// </summary>
-    public Complex Response(double hz, double presence, double frequency = 1, bool deep = false) {
+    public Complex Response(double hz, double presence, double frequency = 1, bool deep = false, bool shift = false) {
         var s = new Complex(0, 2 * Math.PI * hz);
         var c = PresenceCap / frequency;
         var (rf, rx) = (FeedbackResistor, ShuntResistor);
         if (Series is { } series) {
             var leg = series.LegResistor / (1 + s * series.LegResistor * c);
             var arm = Presence.Ohms * Presence.Fraction(presence) + rf + leg;
+            if (shift && series.ShiftCap > 0) {
+                arm += frequency / (s * series.ShiftCap);
+            }
+
             var foot = rx + series.ShuntLegResistor / (1 + s * series.ShuntLegResistor * series.ShuntLegCap);
             return foot / (arm + foot);
         }
@@ -492,7 +560,18 @@ public readonly record struct ShuntBranch(double Resistor, double Cap);
 /// <param name="LegResistor">In the series arm, with <see cref="FeedbackDesign.PresenceCap" /> across it.</param>
 /// <param name="ShuntLegResistor">In the shunt, under <see cref="FeedbackDesign.ShuntResistor" />.</param>
 /// <param name="ShuntLegCap">Across <paramref name="ShuntLegResistor" />.</param>
-public readonly record struct SeriesPresence(double LegResistor, double ShuntLegResistor, double ShuntLegCap);
+/// <param name="ShiftCap">
+///     A cap in series with the rheostat that a switch shorts until the presence's pull shift opens it (the Mark IV's
+///     1 nF on the lead rheostat, 680 pF on Rhythm 2's): shifted, the amp has feedback only where the cap passes it,
+///     in the top of the band (<see cref="FeedbackDesign.ShiftedTimes" />). 0 for none. The Circuit Amp's Presence
+///     Shift switch is this pull on a model that has it.
+/// </param>
+public readonly record struct SeriesPresence(
+    double LegResistor,
+    double ShuntLegResistor,
+    double ShuntLegCap,
+    double ShiftCap = 0
+);
 
 /// <summary>
 ///     A rectifier: silicon (no drop to speak of) or a vacuum diode, whose drop follows Child's law,
