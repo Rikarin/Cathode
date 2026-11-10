@@ -49,10 +49,16 @@ export interface NetworkSettings {
   token: string;
 }
 
+/** Whether the app asks GitHub now and then for a newer release (updates.ts). On by default. */
+export interface UpdateSettings {
+  check: boolean;
+}
+
 export interface Settings {
   audio: AudioSettings;
   target: ServerTarget;
   network: NetworkSettings;
+  updates: UpdateSettings;
 }
 
 export function defaultSettings(): Settings {
@@ -68,7 +74,8 @@ export function defaultSettings(): Settings {
       inputs: [[1]]
     },
     target: { mode: 'local' },
-    network: { enabled: false, port: 5180, token: '' }
+    network: { enabled: false, port: 5180, token: '' },
+    updates: { check: true }
   };
 }
 
@@ -105,6 +112,8 @@ interface Stored {
   audio?: Partial<AudioSettings>;
   target?: { mode?: unknown; baseUrl?: unknown } & StoredSecret;
   network?: Partial<Omit<NetworkSettings, 'token'>> & StoredSecret;
+  /** Absent from files written before the update check existed: the default applies. */
+  updates?: { check?: unknown };
 }
 
 /** A token as read: decrypted, and whether the file should be written again (clear text, or an old key). */
@@ -172,7 +181,8 @@ export class SettingsStore {
     const settings: Settings = {
       audio: { ...defaults.audio, ...stored.audio },
       target: target.value,
-      network: { ...defaults.network, ...withoutSecret(stored.network), token: network.token }
+      network: { ...defaults.network, ...withoutSecret(stored.network), token: network.token },
+      updates: { check: typeof stored.updates?.check === 'boolean' ? stored.updates.check : defaults.updates.check }
     };
 
     // A clear-text token from an older version (or one under a rotated key), now that it can be kept encrypted.
@@ -215,7 +225,9 @@ export class SettingsStore {
       port: settings.network.port,
       ...(await this.storeSecret(settings.network.token, encrypt))
     };
-    this.writeAtomically(`${JSON.stringify({ audio: settings.audio, target, network }, null, 2)}\n`);
+    this.writeAtomically(
+      `${JSON.stringify({ audio: settings.audio, target, network, updates: settings.updates }, null, 2)}\n`
+    );
   }
 
   private async storeSecret(token: string, encrypt: boolean): Promise<{ token: string } | { tokenEncrypted: string }> {

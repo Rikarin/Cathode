@@ -166,3 +166,7 @@ Back this folder up to keep everything. Preferences, the recent presets list and
 The desktop app starts its own engine and server when it opens and stops them when you quit. The same editor also runs in a web browser when it is served by a [headless server](/manual/headless-server). The browser version is the same app, with two differences: Settings has a button in the navigation bar, and **Audio setup** cannot choose the interface (a rig's interface is set in its settings file). Capturing a cab IR with a sweep also needs the desktop app.
 
 The desktop app can also edit a remote rig instead of its own engine: see [Connecting the desktop app](/manual/headless-server#connect-from-the-desktop-app).
+
+### New releases
+
+The desktop app looks for a newer release shortly after it starts and then once a day, by asking GitHub for Cathode's list of releases. Nothing is downloaded or installed. When there is one, the **Cathode** menu on a Mac (the **Help** menu on Windows and Linux) gets an item, **Cathode 1.2.3 is Available…**, which opens the release's page in your browser. To stop the check, untick **Check for Updates Automatically** in the same menu. A headless server does not check: update it as described in [Looking after the rig](/manual/headless-server#looking-after-the-rig).

@@ -1,4 +1,13 @@
-import { chmodSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -120,6 +129,14 @@ describe('SettingsStore', () => {
     expect(settings.audio).toEqual({ ...defaultSettings().audio, device: 'x' });
     expect(settings.network).toEqual({ enabled: true, port: 5180, token: 't' });
     expect(settings.target).toEqual({ mode: 'local' });
+    expect(settings.updates).toEqual({ check: true });
+  });
+
+  it('keeps the update check turned off', async () => {
+    const cipher = new FakeCipher();
+    await store(cipher).save({ ...sample(), updates: { check: false } });
+    expect(onDisk()['updates']).toEqual({ check: false });
+    expect((await store(cipher).load()).updates).toEqual({ check: false });
   });
 
   it('drops a token it cannot decrypt, and keeps the rest', async () => {

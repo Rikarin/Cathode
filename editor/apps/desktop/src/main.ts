@@ -23,6 +23,7 @@ import {
   saveSettings
 } from './settings';
 import { type Connection, type IrCaptureOptions, Sidecars, listDevices, waitForServer } from './sidecars';
+import { type Release, checkForUpdate } from './updates';
 
 // Cathode desktop: the editor in a sandboxed window, and the engine (cathode-host + cathode-server) as supervised
 // sidecars on loopback (and, when the user allows control from other devices, on the network too), or a remote Server
@@ -63,6 +64,10 @@ protocol.registerSchemesAsPrivileged([
   { scheme: Scheme, privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } }
 ]);
 
+/** The update check: a little after the start, so it does not compete with it, and then once a day. */
+const FirstUpdateCheckMs = 30_000;
+const UpdateCheckEveryMs = 24 * 60 * 60 * 1_000;
+
 /** How long to wait for a remote Server before the editor reports it unreachable. */
 const RemoteTimeoutMs = 10_000;
 
@@ -77,6 +82,8 @@ let quitGuard = false;
 let askingToQuit: Promise<boolean> | null = null;
 let quitQuestions = 0;
 const quitAnswers = new Map<number, (ok: boolean) => void>();
+/** A newer release than this app, once a check has found one: the menu then offers its page. */
+let update: Release | null = null;
 /**
  * Preset files (.cthpreset) the OS asked the app to open: double-clicked, dropped on the Dock icon or given on the
  * command line. They wait here until the editor has connected, and it imports them into the library.
@@ -437,62 +444,118 @@ function validTarget(value: unknown): ServerTarget {
 }
 
 /**
+ * Asks GitHub whether a newer release exists (updates.ts) and puts it in the menu. Nothing is downloaded or installed:
+ * the menu item opens the release's page. Only a packaged app checks (a build from the source tree has no release to
+ * compare with), and only while the setting is on. A check that fails is tried again the next day.
+ */
+async function checkUpdates(): Promise<void> {
+  if (!app.isPackaged || !settings.updates.check) {
+    return;
+  }
+
+  try {
+    const found = await checkForUpdate(app.getVersion(), (url, init) => net.fetch(url as string, init));
+    if (found?.version !== update?.version) {
+      update = found;
+      buildMenu();
+    }
+  } catch (error) {
+    console.warn('Cathode: could not check for a newer release', error);
+  }
+}
+
+async function setUpdateCheck(check: boolean): Promise<void> {
+  settings = { ...settings, updates: { check } };
+  if (!check) {
+    update = null;
+  }
+
+  buildMenu();
+  await saveSettings(settings);
+  await checkUpdates();
+}
+
+/**
  * The application menu: Electron's default menus, with Settings… (⌘,) where a Mac app keeps it, in the app menu
- * (and in File elsewhere). It asks the editor to open its Settings dialog. Help opens the folder of licences the
+ * (and in File elsewhere). It asks the editor to open its Settings dialog. A newer release, when a check found one, and
+ * the switch for that check are under About on macOS and in Help elsewhere; Help also opens the folder of licences the
  * package carries.
  */
 function buildMenu(): void {
-  const settings: MenuItemConstructorOptions = {
+  const openSettings: MenuItemConstructorOptions = {
     label: 'Settings…',
     accelerator: 'CmdOrCtrl+,',
     click: () => window?.webContents.send('cathode:openSettings')
   };
-  const help: MenuItemConstructorOptions[] = existsSync(licences)
-    ? [
-        {
-          role: 'help',
-          submenu: [
-            {
-              label: 'Open Source Licences',
-              click: () =>
-                void shell.openPath(licences).then(error => error && console.error('Cathode: licences:', error))
-            }
-          ]
-        }
-      ]
-    : [];
-  const template: MenuItemConstructorOptions[] =
-    process.platform === 'darwin'
+  const found = update;
+  const updates: MenuItemConstructorOptions[] = [
+    ...(found
       ? [
           {
-            label: 'Cathode',
-            submenu: [
-              { role: 'about' },
-              { type: 'separator' },
-              settings,
-              { type: 'separator' },
-              { role: 'services' },
-              { type: 'separator' },
-              { role: 'hide' },
-              { role: 'hideOthers' },
-              { role: 'unhide' },
-              { type: 'separator' },
-              { role: 'quit' }
-            ]
-          },
-          { role: 'fileMenu' },
-          { role: 'editMenu' },
-          { role: 'viewMenu' },
-          { role: 'windowMenu' },
-          ...help
+            label: `Cathode ${found.version} is Available…`,
+            click: () =>
+              void shell
+                .openExternal(found.url)
+                .catch((error: unknown) => console.error('Cathode: could not open', found.url, error))
+          }
         ]
-      : [
-          { label: 'File', submenu: [settings, { type: 'separator' }, { role: 'quit' }] },
-          { role: 'editMenu' },
-          { role: 'viewMenu' },
-          { role: 'windowMenu' },
-          ...help
-        ];
+      : []),
+    {
+      label: 'Check for Updates Automatically',
+      type: 'checkbox',
+      checked: settings.updates.check,
+      click: item =>
+        void setUpdateCheck(item.checked).catch((error: unknown) =>
+          console.error('Cathode: could not save the update setting', error)
+        )
+    }
+  ];
+  const mac = process.platform === 'darwin';
+  const helpItems: MenuItemConstructorOptions[] = [
+    ...(mac ? [] : updates),
+    ...(existsSync(licences)
+      ? [
+          {
+            label: 'Open Source Licences',
+            click: () =>
+              void shell.openPath(licences).then(error => error && console.error('Cathode: licences:', error))
+          }
+        ]
+      : [])
+  ];
+  const help: MenuItemConstructorOptions[] = helpItems.length > 0 ? [{ role: 'help', submenu: helpItems }] : [];
+  const template: MenuItemConstructorOptions[] = mac
+    ? [
+        {
+          label: 'Cathode',
+          submenu: [
+            { role: 'about' },
+            ...updates,
+            { type: 'separator' },
+            openSettings,
+            { type: 'separator' },
+            { role: 'services' },
+            { type: 'separator' },
+            { role: 'hide' },
+            { role: 'hideOthers' },
+            { role: 'unhide' },
+            { type: 'separator' },
+            { role: 'quit' }
+          ]
+        },
+        { role: 'fileMenu' },
+        { role: 'editMenu' },
+        { role: 'viewMenu' },
+        { role: 'windowMenu' },
+        ...help
+      ]
+    : [
+        { label: 'File', submenu: [openSettings, { type: 'separator' }, { role: 'quit' }] },
+        { role: 'editMenu' },
+        { role: 'viewMenu' },
+        { role: 'windowMenu' },
+        ...help
+      ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
@@ -526,6 +589,8 @@ app
     buildMenu();
     createWindow();
     started = true;
+    setTimeout(() => void checkUpdates(), FirstUpdateCheckMs).unref();
+    setInterval(() => void checkUpdates(), UpdateCheckEveryMs).unref();
     openPresets(presetArguments(process.argv, process.cwd()));
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
