@@ -39,10 +39,24 @@ public sealed class HardwareLoop : IDisposable {
         Offset = 0;
     }
 
-    /// <summary>Audio thread, at the end of a callback: hand the summed sends to the device.</summary>
+    /// <summary>
+    ///     Audio thread, at the end of a callback: hand the summed sends to the device. A mono send (both sides the
+    ///     same device channel) gets the two sides folded down, <c>0.5 (L + R)</c>, so a mono signal leaves at the
+    ///     level it has on a stereo send and neither side of a stereo one is lost.
+    /// </summary>
     public void EndCallback(Span<float> sendLeft, Span<float> sendRight) {
-        this.sendLeft.Span[..sendLeft.Length].CopyTo(sendLeft);
-        this.sendRight.Span[..sendRight.Length].CopyTo(sendRight);
+        var left = this.sendLeft.Span[..sendLeft.Length];
+        var right = this.sendRight.Span[..sendRight.Length];
+        if (sendLeft.Overlaps(sendRight)) {
+            for (var i = 0; i < sendLeft.Length; i++) {
+                sendLeft[i] = 0.5f * (left[i] + right[i]);
+            }
+
+            return;
+        }
+
+        left.CopyTo(sendLeft);
+        right.CopyTo(sendRight);
     }
 
     /// <summary>Audio thread, from a block: add to the send channels for the current sub-block.</summary>

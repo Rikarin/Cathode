@@ -54,7 +54,7 @@ public sealed record AudioSessionStats(
 
 /// <summary>
 ///     Device channels (0-based) for an external effects loop: what the FX Loop blocks send out of and hear back on.
-///     A single channel is used for both sides of a stereo pair.
+///     A single return channel is heard on both sides; a single send channel gets the two sides folded to mono.
 /// </summary>
 public sealed record LoopChannels(int[] Returns, int[] Sends) {
     /// <summary>
@@ -476,7 +476,8 @@ public sealed unsafe class NativeAudioSession : IDisposable {
     }
 
     /// <summary>
-    ///     Loop channel <paramref name="index" /> of <paramref name="map" />, the first one again for a mono loop.
+    ///     Loop channel <paramref name="index" /> of <paramref name="map" />, the first one again for a mono loop
+    ///     (the same buffer for both sides: <see cref="Dsp.Routing.HardwareLoop.EndCallback" /> folds a send down).
     /// </summary>
     static Span<float> Channel(float** channels, int count, int[] map, int index, int frames) {
         if (map.Length == 0) {
