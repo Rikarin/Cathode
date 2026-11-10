@@ -25,12 +25,67 @@ const Sweep = 270;
 const StartAngle = 135; // degrees clockwise from 3 o'clock: the 7:30 position
 /** After a key or wheel step on a modulated knob, how long it shows the value being set before following again. */
 const SettleMs = 800;
+/** Two touch taps that start closer in time than this are a double tap. */
+const DoubleTapMs = 350;
+/** A finger down for this long is a press (the app's long-press menu), not a tap. */
+const TapMs = 500;
+/** Movement (px) that makes a touch a drag, not a tap. */
+const TapSlop = 10;
+
+/**
+ * A double tap of a finger: what a double click is for a mouse. An iPad in Safari fires no `dblclick` for two taps (it
+ * would zoom), so the knob counts the taps itself. A tap is a touch that lifts where it came down, soon after; two of
+ * them close together in time and place are a double tap. A mouse and a pen keep their double click.
+ */
+export class DoubleTap {
+  private down: { x: number; y: number; at: number } | null = null;
+  private last: { x: number; y: number; at: number } | null = null;
+
+  /** A pointer came down. Returns whether it may be the second tap of a double tap. */
+  press(event: Pick<PointerEvent, 'pointerType' | 'clientX' | 'clientY' | 'timeStamp'>): boolean {
+    if (event.pointerType !== 'touch') {
+      this.down = this.last = null;
+      return false;
+    }
+
+    this.down = { x: event.clientX, y: event.clientY, at: event.timeStamp };
+    if (this.last && !this.follows(this.last, this.down)) {
+      this.last = null;
+    }
+
+    return this.last !== null;
+  }
+
+  /** The pointer lifted (or was taken away: `pointercancel`). Returns whether that completes a double tap. */
+  lift(event: Pick<PointerEvent, 'type' | 'clientX' | 'clientY' | 'timeStamp'>): boolean {
+    const down = this.down;
+    this.down = null;
+    const tapped =
+      down !== null &&
+      event.type === 'pointerup' &&
+      event.timeStamp - down.at < TapMs &&
+      Math.hypot(event.clientX - down.x, event.clientY - down.y) <= TapSlop;
+    if (!tapped) {
+      this.last = null;
+      return false;
+    }
+
+    const double = this.last !== null;
+    this.last = double ? null : down;
+    return double;
+  }
+
+  private follows(first: { x: number; y: number; at: number }, second: { x: number; y: number; at: number }): boolean {
+    return second.at - first.at < DoubleTapMs && Math.hypot(second.x - first.x, second.y - first.y) <= 3 * TapSlop;
+  }
+}
 
 /**
  * A rotary control (docs/02-architecture.md §7.3: xUI has none yet). It is an ARIA slider: arrows step by 1 % of
  * the travel (⇧: 0.1 %), Page keys by 10 %, Home/End go to the ends. Drag vertically (⇧ for fine), or around it in
  * circular mode, and use the wheel (both per the app's {@link CTH_KNOB_PREFERENCES}),
- * double-click the knob or its readout to type a value with its unit, ⌥-click to reset to the default. It reads like
+ * double-click (or, with a finger, double-tap) the knob or its readout to type a value with its unit, ⌥-click to reset
+ * to the default. It reads like
  * hardware: the value in a recessed readout above, a turned-metal dial (Anode's, `--dial-*`) whose pointer shows
  * the position, the travel as an arc in `color`, and the name below.
  *
@@ -77,9 +132,12 @@ const SettleMs = 800;
       />
     } @else {
       <span
-        class="bg-surface-inset border-border-muted text-foreground flex h-6 min-w-16 items-center justify-center rounded-md border px-1.5 text-xs font-medium tabular-nums shadow-[inset_0_1px_2px_rgb(0_0_0/0.35)]"
+        class="bg-surface-inset border-border-muted text-foreground flex h-6 min-w-16 touch-manipulation items-center justify-center rounded-md border px-1.5 text-xs font-medium tabular-nums shadow-[inset_0_1px_2px_rgb(0_0_0/0.35)]"
         [attr.data-modulated]="live() !== null || null"
         (dblclick)="startTyping()"
+        (pointerdown)="readoutTaps.press($event)"
+        (pointerup)="readoutTaps.lift($event) && startTyping()"
+        (pointercancel)="readoutTaps.lift($event)"
       >
         {{ shownDisplay() }}
       </span>
@@ -104,6 +162,7 @@ const SettleMs = 800;
       (pointercancel)="release($event)"
       (lostpointercapture)="release($event)"
       (dblclick)="startTyping()"
+      (mousedown)="keepTypingFocus($event)"
       (keydown)="key($event)"
       (wheel)="wheel($event)"
     >
@@ -181,6 +240,11 @@ export class CthKnob {
   private readonly dial = viewChild.required<ElementRef<HTMLElement>>('dial');
   private readonly editor = viewChild<ElementRef<HTMLInputElement>>('editor');
   private dragStart: { y: number; normal: number } | null = null;
+  /** A finger's taps on the dial and on the readout: two are a double tap, which types a value as a double click does. */
+  private readonly dialTaps = new DoubleTap();
+  protected readonly readoutTaps = new DoubleTap();
+  /** The value before the first tap of what may become a double tap, which must not turn the knob. */
+  private beforeTaps = 0;
   private settle: ReturnType<typeof setTimeout> | undefined;
   /** Wheel steps not yet committed: they are, once the wheel rests or another interaction starts. */
   private wheeling = false;
@@ -280,6 +344,10 @@ export class CthKnob {
     }
 
     this.commitWheel();
+    if (!this.dialTaps.press(event)) {
+      this.beforeTaps = this.value();
+    }
+
     this.dial().nativeElement.setPointerCapture(event.pointerId);
     this.dial().nativeElement.focus();
     this.dragStart = { y: event.clientY, normal: this.normal() };
@@ -318,7 +386,28 @@ export class CthKnob {
       this.dragStart = null;
       this.dial().nativeElement.releasePointerCapture(event.pointerId);
       this.editing.set(false);
+      // A finger's double tap types a value. The taps themselves do not turn the knob: what the finger's small
+      // movement (or, in circular mode, where it landed) changed goes back first.
+      const doubleTap = this.dialTaps.lift(event);
+      if (doubleTap && this.value() !== this.beforeTaps) {
+        this.value.set(this.beforeTaps);
+      }
+
       this.committed.emit(this.value());
+      if (doubleTap) {
+        this.startTyping();
+      }
+    }
+  }
+
+  /**
+   * While the value is being typed, a mouse press on the dial does not take the focus from the field by itself. After a
+   * double tap a browser may still send the tap's compatibility mouse events, and the field the tap opened would lose
+   * the focus to the dial and close at once. A real press on the dial still closes it: `grab` focuses the dial.
+   */
+  protected keepTypingFocus(event: MouseEvent): void {
+    if (this.typing()) {
+      event.preventDefault();
     }
   }
 

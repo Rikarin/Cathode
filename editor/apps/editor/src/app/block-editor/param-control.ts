@@ -37,7 +37,7 @@ import { UiStore } from '../state/ui.store';
  * One parameter of the selected block, generated from its descriptor: a knob for continuous values, a select for
  * choices, a switch for on/off. Edits go to the channel the block uses in the active scene.
  * Right-click a continuous parameter (or touch and hold it) to give it a modifier, learn a MIDI controller for it or
- * reset it to its default; a dot marks a modified parameter. While its modifier runs, the control follows the live value (a knob marks the value set on its track).
+ * reset it to its default; double-click its knob (or double-tap it) to type a value; a dot marks a modified parameter. While its modifier runs, the control follows the live value (a knob marks the value set on its track).
  */
 @Component({
   selector: 'cth-param-control',

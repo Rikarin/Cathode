@@ -1,6 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { CthKnob } from './knob';
+import { CthKnob, DoubleTap } from './knob';
 
 @Component({
   imports: [CthKnob],
@@ -12,6 +12,7 @@ import { CthKnob } from './knob';
       [max]="12"
       [defaultValue]="0"
       [modulated]="modulated()"
+      [disabled]="disabled()"
       [(value)]="value"
       (committed)="commits.push($event)"
     />
@@ -20,6 +21,7 @@ import { CthKnob } from './knob';
 class Host {
   readonly value = signal(0);
   readonly modulated = signal<number | undefined>(undefined);
+  readonly disabled = signal(false);
   readonly commits: number[] = [];
 }
 
@@ -110,6 +112,188 @@ describe('CthKnob', () => {
     expect(host.commits).toHaveLength(2);
     dial.dispatchEvent(new PointerEvent('pointermove', { buttons: 1, clientY: 50, pointerId: 1 }));
     expect(host.value()).toBe(dragged);
+  });
+
+  // #186: an iPad in Safari fires no dblclick for two taps, so a finger had no way to type a value.
+  describe('a finger’s double tap', () => {
+    const touch = (type: string, clientY = 100, clientX = 50) =>
+      new PointerEvent(type, { button: 0, buttons: 1, clientX, clientY, pointerId: 7, pointerType: 'touch' });
+    /** The knob with the pointer capture jsdom does not have. */
+    const renderCapturing = () => {
+      const rendered = render();
+      rendered.dial.setPointerCapture = () => undefined;
+      rendered.dial.releasePointerCapture = () => undefined;
+      return rendered;
+    };
+    const tap = (target: Element, clientY = 100) => {
+      target.dispatchEvent(touch('pointerdown', clientY));
+      target.dispatchEvent(touch('pointerup', clientY));
+    };
+
+    it('opens the value field from the dial, as a double click does', () => {
+      const { dial, element, fixture } = renderCapturing();
+
+      tap(dial);
+      fixture.detectChanges();
+      expect(element.querySelector('input')).toBeNull();
+
+      tap(dial);
+      fixture.detectChanges();
+      const field = element.querySelector('input');
+      expect(field?.getAttribute('aria-label')).toBe('Gain value');
+      expect(document.activeElement).toBe(field);
+    });
+
+    it('opens the value field from the readout', () => {
+      const { element, fixture } = renderCapturing();
+      const readout = element.querySelector('span') as HTMLElement;
+
+      tap(readout);
+      tap(readout);
+      fixture.detectChanges();
+
+      expect(element.querySelector('input')).not.toBeNull();
+    });
+
+    it('leaves the value where it was: the taps’ own small movement is not a turn', () => {
+      const { dial, host, element, fixture } = renderCapturing();
+
+      dial.dispatchEvent(touch('pointerdown', 100));
+      dial.dispatchEvent(touch('pointermove', 96));
+      dial.dispatchEvent(touch('pointerup', 96));
+      expect(host.value()).not.toBe(0);
+      dial.dispatchEvent(touch('pointerdown', 97));
+      dial.dispatchEvent(touch('pointermove', 95));
+      dial.dispatchEvent(touch('pointerup', 95));
+      fixture.detectChanges();
+
+      expect(element.querySelector('input')).not.toBeNull();
+      expect(host.value()).toBe(0);
+      expect(host.commits.at(-1)).toBe(0);
+    });
+
+    it('keeps the field open through the mouse events a browser sends after the second tap', () => {
+      const { dial, element, fixture } = renderCapturing();
+      tap(dial);
+      tap(dial);
+      fixture.detectChanges();
+
+      // The default of a mousedown on the dial is to focus it, which would blur the field and close it.
+      const compatibility = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+      dial.dispatchEvent(compatibility);
+      dial.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      dial.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      fixture.detectChanges();
+
+      expect(compatibility.defaultPrevented).toBe(true);
+      expect(element.querySelector('input')).not.toBeNull();
+
+      // Outside typing, a mouse press on the dial is left alone.
+      (element.querySelector('input') as HTMLInputElement).dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape' })
+      );
+      fixture.detectChanges();
+      const press = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+      dial.dispatchEvent(press);
+      expect(press.defaultPrevented).toBe(false);
+    });
+
+    it('is not a drag that ends, a tap after a drag, or two clicks of a mouse', () => {
+      const { dial, element, fixture } = renderCapturing();
+
+      // A drag, then a tap: one tap only.
+      dial.dispatchEvent(touch('pointerdown', 100));
+      dial.dispatchEvent(touch('pointermove', 60));
+      dial.dispatchEvent(touch('pointerup', 60));
+      tap(dial, 60);
+      fixture.detectChanges();
+      expect(element.querySelector('input')).toBeNull();
+
+      // A tap, then a touch the browser takes away.
+      tap(dial);
+      dial.dispatchEvent(touch('pointerdown'));
+      dial.dispatchEvent(touch('pointercancel'));
+      fixture.detectChanges();
+      expect(element.querySelector('input')).toBeNull();
+
+      // A mouse has its own double click.
+      for (let click = 0; click < 2; click++) {
+        dial.dispatchEvent(
+          new PointerEvent('pointerdown', { button: 0, clientY: 100, pointerId: 1, pointerType: 'mouse' })
+        );
+        dial.dispatchEvent(new PointerEvent('pointerup', { clientY: 100, pointerId: 1, pointerType: 'mouse' }));
+      }
+
+      fixture.detectChanges();
+      expect(element.querySelector('input')).toBeNull();
+    });
+
+    it('does nothing on a disabled knob', () => {
+      const { dial, element, fixture } = renderCapturing();
+      fixture.componentInstance.disabled.set(true);
+      fixture.detectChanges();
+
+      tap(dial);
+      tap(dial);
+      fixture.detectChanges();
+
+      expect(element.querySelector('input')).toBeNull();
+    });
+  });
+
+  describe('DoubleTap', () => {
+    const at = (type: string, timeStamp: number, clientX = 0, clientY = 0, pointerType = 'touch') => ({
+      type,
+      timeStamp,
+      clientX,
+      clientY,
+      pointerType
+    });
+    const tapAt = (taps: DoubleTap, time: number, x = 0, y = 0, held = 80) => {
+      taps.press(at('pointerdown', time, x, y));
+      return taps.lift(at('pointerup', time + held, x, y));
+    };
+
+    it('is two taps close in time and place', () => {
+      const taps = new DoubleTap();
+      expect(tapAt(taps, 0)).toBe(false);
+      expect(tapAt(taps, 200, 5, 5)).toBe(true);
+      // The third tap starts again.
+      expect(tapAt(taps, 400)).toBe(false);
+      expect(tapAt(taps, 600)).toBe(true);
+    });
+
+    it('is not two taps far apart in time or place', () => {
+      const taps = new DoubleTap();
+      expect(tapAt(taps, 0)).toBe(false);
+      expect(tapAt(taps, 400)).toBe(false); // too late: a first tap again
+      expect(tapAt(taps, 600, 80, 0)).toBe(false); // another place
+      expect(tapAt(taps, 800, 80, 0)).toBe(true);
+    });
+
+    it('does not count a long press or a touch that moved as a tap', () => {
+      const taps = new DoubleTap();
+      expect(tapAt(taps, 0)).toBe(false);
+      expect(tapAt(taps, 200, 0, 0, 600)).toBe(false); // held: the long-press menu's
+      expect(tapAt(taps, 900)).toBe(false);
+
+      taps.press(at('pointerdown', 1000));
+      expect(taps.lift(at('pointerup', 1050, 0, 30))).toBe(false); // moved: a drag
+      expect(tapAt(taps, 1100)).toBe(false);
+    });
+
+    it('says whether a press may be a second tap, and counts only fingers', () => {
+      const taps = new DoubleTap();
+      expect(taps.press(at('pointerdown', 0))).toBe(false);
+      taps.lift(at('pointerup', 50));
+      expect(taps.press(at('pointerdown', 200))).toBe(true);
+      taps.lift(at('pointerup', 250));
+
+      expect(taps.press(at('pointerdown', 300, 0, 0, 'mouse'))).toBe(false);
+      expect(taps.lift(at('pointerup', 320))).toBe(false);
+      expect(taps.press(at('pointerdown', 400, 0, 0, 'mouse'))).toBe(false);
+      expect(taps.lift(at('pointerup', 420))).toBe(false);
+    });
   });
 
   it('takes a typed value with its unit and clamps it', () => {

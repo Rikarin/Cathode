@@ -40,7 +40,7 @@ import { ShortcutGroups, shortcutRows } from './shortcuts';
         <ul class="settings-group text-foreground-muted text-sm [&>li]:px-3 [&>li]:py-1.5">
           <li>
             Knobs: drag ({{ keys.shift }} fine), wheel, arrows and Page keys, {{ keys.alt }}-click resets, double-click
-            types a value
+            (or double-tap) types a value
           </li>
           <li>Grid: arrows move, ↵ adds a block, drag moves ({{ keys.alt }} copies)</li>
           <li>Drag a block onto another to swap them; {{ keys.mod }}-drag to replace it</li>

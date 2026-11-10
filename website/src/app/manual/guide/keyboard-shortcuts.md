@@ -78,20 +78,20 @@ On Windows and Linux, read **⌘** as **Ctrl**, **⌥** as **Alt** and **⇧** a
 
 ## With the mouse
 
-| Action               | Where                           | What it does                                                                        |
-| -------------------- | ------------------------------- | ----------------------------------------------------------------------------------- |
-| Drag up or down      | A knob                          | Turns it. Hold ⇧ for fine steps. (In **Circular** knob mode, drag around the knob.) |
-| Scroll               | A knob                          | Turns it, unless the mouse wheel is turned off in Preferences. ⇧ for fine steps.    |
-| Double-click         | A knob or its value             | Type a value.                                                                       |
-| ⌥-click              | A knob                          | Back to its default.                                                                |
-| Right-click          | A knob, switch or choice        | Modifiers, MIDI learn, Perform pages, Set in other presets, Reset to default.       |
-| Double-click         | An empty cell or a shunt        | Add a block.                                                                        |
-| Right-click          | A cell                          | The cell's menu.                                                                    |
-| Drag                 | A block                         | Move it to an empty cell or shunt, or swap it with another block.                   |
-| ⌥-drag               | A block                         | Copy it to an empty cell or shunt.                                                  |
-| ⌘-drag               | A block onto another            | Replace the other block.                                                            |
-| Drag from the outlet | The dot on a block's right edge | Draw a cable.                                                                       |
-| Click                | A cable                         | Select it (then Delete removes it).                                                 |
+| Action               | Where                           | What it does                                                                                                     |
+| -------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Drag up or down      | A knob                          | Turns it. Hold ⇧ for fine steps. (In **Circular** knob mode, drag around the knob.)                              |
+| Scroll               | A knob                          | Turns it, unless the mouse wheel is turned off in Preferences. ⇧ for fine steps.                                 |
+| Double-click         | A knob or its value             | Type a value. On a touch screen, double-tap.                                                                     |
+| ⌥-click              | A knob                          | Back to its default.                                                                                             |
+| Right-click          | A knob, switch or choice        | Modifiers, MIDI learn, Perform pages, Set in other presets, Reset to default. On a touch screen, touch and hold. |
+| Double-click         | An empty cell or a shunt        | Add a block.                                                                                                     |
+| Right-click          | A cell                          | The cell's menu.                                                                                                 |
+| Drag                 | A block                         | Move it to an empty cell or shunt, or swap it with another block.                                                |
+| ⌥-drag               | A block                         | Copy it to an empty cell or shunt.                                                                               |
+| ⌘-drag               | A block onto another            | Replace the other block.                                                                                         |
+| Drag from the outlet | The dot on a block's right edge | Draw a cable.                                                                                                    |
+| Click                | A cable                         | Select it (then Delete removes it).                                                                              |
 
 ## In a focused knob
 
