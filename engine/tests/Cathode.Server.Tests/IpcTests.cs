@@ -2,6 +2,7 @@ using Cathode.Dsp;
 using Cathode.Engine.Graph;
 using Cathode.EngineHost;
 using Cathode.Ipc;
+using System.Net.Sockets;
 
 namespace Cathode.Server.Tests;
 
@@ -162,6 +163,34 @@ public sealed class IpcTests : IDisposable {
     }
 
     [Fact]
+    public async Task Client_forgets_a_request_that_times_out_is_cancelled_or_cannot_be_sent() {
+        var token = TestContext.Current.CancellationToken;
+        // A host that accepts the connection and never answers.
+        using var listener = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        listener.Bind(new UnixDomainSocketEndPoint(socketPath));
+        listener.Listen(1);
+        await using var client = new IpcEngineClient(socketPath) { ReplyTimeout = TimeSpan.FromMilliseconds(200) };
+        await client.ConnectAsync(TimeSpan.FromSeconds(5), token);
+        using var host = await listener.AcceptAsync(token);
+        using var cancel = CancellationTokenSource.CreateLinkedTokenSource(token);
+        using var cancelled = new CancellationTokenSource();
+        await cancelled.CancelAsync();
+
+        var waiting = client.SendAsync(new() { Type = IpcTypes.Hello }, cancel.Token);
+        var pendingWhileWaiting = client.PendingRequests;
+        await cancel.CancelAsync();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => waiting);
+        await Assert.ThrowsAsync<TimeoutException>(() => client.SendAsync(new() { Type = IpcTypes.Hello }, token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            client.SendAsync(new() { Type = IpcTypes.Hello }, cancelled.Token) // fails before it is written
+        );
+
+        Assert.Equal(1, pendingWhileWaiting);
+        Assert.Equal(0, client.PendingRequests);
+        Assert.True(client.IsConnected); // none of this is a lost link
+    }
+
+    [Fact]
     public async Task Midi_ports_and_midi_out_destinations_cross_the_socket() {
         var token = TestContext.Current.CancellationToken;
         using var service = new EngineHostService(ProcessSpec.Default, "test");
@@ -191,6 +220,37 @@ public sealed class IpcTests : IDisposable {
 
         await stop.CancelAsync();
         await server;
+    }
+
+    [Fact]
+    public void Midi_out_sends_only_one_complete_short_message() {
+        using var service = new EngineHostService(ProcessSpec.Default, "test");
+        var sent = new List<byte[]>();
+        service.NativeMidiSend = (_, bytes) => {
+            sent.Add(bytes);
+            return true;
+        };
+
+        IpcMessage Send(params int[] bytes) => service.Handle(new() { Type = IpcTypes.MidiOut, Bytes = [..bytes] });
+
+        int[][] valid = [
+            [0x90, 60, 100], [0x8F, 60, 0], [0xB0, 30, 127], [0xC5, 3], [0xD0, 64], [0xE0, 0, 64], // channel voice
+            [0xF1, 0x31], [0xF2, 0, 8], [0xF3, 2], [0xF6], // system common
+            [0xF8], [0xFA], [0xFB], [0xFC], [0xFE], [0xFF] // system real-time
+        ];
+        int[][] invalid = [
+            [], [0x90, 60, 100, 0], // not 1 to 3 bytes
+            [60, 100], [0x7F], // no status byte (running status)
+            [0x190, 60, 100], [-1], // not a byte: must not be truncated into a status
+            [0xB0, 30], [0xC0, 3, 0], [0x90], [0xF8, 0], [0xF2, 0], // the wrong length for the status
+            [0xB0, 30, 128], [0xB0, 0x80, 1], [0xC0, 300], // data bytes above 127
+            [0xF0, 1, 2], [0xF7], [0xF4], [0xF5], [0xF9], [0xFD] // SysEx and undefined statuses
+        ];
+
+        Assert.All(valid, bytes => Assert.Equal(IpcTypes.Ok, Send(bytes).Type));
+        Assert.Equal(valid.Select(static bytes => bytes.Select(static b => (byte)b)), sent);
+        Assert.All(invalid, bytes => Assert.Equal(IpcTypes.Error, Send(bytes).Type));
+        Assert.Equal(valid.Length, sent.Count); // nothing invalid reached the native sender
     }
 
     [Fact]

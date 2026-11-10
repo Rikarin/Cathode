@@ -135,9 +135,12 @@ int32_t cth_midi_read(cth_midi_event *events, int32_t max)
 
 int32_t cth_midi_send(const char *destination_uid, const uint8_t *data, int32_t length)
 {
-    if (!output_port || !data || length < 1 || length > 3) return -1;
-    uint32_t word = (0x2u << 28) | ((uint32_t)data[0] << 16) | (length > 1 ? (uint32_t)data[1] << 8 : 0)
-                    | (length > 2 ? data[2] : 0);
+    if (!output_port || !data || length < 1 || length > 3 || data[0] < 0x80) return -1;
+    /* A Universal MIDI Packet names its kind in the top nibble: 2 is a MIDI 1.0 channel voice message, 1 is system
+     * common and real-time (clock, start, song position, ...). Sent as type 2, a system message is malformed. */
+    uint32_t type = data[0] >= 0xF0 ? 0x1u : 0x2u;
+    uint32_t word = (type << 28) | ((uint32_t)data[0] << 16) | (length > 1 ? (uint32_t)(data[1] & 0x7F) << 8 : 0)
+                    | (length > 2 ? (uint32_t)(data[2] & 0x7F) : 0);
     MIDIEventList list;
     MIDIEventPacket *packet = MIDIEventListInit(&list, kMIDIProtocol_1_0);
     packet = MIDIEventListAdd(&list, sizeof list, packet, 0, 1, &word);

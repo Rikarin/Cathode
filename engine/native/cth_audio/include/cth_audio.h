@@ -119,7 +119,8 @@ CTH_API int32_t cth_midi_port_info(int32_t index, cth_midi_port *port);
 CTH_API int32_t cth_midi_open(void);
 /* Copies up to max queued events into events; returns how many. Events that overflowed the ring are lost. */
 CTH_API int32_t cth_midi_read(cth_midi_event *events, int32_t max);
-/* Sends a short message to the destination with this uid, or to every destination when uid is NULL. */
+/* Sends one short message (status byte first: channel voice, system common or system real-time, no SysEx) to the
+ * destination with this uid, or to every destination when uid is NULL. 0 on success. */
 CTH_API int32_t cth_midi_send(const char *destination_uid, const uint8_t *data, int32_t length);
 CTH_API void cth_midi_close(void);
 CTH_API uint64_t cth_midi_now_ns(void);

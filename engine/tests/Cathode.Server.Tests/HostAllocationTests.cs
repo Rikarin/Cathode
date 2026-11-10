@@ -6,6 +6,8 @@ using Cathode.Engine.Rig;
 using Cathode.EngineHost;
 using Cathode.Ipc;
 using Cathode.Testing;
+using System.Text;
+using System.Text.Json;
 
 namespace Cathode.Server.Tests;
 
@@ -196,6 +198,34 @@ public sealed class HostAllocationTests : IDisposable {
         );
         Assert.Contains("Stale", reply.Error, StringComparison.Ordinal); // a graph value rejects the whole update
         Assert.Equal(90f, service.Engine.Rig.GetTarget(RigControls.Descriptor.IndexOf("tempo")));
+    }
+
+    [Fact]
+    public void Fast_path_leaves_a_frame_with_an_id_too_long_for_it_to_the_slow_path_untouched() {
+        var longId = new string('v', 80); // the fast path reads ids of up to 64 bytes
+        var graph = GraphTemplates.Basic();
+        graph.Nodes.Add(new() { Id = longId, Type = "volpan", Row = 1, Column = 2 });
+        service.Handle(new() { Type = IpcTypes.LoadGraph, Generation = 4, Graph = graph });
+        var frame = Encoding.UTF8.GetBytes(
+            """{"type":"setParams","id":3,"generation":4,"params":[{"block":"volpan1","param":"level","value":-6},"""
+            + $$"""{"block":"{{longId}}","param":"level","value":-9}]}"""
+        );
+        var staleRig = Encoding.UTF8.GetBytes(
+            $$"""{"type":"setParams","id":4,"generation":3,"params":[{"block":"rig","param":"{{longId}}","value":1}]}"""
+        );
+
+        Assert.False(service.TryHandle(frame, out _));
+        var compiled = RunOneCallback();
+        var level = compiled.Block(compiled.SlotOf("volpan1")).Descriptor.IndexOf("level");
+        // Nothing was applied on the way out: the value before the long id is still at its default.
+        Assert.Equal(0f, compiled.Block(compiled.SlotOf("volpan1")).Params.GetTarget(level));
+
+        var reply = service.Handle(JsonSerializer.Deserialize(frame, IpcJsonContext.Default.IpcMessage)!);
+
+        Assert.Equal(IpcTypes.Ok, reply.Type);
+        Assert.Equal(-6f, compiled.Block(compiled.SlotOf("volpan1")).Params.GetTarget(level));
+        Assert.Equal(-9f, compiled.Block(compiled.SlotOf(longId)).Params.GetTarget(level));
+        Assert.False(service.TryHandle(staleRig, out _)); // not mistaken for a graph block and called stale
     }
 
     [Fact]

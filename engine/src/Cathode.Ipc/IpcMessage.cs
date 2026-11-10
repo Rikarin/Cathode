@@ -122,7 +122,10 @@ public sealed class IpcMessage {
     /// <summary>setMidi: whether the tempo follows incoming MIDI clock.</summary>
     public bool? FollowClock { get; set; }
 
-    /// <summary>midiOut: the message bytes; midi: the received messages.</summary>
+    /// <summary>
+    ///     midiOut: the bytes of one complete short message, status first (<see cref="MidiShortMessage" />); anything
+    ///     else is refused.
+    /// </summary>
     public List<int>? Bytes { get; set; }
 
     /// <summary>

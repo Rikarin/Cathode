@@ -22,7 +22,13 @@ public sealed class IpcEngineClient(string socketPath) : IEngineLink {
     Task? readLoop;
     long nextId;
 
+    /// <summary>How long a request waits for its reply before it fails with a timeout.</summary>
+    public TimeSpan ReplyTimeout { get; init; } = TimeSpan.FromSeconds(30);
+
     public bool IsConnected => stream is not null;
+
+    /// <summary>Requests sent and still waiting for their reply.</summary>
+    public int PendingRequests => pending.Count;
 
     /// <summary>Connects, retrying every 100 ms until <paramref name="timeout" />.</summary>
     public async Task ConnectAsync(TimeSpan timeout, CancellationToken cancellationToken = default) {
@@ -53,14 +59,24 @@ public sealed class IpcEngineClient(string socketPath) : IEngineLink {
         request.Id = Interlocked.Increment(ref nextId);
         var reply = new TaskCompletionSource<IpcMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
         pending[request.Id] = reply;
-        await writeLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        IpcMessage message;
         try {
-            await IpcFraming.WriteAsync(connected, request, cancellationToken).ConfigureAwait(false);
-        } finally {
-            writeLock.Release();
+            await writeLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try {
+                await IpcFraming.WriteAsync(connected, request, cancellationToken).ConfigureAwait(false);
+            } finally {
+                writeLock.Release();
+            }
+
+            message = await reply.Task.WaitAsync(ReplyTimeout, cancellationToken).ConfigureAwait(false);
+        } catch {
+            // Nobody waits for this reply any more (the send failed, the caller cancelled or the host took too
+            // long): forget it, or a host that is alive but slow leaves one entry behind per abandoned request. A
+            // reply that still arrives is then dropped by the read loop.
+            pending.TryRemove(request.Id, out _);
+            throw;
         }
 
-        var message = await reply.Task.WaitAsync(TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
         return message.Type == IpcTypes.Error
             ? throw new IpcException(message.Error ?? "Engine error.", message.Errors ?? [])
             : message;
