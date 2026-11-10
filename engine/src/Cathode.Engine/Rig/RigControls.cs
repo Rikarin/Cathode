@@ -20,6 +20,9 @@ public static class RigControls {
     /// <summary>Scene Controller 1-4.</summary>
     public const int SceneControllerCount = 4;
 
+    /// <summary>Inputs 1-4: the hardware inputs with a gain trim and a calibration (the USB pairs have none).</summary>
+    public const int CalibratedInputs = 4;
+
     /// <summary>External 1-16.</summary>
     public const int ExternalCount = 16;
 
@@ -62,9 +65,8 @@ public static class RigControls {
             // Global settings the blocks read through BlockContext: Global Mix and the Input gate's offset.
             ParamDescriptor.Float("effectsMix", "Effects Mix", -50f, 50f, 0f, "%"),
             ParamDescriptor.Float("gateOffset", "Noise Gate Offset", -20f, 20f, 0f, "dB"),
-            // Audio I/O (docs/08-blocks-parity.md §2): Input 1's trim and calibration, and the outputs' settings.
-            ParamDescriptor.Float("in1Gain", "Input 1 Gain", -20f, 20f, 0f, "dB"),
-            ParamDescriptor.Float("in1Cal", "Input 1 Full Scale", -30f, 40f, 0f, "dBV"),
+            // Audio I/O (docs/08-blocks-parity.md §2): each input's trim and calibration, and the outputs' settings.
+            ..Enumerable.Range(1, CalibratedInputs).SelectMany(static k => Input(k)),
             ParamDescriptor.Switch("copyOut2", "Copy Output 1 to Output 2"),
             ..Enumerable.Range(1, 4).SelectMany(static k => Output(k)),
             // Preset-change spillover: on, the outgoing preset's tails ring out; off, it fades out in the swap fade.
@@ -110,6 +112,11 @@ public static class RigControls {
         maxInstances: 1,
         channels: 1
     );
+
+    static IEnumerable<ParamDescriptor> Input(int k) => [
+        ParamDescriptor.Float($"in{k}Gain", $"Input {k} Gain", -20f, 20f, 0f, "dB"),
+        ParamDescriptor.Float($"in{k}Cal", $"Input {k} Full Scale", -30f, 40f, 0f, "dBV")
+    ];
 
     static IEnumerable<ParamDescriptor> Output(int k) => [
         ParamDescriptor.Choice($"out{k}Mode", $"Output {k} Mode", OutputModes),

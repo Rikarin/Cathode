@@ -700,9 +700,14 @@ public sealed partial class LiveRig(
             }
         }
 
-        var input = global.Inputs.Count > 0 ? global.Inputs[0] : new();
-        values.Add(new(IpcBlocks.Rig, "in1Gain", input.Gain));
-        values.Add(new(IpcBlocks.Rig, "in1Cal", (float)(20 * Math.Log10(Math.Max(input.FullScaleVolts, 1e-3f)))));
+        // Inputs 1-4; one the settings do not list is at its defaults (1 V full scale, no trim).
+        for (var k = 0; k < RigControls.CalibratedInputs; k++) {
+            var input = k < global.Inputs.Count ? global.Inputs[k] : new();
+            var calibration = (float)(20 * Math.Log10(Math.Max(input.FullScaleVolts, 1e-3f)));
+            values.Add(new(IpcBlocks.Rig, $"in{k + 1}Gain", input.Gain));
+            values.Add(new(IpcBlocks.Rig, $"in{k + 1}Cal", calibration));
+        }
+
         return values;
     }
 

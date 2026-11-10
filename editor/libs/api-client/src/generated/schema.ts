@@ -1381,7 +1381,7 @@ export interface paths {
     };
     /** The global settings, with their revision as the ETag (send it back as If-Match on a PUT). */
     get: operations['GetGlobal'];
-    /** Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs (calibration, gain), oversampling, the tuner output, Manual A-D, MIDI, footswitches, global blocks, scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC, spillover and the active setlist and song. With If-Match (the revision a GET or PUT answered with as the ETag), refused with 412 when another change came first. */
+    /** Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs (calibration, gain), oversampling, the tuner output, Manual A-E, MIDI, footswitches, global blocks, scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC, spillover and the active setlist and song. With If-Match (the revision a GET or PUT answered with as the ETag), refused with 412 when another change came first. */
     put: operations['PutGlobal'];
     post?: never;
     delete?: never;
@@ -2078,7 +2078,7 @@ export interface components {
     };
     /**
      * @description Settings that belong to the rig rather than to any preset: tempo source, metronome, the global output EQ,
-     *     Manual A-D, MIDI mappings, footswitch layouts and the global block library. Stored as one document.
+     *     Manual A-E, MIDI mappings, footswitch layouts and the global block library. Stored as one document.
      */
     GlobalSettings: {
       /** Format: int32 */
@@ -2123,7 +2123,7 @@ export interface components {
        *     latency, the default) or `linear` (linear-phase FIR, a few milliseconds of latency).
        */
       oversampling: string;
-      /** @description Manual A-D (0..1): modifier sources a person or pedal sets, shared by every preset. */
+      /** @description Manual A-E (0..1): modifier sources a person or pedal sets, shared by every preset. */
       manual: number[];
       /**
        * Format: int32
@@ -2211,17 +2211,20 @@ export interface components {
       assetsAdded: number;
       renamed: boolean;
     };
-    /** @description One interface input. */
+    /** @description One interface input: Input 1 to 4, in the order of List&lt;InputSettings&gt; GlobalSettings.Inputs. */
     InputSettings: {
       /**
        * Format: float
        * @description The peak volts at the jack that reach 0 dBFS (default 1 V, how Cathode always read its input). The amp and
-       *     drive models scale their input by it, so changing the interface's gain and this together keeps their drive.
+       *     drive models scale their input by Input 1's, so changing the interface's gain and this together keeps their
+       *     drive. Inputs 2-4 are scaled by theirs relative to Input 1's wherever a block reads them, so the same
+       *     instrument drives the models alike on any input.
        */
       fullScaleVolts: number;
       /**
        * Format: float
-       * @description A trim applied to every preset ahead of the grid, −20 to +20 dB (Input 1 Gain).
+       * @description A trim, −20 to +20 dB: Input 1's is applied to every preset ahead of the grid, Inputs 2-4's wherever a
+       *     block reads that input.
        */
       gain: number;
     };

@@ -38,6 +38,60 @@ public class HardwareInputTests {
         Assert.All(output[^100..], s => Assert.Equal(expected, s, 1e-6f));
     }
 
+    [Theory]
+    [InlineData(0f, 0f, 0f, 0.25f)] // nothing set: as it came
+    [InlineData(6.0206f, 0f, 0f, 0.5f)] // Input 2 Gain +6 dB
+    [InlineData(0f, 6.0206f, 0f, 0.5f)] // Input 2 reaches full scale at 2 V, Input 1 at 1 V: twice the volts per unit
+    [InlineData(0f, 6.0206f, 6.0206f, 0.25f)] // both calibrated alike: no difference between them
+    [InlineData(0f, 0f, 6.0206f, 0.125f)] // only Input 1 at 2 V: Input 2's unit is half of Input 1's
+    public void Input_2_is_read_with_its_gain_and_its_calibration_relative_to_input_1(
+        float gain,
+        float calibration,
+        float input1Calibration,
+        float expected
+    ) {
+        var engine = Engine(Chain(("source", 1f)));
+        SetRig(engine, "in2Gain", gain);
+        SetRig(engine, "in2Cal", calibration);
+        SetRig(engine, "in1Cal", input1Calibration);
+
+        var output = OfflineRenderer.Render(engine, Sources(0.5f, 0.25f), Spec.MaxBlockSize).Left;
+
+        Assert.All(output[^100..], s => Assert.Equal(expected, s, 1e-5f));
+    }
+
+    [Fact]
+    public void Input_1_and_the_usb_pairs_are_not_scaled_by_the_other_inputs_settings() {
+        var sources = Sources(0.5f, 0.25f);
+        sources[4] = (Signals.Step(Frames, 0.125f), Signals.Step(Frames, 0.125f));
+        var input1 = Engine(Chain());
+        var usb = Engine(Chain(("source", 4f)));
+        foreach (var engine in new[] { input1, usb }) {
+            SetRig(engine, "in2Gain", 12f);
+            SetRig(engine, "in3Cal", 20f);
+            SetRig(engine, "in1Cal", 6f);
+        }
+
+        Assert.Equal(0.5f, OfflineRenderer.Render(input1, sources, Spec.MaxBlockSize).Left[^1], 1e-6f);
+        Assert.Equal(0.125f, OfflineRenderer.Render(usb, sources, Spec.MaxBlockSize).Left[^1], 1e-6f);
+    }
+
+    [Fact]
+    public void A_change_of_an_inputs_gain_ramps_over_one_callback() {
+        var engine = Engine(Chain(("source", 1f)));
+        var sources = Sources(0.5f, 0.25f);
+        OfflineRenderer.Render(engine, sources, Spec.MaxBlockSize);
+        SetRig(engine, "in2Gain", 6.0206f);
+
+        var output = OfflineRenderer.Render(engine, sources, Spec.MaxBlockSize).Left;
+
+        Assert.InRange(output[0], 0.25f, 0.26f);
+        Assert.Equal(0.5f, output[Spec.MaxBlockSize], 1e-5f);
+        for (var i = 1; i <= Spec.MaxBlockSize; i++) {
+            Assert.True(output[i] >= output[i - 1], "rises without a step back");
+        }
+    }
+
     [Fact]
     public void A_source_keeps_its_left_and_right_apart() {
         var sources = Sources(0.5f, 0f);
@@ -275,6 +329,9 @@ public class HardwareInputTests {
         sources[1] = (Signals.Step(Frames, input2), Signals.Step(Frames, input2));
         return sources;
     }
+
+    static void SetRig(CathodeEngine engine, string id, float value) =>
+        engine.Rig.SetTarget(Rig.RigControls.Descriptor.IndexOf(id), value);
 
     static CathodeEngine Engine(GraphDefinition definition) => Engine(definition, out _);
 

@@ -54,6 +54,27 @@ public sealed class AudioIoApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task Each_of_inputs_1_to_4_sends_its_own_gain_and_calibration_to_the_engine() {
+        await PutGlobal(static g => {
+                g.Inputs = [new() { Gain = 1 }, new() { FullScaleVolts = 4, Gain = -6 }, new(), new() { Gain = 2 }];
+            }
+        );
+
+        await ServerFixture.Eventually(() => Rig("in4Gain") == 2f);
+        Assert.Equal(1f, Rig("in1Gain"));
+        Assert.Equal(-6f, Rig("in2Gain"));
+        Assert.Equal(20 * Math.Log10(4), Rig("in2Cal"), 3);
+        Assert.Equal(0f, Rig("in3Gain"));
+        Assert.Equal(0f, Rig("in3Cal"));
+
+        // Fewer entries: the inputs no longer listed go back to their defaults.
+        await PutGlobal(static g => g.Inputs = [new()]);
+        await ServerFixture.Eventually(() => Rig("in4Gain") == 0f);
+        Assert.Equal(0f, Rig("in2Gain"));
+        Assert.Equal(0f, Rig("in2Cal"));
+    }
+
+    [Fact]
     public async Task Cab_modeling_off_is_stored_and_reaches_the_engine() {
         await PutGlobal(static g => g.CabModelingOff = true);
 

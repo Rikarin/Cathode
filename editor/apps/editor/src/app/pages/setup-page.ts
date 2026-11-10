@@ -32,7 +32,8 @@ import {
   dbuFromFullScale,
   fullScaleFromDbu,
   fullScaleFromReference,
-  fullScaleIn
+  fullScaleIn,
+  inputAt
 } from './calibration';
 
 const SampleRates = [44_100, 48_000, 88_200, 96_000];
@@ -40,8 +41,8 @@ const BufferSizes = [32, 64, 128, 256, 512];
 
 /**
  * Audio setup: engine health from the Server (CPU, overloads) and where the latency goes, Input 1's clip warning and
- * calibration, and in the desktop app the interface, sample rate, buffer size, which device channels Outputs 1-4, the
- * FX loop and the DI out use, a loopback latency test, and which Server to use. With a remote Server the interface is
+ * calibration with the full scale of Inputs 2 to 4, and in the desktop app the interface, sample rate, buffer size,
+ * which device channels Outputs 1-4, the FX loop and the DI out use, a loopback latency test, and which Server to use. With a remote Server the interface is
  * that computer's, set there: the page says so instead of editing this computer's.
  */
 /** One figure on the LCD: its value, unit (empty for none) and label. */
@@ -213,6 +214,34 @@ interface LcdFigure {
             <span class="text-foreground-muted text-xs">
               Feed a steady sine of that level (a generator or a multimeter-checked DI box) into input 1 first.
             </span>
+          </div>
+          <div class="border-border flex flex-col gap-3 border-t pt-4" data-testid="other-inputs">
+            <h3 xuiHeading class="text-sm">Inputs 2 to 4</h3>
+            <div class="flex flex-wrap items-end gap-4">
+              @for (index of otherInputs; track index) {
+                <label class="flex flex-col gap-1 text-sm">
+                  <span class="text-foreground-muted text-xs">
+                    Input {{ index + 1 }} maximum input level ({{ unit() === 'dbu' ? 'dBu' : 'V peak' }})
+                  </span>
+                  <input
+                    #otherField
+                    xuiInput
+                    type="number"
+                    cthSteppers
+                    step="0.5"
+                    class="w-28"
+                    [attr.aria-label]="'Input ' + (index + 1) + ' maximum input level'"
+                    [value]="otherLevel(index)"
+                    (change)="calibrateOther(index, +otherField.value)"
+                  />
+                </label>
+              }
+            </div>
+            <p class="text-foreground-muted text-xs">
+              For a second instrument on another input. Wherever a block reads one of these inputs, its signal is scaled
+              by this level against Input 1's, so the same instrument drives the amps alike on any input. At the
+              default, 1 V, an input is read as it comes. The USB pairs have no calibration.
+            </p>
           </div>
         }
       </section>
@@ -405,6 +434,8 @@ export class SetupPage {
   protected readonly reference = signal(0.5);
   protected readonly measuring = signal(false);
   protected readonly input = computed(() => this.globals.settings()?.inputs[0] ?? null);
+  /** Inputs 2 to 4 by index: each has its own full scale, set as a level in the unit chosen for Input 1. */
+  protected readonly otherInputs = [1, 2, 3];
   protected readonly levelVolts = computed(() =>
     this.unit() === 'dbu' ? fullScaleFromDbu(this.maxLevel()) : this.maxLevel()
   );
@@ -544,8 +575,8 @@ export class SetupPage {
     return report.path.filter(s => s.frames > 0);
   }
 
-  /** Stores Input 1's full scale (clamped to what the Server accepts). */
-  protected async calibrate(volts: number | null): Promise<void> {
+  /** Stores the full scale of input `index` (0 is Input 1, the default), clamped to what the Server accepts. */
+  protected async calibrate(volts: number | null, index = 0): Promise<void> {
     if (volts === null || !Number.isFinite(volts)) {
       this.notify.error('No level to calibrate to.');
       return;
@@ -553,14 +584,21 @@ export class SetupPage {
 
     const clamped = Math.min(FullScaleRange.max, Math.max(FullScaleRange.min, volts));
     const calibrated = await this.globals.update(g => {
-      const input = g.inputs[0];
-      if (input) {
-        input.fullScaleVolts = clamped;
-      }
+      inputAt(g, index).fullScaleVolts = clamped;
     });
     if (calibrated) {
-      this.notify.success(`Input 1 full scale set to ${clamped.toFixed(3)} V.`);
+      this.notify.success(`Input ${index + 1} full scale set to ${clamped.toFixed(3)} V.`);
     }
+  }
+
+  /** The full scale of input `index` in the unit chosen, as its field shows it. */
+  protected otherLevel(index: number): number {
+    return fullScaleIn(this.globals.settings()?.inputs[index]?.fullScaleVolts ?? DefaultFullScale, this.unit());
+  }
+
+  /** Stores the level typed for input `index`, read in the unit chosen. */
+  protected calibrateOther(index: number, level: number): Promise<void> {
+    return this.calibrate(this.unit() === 'dbu' ? fullScaleFromDbu(level) : level, index);
   }
 
   /** Reads the input meter for two seconds while the reference plays, then calibrates from its peak. */

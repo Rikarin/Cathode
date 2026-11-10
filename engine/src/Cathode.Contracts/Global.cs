@@ -161,15 +161,20 @@ public sealed class OutputSettings {
     public Dictionary<string, float> Eq { get; set; } = [];
 }
 
-/// <summary>One interface input.</summary>
+/// <summary>One interface input: Input 1 to 4, in the order of <see cref="GlobalSettings.Inputs" />.</summary>
 public sealed class InputSettings {
     /// <summary>
     ///     The peak volts at the jack that reach 0 dBFS (default 1 V, how Cathode always read its input). The amp and
-    ///     drive models scale their input by it, so changing the interface's gain and this together keeps their drive.
+    ///     drive models scale their input by Input 1's, so changing the interface's gain and this together keeps their
+    ///     drive. Inputs 2-4 are scaled by theirs relative to Input 1's wherever a block reads them, so the same
+    ///     instrument drives the models alike on any input.
     /// </summary>
     public float FullScaleVolts { get; set; } = 1f;
 
-    /// <summary>A trim applied to every preset ahead of the grid, −20 to +20 dB (Input 1 Gain).</summary>
+    /// <summary>
+    ///     A trim, −20 to +20 dB: Input 1's is applied to every preset ahead of the grid, Inputs 2-4's wherever a
+    ///     block reads that input.
+    /// </summary>
     public float Gain { get; set; }
 }
 
