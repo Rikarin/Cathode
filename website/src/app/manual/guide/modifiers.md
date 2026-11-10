@@ -4,11 +4,13 @@ A **modifier** makes a knob move by itself, following a **controller**: an LFO t
 
 ## How a modifier works
 
-A modifier connects one **source** (a controller) to one **parameter** (a knob). Every source produces a value between 0 and 1. The modifier turns that into a knob position:
+A modifier connects a **source** (a controller), or two sources combined, to one **parameter** (a knob). Every source produces a value between 0 and 1. The modifier turns that into a knob position:
 
-1. It bends the source's value through a **curve**.
-2. It scales the result between the **Min** and **Max** you set, in the knob's own units (dB, Hz, %).
-3. It smooths the movement with **Attack** (how fast it rises) and **Release** (how fast it falls).
+1. With a **Second source**, it adds the two values (the sum stops at 1) or multiplies them.
+2. It applies the **response**: Start, Mid, End, Slope, Scale and Offset (see [below](#the-response)). At their defaults they change nothing.
+3. It bends the result through a **curve**.
+4. It scales that between the **Min** and **Max** you set, in the knob's own units (dB, Hz, %).
+5. It smooths the movement with **Attack** (how fast it rises) and **Release** (how fast it falls).
 
 While the modifier runs, it decides the knob's value; the value you set by hand is kept for when the modifier is removed or does not apply. Set **Min** higher than **Max** to make the knob move the opposite way to the source: for example, a volume that falls as a pedal goes down.
 
@@ -17,7 +19,7 @@ Modifiers work on continuous knobs. Switches and choices cannot take one, with o
 ## Adding a modifier
 
 1. Right-click a knob on a block's page and choose **Add modifier…**.
-2. In the dialog, choose the **Source**.
+2. In the dialog, choose the **Source**. To drive the knob from two controllers, choose a **Second source** too and whether the two **Add** or **Multiply**.
 3. Set **Min** and **Max**: the knob's value when the source is at 0 and at 1. They start at the knob's full range.
 4. Set **Attack** and **Release** (0 to 2000 ms) if the movement should be smoothed. Leave them at 0 for a modifier that follows the source exactly.
 5. Under **Applies on**, keep **All channels**, or pick one channel (**A** to **D**) so the modifier only acts while the block is on that channel. On the other channels the knob keeps that channel's own value.
@@ -39,6 +41,28 @@ To change or remove a modifier, right-click the knob again and choose **Edit mod
 
 Knobs with a logarithmic scale (frequencies, for example) are swept on that scale, so an LFO on a filter's frequency sounds even across its range.
 
+### Two sources
+
+With a **Second source**, the knob follows both controllers:
+
+- **Add**: the two values are summed, and the sum stops at 100 %. An LFO added to a pedal wobbles around wherever the pedal is.
+- **Multiply**: one value scales the other. A pedal multiplied with an LFO sets how deep the LFO goes: at the heel the knob rests at Min, at the toe the LFO sweeps the whole range.
+
+### The response
+
+Six knobs between the sources and the range shape how the knob answers the source. All are in percent, and at their defaults the source passes through unchanged.
+
+| Setting    | Default | What it does                                                                                                                                           |
+| ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Start**  | 0 %     | The output with the source at rest (0).                                                                                                                |
+| **Mid**    | 50 %    | The output with the source half way.                                                                                                                   |
+| **End**    | 100 %   | The output with the source at full travel (1). Between the three points the output moves in straight lines.                                            |
+| **Slope**  | 50 %    | Bends the source around its centre before Start, Mid and End: above 50 % the middle of the travel does more and the ends less, below 50 % the reverse. |
+| **Scale**  | 100 %   | Multiplies the output, up to 1000 %. The result stops at 100 %, so 200 % reaches the top at half travel.                                               |
+| **Offset** | 0 %     | Added to the output after Scale, −100 to 100 %. The result stays within 0 to 100 %.                                                                    |
+
+Some uses: Start 100 % and End 0 % turn a pedal round. Mid 0 % keeps the knob at Min for the first half of the travel. Scale 50 % with Offset 25 % makes the source move only the middle half of the range. The chart in the dialog shows the result as you turn them.
+
 ### The list of modifiers
 
 **Controllers ▸ Modifiers**, at the bottom of the Controllers page, lists every modifier in the preset by block and parameter, with its source and the channels it applies on. Change **Applies on** there too.
@@ -51,7 +75,7 @@ A modifier can switch a whole block on and off:
 2. Choose **Engage from a modifier…**, pick a source, and set how it engages the block (below).
 3. Click **Save**.
 
-The value the switch looks at is the modifier's output, from 0 to 100 %: the source after the curve, Min, Max, Attack and Release. Below the curve, the dialog has three more settings:
+The value the switch looks at is the modifier's output, from 0 to 100 %: the source after the response, the curve, Min, Max, Attack and Release. Below the curve, the dialog has three more settings:
 
 | Setting        | What it does                                                                                                                                                                                                                                                   |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -82,9 +106,9 @@ Touch the pedal and the wah is on, wherever the pedal is. Park it at the heel an
 
 ## The controllers
 
-Open **Controllers** in the navigation bar to set them up. Their settings are stored with the preset, except **Manual A to D**, which are global.
+Open **Controllers** in the navigation bar to set them up. Their settings are stored with the preset, except **Manual A to E**, which are global.
 
-<!-- screenshot wanted: the Controllers page: scene level and controllers, Manual A-D, LFO 1 and 2, ADSR 1 and 2 and the followers side by side, the sequencer -->
+<!-- screenshot wanted: the Controllers page: scene level and controllers, Manual A-E, LFO 1 and 2, ADSR 1 and 2 and the followers side by side, the sequencer -->
 
 ### Scene controllers
 
@@ -92,11 +116,11 @@ The **Scene** section at the top shows the active scene's **Scene Level** and **
 
 Use a scene controller as a modifier source when a knob should sit at a different position in each scene: assign **Scene Controller 1** to the delay's mix with Min 0 % and Max 50 %, then set Controller 1 to 20 % in the verse scene and 60 % in the solo scene. Unlike a channel, this needs no copy of the whole block, and the change glides with the modifier's Attack and Release.
 
-### Manual A to D
+### Manual A to E
 
-Four global knobs (0 to 100 %) on the Controllers page, the same in every preset. A MIDI controller or footswitch can set them too (the **manual** action). Use them for anything you want to control by hand the same way everywhere.
+Five global knobs (0 to 100 %) on the Controllers page, the same in every preset. A MIDI controller or footswitch can set them too (the **manual** action). Use them for anything you want to control by hand the same way everywhere.
 
-### External 1 to 8
+### External 1 to 16
 
 The sources an expression pedal or a MIDI CC drives (see [Expression pedals](/manual/midi-and-footswitches#expression-pedals)). **External (live)** on the Controllers page has a knob for each, so you can move a wah, a whammy or any External modifier without a pedal. These are live values only: they are not saved, the knobs show what you last set here, and a pedal moved afterwards takes over.
 
@@ -136,7 +160,7 @@ A source that follows the pitch of the note you play. **Low** and **High** (in H
 
 ### Sequencer
 
-A step sequencer: a source that steps through 2 to 16 fixed levels in a loop.
+A step sequencer: a source that steps through 2 to 32 fixed levels in a loop.
 
 1. Set **Stages** (how many steps).
 2. Set **Rate** (0.1 to 20 Hz), or **Tempo** to a note value to step in time.
@@ -148,7 +172,7 @@ While audio is running, the stage playing is marked on the Controllers page: its
 
 Put it on a filter for a rhythmic, synth-like pattern, or on a volume for a gated chop.
 
-### External 1 to 8
+### Mapping an External
 
 Values from your MIDI controller: an expression pedal, a knob or a fader sending CC messages. You connect a CC to an External number on the **Global** page, and from then on any modifier with that External as its source follows it. See [Expression pedals](/manual/midi-and-footswitches#expression-pedals).
 

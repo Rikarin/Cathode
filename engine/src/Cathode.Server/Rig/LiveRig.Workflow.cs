@@ -385,6 +385,8 @@ public sealed partial class LiveRig {
         modifiers.Where(m => (descriptor.IndexOf(m.Param) >= 0 || m.Param == ModNames.EngageParam)
                 && ModNames.TryParseSource(m.Source, out _)
                 && ModNames.TryParseCurve(m.Curve, out _)
+                && (m.Source2 is null || ModNames.TryParseSource(m.Source2, out _))
+                && ModNames.TryParseOperation(m.Operation, out _)
             )
             .Select(m => new PresetModifier {
                     Block = id,
@@ -393,6 +395,14 @@ public sealed partial class LiveRig {
                     Min = m.Min,
                     Max = m.Max,
                     Curve = m.Curve,
+                    Source2 = m.Source2,
+                    Operation = m.Operation,
+                    Start = m.Start,
+                    Mid = m.Mid,
+                    End = m.End,
+                    Slope = m.Slope,
+                    Scale = m.Scale,
+                    Offset = m.Offset,
                     AttackMs = m.AttackMs,
                     ReleaseMs = m.ReleaseMs,
                     Mode = m.Mode,

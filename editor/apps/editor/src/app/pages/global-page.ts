@@ -53,6 +53,7 @@ import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
 import { MidiLearnStore, learnText } from '../state/midi-learn.store';
 import { ActionPicker, injectActionContext, targetLabel } from './action-picker';
+import { inputAt } from './calibration';
 import {
   type OverrideChange,
   addView,
@@ -338,15 +339,15 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
         <section xuiCard class="flex flex-col gap-4 p-4" aria-labelledby="input-heading">
           <h2 xuiHeading id="input-heading" class="text-sm">Input and oversampling</h2>
           <div class="flex flex-wrap items-end gap-6">
-            @if (s.inputs[0]; as input1) {
+            @for (n of inputNumbers; track n) {
               <cth-knob
-                label="Input 1 Gain"
+                [label]="'Input ' + n + ' Gain'"
                 unit="dB"
                 [min]="-20"
                 [max]="20"
                 [defaultValue]="0"
-                [value]="input1.gain"
-                (committed)="saveInput1(i => (i.gain = $event))"
+                [value]="s.inputs[n - 1]?.gain ?? 0"
+                (committed)="saveInput(n - 1, i => (i.gain = $event))"
               />
             }
             <div class="flex flex-col gap-1">
@@ -366,8 +367,9 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
             }
           </div>
           <p xuiText class="text-foreground-muted text-xs">
-            Input 1 Gain trims what every preset gets, after the DI out. Minimum phase adds no latency; linear phase
-            delays every frequency alike, at about 2 ms more latency.
+            Input 1 Gain trims what every preset gets, after the DI out; the gains of Inputs 2 to 4 trim those inputs
+            wherever a block reads them. Minimum phase adds no latency; linear phase delays every frequency alike, at
+            about 2 ms more latency.
           </p>
         </section>
 
@@ -398,7 +400,27 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
                 (valueChange)="save(g => (g.midiOutPort = !$event || $event === allMidiOutputs ? null : $event))"
               />
             </label>
+            <label class="flex flex-col items-center gap-2">
+              <span class="text-foreground-muted text-xs">Send MIDI clock</span>
+              <xui-switch
+                aria-label="Send MIDI clock"
+                data-testid="send-midi-clock"
+                [checked]="s.sendMidiClock"
+                (checkedChange)="save(g => (g.sendMidiClock = $event))"
+              />
+            </label>
           </div>
+          @if (s.sendMidiClock) {
+            <xui-callout minimal compact color="primary" data-testid="send-midi-clock-note">
+              @if (s.tempoMode === 'midiClock') {
+                No clock is sent while the tempo follows MIDI clock (Tempo from, above): Cathode follows that clock and
+                does not send it back.
+              } @else {
+                Cathode sends MIDI clock at its tempo to the output chosen under Send to while audio runs, so delays,
+                loopers and drum machines can follow it. It sends the clock only, no Start or Stop.
+              }
+            </xui-callout>
+          }
 
           <xui-table>
             <xui-tr>
@@ -883,14 +905,12 @@ export class GlobalPage {
     });
   }
 
-  /** Changes Input 1's settings. */
-  protected saveInput1(change: (input: GlobalSettings['inputs'][number]) => void): void {
-    this.save(g => {
-      const input = g.inputs[0];
-      if (input) {
-        change(input);
-      }
-    });
+  /** Inputs 1 to 4, each with a gain trim. */
+  protected readonly inputNumbers = [1, 2, 3, 4];
+
+  /** Changes the settings of input `index` (0 is Input 1). */
+  protected saveInput(index: number, change: (input: GlobalSettings['inputs'][number]) => void): void {
+    this.save(g => change(inputAt(g, index)));
   }
 
   protected removeMapping(id: string): void {

@@ -3,7 +3,8 @@ import {
   dbuFromFullScale,
   fullScaleFromDbu,
   fullScaleFromReference,
-  fullScaleIn
+  fullScaleIn,
+  inputAt
 } from './calibration';
 
 describe('input calibration', () => {
@@ -27,5 +28,18 @@ describe('the calibration field', () => {
     expect(fullScaleIn(DefaultFullScale, 'volts')).toBe(1);
     expect(fullScaleIn(fullScaleFromDbu(4), 'dbu')).toBe(4);
     expect(fullScaleIn(1.73644, 'volts')).toBe(1.736);
+  });
+
+  it('adds the inputs before the one being set at their defaults', () => {
+    const settings = { inputs: [{ fullScaleVolts: 2, gain: 3 }] };
+
+    inputAt(settings, 2).gain = -6;
+
+    expect(settings.inputs).toEqual([
+      { fullScaleVolts: 2, gain: 3 },
+      { fullScaleVolts: 1, gain: 0 },
+      { fullScaleVolts: 1, gain: -6 }
+    ]);
+    expect(inputAt(settings, 0)).toBe(settings.inputs[0]);
   });
 });

@@ -319,13 +319,17 @@ public class GraphCompilerTests {
 
         var error = Assert.Throws<GraphValidationException>(() => Compiler.Compile(definition, Spec));
 
-        Assert.Contains(error.Errors, e => e.Contains($"{count} block meters", StringComparison.Ordinal));
+        // Every block has two meters, its peak and its CPU share.
+        Assert.Contains(
+            error.Errors,
+            e => e.Contains($"{CompiledGraph.CommonMeters * count} block meters", StringComparison.Ordinal)
+        );
         Assert.Contains(error.Errors, e => e.Contains($"{count} modifiers", StringComparison.Ordinal));
     }
 
     [Fact]
     public void A_full_grid_of_any_block_fits_the_telemetry() {
-        // The server accepts at most a 6 x 14 grid: every block's peak and own meters must then fit.
+        // The server accepts at most a 6 x 14 grid: every block's peak, CPU and own meters must then fit.
         var registry = TestRegistry.Create();
         var most = 0;
         foreach (var descriptor in registry.Descriptors) {
@@ -333,7 +337,10 @@ public class GraphCompilerTests {
             most = Math.Max(most, block is IBlockMeters own ? own.MeterIds.Count : 0);
         }
 
-        Assert.True(6 * 14 * (1 + most) <= TelemetryLayout.BlockMeters, $"{most} own meters per block");
+        Assert.True(
+            6 * 14 * (CompiledGraph.CommonMeters + most) <= TelemetryLayout.BlockMeters,
+            $"{most} own meters per block"
+        );
     }
 
     [Fact]

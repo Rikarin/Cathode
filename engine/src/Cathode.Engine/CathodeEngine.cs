@@ -76,6 +76,19 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     readonly int gateOffsetIndex = RigControls.Descriptor.IndexOf("gateOffset");
     readonly int inputGainIndex = RigControls.Descriptor.IndexOf("in1Gain");
     readonly int calibrationIndex = RigControls.Descriptor.IndexOf("in1Cal");
+
+    // Inputs 2-4: their trim and calibration, and the gain in dB each was last given (NaN before the first callback).
+    readonly int[] sourceGainIndex = [
+        ..Enumerable.Range(2, RigControls.CalibratedInputs - 1)
+            .Select(static k => RigControls.Descriptor.IndexOf($"in{k}Gain"))
+    ];
+
+    readonly int[] sourceCalibrationIndex = [
+        ..Enumerable.Range(2, RigControls.CalibratedInputs - 1)
+            .Select(static k => RigControls.Descriptor.IndexOf($"in{k}Cal"))
+    ];
+
+    readonly float[] sourceGainDb = [float.NaN, float.NaN, float.NaN];
     readonly int copyIndex = RigControls.Descriptor.IndexOf("copyOut2");
     readonly int muteIndex = RigControls.Descriptor.IndexOf("mute");
     readonly int tunerIndex = RigControls.Descriptor.IndexOf("tuner");
@@ -327,6 +340,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         }
 
         HardwareLoop.BeginCallback(io.ReturnLeft, io.ReturnRight, io.Frames);
+        SetSourceGains();
         Inputs.BeginCallback(io.InputLeft, io.InputRight, io.Sources, io.SourceMask, io.Frames);
         var bus = io.Outputs;
         if (bus is not null) {
@@ -606,6 +620,23 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
             if (bus.IsMapped(k)) {
                 bus.Left(k)[..frames].Clear();
                 bus.Right(k)[..frames].Clear();
+            }
+        }
+    }
+
+    /// <summary>
+    ///     Inputs 2-4 as the blocks read them: each with its own gain trim, and scaled by its calibration relative to
+    ///     Input 1's, so a unit of signal is the same volts at the jack whichever input it came through. The amp and
+    ///     drive models read every signal by Input 1's calibration (<see cref="BlockContext.InputVolts" />), so the
+    ///     same guitar drives them alike on any input.
+    /// </summary>
+    void SetSourceGains() {
+        var reference = Rig.GetTarget(calibrationIndex);
+        for (var k = 0; k < sourceGainDb.Length; k++) {
+            var db = Rig.GetTarget(sourceGainIndex[k]) + Rig.GetTarget(sourceCalibrationIndex[k]) - reference;
+            if (db != sourceGainDb[k]) {
+                sourceGainDb[k] = db;
+                Inputs.SetGain(HardwareInputs.Input1 + 1 + k, Decibels.ToGain(db));
             }
         }
     }

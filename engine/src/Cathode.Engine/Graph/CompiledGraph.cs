@@ -4,6 +4,7 @@ using Cathode.Dsp.Looping;
 using Cathode.Dsp.Routing;
 using Cathode.Engine.Rig;
 using Cathode.Ipc;
+using System.Diagnostics;
 
 namespace Cathode.Engine.Graph;
 
@@ -57,12 +58,30 @@ public sealed class CompiledGraph : IDisposable {
     readonly int[] meterOffsets;
     readonly string[] meterLayout;
     readonly IBlockMeters[] ownMeters;
+
+    // Per slot, the Stopwatch ticks its block took since the last CaptureMeters, over measuredFrames frames.
+    readonly long[] blockTicks;
+    int measuredFrames;
     readonly int[] ownSlots;
 
     /// <summary>
     ///     The standard meter every block has, first in its <see cref="MeterIds" />: its output peak (linear).
     /// </summary>
     public const string PeakMeter = "peak";
+
+    /// <summary>
+    ///     The id of every block's CPU meter, right after its <see cref="PeakMeter" />: the time its
+    ///     <c>Process</c> takes (with its bypass handling), in percent of the time the audio it processed lasts,
+    ///     smoothed over <see cref="CpuSmoothingSeconds" />. So the blocks' figures add up to about the engine's load,
+    ///     less what the graph and the rig do around them.
+    /// </summary>
+    public const string CpuMeter = "cpu";
+
+    /// <summary>The time constant of the <see cref="CpuMeter" />'s smoothing.</summary>
+    public const double CpuSmoothingSeconds = 0.3;
+
+    /// <summary>The meters every slot has, before the block's own: <see cref="PeakMeter" />, <see cref="CpuMeter" />.</summary>
+    public const int CommonMeters = 2;
 
     /// <summary>Identifies this graph; commands addressed to another generation are ignored.</summary>
     public int Generation { get; }
@@ -122,7 +141,7 @@ public sealed class CompiledGraph : IDisposable {
     public InputPort? Inputs { get; }
 
     /// <summary>True when a modifier follows the input pitch, so the host must run pitch detection.</summary>
-    public bool UsesPitch => modifiers.Any(static m => m.Source == ModSource.Pitch);
+    public bool UsesPitch => modifiers.Any(static m => m.Source == ModSource.Pitch || m.Source2 == ModSource.Pitch);
 
     internal CompiledGraph(
         int generation,
@@ -182,7 +201,7 @@ public sealed class CompiledGraph : IDisposable {
         var metered = 0;
         for (var i = 0; i < blocks.Length; i++) {
             meterOffsets[i] = meterCount;
-            meterCount++;
+            meterCount += CommonMeters;
             if (blocks[i] is IBlockMeters own) {
                 meterCount += own.MeterIds.Count;
                 metered++;
@@ -191,6 +210,7 @@ public sealed class CompiledGraph : IDisposable {
 
         meters = new float[meterCount];
         meterLayout = new string[meterCount];
+        blockTicks = new long[blocks.Length];
         ownMeters = new IBlockMeters[metered];
         ownSlots = new int[metered];
         LayOutMeters();
@@ -205,18 +225,19 @@ public sealed class CompiledGraph : IDisposable {
     }
 
     /// <summary>
-    ///     Names the meters (each block's peak meter, then the block's own meters after it) and records the blocks that
-    ///     have their own, in the arrays the constructor sized.
+    ///     Names the meters (each block's peak and CPU meters, then the block's own meters after them) and records the
+    ///     blocks that have their own, in the arrays the constructor sized.
     /// </summary>
     void LayOutMeters() {
         var metered = 0;
         for (var i = 0; i < blocks.Length; i++) {
             meterLayout[meterOffsets[i]] = PeakMeter;
+            meterLayout[meterOffsets[i] + 1] = CpuMeter;
             if (blocks[i] is IBlockMeters own) {
                 ownMeters[metered] = own;
                 ownSlots[metered++] = i;
                 for (var m = 0; m < own.MeterIds.Count; m++) {
-                    meterLayout[meterOffsets[i] + 1 + m] = own.MeterIds[m];
+                    meterLayout[meterOffsets[i] + CommonMeters + m] = own.MeterIds[m];
                 }
             }
         }
@@ -235,8 +256,14 @@ public sealed class CompiledGraph : IDisposable {
                 continue;
             }
 
+            var source = modulation.Value(modifier.Source);
+            if (modifier.Source2 is { } second) {
+                source = Modulation.Combine(source, modulation.Value(second), modifier.Multiply);
+            }
+
             var target = Modulation.Map(
-                modulation.Value(modifier.Source),
+                source,
+                modifier.Shape,
                 modifier.Curve,
                 modifier.Min,
                 modifier.Max,
@@ -273,13 +300,15 @@ public sealed class CompiledGraph : IDisposable {
     public bool HasOutput(int output) => outputs[output];
 
     /// <summary>
-    ///     The id of each value in <see cref="Meters" />: slot by slot, <see cref="PeakMeter" /> and then the block's
-    ///     own, so each <see cref="PeakMeter" /> starts the next slot's meters. The host sends it with the slot ids.
+    ///     The id of each value in <see cref="Meters" />: slot by slot, <see cref="PeakMeter" />,
+    ///     <see cref="CpuMeter" /> and then the block's own, so each <see cref="PeakMeter" /> starts the next slot's
+    ///     meters. The host sends it with the slot ids.
     /// </summary>
     public string[] MeterLayout => meterLayout;
 
     /// <summary>
-    ///     The ids of slot <paramref name="slot" />'s meters: <see cref="PeakMeter" />, then the block's own.
+    ///     The ids of slot <paramref name="slot" />'s meters: <see cref="PeakMeter" />, <see cref="CpuMeter" />, then
+    ///     the block's own.
     /// </summary>
     public ArraySegment<string> MeterIds(int slot) =>
         new(
@@ -310,13 +339,27 @@ public sealed class CompiledGraph : IDisposable {
 
     /// <summary>
     ///     Audio thread, once per callback after <see cref="Process" />: reads the blocks' own meters into
-    ///     <see cref="Meters" />. A fully bypassed block's meters read their resting values: nothing of it is heard,
-    ///     and a Thru block does not even run, so its own values would be stale.
+    ///     <see cref="Meters" />, and moves each <see cref="CpuMeter" /> towards what its block took in this callback.
+    ///     A fully bypassed block's meters read their resting values: nothing of it is heard, and a Thru block does not
+    ///     even run, so its own values would be stale.
     /// </summary>
     public void CaptureMeters() {
+        if (measuredFrames > 0) {
+            var seconds = measuredFrames / Spec.SampleRate;
+            var toPercent = 100.0 / (Stopwatch.Frequency * seconds);
+            var smoothing = (float)(1 - Math.Exp(-seconds / CpuSmoothingSeconds));
+            for (var slot = 0; slot < blockTicks.Length; slot++) {
+                ref var cpu = ref meters[meterOffsets[slot] + 1];
+                cpu += ((float)(blockTicks[slot] * toPercent) - cpu) * smoothing;
+                blockTicks[slot] = 0;
+            }
+
+            measuredFrames = 0;
+        }
+
         for (var i = 0; i < ownMeters.Length; i++) {
             var slot = ownSlots[i];
-            var values = meters.AsSpan(meterOffsets[slot] + 1, ownMeters[i].MeterIds.Count);
+            var values = meters.AsSpan(meterOffsets[slot] + CommonMeters, ownMeters[i].MeterIds.Count);
             if (bypass[slot].Target && bypass[slot].Mix == 0f) {
                 ownMeters[i].ReadRestingMeters(values);
             } else {
@@ -366,7 +409,9 @@ public sealed class CompiledGraph : IDisposable {
                     delays[op.Index].Process(left, right);
                     break;
                 case GraphOpKind.Process:
+                    var started = Stopwatch.GetTimestamp();
                     RunBlock(op.Index, new(left, right), context);
+                    blockTicks[op.Index] += Stopwatch.GetTimestamp() - started;
                     Tone?.Render(Generation, op.Index, left, right, Spec.SampleRate);
                     break;
                 case GraphOpKind.WriteOutput when op.Index <= 0:
@@ -394,6 +439,7 @@ public sealed class CompiledGraph : IDisposable {
         }
 
         Inputs?.Advance(frames);
+        measuredFrames += frames;
     }
 
     public void Dispose() {
@@ -651,6 +697,15 @@ public struct ModifierBinding(
     public bool Log { get; } = log;
     public float AttackMs { get; } = attackMs;
     public float ReleaseMs { get; } = releaseMs;
+
+    /// <summary>A second source combined with <see cref="Source" /> (<see cref="Modulation.Combine" />), or null.</summary>
+    public ModSource? Source2 { get; init; }
+
+    /// <summary>Whether <see cref="Source2" /> multiplies <see cref="Source" />; otherwise it is added.</summary>
+    public bool Multiply { get; init; }
+
+    /// <summary>The response applied to the source before <see cref="Curve" />.</summary>
+    public ModShape Shape { get; init; } = ModShape.Identity;
 
     /// <summary>The slewed value; NaN until the first sub-block, which then starts at its target.</summary>
     public float Value { get; set; } = float.NaN;

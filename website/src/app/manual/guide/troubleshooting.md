@@ -59,7 +59,7 @@ The computer is not finishing each buffer in time.
 
 1. Open **Settings ▸ Audio setup** and watch **Engine overruns** and **Driver overloads** while you play.
 2. Raise the **Buffer** one step (64 to 128, then 256) and click **Apply and restart engine**.
-3. Check **Est.** and **CPU** in the navigation bar. If one preset is near 100 %, lighten it: fewer amps, NAM captures, pitch shifters or long reverbs, or one of each instead of two. The Marshall AFD100 and Silver Jubilee amp models are known to need more than the budget at high gain.
+3. Check **Est.** and **CPU** in the navigation bar, and the **CPU** figure of each block on its page (select the block). If one preset is near 100 %, lighten it: fewer amps, NAM captures, pitch shifters or long reverbs, or one of each instead of two. The Marshall AFD100 and Silver Jubilee amp models are known to need more than the budget at high gain.
 4. Use **48 k** rather than 88.2 or 96 k.
 5. Close other programs, especially other audio software and browsers playing video. Keep a laptop on mains power and in a high-performance power mode.
 6. Connect the interface directly to the computer, not through a USB hub.

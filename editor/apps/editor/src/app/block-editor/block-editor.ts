@@ -9,7 +9,7 @@ import {
   viewChild
 } from '@angular/core';
 import { BuiltInTypes, BypassModes, ChannelNames, OutputTypes, type ParameterInfo } from '@cathode/api-client';
-import { CthBlockTile, blockAccent } from '@cathode/audio-ui';
+import { CthBlockTile, blockAccent, onAnimationFrame } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
 import {
   matContentCopyRound,
@@ -37,6 +37,7 @@ import { XuiTagImports } from '@xui/tag';
 import { XuiTextImports } from '@xui/text';
 import { LongPressMenu } from '../controls/long-press-menu';
 import { ModifierDialog, engagedWhen } from '../controls/modifier-dialog';
+import { EventStream, blockCpuText } from '../core/events';
 import { RovingKeys } from '../controls/roving-keys';
 import { BlockPresetsStore } from '../state/block-presets.store';
 import { CatalogStore } from '../state/catalog.store';
@@ -136,6 +137,15 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
           <div class="-my-1 flex items-center gap-2">
             <h2 class="sr-only">{{ title() }}</h2>
             <span class="text-foreground-muted min-w-0 flex-1 truncate text-xs">{{ block.id }}</span>
+            @if (cpu(); as load) {
+              <span
+                class="text-foreground-muted text-xs whitespace-nowrap tabular-nums"
+                data-testid="block-cpu"
+                title="This block's measured share of the engine's CPU time"
+              >
+                CPU {{ load }}
+              </span>
+            }
             <button
               type="button"
               xuiButton
@@ -518,6 +528,9 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
 })
 export class BlockEditor {
   protected readonly live = inject(LiveStore);
+  private readonly events = inject(EventStream);
+  /** The selected block's measured CPU share as text, from its `cpu` meter; empty while there is none. */
+  protected readonly cpu = signal('');
   private readonly catalog = inject(CatalogStore);
 
   private readonly globals = inject(GlobalStore);
@@ -599,6 +612,14 @@ export class BlockEditor {
 
   constructor() {
     void this.blockPresets.refresh();
+    // Read from telemetry on each frame; the signal changes only when the text does.
+    onAnimationFrame(() => {
+      const id = this.block()?.id;
+      const text = id ? blockCpuText(this.events.blockMeter(id, 'cpu')) : '';
+      if (text !== this.cpu()) {
+        this.cpu.set(text);
+      }
+    });
     afterRenderEffect(onCleanup => {
       this.page();
       const panel = this.settingsPanel()?.nativeElement;

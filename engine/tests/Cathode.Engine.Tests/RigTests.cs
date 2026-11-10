@@ -359,6 +359,134 @@ public class RigTests {
     }
 
     [Fact]
+    public void A_modifier_without_response_settings_follows_its_source_unchanged() {
+        var shape = ModShape.From(null, null, null, null, null, null);
+
+        Assert.True(shape.IsIdentity);
+        for (var s = 0f; s <= 1f; s += 0.125f) {
+            Assert.Equal(s, shape.Apply(s), 5);
+            Assert.Equal(
+                Modulation.Map(s, ModCurve.SCurve, 2f, 8f, false),
+                Modulation.Map(s, shape, ModCurve.SCurve, 2f, 8f, false)
+            );
+        }
+    }
+
+    [Fact]
+    public void Start_mid_and_end_set_the_response_at_rest_half_way_and_full_travel() {
+        var inverted = ModShape.From(1f, null, 0f, null, null, null);
+        var late = ModShape.From(0f, 0f, 1f, null, null, null); // nothing until half travel
+
+        Assert.Equal(1f, inverted.Apply(0f), 5);
+        Assert.Equal(0.5f, inverted.Apply(0.5f), 5);
+        Assert.Equal(0f, inverted.Apply(1f), 5);
+        Assert.Equal(0f, late.Apply(0.4f), 5);
+        Assert.Equal(0.5f, late.Apply(0.75f), 5);
+    }
+
+    [Fact]
+    public void Scale_and_offset_stretch_and_lift_the_response_within_its_range() {
+        var doubled = ModShape.From(null, null, null, null, 2f, null);
+        var lifted = ModShape.From(null, null, null, null, 0.5f, 0.25f);
+
+        Assert.Equal(0.5f, doubled.Apply(0.25f), 5);
+        Assert.Equal(1f, doubled.Apply(0.5f), 5);
+        Assert.Equal(1f, doubled.Apply(0.9f), 5);
+        Assert.Equal(0.25f, lifted.Apply(0f), 5);
+        Assert.Equal(0.75f, lifted.Apply(1f), 5);
+    }
+
+    [Theory]
+    [InlineData(0.1f)]
+    [InlineData(0.9f)]
+    public void Slope_bends_the_response_around_its_centre_and_keeps_its_ends(float slope) {
+        var shape = ModShape.From(null, null, null, slope, null, null);
+
+        Assert.Equal(0f, shape.Apply(0f), 5);
+        Assert.Equal(0.5f, shape.Apply(0.5f), 5);
+        Assert.Equal(1f, shape.Apply(1f), 5);
+        var previous = 0f;
+        for (var s = 0.05f; s <= 1f; s += 0.05f) {
+            Assert.True(shape.Apply(s) >= previous, "rises all the way");
+            previous = shape.Apply(s);
+        }
+
+        // Above 0.5 the middle is steeper than a straight line, below 0.5 flatter.
+        var rise = shape.Apply(0.55f) - shape.Apply(0.45f);
+        Assert.True(slope > 0.5f ? rise > 0.15f : rise < 0.07f, $"rise through the middle {rise}");
+    }
+
+    [Fact]
+    public void A_response_inverts_what_the_source_does_to_the_parameter() {
+        var modifier = Modifier("manualA", -40f, 0f);
+        modifier.Start = 1f;
+        modifier.End = 0f;
+        var engine = Engine(modifier);
+
+        var (rest, _) = OfflineRenderer.Render(engine, Signals.Step(9_600), Signals.Step(9_600), 64);
+        Set(engine, "manualA", 1f);
+        var (full, _) = OfflineRenderer.Render(engine, Signals.Step(9_600), Signals.Step(9_600), 64);
+
+        Assert.Equal(1f, rest[^1], 2); // 0 dB with the pedal at rest
+        Assert.Equal(0.01f, full[^1], 3); // -40 dB at full travel
+    }
+
+    [Theory]
+    [InlineData(null, 0.25f, -10f)] // add: 0.5 + 0.25
+    [InlineData("add", 1f, 0f)] // 0.5 + 1, held at 1
+    [InlineData("multiply", 0.5f, -30f)] // 0.5 x 0.5
+    public void Two_sources_on_one_parameter_are_added_or_multiplied(string? operation, float second, float db) {
+        var modifier = Modifier("manualA", -40f, 0f);
+        modifier.Source2 = "manualB";
+        modifier.Operation = operation;
+        var engine = Engine(modifier);
+        Set(engine, "manualA", 0.5f);
+        Set(engine, "manualB", second);
+
+        var (left, _) = OfflineRenderer.Render(engine, Signals.Step(9_600), Signals.Step(9_600), 64);
+
+        Assert.Equal(MathF.Pow(10f, db / 20f), left[^1], 3);
+    }
+
+    [Theory]
+    [InlineData("manualE")]
+    [InlineData("ext9")]
+    [InlineData("ext16")]
+    public void Manual_e_and_externals_9_to_16_are_modifier_sources(string source) {
+        var engine = Engine(Modifier(source, -40f, 0f));
+        Set(engine, source, 0.5f);
+
+        var (left, _) = OfflineRenderer.Render(engine, Signals.Step(9_600), Signals.Step(9_600), 64);
+
+        Assert.Equal(0.1f, left[^1], 3); // -20 dB, half way
+        Assert.True(ModNames.TryParseSource(source, out var parsed));
+        Assert.Equal(source, ModNames.Sources[(int)parsed]);
+    }
+
+    [Fact]
+    public void Every_modifier_source_has_a_name_and_a_rig_parameter_where_a_person_sets_it() {
+        Assert.Equal(Enum.GetValues<ModSource>().Length, ModNames.Sources.Length);
+        Assert.Equal(RigControls.ManualCount, ModNames.Sources.Count(static s => s.StartsWith("manual", StringComparison.Ordinal)));
+        Assert.Equal(RigControls.ExternalCount, ModNames.Sources.Count(static s => s.StartsWith("ext", StringComparison.Ordinal)));
+        foreach (var name in ModNames.Sources.Where(static s =>
+                     s.StartsWith("manual", StringComparison.Ordinal) || s.StartsWith("ext", StringComparison.Ordinal)
+                 )) {
+            Assert.True(RigControls.Descriptor.IndexOf(name) >= 0, name);
+        }
+    }
+
+    [Fact]
+    public void Modifiers_with_an_unknown_second_source_or_operation_are_rejected() {
+        var definition = Graph();
+        definition.Modifiers.Add(new() { Block = "vol", Param = "level", Source = "lfo1", Source2 = "lfo9" });
+        definition.Modifiers.Add(new() { Block = "vol", Param = "pan", Source = "lfo1", Operation = "divide" });
+
+        var error = Assert.Throws<GraphValidationException>(() => Compiler.Compile(definition, Spec, 1));
+
+        Assert.Equal(2, error.Errors.Count);
+    }
+
+    [Fact]
     public void Modifiers_with_unknown_sources_or_parameters_are_rejected() {
         var definition = Graph();
         definition.Modifiers.Add(new() { Block = "vol", Param = "nope", Source = "lfo1" });

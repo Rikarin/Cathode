@@ -860,7 +860,7 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
-    /** Manual A-D (index 0-3), 0..1. */
+    /** Manual A-E (index 0-4), 0..1. */
     put: operations['SetManual'];
     post?: never;
     delete?: never;
@@ -877,7 +877,7 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
-    /** External 1-8 (index 0-7), 0..1: what a pedal or CC would set. */
+    /** External 1-16 (index 0-15), 0..1: what a pedal or CC would set. */
     put: operations['SetExternal'];
     post?: never;
     delete?: never;
@@ -1381,7 +1381,7 @@ export interface paths {
     };
     /** The global settings, with their revision as the ETag (send it back as If-Match on a PUT). */
     get: operations['GetGlobal'];
-    /** Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs (calibration, gain), oversampling, the tuner output, Manual A-D, MIDI, footswitches, global blocks, scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC, spillover and the active setlist and song. With If-Match (the revision a GET or PUT answered with as the ETag), refused with 412 when another change came first. */
+    /** Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs (calibration, gain), oversampling, the tuner output, Manual A-E, MIDI, footswitches, global blocks, scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC, spillover and the active setlist and song. With If-Match (the revision a GET or PUT answered with as the ETag), refused with 412 when another change came first. */
     put: operations['PutGlobal'];
     post?: never;
     delete?: never;
@@ -2078,7 +2078,7 @@ export interface components {
     };
     /**
      * @description Settings that belong to the rig rather than to any preset: tempo source, metronome, the global output EQ,
-     *     Manual A-D, MIDI mappings, footswitch layouts and the global block library. Stored as one document.
+     *     Manual A-E, MIDI mappings, footswitch layouts and the global block library. Stored as one document.
      */
     GlobalSettings: {
       /** Format: int32 */
@@ -2123,7 +2123,7 @@ export interface components {
        *     latency, the default) or `linear` (linear-phase FIR, a few milliseconds of latency).
        */
       oversampling: string;
-      /** @description Manual A-D (0..1): modifier sources a person or pedal sets, shared by every preset. */
+      /** @description Manual A-E (0..1): modifier sources a person or pedal sets, shared by every preset. */
       manual: number[];
       /**
        * Format: int32
@@ -2132,11 +2132,18 @@ export interface components {
       midiChannel: number;
       midiMappings: components['schemas']['MidiMapping'][];
       /**
-       * @description Where scene MIDI and footswitch LEDs go: a MIDI output's uid (string MidiOutputInfo.Uid, from
+       * @description Where scene MIDI, footswitch LEDs and MIDI clock go: a MIDI output's uid (string MidiOutputInfo.Uid, from
        *     `GET /api/v1/midi/outputs`), or null for every output. One port keeps them from looping back into a
        *     controller that echoes what it receives; while that port is not connected, nothing is sent.
        */
       midiOutPort?: null | string;
+      /**
+       * @description Sends MIDI clock (24 ticks per quarter note, no Start or Stop) at the rig's tempo to
+       *     string? GlobalSettings.MidiOutPort while audio runs, so external delays, loopers and drum machines follow the
+       *     tempo and its taps. Nothing is sent while string GlobalSettings.TempoMode is `midiClock`: Cathode then
+       *     follows a clock and does not echo it.
+       */
+      sendMidiClock: boolean;
       footswitches: components['schemas']['FootswitchLayout'][];
       /** @description The layout in use, by id. */
       activeLayout?: null | string;
@@ -2211,17 +2218,20 @@ export interface components {
       assetsAdded: number;
       renamed: boolean;
     };
-    /** @description One interface input. */
+    /** @description One interface input: Input 1 to 4, in the order of List&lt;InputSettings&gt; GlobalSettings.Inputs. */
     InputSettings: {
       /**
        * Format: float
        * @description The peak volts at the jack that reach 0 dBFS (default 1 V, how Cathode always read its input). The amp and
-       *     drive models scale their input by it, so changing the interface's gain and this together keeps their drive.
+       *     drive models scale their input by Input 1's, so changing the interface's gain and this together keeps their
+       *     drive. Inputs 2-4 are scaled by theirs relative to Input 1's wherever a block reads them, so the same
+       *     instrument drives the models alike on any input.
        */
       fullScaleVolts: number;
       /**
        * Format: float
-       * @description A trim applied to every preset ahead of the grid, −20 to +20 dB (Input 1 Gain).
+       * @description A trim, −20 to +20 dB: Input 1's is applied to every preset ahead of the grid, Inputs 2-4's wherever a
+       *     block reads that input.
        */
       gain: number;
     };
@@ -2355,7 +2365,7 @@ export interface components {
      * @description A MIDI message bound to an action. `Message` is cc, note or pc; `Channel` 0 means any. Actions:
      *     scene (Value = scene, or the message value when absent), sceneNext, scenePrevious, presetSlot (Target = bank
      *     id, the PC number picks the slot), presetNext, presetPrevious, bypass (Target = block), channel (Target = block,
-     *     Value = 0-3), external (Value = 1-8, the CC value drives External n), manual (Value = 0-3), tap, tuner,
+     *     Value = 0-3), external (Value = 1-16, the CC value drives External n), manual (Value = 0-4), tap, tuner,
      *     metronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear), sceneLevelUp and
      *     sceneLevelDown (the active scene's level by ±1 dB, then save the preset), save (save the preset), layout
      *     (Target = layout id), view (Value = view index), viewNext, viewPrevious, songNext and songPrevious (the next or
@@ -2565,7 +2575,7 @@ export interface components {
     PresetModifier: {
       block: string;
       param: string;
-      /** @description lfo1, lfo2, adsr1, adsr2, seq, env, pitch, manualA-D, scene1-4 or ext1-8. */
+      /** @description lfo1, lfo2, adsr1, adsr2, seq, env, pitch, manualA-E, scene1-4 or ext1-16. */
       source: string;
       /** Format: float */
       min: number;
@@ -2573,6 +2583,48 @@ export interface components {
       max: number;
       /** @description linear, exp, log or scurve. */
       curve: string;
+      /**
+       * @description A second source, combined with string PresetModifier.Source by string? PresetModifier.Operation before anything else.
+       *     Null is none.
+       */
+      source2?: null | string;
+      /**
+       * @description How string? PresetModifier.Source2 joins string PresetModifier.Source: `add` (the sum, held within 0-1) or
+       *     `multiply`. Null is `add`.
+       */
+      operation?: null | string;
+      /**
+       * Format: float
+       * @description The response to the source, applied before string PresetModifier.Curve: the output (0-1) with the source at
+       *     rest. Null is 0.
+       */
+      start?: null | number;
+      /**
+       * Format: float
+       * @description The output (0-1) with the source half way. Null is 0.5.
+       */
+      mid?: null | number;
+      /**
+       * Format: float
+       * @description The output (0-1) with the source at full travel. Null is 1.
+       */
+      end?: null | number;
+      /**
+       * Format: float
+       * @description How the source is bent around its centre before Start/Mid/End (0-1): above 0.5 steeper through the
+       *     middle, below 0.5 flatter. Null is 0.5, straight.
+       */
+      slope?: null | number;
+      /**
+       * Format: float
+       * @description Multiplies the Start/Mid/End output (0-10); the result is held within 0-1. Null is 1.
+       */
+      scale?: null | number;
+      /**
+       * Format: float
+       * @description Added to the scaled output (−1 to 1); the result is held within 0-1. Null is 0.
+       */
+      offset?: null | number;
       /** Format: float */
       attackMs: number;
       /** Format: float */

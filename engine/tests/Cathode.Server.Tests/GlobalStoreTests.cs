@@ -137,8 +137,18 @@ public sealed class GlobalStoreTests : IDisposable {
         Assert.Empty(settings.MidiMappings);
         Assert.Empty(Assert.Single(settings.Footswitches).Switches);
         Assert.Equal(["B"], Assert.Single(settings.Blocks).Channels.Keys);
-        Assert.Equal([0, 0, 0, 0], settings.Manual);
+        Assert.Equal([0, 0, 0, 0, 0], settings.Manual);
         Assert.Equal("chromatic", settings.Tuning);
+    }
+
+    [Fact]
+    public void Four_manual_values_from_an_earlier_release_gain_manual_e_at_rest() {
+        File.WriteAllText(Path.Combine(folder, "global.json"), """{ "manual": [0.1, 0.2, 0.3, 0.4] }""");
+
+        var store = new GlobalStore(Options.Create(new ServerOptions { DataDirectory = folder }));
+
+        Assert.Equal([0.1f, 0.2f, 0.3f, 0.4f, 0f], store.Get().Manual);
+        Assert.Equal(1f, store.Update(static g => g.Manual[4] = 1f).Manual[4]);
     }
 
     [Fact]

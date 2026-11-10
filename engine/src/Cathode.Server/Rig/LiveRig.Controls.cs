@@ -113,6 +113,8 @@ public sealed partial class LiveRig {
                 errors.Add($"Unknown modifier source '{m.Source}'.");
             } else if (!ModNames.TryParseCurve(m.Curve, out _)) {
                 errors.Add($"Unknown curve '{m.Curve}'.");
+            } else if (ShapeErrors(m) is { } shapeProblem) {
+                errors.Add(shapeProblem);
             } else if (EngageErrors(m) is { } problem) {
                 errors.Add(problem);
             } else if (m.Channel is { } scope
@@ -124,6 +126,31 @@ public sealed partial class LiveRig {
 
         errors.AddRange(CountErrors(modifiers));
         return errors;
+    }
+
+    /// <summary>What is wrong with a modifier's second source, operation or response settings, or null.</summary>
+    static string? ShapeErrors(PresetModifier m) {
+        if (m.Source2 is { } second && !ModNames.TryParseSource(second, out _)) {
+            return $"Unknown modifier source '{second}'.";
+        }
+
+        if (!ModNames.TryParseOperation(m.Operation, out _)) {
+            return $"Unknown operation '{m.Operation}'.";
+        }
+
+        foreach (var (name, value) in new[] {
+                     ("Start", m.Start), ("Mid", m.Mid), ("End", m.End), ("Slope", m.Slope)
+                 }) {
+            if (value is not (null or >= 0f and <= 1f)) {
+                return $"Modifier {name} {value} is not within 0-1.";
+            }
+        }
+
+        if (m.Scale is not (null or >= 0f and <= ModShape.MaxScale)) {
+            return $"Modifier Scale {m.Scale} is not within 0-{ModShape.MaxScale}.";
+        }
+
+        return m.Offset is not (null or >= -1f and <= 1f) ? $"Modifier Offset {m.Offset} is not within -1 to 1." : null;
     }
 
     /// <summary>What is wrong with an engage modifier's mode, threshold or off delay, or null.</summary>
@@ -387,7 +414,7 @@ public sealed partial class LiveRig {
         );
 
     /// <summary>
-    ///     Manual A-D: global modifier sources (a person, a MIDI pedal). The engine gets the value at once; the
+    ///     Manual A-E: global modifier sources (a person, a MIDI pedal). The engine gets the value at once; the
     ///     settings file and <c>globalChanged</c> follow shortly, once for a whole sweep
     ///     (<see cref="Stores.GlobalStore.UpdateLive" />).
     /// </summary>
@@ -397,12 +424,21 @@ public sealed partial class LiveRig {
         engine.SetParams(generation, [new(IpcBlocks.Rig, $"manual{(char)('A' + index)}", clamped)]);
     }
 
-    /// <summary>External 1-8 (expression pedals, CCs): live values only, never stored.</summary>
+    /// <summary>External 1-16 (expression pedals, CCs): live values only, never stored.</summary>
     public void SetExternal(int index, float value) =>
         engine.SetParams(generation, [new(IpcBlocks.Rig, $"ext{index + 1}", Math.Clamp(value, 0f, 1f))]);
 
     /// <summary>
-    ///     Global settings changed (EQ, metronome, tempo mode, Manual A-D, the footswitch layout or view), from the
+    ///     Tells the host whether to follow MIDI clock and whether to send it. While the tempo follows incoming clock,
+    ///     none is sent: the device that sends the clock is the master, and echoing it back would loop.
+    /// </summary>
+    void SyncMidi(GlobalSettings global) {
+        var follow = global.TempoMode == "midiClock";
+        engine.SetMidi(follow, global.SendMidiClock && !follow, global.MidiOutPort);
+    }
+
+    /// <summary>
+    ///     Global settings changed (EQ, metronome, tempo mode, Manual A-E, the footswitch layout or view), from the
     ///     editor, MIDI or a footswitch: put them into the engine and tell clients with <c>globalChanged</c>, which
     ///     carries the current revision without raising it (the working copy did not change). A moving Manual pedal
     ///     or a dragged knob of a linked global block gets here a few times a second, not once per message.
@@ -418,7 +454,7 @@ public sealed partial class LiveRig {
         }
 
         engine.SetParams(generation, values);
-        engine.SetMidi(global.TempoMode == "midiClock");
+        SyncMidi(global);
         if (global.Oversampling != Volatile.Read(ref compiledOversampling)) {
             // The filters change the blocks' latency, so the graph is compiled again (gaplessly).
             _ = ResyncAsync()

@@ -106,12 +106,12 @@ public sealed partial class LiveRig(
 
     /// <summary>
     ///     Sends the whole rig to the engine again (after the host (re)connects): the graph and its parameters, mute,
-    ///     the tuner and whether to follow MIDI clock.
+    ///     the tuner and whether to follow or send MIDI clock.
     /// </summary>
     public Task ResyncAsync() =>
         Locked(async () => {
                 await SyncGraphAsync();
-                engine.SetMidi(globals.Get().TempoMode == "midiClock");
+                SyncMidi(globals.Get());
                 engine.SetTuner(TunerOn);
                 return State();
             }
@@ -723,7 +723,7 @@ public sealed partial class LiveRig(
             : null;
 
     /// <summary>
-    ///     Everything the global settings put into the engine: tempo (global mode), metronome, Manual A-D, the outputs'
+    ///     Everything the global settings put into the engine: tempo (global mode), metronome, Manual A-E, the outputs'
     ///     modes, Boost/Pad and EQs, Input 1's gain and calibration, and the tuner's output and reference.
     /// </summary>
     public static List<ParamValue> GlobalValues(GlobalSettings global) {
@@ -742,7 +742,7 @@ public sealed partial class LiveRig(
         }
 
         values.AddRange(
-            global.Manual.Take(4).Select(static (v, i) => new ParamValue(IpcBlocks.Rig, $"manual{(char)('A' + i)}", v))
+            global.Manual.Take(RigControls.ManualCount).Select(static (v, i) => new ParamValue(IpcBlocks.Rig, $"manual{(char)('A' + i)}", v))
         );
         values.Add(new(IpcBlocks.Rig, "copyOut2", global.CopyOutput1To2 ? 1 : 0));
         for (var k = 0; k < 4; k++) {
@@ -755,9 +755,14 @@ public sealed partial class LiveRig(
             }
         }
 
-        var input = global.Inputs.Count > 0 ? global.Inputs[0] : new();
-        values.Add(new(IpcBlocks.Rig, "in1Gain", input.Gain));
-        values.Add(new(IpcBlocks.Rig, "in1Cal", (float)(20 * Math.Log10(Math.Max(input.FullScaleVolts, 1e-3f)))));
+        // Inputs 1-4; one the settings do not list is at its defaults (1 V full scale, no trim).
+        for (var k = 0; k < RigControls.CalibratedInputs; k++) {
+            var input = k < global.Inputs.Count ? global.Inputs[k] : new();
+            var calibration = (float)(20 * Math.Log10(Math.Max(input.FullScaleVolts, 1e-3f)));
+            values.Add(new(IpcBlocks.Rig, $"in{k + 1}Gain", input.Gain));
+            values.Add(new(IpcBlocks.Rig, $"in{k + 1}Cal", calibration));
+        }
+
         return values;
     }
 

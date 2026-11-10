@@ -32,3 +32,21 @@ export function fullScaleIn(volts: number, unit: 'dbu' | 'volts'): number {
 
 /** The global settings' calibration range: −30 to +40 dBV. */
 export const FullScaleRange = { min: 0.0316, max: 100 } as const;
+
+/** How many interface inputs have a calibration and a gain trim: Input 1 to 4 (RigControls.CalibratedInputs). */
+export const CalibratedInputs = 4;
+
+/**
+ * The settings of input `index` (0 is Input 1) in `settings`, for changing. The list holds only the inputs someone
+ * has set, so the ones before it are added at their defaults (1 V full scale, no trim).
+ */
+export function inputAt<T extends { fullScaleVolts: number; gain: number }>(
+  settings: { inputs: T[] },
+  index: number
+): T {
+  for (let i = settings.inputs.length; i <= index; i++) {
+    settings.inputs.push({ fullScaleVolts: DefaultFullScale, gain: 0 } as T);
+  }
+
+  return settings.inputs[index] as T;
+}

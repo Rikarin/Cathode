@@ -43,6 +43,7 @@ public sealed class EngineHostService : IDisposable {
     readonly IpcMessage ok = new() { Type = IpcTypes.Ok };
     CompiledGraph? latest;
     MidiInput? midi;
+    MidiClockOut? clockOut;
     TunerReading? reading;
     long windowStarted = Stopwatch.GetTimestamp();
     long overloads; // cumulative across windows
@@ -79,6 +80,9 @@ public sealed class EngineHostService : IDisposable {
         NativeMidi.Send(destination, bytes);
 
     /// <summary>Lists the MIDI endpoints (for the MIDI output setting); replaced in tests.</summary>
+    /// <summary>MIDI clock out, sent from the MIDI thread through <see cref="NativeMidiSend" /> while it is on.</summary>
+    public MidiClockOut ClockOut => clockOut ??= new(Engine.Spec.SampleRate, (to, bytes) => NativeMidiSend(to, bytes));
+
     public Func<IEnumerable<MidiPortInfo>> NativeMidiPorts { get; set; } = static () =>
         NativeMidi.IsAvailable
             ? NativeMidi.Ports().Select(static p => new MidiPortInfo(p.Uid, p.Name, p.IsInput))
@@ -120,7 +124,7 @@ public sealed class EngineHostService : IDisposable {
 
     /// <summary>Starts reading MIDI input; <paramref name="forward" /> gets each batch (on the MIDI thread).</summary>
     public void StartMidi(Action<List<MidiEventMessage>> forward) {
-        midi ??= new(Engine, forward);
+        midi ??= new(Engine, forward, ClockOut);
         midi.Start();
     }
 
@@ -418,6 +422,7 @@ public sealed class EngineHostService : IDisposable {
 
     IpcMessage SetMidi(IpcMessage request) {
         midi?.SetFollowClock(request.FollowClock == true);
+        ClockOut.Configure(request.SendClock == true, request.Destination);
         return IpcMessage.Ok(request.Id);
     }
 

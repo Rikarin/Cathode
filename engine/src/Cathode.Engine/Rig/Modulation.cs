@@ -99,15 +99,35 @@ public sealed class Modulation(ParamBank rig, double sampleRate) {
         SequencerStages = stages;
 
         values[(int)ModSource.Pitch] = rig.Advance(pitch, frames);
-        for (var i = 0; i < 4; i++) {
+        for (var i = 0; i < RigControls.ManualCount; i++) {
             values[(int)ModSource.ManualA + i] = rig.Advance(manualA + i, frames);
+        }
+
+        for (var i = 0; i < RigControls.SceneControllerCount; i++) {
             values[(int)ModSource.Scene1 + i] = rig.Advance(scene1 + i, frames);
         }
 
-        for (var i = 0; i < 8; i++) {
+        for (var i = 0; i < RigControls.ExternalCount; i++) {
             values[(int)ModSource.Ext1 + i] = rig.Advance(ext1 + i, frames);
         }
     }
+
+    /// <summary>
+    ///     Two sources as one (0..1): their sum held within 0..1, or their product
+    ///     (<see cref="ModNames.Operations" />).
+    /// </summary>
+    public static float Combine(float first, float second, bool multiply) {
+        var a = Math.Clamp(first, 0f, 1f);
+        var b = Math.Clamp(second, 0f, 1f);
+        return multiply ? a * b : Math.Min(1f, a + b);
+    }
+
+    /// <summary>
+    ///     <see cref="Map(float, ModCurve, float, float, bool)" /> of the source after <paramref name="shape" />, the
+    ///     modifier's response.
+    /// </summary>
+    public static float Map(float source, in ModShape shape, ModCurve curve, float min, float max, bool log) =>
+        Map(shape.IsIdentity ? source : shape.Apply(source), curve, min, max, log);
 
     /// <summary>The shaped, scaled value a modifier gives its parameter (before slew), in parameter units.</summary>
     public static float Map(float source, ModCurve curve, float min, float max, bool log) {

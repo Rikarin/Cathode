@@ -6,13 +6,25 @@ namespace Cathode.Engine.Rig;
 
 /// <summary>
 ///     The rig-wide parameters (IPC block id <c>rig</c>): scene level, tempo, metronome, the modifier sources a person
-///     or a pedal moves (Manual A-D, scene controllers 1-4, external 1-8) and the settings of the controllers
+///     or a pedal moves (Manual A-E, scene controllers 1-4, external 1-16) and the settings of the controllers
 ///     (LFOs, ADSRs, envelope follower, sequencer). They live with the engine, not the graph, so changing one never
 ///     recompiles and controllers keep their phase across preset changes.
 /// </summary>
 public static class RigControls {
     public const string BlockId = "rig";
-    public const int SequencerStages = 16;
+    public const int SequencerStages = 32;
+
+    /// <summary>Manual A-E.</summary>
+    public const int ManualCount = 5;
+
+    /// <summary>Scene Controller 1-4.</summary>
+    public const int SceneControllerCount = 4;
+
+    /// <summary>Inputs 1-4: the hardware inputs with a gain trim and a calibration (the USB pairs have none).</summary>
+    public const int CalibratedInputs = 4;
+
+    /// <summary>External 1-16.</summary>
+    public const int ExternalCount = 16;
 
     // Values of the Output Mode choices.
     public const int Stereo = 0;
@@ -53,16 +65,15 @@ public static class RigControls {
             // Global settings the blocks read through BlockContext: Global Mix and the Input gate's offset.
             ParamDescriptor.Float("effectsMix", "Effects Mix", -50f, 50f, 0f, "%"),
             ParamDescriptor.Float("gateOffset", "Noise Gate Offset", -20f, 20f, 0f, "dB"),
-            // Audio I/O (docs/08-blocks-parity.md §2): Input 1's trim and calibration, and the outputs' settings.
-            ParamDescriptor.Float("in1Gain", "Input 1 Gain", -20f, 20f, 0f, "dB"),
-            ParamDescriptor.Float("in1Cal", "Input 1 Full Scale", -30f, 40f, 0f, "dBV"),
+            // Audio I/O (docs/08-blocks-parity.md §2): each input's trim and calibration, and the outputs' settings.
+            ..Enumerable.Range(1, CalibratedInputs).SelectMany(static k => Input(k)),
             ParamDescriptor.Switch("copyOut2", "Copy Output 1 to Output 2"),
             ..Enumerable.Range(1, 4).SelectMany(static k => Output(k)),
             // Preset-change spillover: on, the outgoing preset's tails ring out; off, it fades out in the swap fade.
             ParamDescriptor.Switch("spillover", "Preset Spillover", true),
-            ..Names("manual", ["A", "B", "C", "D"], "Manual "),
-            ..Names("scene", ["1", "2", "3", "4"], "Scene Controller "),
-            ..Names("ext", ["1", "2", "3", "4", "5", "6", "7", "8"], "External "),
+            ..Names("manual", Enumerable.Range(0, ManualCount).Select(static i => ((char)('A' + i)).ToString()), "Manual "),
+            ..Names("scene", Numbers(SceneControllerCount), "Scene Controller "),
+            ..Names("ext", Numbers(ExternalCount), "External "),
             // Written by the host's pitch detector (normalised between pitchLow and pitchHigh), not by people.
             ParamDescriptor.Float("pitch", "Pitch", 0f, 1f, 0f),
             ParamDescriptor.Float("pitchLow", "Pitch Low", 40f, 2_000f, 82f, "Hz", ParamTaper.Log),
@@ -102,12 +113,20 @@ public static class RigControls {
         channels: 1
     );
 
+    static IEnumerable<ParamDescriptor> Input(int k) => [
+        ParamDescriptor.Float($"in{k}Gain", $"Input {k} Gain", -20f, 20f, 0f, "dB"),
+        ParamDescriptor.Float($"in{k}Cal", $"Input {k} Full Scale", -30f, 40f, 0f, "dBV")
+    ];
+
     static IEnumerable<ParamDescriptor> Output(int k) => [
         ParamDescriptor.Choice($"out{k}Mode", $"Output {k} Mode", OutputModes),
         ParamDescriptor.Float($"out{k}Level", $"Output {k} Boost/Pad", -18f, 18f, 0f, "dB")
     ];
 
-    static IEnumerable<ParamDescriptor> Names(string prefix, string[] suffixes, string name) =>
+    static IEnumerable<string> Numbers(int count) =>
+        Enumerable.Range(1, count).Select(static i => i.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+    static IEnumerable<ParamDescriptor> Names(string prefix, IEnumerable<string> suffixes, string name) =>
         suffixes.Select(s => ParamDescriptor.Float(prefix + s, name + s, 0f, 1f, 0f));
 
     static IEnumerable<ParamDescriptor> Lfo(int n) => [
@@ -138,6 +157,7 @@ public enum ModSource {
     ManualB,
     ManualC,
     ManualD,
+    ManualE,
     Scene1,
     Scene2,
     Scene3,
@@ -149,7 +169,15 @@ public enum ModSource {
     Ext5,
     Ext6,
     Ext7,
-    Ext8
+    Ext8,
+    Ext9,
+    Ext10,
+    Ext11,
+    Ext12,
+    Ext13,
+    Ext14,
+    Ext15,
+    Ext16
 }
 
 /// <summary>The shape a source value (0..1) is bent through before it is scaled into the parameter's range.</summary>
@@ -158,6 +186,52 @@ public enum ModCurve {
     Exponential,
     Logarithmic,
     SCurve
+}
+
+/// <summary>
+///     A modifier's response to its source (0..1 in, 0..1 out), applied before the <see cref="ModCurve" />. Slope bends
+///     the source around its centre (0.5 is straight; above it the response is steeper through the middle and flatter
+///     at the ends, below it the other way round). The bent source then runs along two straight lines, from
+///     <see cref="Start" /> at 0 through <see cref="Mid" /> at 0.5 to <see cref="End" /> at 1. That output is
+///     multiplied by <see cref="Scale" />, <see cref="Offset" /> is added, and the result is held within 0..1. So
+///     Start 1, End 0 inverts a pedal, Scale 2 reaches the top at half travel, and Offset lifts the floor.
+/// </summary>
+public readonly record struct ModShape(float Start, float Mid, float End, float Slope, float Scale, float Offset) {
+    public const float MaxScale = 10f;
+
+    /// <summary>The response that changes nothing: what a modifier without these settings has.</summary>
+    public static ModShape Identity { get; } = new(0f, 0.5f, 1f, 0.5f, 1f, 0f);
+
+    public bool IsIdentity => this == Identity;
+
+    /// <summary>The settings a modifier stores (null = default), each held within its range.</summary>
+    public static ModShape From(float? start, float? mid, float? end, float? slope, float? scale, float? offset) =>
+        new(
+            Unit(start, 0f),
+            Unit(mid, 0.5f),
+            Unit(end, 1f),
+            Unit(slope, 0.5f),
+            Finite(scale, 1f, 0f, MaxScale),
+            Finite(offset, 0f, -1f, 1f)
+        );
+
+    /// <summary>The response to <paramref name="source" />, 0..1.</summary>
+    public float Apply(float source) {
+        var x = Math.Clamp(source, 0f, 1f);
+
+        // Slope: a sigmoid through (0, 0), (0.5, 0.5) and (1, 1), a straight line at 0.5.
+        var k = (0.5f - Slope) * 1.8f;
+        var u = 2f * x - 1f;
+        x = 0.5f + 0.5f * (u - k * u) / (k - 2f * k * Math.Abs(u) + 1f);
+
+        var y = x < 0.5f ? Start + (Mid - Start) * 2f * x : Mid + (End - Mid) * (2f * x - 1f);
+        return Math.Clamp(y * Scale + Offset, 0f, 1f);
+    }
+
+    static float Unit(float? value, float fallback) => Finite(value, fallback, 0f, 1f);
+
+    static float Finite(float? value, float fallback, float min, float max) =>
+        value is { } v && float.IsFinite(v) ? Math.Clamp(v, min, max) : fallback;
 }
 
 /// <summary>What engages a block from its engage modifier (<see cref="ModNames.EngageParam" />).</summary>
@@ -182,11 +256,18 @@ public static class ModNames {
     public const string EngageParam = "engage";
 
     public static readonly ImmutableArray<string> Sources = [
-        "lfo1", "lfo2", "adsr1", "adsr2", "seq", "env", "pitch", "manualA", "manualB", "manualC", "manualD", "scene1",
-        "scene2", "scene3", "scene4", "ext1", "ext2", "ext3", "ext4", "ext5", "ext6", "ext7", "ext8"
+        "lfo1", "lfo2", "adsr1", "adsr2", "seq", "env", "pitch", "manualA", "manualB", "manualC", "manualD", "manualE",
+        "scene1", "scene2", "scene3", "scene4", "ext1", "ext2", "ext3", "ext4", "ext5", "ext6", "ext7", "ext8", "ext9",
+        "ext10", "ext11", "ext12", "ext13", "ext14", "ext15", "ext16"
     ];
 
     public static readonly ImmutableArray<string> Curves = ["linear", "exp", "log", "scurve"];
+
+    /// <summary>
+    ///     How a modifier's second source joins its first (<see cref="Modulation.Combine" />); the first entry is what
+    ///     a modifier that names none uses.
+    /// </summary>
+    public static readonly ImmutableArray<string> Operations = ["add", "multiply"];
 
     /// <summary>The <see cref="EngageMode" /> names, in order.</summary>
     public static readonly ImmutableArray<string> EngageModes = ["position", "moving"];
@@ -200,6 +281,13 @@ public static class ModNames {
     public static bool TryParseCurve(string name, out ModCurve curve) {
         var index = Curves.IndexOf(name);
         curve = (ModCurve)Math.Max(index, 0);
+        return index >= 0;
+    }
+
+    /// <summary>An operation by name; none (null) is <c>add</c>.</summary>
+    public static bool TryParseOperation(string? name, out bool multiply) {
+        var index = name is null ? 0 : Operations.IndexOf(name);
+        multiply = index == 1;
         return index >= 0;
     }
 

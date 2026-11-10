@@ -11,8 +11,13 @@ namespace Cathode.EngineHost;
 ///     are also posted to the engine, which keeps the held chord for the blocks
 ///     (<see cref="CathodeEngine.HeldNotes" />). Devices plugged in later, or unplugged and plugged back in, are
 ///     picked up within a couple of seconds.
+///     The same thread sends MIDI clock when a <see cref="MidiClockOut" /> is given and turned on.
 /// </summary>
-public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage>> forward) : IDisposable {
+public sealed class MidiInput(
+    CathodeEngine engine,
+    Action<List<MidiEventMessage>> forward,
+    MidiClockOut? clockOut = null
+) : IDisposable {
     const int TicksPerBeat = 24;
     const byte Clock = 0xF8;
     const byte ClockStart = 0xFA;
@@ -83,6 +88,7 @@ public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage
                 forward(batch);
             }
 
+            clockOut?.Advance(engine.SampleTime, NativeMidi.NowNanoseconds(), engine.Tempo);
             Thread.Sleep(1);
         }
     }

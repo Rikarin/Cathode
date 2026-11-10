@@ -91,7 +91,9 @@ public sealed class GraphDefinition {
 
 /// <summary>
 ///     One modified parameter: <c>value = min..max</c> (in parameter units, following a log taper where the parameter
-///     has one) of <c>curve(source)</c>, slewed with separate rise and fall times.
+///     has one) of <c>curve(response(source))</c>, slewed with separate rise and fall times. The source is one
+///     controller or two combined; the response is the Start/Mid/End, Slope, Scale and Offset shaping
+///     (Cathode.Engine.Rig.ModShape), which does nothing while those are null.
 /// </summary>
 public sealed class ModifierDefinition {
     public string Block { get; set; } = string.Empty;
@@ -109,6 +111,30 @@ public sealed class ModifierDefinition {
 
     /// <summary>linear, exp, log or scurve.</summary>
     public string Curve { get; set; } = "linear";
+
+    /// <summary>A second source combined with <see cref="Source" /> by <see cref="Operation" />; null is none.</summary>
+    public string? Source2 { get; set; }
+
+    /// <summary><c>add</c> or <c>multiply</c> (Cathode.Engine.Rig.ModNames.Operations); null is <c>add</c>.</summary>
+    public string? Operation { get; set; }
+
+    /// <summary>The response's output (0..1) with the source at 0; null is 0.</summary>
+    public float? Start { get; set; }
+
+    /// <summary>The response's output with the source at 0.5; null is 0.5.</summary>
+    public float? Mid { get; set; }
+
+    /// <summary>The response's output with the source at 1; null is 1.</summary>
+    public float? End { get; set; }
+
+    /// <summary>The bend of the source around its centre (0..1); null is 0.5, straight.</summary>
+    public float? Slope { get; set; }
+
+    /// <summary>Multiplies the response's output; null is 1.</summary>
+    public float? Scale { get; set; }
+
+    /// <summary>Added to the scaled output; null is 0.</summary>
+    public float? Offset { get; set; }
 
     /// <summary>Damping of rises, in ms (0 = none).</summary>
     public float AttackMs { get; set; }

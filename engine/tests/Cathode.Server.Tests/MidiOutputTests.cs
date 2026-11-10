@@ -5,7 +5,9 @@ using System.Net.Http.Json;
 
 namespace Cathode.Server.Tests;
 
-/// <summary>The MIDI output setting: where scene MIDI and footswitch LEDs go (GlobalSettings.MidiOutPort).</summary>
+/// <summary>
+///     The MIDI output setting: where scene MIDI, footswitch LEDs and MIDI clock go (GlobalSettings.MidiOutPort).
+/// </summary>
 public sealed class MidiOutputTests : IAsyncLifetime {
     readonly ServerFixture server = new();
     readonly List<(string? Port, byte[] Bytes)> sent = [];
@@ -65,6 +67,52 @@ public sealed class MidiOutputTests : IAsyncLifetime {
         await PutGlobal(static g => g.MidiOutPort = " ");
         Assert.Null((await Global()).MidiOutPort);
         await ServerFixture.Eventually(() => Sent(null, [0xB0, 33, 127]));
+    }
+
+    [Fact]
+    public async Task Midi_clock_goes_to_the_chosen_output_while_it_is_on_and_no_clock_is_followed() {
+        var clock = server.Host.ClockOut;
+        var time = 0L;
+
+        // One second of 256-frame callbacks at 48 kHz, polled once a millisecond as the MIDI thread polls.
+        int Second() {
+            var ticks = 0;
+            var now = (ulong)time * 1_000_000_000 / 48_000 + 1_000_000_000;
+            for (var ms = 0; ms < 1_000; ms++) {
+                now += 1_000_000;
+                if (ms % 16 == 0) {
+                    time += 768; // 16 ms of audio
+                }
+
+                ticks += clock.Advance(time, now, 120);
+            }
+
+            return ticks;
+        }
+
+        Assert.Equal(0, Second()); // off by default
+
+        await PutGlobal(static g => {
+                g.SendMidiClock = true;
+                g.MidiOutPort = "out-2";
+            }
+        );
+        Assert.True((await Global()).SendMidiClock);
+        await ServerFixture.Eventually(() => Second() > 0);
+        Assert.InRange(Second(), 46, 49); // 120 BPM: 48 ticks a second
+        Assert.True(Sent("out-2", [0xF8]));
+        Assert.False(Sent(null, [0xF8]));
+
+        // Following a clock: Cathode is the slave and does not echo it.
+        await PutGlobal(static g => g.TempoMode = "midiClock");
+        await ServerFixture.Eventually(() => Second() == 0);
+
+        await PutGlobal(static g => {
+                g.TempoMode = "preset";
+                g.MidiOutPort = null;
+            }
+        );
+        await ServerFixture.Eventually(() => Second() > 0 && Sent(null, [0xF8]));
     }
 
     bool Sent(string? port, byte[] message) {

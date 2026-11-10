@@ -62,8 +62,8 @@ A new mapping replaces any old mapping of the same message on the same channel. 
 | `presetNext`, `presetPrevious`   |                                                                                |                              | Loads the next or previous preset in bank order, as the editor's arrows do: see [Loading presets](/manual/presets-and-scenes#loading-presets). |
 | `bypass`                         | A block                                                                        |                              | Toggles the block on a press. From a CC, values of 64 and up engage it and lower values bypass it.                                             |
 | `channel`                        | A block                                                                        | Channel, **1 to 4** (1 is A) | Switches the block to that channel.                                                                                                            |
-| `external`                       |                                                                                | External, **1 to 8**         | The CC's value drives External 1 to 8, a modifier source. See [Expression pedals](#expression-pedals).                                         |
-| `manual`                         |                                                                                | Manual, **1 to 4** (1 is A)  | The CC's value sets Manual A to D.                                                                                                             |
+| `external`                       |                                                                                | External, **1 to 16**        | The CC's value drives External 1 to 16, a modifier source. See [Expression pedals](#expression-pedals).                                        |
+| `manual`                         |                                                                                | Manual, **1 to 5** (1 is A)  | The CC's value sets Manual A to E.                                                                                                             |
 | `tap`                            |                                                                                |                              | Taps the tempo.                                                                                                                                |
 | `tuner`                          |                                                                                |                              | Turns the tuner on and off. From a CC, 64 and up is on.                                                                                        |
 | `metronome`                      |                                                                                |                              | Turns the metronome on and off. From a CC, 64 and up is on.                                                                                    |
@@ -92,7 +92,7 @@ Turn on **Global ▸ Presets and scenes ▸ Ignore redundant PC** if your contro
 
 ## Expression pedals
 
-An expression pedal plugged into a MIDI controller sends a CC whose value follows the pedal. In Cathode, it drives one of the **External 1 to 8** controllers, and modifiers follow the External.
+An expression pedal plugged into a MIDI controller sends a CC whose value follows the pedal. In Cathode, it drives one of the **External 1 to 16** controllers, and modifiers follow the External.
 
 **Map the pedal once:**
 
@@ -197,3 +197,9 @@ The messages go to the output chosen in **Global ▸ MIDI ▸ Send to** (every M
 ## MIDI clock
 
 To follow the tempo of a drum machine, sequencer or DAW, set **Global ▸ Tempo and metronome ▸ Tempo from** to **MIDI clock** and send MIDI clock to Cathode.
+
+To make other gear follow Cathode instead, turn on **Global ▸ MIDI ▸ Send MIDI clock**. While audio runs, Cathode sends MIDI clock at its tempo (the preset's or the global one, and whatever you tap) to the output chosen under **Send to**, so a delay pedal, a looper or a drum machine stays in time with Cathode's synced delays, LFOs and metronome.
+
+- Cathode sends the clock only, 24 ticks to the quarter note. It has no transport, so it sends no Start or Stop: start a drum machine or sequencer from its own controls.
+- No clock is sent while **Tempo from** is **MIDI clock**. Cathode then follows another device's clock and does not send it back.
+- The clock stops when the audio stops.

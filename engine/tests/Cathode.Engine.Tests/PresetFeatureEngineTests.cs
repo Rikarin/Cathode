@@ -131,6 +131,38 @@ public class PresetFeatureEngineTests {
     }
 
     [Fact]
+    public void Each_blocks_cpu_share_reaches_the_telemetry_region_as_its_cpu_meter() {
+        using var region = TelemetryRegion.CreateInMemory(Spec.SampleRate);
+        var engine = new CathodeEngine(Spec) { Telemetry = region };
+        var graph = Compiler.Compile(Graph("circuitamp", "amp"), Spec, 5);
+        engine.Publish(graph);
+        var monitor = new TelemetryMonitor(region);
+        monitor.Poll();
+
+        var tone = Signals.Sine(220, Spec.SampleRate, 48_000, 0.2f);
+        OfflineRenderer.Render(engine, tone, tone, 64);
+        monitor.Poll();
+
+        Assert.Equal(["peak", "cpu"], graph.MeterIds(graph.SlotOf("amp")).ToArray());
+        var amp = monitor.BlockMeters[graph.MeterIndex("amp", CompiledGraph.CpuMeter)];
+        var input = monitor.BlockMeters[graph.MeterIndex("in", CompiledGraph.CpuMeter)];
+        var output = monitor.BlockMeters[graph.MeterIndex("out", CompiledGraph.CpuMeter)];
+        // Percent of real time on this machine: the amp model costs something, and far more than the wires around it.
+        Assert.True(float.IsFinite(amp) && amp > 0f, $"amp {amp} %");
+        Assert.True(input >= 0f && output >= 0f, $"input {input} %, output {output} %");
+        Assert.True(amp > 4 * (input + output), $"amp {amp} %, input {input} %, output {output} %");
+
+        // The figure follows the load: with the amp bypassed (Thru: it does not run) it falls away.
+        engine.Post(EngineCommand.SetBypass(5, graph.SlotOf("amp"), true));
+        OfflineRenderer.Render(engine, tone, tone, 64);
+        OfflineRenderer.Render(engine, tone, tone, 64);
+        monitor.Poll(); // the highest since the last poll: still the amp running
+        OfflineRenderer.Render(engine, new float[4_800], new float[4_800], 64);
+        monitor.Poll();
+        Assert.True(monitor.BlockMeters[graph.MeterIndex("amp", CompiledGraph.CpuMeter)] < amp / 4, "bypassed");
+    }
+
+    [Fact]
     public void A_blocks_own_meters_reach_the_telemetry_region_beside_its_peak() {
         using var region = TelemetryRegion.CreateInMemory(Spec.SampleRate);
         var engine = new CathodeEngine(Spec) { Telemetry = region };
@@ -150,8 +182,8 @@ public class PresetFeatureEngineTests {
         monitor.Poll();
 
         var slot = graph.SlotOf("cab");
-        Assert.Equal(["peak", "preampIn", "motorReduction"], graph.MeterIds(slot).ToArray());
-        Assert.Equal(graph.MeterOffset(slot) + 1, graph.MeterIndex("cab", "preampIn"));
+        Assert.Equal(["peak", "cpu", "preampIn", "motorReduction"], graph.MeterIds(slot).ToArray());
+        Assert.Equal(graph.MeterOffset(slot) + 2, graph.MeterIndex("cab", "preampIn"));
         Assert.Equal(graph.MeterCount, monitor.BlockMeterCount);
         var own = new float[2];
         ((IBlockMeters)graph.Block(slot)).ReadMeters(own);

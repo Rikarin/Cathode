@@ -376,18 +376,18 @@ public sealed unsafe class TelemetryRegion : IDisposable {
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct TelemetryLayout {
     public const uint MagicValue = 0x54485443; // "CTHT"
-    public const int CurrentVersion = 8;
+    public const int CurrentVersion = 9;
     public const int Bins = 201;
     public const int MeterSlots = 64;
     public const int FramesPerSlot = 256;
     public const int ScopeLength = 16_384; // a 4096-point RTA window fits with room for the writer
 
     /// <summary>
-    ///     Block meter values: a peak per graph slot (a 6 x 14 grid at most) plus each block's own meters (at most
-    ///     three, the Compressor's and the Multiband Compressor's). The compiler refuses a graph with more
-    ///     (<c>GraphCompiler</c>), so none is ever cut off.
+    ///     Block meter values: a peak and a CPU figure per graph slot (a 6 x 14 grid at most) plus each block's own
+    ///     meters (at most three, the Compressor's and the Multiband Compressor's). The compiler refuses a graph with
+    ///     more (<c>GraphCompiler</c>), so none is ever cut off.
     /// </summary>
-    public const int BlockMeters = 6 * 14 * 4;
+    public const int BlockMeters = 6 * 14 * 5;
 
     /// <summary>
     ///     Modifier values: a preset holds at most this many (the server's <c>Preset.MaxModifiers</c>; a rich one has
@@ -421,7 +421,8 @@ public unsafe struct TelemetryLayout {
 
     /// <summary>
     ///     Per meter slot, the highest value of each block meter, in the graph's meter order: graph slot by graph slot,
-    ///     its output peak (linear) and then its own meters (<c>IBlockMeters</c>, dB) - <c>CompiledGraph.Meters</c>.
+    ///     its output peak (linear), its CPU share (percent) and then its own meters (<c>IBlockMeters</c>, dB) -
+    ///     <c>CompiledGraph.Meters</c>.
     /// </summary>
     public fixed float BlockMeter[MeterSlots * BlockMeters];
 

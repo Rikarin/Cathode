@@ -156,9 +156,17 @@ If you do not know the maximum level, measure it with a steady signal of known l
 
 Cathode reads the input's peak for two seconds and works out the full scale. If the tone clips the input, it asks you to turn it or the gain down and measure again.
 
-### Input 1 Gain
+### Inputs 2 to 4
 
-**Global ▸ Input and oversampling ▸ Input 1 Gain** (−20 to +20 dB) trims what every preset receives, after the DI out. Use it to match a guitar that is much hotter or quieter than usual without touching your presets. Each preset's Input block also has its own **Input Level**.
+A second guitar or a bass on another input of the interface has its own gain knob there, so it needs its own calibration. Under **Inputs 2 to 4** on the Audio setup page, type each input's maximum input level, in the unit chosen for Input 1 (dBu or volts peak). The default is 1 V.
+
+Wherever a block reads one of these inputs (an Input block with its **Source** set to it, a Multiplexer, a sidechain), Cathode scales the signal by that input's full scale against Input 1's. A unit of signal then means the same volts at the jack on every input, and the same instrument drives the amps and drives alike whichever input it is plugged into. With Input 1 and the other input calibrated alike, nothing is scaled.
+
+The USB pairs (5/6 and 7/8) carry digital audio and have no calibration.
+
+### Input Gain
+
+**Global ▸ Input and oversampling ▸ Input 1 Gain** (−20 to +20 dB) trims what every preset receives, after the DI out. Use it to match a guitar that is much hotter or quieter than usual without touching your presets. **Input 2 Gain** to **Input 4 Gain** beside it do the same for those inputs, wherever a block reads them. Each preset's Input block also has its own **Input Level**.
 
 ## Output levels and the global output settings
 

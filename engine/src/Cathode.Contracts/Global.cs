@@ -2,7 +2,7 @@ namespace Cathode.Contracts;
 
 /// <summary>
 ///     Settings that belong to the rig rather than to any preset: tempo source, metronome, the global output EQ,
-///     Manual A-D, MIDI mappings, footswitch layouts and the global block library. Stored as one document.
+///     Manual A-E, MIDI mappings, footswitch layouts and the global block library. Stored as one document.
 /// </summary>
 public sealed class GlobalSettings {
     /// <summary>2 after 1.0.0-rc.3: the global blocks' Amps as presets' schema 2.</summary>
@@ -55,8 +55,8 @@ public sealed class GlobalSettings {
     /// </summary>
     public string Oversampling { get; set; } = "minimum";
 
-    /// <summary>Manual A-D (0..1): modifier sources a person or pedal sets, shared by every preset.</summary>
-    public List<float> Manual { get; set; } = [0, 0, 0, 0];
+    /// <summary>Manual A-E (0..1): modifier sources a person or pedal sets, shared by every preset.</summary>
+    public List<float> Manual { get; set; } = [0, 0, 0, 0, 0];
 
     /// <summary>MIDI channel the rig listens on (1-16), or 0 for all.</summary>
     public int MidiChannel { get; set; }
@@ -64,11 +64,19 @@ public sealed class GlobalSettings {
     public List<MidiMapping> MidiMappings { get; set; } = [];
 
     /// <summary>
-    ///     Where scene MIDI and footswitch LEDs go: a MIDI output's uid (<see cref="MidiOutputInfo.Uid" />, from
+    ///     Where scene MIDI, footswitch LEDs and MIDI clock go: a MIDI output's uid (<see cref="MidiOutputInfo.Uid" />, from
     ///     <c>GET /api/v1/midi/outputs</c>), or null for every output. One port keeps them from looping back into a
     ///     controller that echoes what it receives; while that port is not connected, nothing is sent.
     /// </summary>
     public string? MidiOutPort { get; set; }
+
+    /// <summary>
+    ///     Sends MIDI clock (24 ticks per quarter note, no Start or Stop) at the rig's tempo to
+    ///     <see cref="MidiOutPort" /> while audio runs, so external delays, loopers and drum machines follow the
+    ///     tempo and its taps. Nothing is sent while <see cref="TempoMode" /> is <c>midiClock</c>: Cathode then
+    ///     follows a clock and does not echo it.
+    /// </summary>
+    public bool SendMidiClock { get; set; }
 
     public List<FootswitchLayout> Footswitches { get; set; } = [];
 
@@ -161,15 +169,20 @@ public sealed class OutputSettings {
     public Dictionary<string, float> Eq { get; set; } = [];
 }
 
-/// <summary>One interface input.</summary>
+/// <summary>One interface input: Input 1 to 4, in the order of <see cref="GlobalSettings.Inputs" />.</summary>
 public sealed class InputSettings {
     /// <summary>
     ///     The peak volts at the jack that reach 0 dBFS (default 1 V, how Cathode always read its input). The amp and
-    ///     drive models scale their input by it, so changing the interface's gain and this together keeps their drive.
+    ///     drive models scale their input by Input 1's, so changing the interface's gain and this together keeps their
+    ///     drive. Inputs 2-4 are scaled by theirs relative to Input 1's wherever a block reads them, so the same
+    ///     instrument drives the models alike on any input.
     /// </summary>
     public float FullScaleVolts { get; set; } = 1f;
 
-    /// <summary>A trim applied to every preset ahead of the grid, −20 to +20 dB (Input 1 Gain).</summary>
+    /// <summary>
+    ///     A trim, −20 to +20 dB: Input 1's is applied to every preset ahead of the grid, Inputs 2-4's wherever a
+    ///     block reads that input.
+    /// </summary>
     public float Gain { get; set; }
 }
 
@@ -177,7 +190,7 @@ public sealed class InputSettings {
 ///     A MIDI message bound to an action. <c>Message</c> is cc, note or pc; <c>Channel</c> 0 means any. Actions:
 ///     scene (Value = scene, or the message value when absent), sceneNext, scenePrevious, presetSlot (Target = bank
 ///     id, the PC number picks the slot), presetNext, presetPrevious, bypass (Target = block), channel (Target = block,
-///     Value = 0-3), external (Value = 1-8, the CC value drives External n), manual (Value = 0-3), tap, tuner,
+///     Value = 0-3), external (Value = 1-16, the CC value drives External n), manual (Value = 0-4), tap, tuner,
 ///     metronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear), sceneLevelUp and
 ///     sceneLevelDown (the active scene's level by ±1 dB, then save the preset), save (save the preset), layout
 ///     (Target = layout id), view (Value = view index), viewNext, viewPrevious, songNext and songPrevious (the next or

@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
-import type {
-  FootswitchOverride,
-  GlobalSettings,
-  ParameterInfo,
-  PresetBlock,
-  PresetModifier,
-  SwitchAction
+import {
+  ExternalCount,
+  type FootswitchOverride,
+  type GlobalSettings,
+  type ParameterInfo,
+  type PresetBlock,
+  type PresetModifier,
+  type SwitchAction
 } from '@cathode/api-client';
 import { CthKnob, CthToggle } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
@@ -260,7 +261,7 @@ export class ParamControl {
     const p = this.param();
     if (n === null) {
       this.notify.error(
-        'All eight Externals are in use. Remove an External mapping on the Global page, ' +
+        'All 16 Externals are in use. Remove an External mapping on the Global page, ' +
           'or give this knob a modifier from an External that is already mapped.'
       );
       return;
@@ -293,12 +294,12 @@ export class ParamControl {
 }
 
 /**
- * The first External (1-8) nothing drives or uses yet, or null: not a global MIDI mapping or footswitch action
- * (`external n`), not a footswitch action of the preset, and not a modifier source of the preset.
+ * The first External (1-16) nothing drives or uses yet, or null: not a global MIDI mapping or footswitch action
+ * (`external n`), not a footswitch action of the preset, and not a modifier source (first or second) of the preset.
  */
 export function freeExternal(
   settings: Pick<GlobalSettings, 'midiMappings' | 'footswitches'> | null,
-  modifiers: readonly Pick<PresetModifier, 'source'>[],
+  modifiers: readonly Pick<PresetModifier, 'source' | 'source2'>[],
   overrides: readonly FootswitchOverride[]
 ): number | null {
   const actions: (SwitchAction | null | undefined)[] = [
@@ -307,8 +308,8 @@ export function freeExternal(
     ...overrides.flatMap(o => [o.tap, o.hold])
   ];
   const used = new Set([
-    ...modifiers.map(m => m.source),
+    ...modifiers.flatMap(m => [m.source, m.source2]),
     ...actions.flatMap(a => (a?.action === 'external' ? [`ext${a.value ?? 1}`] : []))
   ]);
-  return [1, 2, 3, 4, 5, 6, 7, 8].find(i => !used.has(`ext${i}`)) ?? null;
+  return Array.from({ length: ExternalCount }, (_, i) => i + 1).find(i => !used.has(`ext${i}`)) ?? null;
 }

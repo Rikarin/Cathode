@@ -1,5 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { type ControllerInfo, type SceneMidiMessage, type Telemetry } from '@cathode/api-client';
+import {
+  ExternalCount,
+  ManualLetters,
+  type ControllerInfo,
+  type SceneMidiMessage,
+  type Telemetry
+} from '@cathode/api-client';
 import { CthKnob, CthStepBars, onAnimationFrame } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
 import { matAddRound, matDeleteRound } from '@ng-icons/material-icons/round';
@@ -20,8 +26,8 @@ import { GlobalStore } from '../state/global.store';
 import { KnobGesture } from '../state/knob-gesture';
 import { LiveStore } from '../state/live.store';
 
-/** External 1-8: the modifier sources a pedal or CC drives. */
-const externalCount = 8;
+/** External 1-16: the modifier sources a pedal or CC drives. */
+const externalCount = ExternalCount;
 
 /** Telemetry older than this no longer shows the controllers moving: the socket or the engine has stopped. */
 const StaleMs = 500;
@@ -69,8 +75,8 @@ export function scopeName(channel: string | null | undefined): string {
 
 /**
  * The controllers modifiers draw on (docs/02-architecture.md §5.4): two LFOs, two ADSRs, the envelope and pitch
- * followers and the sequencer (stored with the preset), the active scene's level and controllers, and Manual A-D
- * (global), and External 1-8, which a pedal or CC normally drives and which can be set here too (live only). Assign
+ * followers and the sequencer (stored with the preset), the active scene's level and controllers, and Manual A-E
+ * (global), and External 1-16, which a pedal or CC normally drives and which can be set here too (live only). Assign
  * them to a knob by right-clicking it on the block page.
  */
 @Component({
@@ -390,7 +396,7 @@ export class ControllersPage {
   /** The gesture of the value waiting in {@link sending} for a scene or controller key, sent with it. */
   private readonly gestureOf = new Map<string, string>();
 
-  protected readonly manualNames = ['A', 'B', 'C', 'D'];
+  protected readonly manualNames = ManualLetters;
   protected readonly modifiers = computed(() => this.live.preset()?.modifiers ?? []);
   protected readonly modifierScopes = ['all', 'A', 'B', 'C', 'D'];
   protected readonly scopeName = scopeName;
@@ -428,11 +434,11 @@ export class ControllersPage {
   );
   protected readonly sceneMidi = computed<readonly SceneMidiMessage[]>(() => this.scene()?.midi ?? []);
   protected readonly manual = computed(() =>
-    (this.globals.settings()?.manual ?? [0, 0, 0, 0]).map(
+    (this.globals.settings()?.manual ?? ManualLetters.map(() => 0)).map(
       (value, i) => (this.sending.pending(`manual:${i}`) as number | undefined) ?? value
     )
   );
-  /** External 1-8 as last set from this page: the Server keeps them live only and does not report them back. */
+  /** External 1-16 as last set from this page: the Server keeps them live only and does not report them back. */
   private readonly externalsSent = signal<readonly number[]>(Array.from({ length: externalCount }, () => 0));
   protected readonly externals = computed(() =>
     this.externalsSent().map((value, i) => (this.sending.pending(`external:${i}`) as number | undefined) ?? value)

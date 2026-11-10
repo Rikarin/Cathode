@@ -8,7 +8,9 @@ namespace Cathode.Dsp.Routing;
 ///     page's input map); by default only Input 1 is mapped, to the device's first channel, and it is also the pair the
 ///     grid input reads. The engine copies every source in at the start of each callback and sets <see cref="Offset" />
 ///     before each sub-block; blocks read them through their graph's <see cref="InputPort" />. A source without device
-///     channels reads as silence.
+///     channels reads as silence. Inputs 2–4 can each carry a gain (<see cref="SetGain" />: their own trim and their
+///     calibration relative to Input 1's), applied as they are copied in, so every reader gets them in Input 1's
+///     units. Input 1's own trim is the engine's, on the grid input.
 /// </summary>
 public sealed class HardwareInputs : IDisposable {
     /// <summary>Largest callback the native shim delivers (CTH_MAX_FRAMES).</summary>
@@ -26,6 +28,8 @@ public sealed class HardwareInputs : IDisposable {
 
     readonly NativeBuffer[] left = new NativeBuffer[Count];
     readonly NativeBuffer[] right = new NativeBuffer[Count];
+    readonly float[] gains = [1f, 1f, 1f, 1f, 1f, 1f];
+    readonly float[] gainTargets = [1f, 1f, 1f, 1f, 1f, 1f];
     int clearedFrames;
 
     /// <summary>Where the current sub-block starts within the callback.</summary>
@@ -38,6 +42,17 @@ public sealed class HardwareInputs : IDisposable {
         for (var s = 0; s < Count; s++) {
             left[s] = new(MaxFrames);
             right[s] = new(MaxFrames);
+        }
+    }
+
+    /// <summary>
+    ///     Audio thread, before <see cref="BeginCallback" />: the linear gain <paramref name="source" /> is read with
+    ///     from the next callback on, reached with a ramp across that callback. Input 1 takes none (its trim is on the
+    ///     grid input), so it is ignored there.
+    /// </summary>
+    public void SetGain(int source, float gain) {
+        if (source > Input1 && source < Count && float.IsFinite(gain)) {
+            gainTargets[source] = gain;
         }
     }
 
@@ -60,6 +75,11 @@ public sealed class HardwareInputs : IDisposable {
             for (var s = 0; s < Count; s++) {
                 sources.Slice(2 * s * frames, frames).CopyTo(left[s].Span);
                 sources.Slice((2 * s + 1) * frames, frames).CopyTo(right[s].Span);
+                if (gains[s] != 1f || gainTargets[s] != 1f) {
+                    GainRamp.Apply(left[s].Span[..frames], gains[s], gainTargets[s]);
+                    GainRamp.Apply(right[s].Span[..frames], gains[s], gainTargets[s]);
+                    gains[s] = gainTargets[s];
+                }
             }
 
             Connected = connected | (1 << Input1);

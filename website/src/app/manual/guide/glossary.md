@@ -50,7 +50,7 @@ The words used in this manual and in amp and effects talk, in alphabetical order
 
 **Clipping.** When a signal goes past the top of the range a converter or a digital system can represent, and its peaks are cut flat. It sounds harsh, and the IN and OUT meters show **CLIP**.
 
-**Controller.** A source of movement for modifiers: an LFO, an ADSR, an envelope or pitch follower, the sequencer, a scene controller, Manual A to D, or External 1 to 8 from MIDI.
+**Controller.** A source of movement for modifiers: an LFO, an ADSR, an envelope or pitch follower, the sequencer, a scene controller, Manual A to E, or External 1 to 16 from MIDI.
 
 **CoreAudio, CoreMIDI.** The macOS audio and MIDI systems Cathode uses.
 
@@ -78,9 +78,9 @@ The words used in this manual and in amp and effects talk, in alphabetical order
 
 **Envelope follower.** A modifier source that follows how loud you play.
 
-**Expression pedal.** A rocking pedal that sends a continuous value, usually through a MIDI controller. In Cathode it drives one of External 1 to 8.
+**Expression pedal.** A rocking pedal that sends a continuous value, usually through a MIDI controller. In Cathode it drives one of External 1 to 16.
 
-**External 1 to 8.** Modifier sources set by MIDI CCs from your controller, mapped on the Global page.
+**External 1 to 16.** Modifier sources set by MIDI CCs from your controller, mapped on the Global page.
 
 ## F
 
@@ -136,11 +136,11 @@ The words used in this manual and in amp and effects talk, in alphabetical order
 
 ## M
 
-**Manual A to D.** Four global knobs on the Controllers page, usable as modifier sources and settable from MIDI.
+**Manual A to E.** Five global knobs on the Controllers page, usable as modifier sources and settable from MIDI.
 
 **MIDI.** The standard for musical devices to send control messages to each other: program changes, control changes, notes, clock.
 
-**MIDI clock.** A stream of MIDI timing messages that lets one device follow another's tempo.
+**MIDI clock.** A stream of MIDI timing messages that lets one device follow another's tempo. Cathode can follow one or send its own.
 
 **MIDI learn.** Creating a mapping by choosing an action and then moving the control you want to use.
 
@@ -202,7 +202,7 @@ The words used in this manual and in amp and effects talk, in alphabetical order
 
 **Scene Revert.** A global setting: when on, selecting a scene always restores it as saved.
 
-**Sequencer.** A modifier source that steps through 2 to 16 fixed levels in a loop.
+**Sequencer.** A modifier source that steps through 2 to 32 fixed levels in a loop.
 
 **Server.** The part of Cathode that keeps presets and settings and connects the editor to the engine. The desktop app runs one for you; a headless rig runs one for the network.
 

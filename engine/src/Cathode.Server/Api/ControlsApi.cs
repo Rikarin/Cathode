@@ -1,4 +1,5 @@
 using Cathode.Contracts;
+using Cathode.Engine.Rig;
 using Cathode.Ipc;
 using Cathode.Server.Engine;
 using Cathode.Server.Midi;
@@ -88,7 +89,7 @@ static class ControlsApi {
         live.MapPut(
                 "/manual/{index:int}",
                 Results<NoContent, BadRequest>(int index, ValueRequest request, LiveRig rig) => {
-                    if (index is < 0 or > 3) {
+                    if (index is < 0 or >= RigControls.ManualCount) {
                         return TypedResults.BadRequest();
                     }
 
@@ -97,11 +98,11 @@ static class ControlsApi {
                 }
             )
             .WithName("SetManual")
-            .WithSummary("Manual A-D (index 0-3), 0..1.");
+            .WithSummary("Manual A-E (index 0-4), 0..1.");
         live.MapPut(
                 "/external/{index:int}",
                 Results<NoContent, BadRequest>(int index, ValueRequest request, LiveRig rig) => {
-                    if (index is < 0 or > 7) {
+                    if (index is < 0 or >= RigControls.ExternalCount) {
                         return TypedResults.BadRequest();
                     }
 
@@ -110,7 +111,7 @@ static class ControlsApi {
                 }
             )
             .WithName("SetExternal")
-            .WithSummary("External 1-8 (index 0-7), 0..1: what a pedal or CC would set.");
+            .WithSummary("External 1-16 (index 0-15), 0..1: what a pedal or CC would set.");
 
         var global = api.MapGroup("/global").WithTags("Global");
         global.MapGet(
@@ -138,7 +139,7 @@ static class ControlsApi {
             .WithName("PutGlobal")
             .WithSummary(
                 "Replaces the global settings: tempo mode, metronome, outputs (mode, Boost/Pad, EQ), inputs "
-                + "(calibration, gain), oversampling, the tuner output, Manual A-D, MIDI, footswitches, global blocks, "
+                + "(calibration, gain), oversampling, the tuner output, Manual A-E, MIDI, footswitches, global blocks, "
                 + "scene recall (Scene Revert, Default Scene), the startup preset, Ignore Redundant PC, spillover and "
                 + "the active setlist and song. "
                 + "With If-Match (the revision a GET or PUT answered with as the ETag), refused with 412 when another "
@@ -250,6 +251,7 @@ static class ControlsApi {
         g.MidiChannel = settings.MidiChannel;
         g.MidiMappings = settings.MidiMappings;
         g.MidiOutPort = NullIfBlank(settings.MidiOutPort);
+        g.SendMidiClock = settings.SendMidiClock;
         g.Footswitches = settings.Footswitches;
         g.ActiveLayout = settings.ActiveLayout;
         g.ActiveView = Math.Max(0, settings.ActiveView);

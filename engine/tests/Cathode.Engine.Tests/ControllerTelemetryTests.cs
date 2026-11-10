@@ -28,6 +28,18 @@ public class ControllerTelemetryTests {
     }
 
     [Fact]
+    public void The_sequencer_steps_through_up_to_32_stages() {
+        // 32 stages at 20 Hz: a stage every 2400 frames, 37.5 callbacks of 64; a whole pattern is 1200 callbacks.
+        var engine = Engine(("seqStages", 32f), ("seqRate", 20f));
+
+        var runs = Runs(Stages(engine, 1_250));
+
+        Assert.Equal([..Enumerable.Range(0, 32), 0, 1], runs.Select(static r => r.Stage));
+        Assert.Equal(32, RigControls.Descriptor.Params[RigControls.Descriptor.IndexOf("seqStages")].Max);
+        Assert.True(RigControls.Descriptor.IndexOf("seq32") == RigControls.Descriptor.IndexOf("seq1") + 31);
+    }
+
+    [Fact]
     public void A_synced_sequencer_steps_once_per_division_of_the_tempo() {
         var eighth = TempoDivisions.Names.IndexOf("1/8");
 

@@ -1,4 +1,4 @@
-import { LooperActions, type SwitchAction } from '@cathode/api-client';
+import { ExternalCount, LooperActions, ManualLetters, type SwitchAction } from '@cathode/api-client';
 
 /** One entry of an action picker's list: what people read, and what is stored. */
 export interface Choice<T = string | number | null> {
@@ -53,7 +53,7 @@ export function targetChoices(action: string, context: ActionContext, current: s
 
 /**
  * The values an action picks from, as people count them, storing what the engine reads: scenes 1-8 (0-7), channels and
- * Manuals A-D (0-3), Externals 1-8, the layout's views by name (from 0), a bank's slots with the preset in each (0-127).
+ * Manuals A-E (0-4, channels stop at D), Externals 1-16, the layout's views by name (from 0), a bank's slots with the preset in each (0-127).
  * Null for an action without a value. Scene and presetSlot may also have none: a CC's value or the program number picks.
  */
 export function valueChoices(
@@ -74,10 +74,10 @@ export function valueChoices(
       choices = ChannelLetters.map((c, i) => ({ label: `Channel ${c}`, value: i }));
       break;
     case 'manual':
-      choices = ChannelLetters.map((c, i) => ({ label: `Manual ${c}`, value: i }));
+      choices = ManualLetters.map((c, i) => ({ label: `Manual ${c}`, value: i }));
       break;
     case 'external':
-      choices = range(8).map(i => ({ label: `External ${i + 1}`, value: i + 1 }));
+      choices = range(ExternalCount).map(i => ({ label: `External ${i + 1}`, value: i + 1 }));
       break;
     case 'view':
       choices = context.views.map((name, i) => ({ label: name, value: i }));

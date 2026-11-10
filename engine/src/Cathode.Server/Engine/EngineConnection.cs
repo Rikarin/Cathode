@@ -253,7 +253,15 @@ public sealed partial class EngineConnection(
         return reply.Task;
     }
 
-    public void SetMidi(bool followClock) => Enqueue(new() { Type = IpcTypes.SetMidi, FollowClock = followClock });
+    public void SetMidi(bool followClock, bool sendClock = false, string? clockDestination = null) =>
+        Enqueue(
+            new() {
+                Type = IpcTypes.SetMidi,
+                FollowClock = followClock,
+                SendClock = sendClock,
+                Destination = clockDestination
+            }
+        );
 
     public void MidiOut(string? destination, IReadOnlyList<byte> bytes) =>
         Enqueue(

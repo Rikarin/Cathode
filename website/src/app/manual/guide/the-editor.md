@@ -10,14 +10,14 @@ The top bar holds the pages on the left and the tools you need on every page on 
 
 ### Pages
 
-| Button          | What it opens                                                                                                                                                                                               |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Editor**      | The grid and the selected block's page. Where you build sounds.                                                                                                                                             |
-| **Library**     | Presets, the Block Library, global blocks, NAM amps and IR cabs. See [The Library](/manual/library).                                                                                                        |
-| **Scenes**      | A table of every block in every scene. See [Presets, scenes and channels](/manual/presets-and-scenes#the-scenes-page).                                                                                      |
-| **Controllers** | The scene level and scene controllers, scene MIDI, Manual A to D, External 1 to 8, the LFOs, ADSRs, followers and sequencer, and the list of modifiers. See [Controllers and modifiers](/manual/modifiers). |
-| **Perform**     | Big controls you picked for playing live. See [Playing live](/manual/live-performance#the-perform-page).                                                                                                    |
-| **Global**      | Settings for every preset: tempo, metronome, preset and scene behaviour, outputs, input, MIDI and footswitches.                                                                                             |
+| Button          | What it opens                                                                                                                                                                                                |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Editor**      | The grid and the selected block's page. Where you build sounds.                                                                                                                                              |
+| **Library**     | Presets, the Block Library, global blocks, NAM amps and IR cabs. See [The Library](/manual/library).                                                                                                         |
+| **Scenes**      | A table of every block in every scene. See [Presets, scenes and channels](/manual/presets-and-scenes#the-scenes-page).                                                                                       |
+| **Controllers** | The scene level and scene controllers, scene MIDI, Manual A to E, External 1 to 16, the LFOs, ADSRs, followers and sequencer, and the list of modifiers. See [Controllers and modifiers](/manual/modifiers). |
+| **Perform**     | Big controls you picked for playing live. See [Playing live](/manual/live-performance#the-perform-page).                                                                                                     |
+| **Global**      | Settings for every preset: tempo, metronome, preset and scene behaviour, outputs, input, MIDI and footswitches.                                                                                              |
 
 One more page, **Manage presets**, opens from the **Preset** menu (see below).
 
@@ -86,6 +86,7 @@ Click a block to open its page in the drawer.
 The left column holds the block's identity and state:
 
 - The block's **tile** and its **id** (for example `amp1`). The id is how MIDI mappings and footswitches name the block.
+- **CPU**, while audio runs: the share of the engine's time this block takes on your computer, with its current settings. When a preset is too heavy, select its blocks in turn to see which one costs the most (an amp at high oversampling, a NAM capture, a pitch shifter).
 - The **⋯** menu (**Block actions**): **Save to the Block Library…**, **Copy channel … to**, **Swap channel … with**, **Reset channel …**, **Reset block (all channels)**, and **Make global**, **Use "…"** or **Unlink from global**.
 - A **Global** tag if the block is linked to a global block.
 - **Engaged** / **Bypassed** and its switch. Right-click it to let a modifier engage the block (see [Engaging a block from a modifier](/manual/modifiers#engaging-a-block-from-a-modifier)).

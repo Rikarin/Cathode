@@ -99,7 +99,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         var meters = 0;
         foreach (var block in blocks) {
             // Each slot's peak, then its own meters, as CompiledGraph lays them out.
-            meters += 1 + (block is IBlockMeters own ? own.MeterIds.Count : 0);
+            meters += CompiledGraph.CommonMeters + (block is IBlockMeters own ? own.MeterIds.Count : 0);
         }
 
         if (meters > TelemetryLayout.BlockMeters) {
@@ -242,6 +242,12 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                 errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown source '{modifier.Source}'.");
             } else if (!ModNames.TryParseCurve(modifier.Curve, out var curve)) {
                 errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown curve '{modifier.Curve}'.");
+            } else if (modifier.Source2 is { } second && !ModNames.TryParseSource(second, out _)) {
+                errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown source '{second}'.");
+            } else if (!ModNames.TryParseOperation(modifier.Operation, out _)) {
+                errors.Add(
+                    $"Modifier on '{modifier.Block}.{modifier.Param}': unknown operation '{modifier.Operation}'."
+                );
             } else if (engage && !ModNames.TryParseEngageMode(modifier.Mode, out _)) {
                 errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown mode '{modifier.Mode}'.");
             } else if (HasModifier(modifiers, slot, index)) {
@@ -280,6 +286,19 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         ModCurve curve,
         IDspBlock? block
     ) {
+        // The second source and the operation were checked by BindModifiers.
+        ModSource? source2 = modifier.Source2 is { } name && ModNames.TryParseSource(name, out var second)
+            ? second
+            : null;
+        _ = ModNames.TryParseOperation(modifier.Operation, out var multiply);
+        var shape = ModShape.From(
+            modifier.Start,
+            modifier.Mid,
+            modifier.End,
+            modifier.Slope,
+            modifier.Scale,
+            modifier.Offset
+        );
         if (block is null) {
             _ = ModNames.TryParseEngageMode(modifier.Mode, out var mode); // checked by BindModifiers
             return new(
@@ -294,6 +313,9 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                 modifier.ReleaseMs
             ) {
                 Enabled = modifier.Enabled,
+                Source2 = source2,
+                Multiply = multiply,
+                Shape = shape,
                 Switch = new(
                     mode,
                     modifier.Threshold ?? EngageSwitch.DefaultThreshold,
@@ -313,7 +335,12 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             param.Taper == ParamTaper.Log,
             modifier.AttackMs,
             modifier.ReleaseMs
-        ) { Enabled = modifier.Enabled };
+        ) {
+            Enabled = modifier.Enabled,
+            Source2 = source2,
+            Multiply = multiply,
+            Shape = shape
+        };
     }
 
     /// <summary>

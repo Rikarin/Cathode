@@ -12,6 +12,7 @@ import {
 import {
   EngageModes,
   ModifierCurves,
+  ModifierOperations,
   ModifierSources,
   type ParameterInfo,
   type PresetModifier
@@ -37,6 +38,7 @@ const SourceNames: Record<string, string> = {
   manualB: 'Manual B',
   manualC: 'Manual C',
   manualD: 'Manual D',
+  manualE: 'Manual E',
   scene1: 'Scene Controller 1',
   scene2: 'Scene Controller 2',
   scene3: 'Scene Controller 3',
@@ -55,6 +57,53 @@ export function shape(curve: string, s: number): number {
     default:
       return s;
   }
+}
+
+/** The response settings a modifier has when it stores none (Cathode.Engine.Rig.ModShape.Identity). */
+export const ResponseDefaults = { start: 0, mid: 0.5, end: 1, slope: 0.5, scale: 1, offset: 0 };
+
+type Response = Pick<PresetModifier, 'start' | 'mid' | 'end' | 'slope' | 'scale' | 'offset'>;
+
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+
+/**
+ * A modifier's response to its source, 0..1 to 0..1, as the engine applies it before the curve
+ * (Cathode.Engine.Rig.ModShape.Apply): Slope bends the source around its centre, Start/Mid/End set the output at
+ * rest, half way and full travel, then Scale multiplies and Offset adds.
+ */
+export function respond(m: Response, source: number): number {
+  const r = {
+    start: m.start ?? ResponseDefaults.start,
+    mid: m.mid ?? ResponseDefaults.mid,
+    end: m.end ?? ResponseDefaults.end,
+    slope: m.slope ?? ResponseDefaults.slope,
+    scale: m.scale ?? ResponseDefaults.scale,
+    offset: m.offset ?? ResponseDefaults.offset
+  };
+  const k = (0.5 - r.slope) * 1.8;
+  const u = 2 * clamp01(source) - 1;
+  const x = 0.5 + (0.5 * (u - k * u)) / (k - 2 * k * Math.abs(u) + 1);
+  const y = x < 0.5 ? r.start + (r.mid - r.start) * 2 * x : r.mid + (r.end - r.mid) * (2 * x - 1);
+  return clamp01(y * r.scale + r.offset);
+}
+
+/**
+ * A modifier as it is stored: a second source's operation only with a second source, and response settings only
+ * where they differ from the defaults, so a plain modifier stays as presets have always stored it.
+ */
+export function sparseResponse(m: PresetModifier): PresetModifier {
+  const { source2, operation, start, mid, end, slope, scale, offset, ...rest } = m;
+  const given = { start, mid, end, slope, scale, offset };
+  const kept = Object.fromEntries(
+    Object.entries(given).filter(
+      ([key, value]) => value != null && value !== ResponseDefaults[key as keyof typeof ResponseDefaults]
+    )
+  );
+  return {
+    ...rest,
+    ...(source2 ? { source2, ...(operation === 'multiply' ? { operation } : {}) } : {}),
+    ...kept
+  };
 }
 
 /** The engage settings a modifier has when it stores none (Cathode.Engine.Graph.EngageSwitch). */
@@ -100,8 +149,9 @@ export function sparseEngage(m: PresetModifier): PresetModifier {
 }
 
 /**
- * Edits the modifier on one parameter (docs/02-architecture.md §5.4): which controller drives it, over what range,
- * through which curve, with what damping. The chart previews source to value. On a block's engage switch it also
+ * Edits the modifier on one parameter (docs/02-architecture.md §5.4): which controller drives it (or which two,
+ * added or multiplied), with what response (Start/Mid/End, Slope, Scale, Offset), over what range, through which
+ * curve, with what damping. The chart previews source to value. On a block's engage switch it also
  * sets how the value engages the block: by position or by movement, the threshold and the off delay.
  */
 @Component({
@@ -129,6 +179,42 @@ export function sparseEngage(m: PresetModifier): PresetModifier {
               (valueChange)="patch({ source: $event ?? 'lfo1' })"
             />
           </label>
+          <div class="flex flex-wrap items-end gap-3">
+            <label class="flex min-w-48 flex-1 flex-col gap-1">
+              <span class="text-foreground-muted text-xs">Second source</span>
+              <xui-select
+                aria-label="Second modifier source"
+                data-testid="modifier-source2"
+                [items]="secondSources"
+                [itemText]="secondSourceName"
+                [value]="draft().source2 ?? 'none'"
+                (valueChange)="patch({ source2: $event === 'none' || $event === null ? null : $event })"
+              />
+            </label>
+            @if (draft().source2) {
+              <xui-segmented-control
+                size="sm"
+                aria-label="How the two sources combine"
+                data-testid="modifier-operation"
+                [options]="operations"
+                [value]="draft().operation ?? 'add'"
+                (valueChange)="patch({ operation: $event === 'multiply' ? 'multiply' : null })"
+              />
+            }
+          </div>
+          <div class="flex flex-wrap gap-6" data-testid="modifier-response">
+            @for (knob of responseKnobs; track knob.key) {
+              <cth-knob
+                [label]="knob.label"
+                unit="%"
+                [min]="knob.min"
+                [max]="knob.max"
+                [defaultValue]="knob.default * 100"
+                [value]="(draft()[knob.key] ?? knob.default) * 100"
+                (valueChange)="patchResponse(knob.key, $event / 100)"
+              />
+            }
+          </div>
           <div class="flex flex-wrap gap-6">
             <cth-knob
               label="Min"
@@ -256,6 +342,21 @@ export class ModifierDialog {
     ...['A', 'B', 'C', 'D'].map(c => ({ value: c, label: c }))
   ];
   protected readonly sourceName = (s: string) => SourceNames[s] ?? `External ${s.slice(3)}`;
+  protected readonly secondSources = ['none', ...ModifierSources];
+  protected readonly secondSourceName = (s: string) => (s === 'none' ? 'None' : this.sourceName(s));
+  protected readonly operations = ModifierOperations.map(o => ({
+    value: o,
+    label: o === 'multiply' ? 'Multiply' : 'Add'
+  }));
+  /** The response settings, in percent; each at its default leaves the source as it is. */
+  protected readonly responseKnobs = [
+    { key: 'start', label: 'Start', min: 0, max: 100, default: ResponseDefaults.start },
+    { key: 'mid', label: 'Mid', min: 0, max: 100, default: ResponseDefaults.mid },
+    { key: 'end', label: 'End', min: 0, max: 100, default: ResponseDefaults.end },
+    { key: 'slope', label: 'Slope', min: 0, max: 100, default: ResponseDefaults.slope },
+    { key: 'scale', label: 'Scale', min: 0, max: 1000, default: ResponseDefaults.scale },
+    { key: 'offset', label: 'Offset', min: -100, max: 100, default: ResponseDefaults.offset }
+  ] as const;
   protected readonly existing = computed(() => this.live.modifierOf(this.block(), this.param().id));
   protected readonly log = computed(() => this.param().taper === 'log');
   /** The block's engage switch (ModNames.EngageParam), which also has a mode, a threshold and an off delay. */
@@ -277,7 +378,7 @@ export class ModifierDialog {
   protected readonly preview = computed<EChartsOption>(() => {
     const d = this.draft();
     const points = Array.from({ length: 41 }, (_, i) => {
-      const s = shape(d.curve, i / 40);
+      const s = shape(d.curve, respond(d, i / 40));
       const value =
         this.log() && d.min > 0 && d.max > 0 ? d.min * Math.pow(d.max / d.min, s) : d.min + (d.max - d.min) * s;
       return [i / 40, value];
@@ -346,8 +447,12 @@ export class ModifierDialog {
     this.draft.update(d => ({ ...d, ...change }));
   }
 
+  protected patchResponse(key: keyof typeof ResponseDefaults, value: number): void {
+    this.patch({ [key]: value });
+  }
+
   protected async save(): Promise<void> {
-    const draft = this.engage() ? sparseEngage(this.draft()) : this.draft();
+    const draft = sparseResponse(this.engage() ? sparseEngage(this.draft()) : this.draft());
     if (await this.live.putModifier(this.block(), this.param().id, draft)) {
       this.open.set(false);
     }
