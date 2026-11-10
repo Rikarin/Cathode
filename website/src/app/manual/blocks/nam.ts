@@ -4,7 +4,7 @@ export const doc: BlockDoc = {
   summary: `Amp NAM plays a neural capture of a real amp (or pedal, or whole rig): a Neural Amp Modeler file (.nam) or an
 AIDA-X model (.aidax or .json). A capture is a snapshot of one amp at one setting: it reproduces that sound very
 closely, but its knobs are fixed where they were when it was made. This block adds an input trim, loudness
-normalisation and a four-band EQ after the capture, so you can fit it into your rig.
+normalisation and a four-band EQ after or before the capture, so you can fit it into your rig.
 
 If you want an amp whose Gain, tone stack, tubes and power section you can change, use the circuit
 [Amp](/manual/blocks/circuitamp) block instead.`,
@@ -24,19 +24,20 @@ capture with *Input* (see the tips). Set the final loudness with *Output*.`,
 when your guitar arrives at a similar level: too low and it sounds cleaner than it should, too high and it distorts
 more. Use this to match. It is not a gain knob in the amp's sense: the capture's tone stays the capture's.`,
 
-    output: `The block's output level in dB, after the EQ.`,
+    output: `The block's output level in dB, after the capture and the EQ.`,
 
     normalize: `Brings the capture to a common loudness (-18 dB, as the NAM plugin does) using the loudness stored in
 the file, so switching captures does not jump in level. Files without a stored loudness are left as they are. Turn it
 off to hear the capture's raw output level.`,
 
-    bass: `A bass shelf at 120 Hz after the capture, ±12 dB.`,
+    bass: `A bass shelf at 120 Hz, ±12 dB, on the side of the capture *EQ Location* names.`,
 
-    middle: `A broad mid peak at 650 Hz after the capture, ±12 dB.`,
+    middle: `A broad mid peak at 650 Hz, ±12 dB, on the side of the capture *EQ Location* names.`,
 
-    treble: `A treble shelf at 2.5 kHz after the capture, ±12 dB.`,
+    treble: `A treble shelf at 2.5 kHz, ±12 dB, on the side of the capture *EQ Location* names.`,
 
-    presence: `A peak at 5 kHz after the capture, ±12 dB: upper bite without touching the treble below it.`,
+    presence: `A peak at 5 kHz, ±12 dB, on the side of the capture *EQ Location* names: upper bite without touching
+the treble below it.`,
 
     calibrate: `Drives the capture as hard as the real amp was driven by the same guitar. Many NAM files record the
 level, in dBu, that reached full scale on the interface they were made with; with this on, the block adds the
@@ -47,11 +48,17 @@ Files without the level, and AIDA-X models, are not changed. Turn it off to driv
     size: `Which size of the capture runs. A NAM A2 capture holds a full model and smaller ones in the same file:
 *Full* is the most accurate, *Lite* is the smallest and costs about a seventh of Full's CPU with a slightly less exact
 sound. Captures with one size (NAM A1 files, LSTM files, AIDA-X models) sound the same on either setting. Changing it
-rebuilds the rig, as changing a block does.`
+rebuilds the rig, as changing a block does.`,
+
+    location: `Where the four tone knobs sit. *Post* equalises the capture's output: the tone changes, the distortion
+does not. *Pre* equalises your guitar before the capture, as a tone stack ahead of an amp's gain stages does: a boost
+drives the capture harder in that band and a cut cleans it up, so Bass tightens or loosens the low end and Treble
+changes how the top breaks up.`
   },
 
-  tips: `**The EQ is after the capture.** The four tone knobs are a plain EQ on the capture's output: they do not change
-how the capture distorts, as an amp's tone stack would. For that, put an EQ block before the capture.
+  tips: `**The EQ is after the capture unless you move it.** With *EQ Location* on Post the four tone knobs are a plain
+EQ on the capture's output: they do not change how the capture distorts, as an amp's tone stack would. For that, set
+*EQ Location* to Pre, or put an EQ or Tone Stack block before the capture and keep these knobs for the output.
 
 **Matching the input.** Many NAM files record the input level they were made at, and with *Calibrated Input* on the
 block matches it for you once Input 1 is calibrated. If yours does not record it, start at 0 dB and adjust *Input* until

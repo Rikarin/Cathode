@@ -6,8 +6,9 @@ namespace Cathode.Dsp.Blocks;
 
 /// <summary>
 ///     The capture tier of the Amp block: a neural capture (<see cref="ICaptureModel" />) with input calibration and
-///     trim, loudness normalisation, a post-EQ (bass, middle, treble, presence) and output level. Mono in (left), mono
-///     out copied to both channels. Without a model the gains are skipped and only the EQ runs. A model trained at
+///     trim, loudness normalisation, an EQ (bass, middle, treble, presence) after the capture or, with EQ Location on
+///     Pre, before it, and output level. Mono in (left), mono out copied to both channels. Without a model the gains
+///     are skipped and only the EQ runs. A model trained at
 ///     another rate than the engine's runs at its own rate inside a <see cref="CaptureResampler" />, whose delay the
 ///     block reports as its latency. A slimmable model (NAM A2) runs at the size the Size parameter names: Lite costs a
 ///     fraction of Full's CPU. Resizing is not real-time safe, so the size is applied when the block is prepared and
@@ -28,8 +29,13 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
     public const int Calibrate = 7;
     public const int Size = 8;
 
+    public const int Location = 9;
+
     public const int SizeFull = 0;
     public const int SizeLite = 1;
+
+    public const int LocationPost = 0;
+    public const int LocationPre = 1;
 
     /// <summary>Loudness that normalised models are brought to, matching the NAM plugin.</summary>
     public const double TargetLoudnessDb = -18;
@@ -45,7 +51,7 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
     /// <summary>EQ coefficients are recomputed this often while a tone knob moves.</summary>
     const int SubBlock = 32;
 
-    /// <summary>The post-EQ bands, in parameter order from <see cref="Bass" />.</summary>
+    /// <summary>The EQ's bands, in parameter order from <see cref="Bass" />.</summary>
     static readonly (BiquadType Type, float Frequency, float Q)[] ToneBands = [
         (BiquadType.LowShelf, 120f, 0.7f),
         (BiquadType.Peak, 650f, 0.7f),
@@ -58,6 +64,7 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
     float outputGain = 1f;
     float calibrationDb; // Input 1's, from the last callback (0 = 1 V at full scale, the default)
     bool prepared;
+    bool tonePre; // the side of the capture the EQ ran on in the last callback
     CaptureResampler? resampler;
 
     /// <summary>
@@ -79,7 +86,8 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
             ParamDescriptor.Float("treble", "Treble", -12f, 12f, 0f, "dB"),
             ParamDescriptor.Float("presence", "Presence", -12f, 12f, 0f, "dB"),
             ParamDescriptor.Switch("calibrate", "Calibrated Input", true),
-            ParamDescriptor.Choice("size", "Size", ["Full", "Lite"]) with { Recompile = true }
+            ParamDescriptor.Choice("size", "Size", ["Full", "Lite"]) with { Recompile = true },
+            ParamDescriptor.Choice("location", "EQ Location", ["Post", "Pre"])
         ],
         maxInstances: 2
     );
@@ -192,6 +200,11 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
     protected override void OnReset() {
         resampler?.Reset();
         (inputGain, outputGain) = TargetGains();
+        tonePre = Params.Current(Location) >= 0.5f;
+        ResetTone();
+    }
+
+    void ResetTone() {
         for (var b = 0; b < tone.Length; b++) {
             tone[b].Reset();
         }
@@ -202,9 +215,18 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
         Params.Advance(Output, io.Length);
         calibrationDb = context.InputCalibrationDb;
         var (input, output) = TargetGains();
+        var pre = Params.Current(Location) >= 0.5f;
+        if (pre != tonePre) {
+            ResetTone(); // the bands held the signal of the capture's other side
+            tonePre = pre;
+        }
 
         if (CaptureModel is not null) {
             GainRamp.Apply(io.Left, inputGain, input);
+            if (pre) {
+                ApplyTone(io.Left); // before the capture the EQ changes what it distorts, as an amp's tone stack does
+            }
+
             if (resampler is not null) {
                 resampler.Process(io.Left, CaptureModel);
             } else {
@@ -212,7 +234,9 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
             }
         }
 
-        ApplyTone(io.Left);
+        if (!pre || CaptureModel is null) {
+            ApplyTone(io.Left);
+        }
 
         if (CaptureModel is not null) {
             GainRamp.Apply(io.Left, outputGain, output);
