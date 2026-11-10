@@ -386,8 +386,8 @@ static class AmpReferences {
             c.Resistor(piSupply, plate, cathodyne.PlateResistor);
             c.Resistor(cathode, junction, cathodyne.BiasResistor);
             c.Resistor(junction, 0, cathodyne.CathodeResistor);
-            c.Resistor(ga, junction, inputLeak);
-            c.Device(new Triode(cathodyne.Tube), (ga, cathode), (plate, cathode));
+            c.Resistor(loopGrid, junction, d.Loop is null ? inputLeak : 1e6);
+            c.Device(new Triode(cathodyne.Tube), (loopGrid, cathode), (plate, cathode));
             (a, b) = (plate, junction);
         } else {
             var pi = (LongTailPairDesign)d.PhaseInverter;

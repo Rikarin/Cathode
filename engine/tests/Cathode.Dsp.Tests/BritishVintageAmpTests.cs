@@ -1,4 +1,5 @@
 using Cathode.Dsp.Amp;
+using Cathode.Dsp.Amp.Models;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Tests.Circuits;
 using Cathode.Testing;
@@ -54,6 +55,20 @@ public partial class AmpStageTests {
             },
             {
                 "Tiny Terror",
+                false,
+                2,
+                0.05,
+                -20
+            },
+            {
+                "OR120",
+                false,
+                2,
+                0.002,
+                -30
+            },
+            {
+                "OR120",
                 false,
                 2,
                 0.05,
@@ -270,7 +285,8 @@ public class BritishVintageAmpTests(ITestOutputHelper output) {
     const double Rate = 48_000;
 
     static readonly string[] Models = [
-        "1959SLP", "1987X", "1959T Tremolo", "Bluesbreaker 1962", "Hiwatt DR504", "Cornford MK50H II", "Tiny Terror"
+        "1959SLP", "1987X", "1959T Tremolo", "Bluesbreaker 1962", "Hiwatt DR504", "Cornford MK50H II", "Tiny Terror",
+        "OR120", "OR80"
     ];
 
     public static TheoryData<string> Types => [..Models];
@@ -289,6 +305,13 @@ public class BritishVintageAmpTests(ITestOutputHelper output) {
         Assert.Empty(Label("treble", "Tiny Terror"));
         Assert.Equal("Tone", Label("presence", "Tiny Terror"));
         Assert.Empty(Label("cut", "Tiny Terror"));
+        foreach (var type in Models.Where(static m => m.StartsWith("OR", StringComparison.Ordinal))) {
+            Assert.Equal("FAC", Label("control1", type));
+            Assert.Equal("HF Drive", Label("presence", type));
+            Assert.Empty(Label("middle", type));
+            Assert.Empty(Label("master", type));
+        }
+
         foreach (var type in Models.Where(static m => m != "Tiny Terror")) {
             Assert.Empty(Label("cut", type));
             Assert.NotEmpty(Label("treble", type));
@@ -434,6 +457,68 @@ public class BritishVintageAmpTests(ITestOutputHelper output) {
         var superLead = Level(AmpDesign.All.Single(static a => a.Name == "Plexi 100W").Preamp[0]);
         output.WriteLine($"1959T {tremolo:0.0} dB, Plexi 100W {superLead:0.0} dB");
         Assert.InRange(superLead - tremolo, 4, 8);
+    }
+
+    /// <summary>
+    ///     The Orange Graphic's rest points against the 1974 sheet's readings, on its rails: V1A's plate at 170 V, the
+    ///     cathodyne's plate at 275 V and as much across its cathode load as across its plate load. The OR80 is the
+    ///     same amp on two EL34.
+    /// </summary>
+    [Fact]
+    public void The_orange_graphic_rests_where_the_1974_sheet_reads() {
+        var design = OrangeGraphic.Design;
+        var first = design.Preamp[0].Create(Rate);
+        first.Reset(0);
+        var inverter = PhaseInverter.For(design.Power.PhaseInverter);
+        output.WriteLine(
+            $"V1A plate {first.RestOutput:0.0} V; cathodyne plate {inverter.RestPlateA:0.0} V, junction "
+            + $"{inverter.RestPlateB:0.0} V"
+        );
+        Assert.Equal(170, first.RestOutput, 15.0);
+        Assert.Equal(275, inverter.RestPlateA, 15.0);
+        Assert.Equal(design.Power.PhaseInverter.Supply - inverter.RestPlateA, inverter.RestPlateB, 3.0);
+
+        var or80 = OrangeGraphic.Or80.Power;
+        Assert.Equal(design.Power.TubesPerSide, 2 * or80.TubesPerSide);
+        Assert.Equal(design.Power.PhaseInverter, or80.PhaseInverter);
+        Assert.Equal(design.Power.Feedback, or80.Feedback);
+    }
+
+    /// <summary>
+    ///     The FAC cuts more bass at each of its six positions and little of the treble; the HF Drive lifts the
+    ///     treble and leaves the bottom of the band nearly alone.
+    /// </summary>
+    [Fact]
+    public void The_fac_cuts_bass_by_steps_and_the_hf_drive_lifts_treble() {
+        static double[] Bands(int control, float value) {
+            using var block = Create("OR120", (CircuitAmpBlock.Gain, 3f), (control, value));
+            var tones = Signals.Sine(60, Rate, 24_000, 2e-3f)
+                .Zip(Signals.Sine(2_500, Rate, 24_000, 2e-3f), static (a, b) => a + b)
+                .ToArray();
+            var rendered = BlockRender.Mono(block, tones, 64).AsSpan(12_000).ToArray();
+            return [
+                Analysis.ToDb(Analysis.MagnitudeAt(rendered, 60, Rate)),
+                Analysis.ToDb(Analysis.MagnitudeAt(rendered, 2_500, Rate))
+            ];
+        }
+
+        var steps = Enumerable.Range(0, 6).Select(i => Bands(CircuitAmpBlock.Control1, 2f * i)).ToArray();
+        output.WriteLine($"FAC at 60 Hz: {string.Join(" ", steps.Select(static s => $"{s[0]:0.0}"))} dB");
+        for (var i = 1; i < steps.Length; i++) {
+            Assert.True(steps[i][0] < steps[i - 1][0] - 2, $"FAC step {i}: {steps[i][0] - steps[i - 1][0]:0.0} dB");
+        }
+
+        // The last position's 203 pF into 320k turns over at 2.4 kHz: the top of the band loses a few decibels there.
+        output.WriteLine($"FAC at 2.5 kHz: {string.Join(" ", steps.Select(static s => $"{s[1]:0.0}"))} dB");
+        Assert.Equal(steps[0][1], steps[3][1], 1.0);
+        Assert.InRange(steps[0][1] - steps[5][1], 0, 6);
+
+        var (off, full) = (Bands(CircuitAmpBlock.Presence, 0f), Bands(CircuitAmpBlock.Presence, 10f));
+        output.WriteLine(
+            $"HF Drive 0 -> 10: 60 Hz {full[0] - off[0]:+0.0;-0.0} dB, 2.5 kHz {full[1] - off[1]:+0.0;-0.0} dB"
+        );
+        Assert.True(full[1] - off[1] > 2, $"HF Drive lifts 2.5 kHz by {full[1] - off[1]:0.0} dB");
+        Assert.True(full[0] - off[0] < 0.5 * (full[1] - off[1]), $"HF Drive lifts 60 Hz by {full[0] - off[0]:0.0} dB");
     }
 
     static int TypeOf(string name) => AmpDesign.All.ToList().FindIndex(a => a.Name == name);

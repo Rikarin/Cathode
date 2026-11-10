@@ -38,7 +38,7 @@ usually go after the Cab, as they would in an effects loop or a studio. The amp 
 - **Tweed (raw, compressed, early breakup):** Champ 5F1, Princeton 5F2-A, Tweed Deluxe 5E3, Bassman 5F6-A, Tweed
   Twin. The *Jumped* versions run both channels at once, the classic way to play them.
 - **British crunch and classic rock:** JTM45, Plexi, Plexi 100W, 1959SLP, 1987X, 1959T Tremolo, Bluesbreaker 1962,
-  18 W 1974X, Major 1967, JCM800 2203 and 2204, Hiwatt DR103 and DR504.
+  18 W 1974X, Major 1967, JCM800 2203 and 2204, Hiwatt DR103 and DR504, OR120 and OR80.
 - **Chime and class A:** AC30, AC15, DC-30, Chieftain, Hot Cat 30, Tiny Terror, Liverpool, Express.
 - **Smooth, vocal overdrive:** ODS 97, ODS 70s, Cornford MK50H II, Lone Star, Subway Blues.
 - **Hot-rodded British and modern rock:** Silver Jubilee, JCM900 4100 and 4502, DSL100, JVM410H, BE-100 and
@@ -101,7 +101,9 @@ on the three-channel Dual Rectifier and the Triple Rectifier it is in the feedba
 control in Modern, and on the three-channel's orange channel a preamp control in Raw and in the feedback otherwise, so
 in that channel's Modern it does next to nothing, as on the drawing); the ODS 70s calls it *Accent*. On the Chieftain and Hot Cat 30 this knob is the amp's
 *Brilliance*, on the Tiny Terror its *Tone*: a pot and cap across the power tubes' grids, like a Vox cut but wired the
-other way, so turning it **up** puts more resistance in front of the cap and brings the treble back (0 is darkest).`,
+other way, so turning it **up** puts more resistance in front of the cap and brings the treble back (0 is darkest).
+On the OR120 and OR80 it is the *HF Drive*: it takes the feedback away from the low mids up, so it adds gain and bite
+as well as treble.`,
 
     depth: `Lifts the low end in the power amp, around the speaker's resonance. It reduces the global negative feedback
 below its corner frequency (at 10, down to a tenth of the stock amount), so the power amp's gain and its
@@ -205,7 +207,8 @@ on.`,
 *Mic Vol* on the Tweed Deluxe, *Loudness 2*, *Volume II*), a lead drive (*Lead Drive* on the Mark IIC+ and IV,
 *Lead 1 Drive*, *Overdrive*, *Drive*), a channel master (*R1 Master* and *R2 Master* on the Mark IV's rhythm
 channels), or a tone control (*Edge* on the Hot Cat, *Mid Freq* on the SVT, *Hi Treble*
-on the JC-120, *Mid Focused* on the Powerball, *Cut* on the Prometheus, a low cut before its gain stages). On jumped
+on the JC-120, *Mid Focused* on the Powerball, *Cut* on the Prometheus, a low cut before its gain stages, *FAC* on the
+OR120 and OR80: a six-position switch that cuts more bass at each step, full range at 0, where it starts). On jumped
 Plexi-style amps the two volumes blend the bright and normal channels. On the Quick Rod it is the *Solo Boost*, which
 starts at 0: the boost is off there, as on the amp until you press its footswitch; turn it up for the solo lift.`,
 
@@ -616,6 +619,8 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'Hiwatt DR504': "Hiwatt Custom 50 / DR504: the DR103's preamp with a 50 W output.",
       'Cornford MK50H II': 'Cornford MK50H II, both channels: British boutique crunch and lead.',
       'Tiny Terror': 'Orange Tiny Terror, 15 W: thick, mid-heavy crunch.',
+      OR120: 'Orange OR120 Graphic Mk II ("Pics Only"), 120 W: thick 1970s crunch with the FAC and HF Drive.',
+      OR80: 'Orange OR80 Graphic Mk II: the OR120 on two EL34, 80 W.',
       Liverpool: 'Trainwreck Liverpool: EL84 boutique crunch with a Clarity switch.',
       'ODS 70s': 'The 1970s Dumble Overdrive Special, with Rock/Jazz, Deep, Bright and Accent.',
       'Dual Rectifier 3-Ch':

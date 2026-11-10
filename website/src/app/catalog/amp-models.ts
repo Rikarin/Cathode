@@ -70,6 +70,8 @@ export const AMP_MODELS: Record<string, { family: AmpFamily; basedOn: string }> 
   'Hiwatt DR504': { family: 'british', basedOn: 'Hiwatt Custom 50 DR504' },
   'Cornford MK50H II': { family: 'british', basedOn: 'Cornford MK50H II' },
   'Tiny Terror': { family: 'british', basedOn: 'Orange Tiny Terror' },
+  OR120: { family: 'british', basedOn: 'Orange OR120 Graphic Mk II ("Pics Only", 120 W)' },
+  OR80: { family: 'british', basedOn: 'Orange OR80 Graphic Mk II (80 W)' },
 
   // Vox, class A and boutique
   AC30: { family: 'boutique', basedOn: 'Vox AC30 Top Boost (and the Normal channel)' },
