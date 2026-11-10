@@ -353,6 +353,41 @@ public class MarshallModelTests(ITestOutputHelper output) {
         Assert.True(feedback.PresenceTimes(1).Tau2 > 0);
     }
 
+    /// <summary>
+    ///     The Marshall-family stacks (and the 5F6-A they come from) keep the whole middle track under the bass pot,
+    ///     with the middle cap on its wiper (#196): Bass, Middle and Treble all at 0 still play, a few decibels under
+    ///     noon. Wired as a variable resistor the middle pot at 0 grounded the stack, and these models went silent.
+    /// </summary>
+    [Theory]
+    [InlineData("Plexi")]
+    [InlineData("JCM800 2203")]
+    [InlineData("JCM800 2204")]
+    [InlineData("JTM45")]
+    [InlineData("Plexi 100W")]
+    [InlineData("1959SLP")]
+    [InlineData("1987X")]
+    [InlineData("1959T Tremolo")]
+    [InlineData("Bluesbreaker 1962")]
+    [InlineData("Bassman 5F6-A")]
+    public void The_tone_knobs_all_at_0_still_pass_signal(string model) {
+        var type = TypeOf(model);
+        var input = Signals.Sine(440, Rate, 24_000, 0.01f);
+        double Level(float knobs) => Analysis.ToDb(
+            Analysis.Rms(
+                Render(
+                    type,
+                    input,
+                    (CircuitAmpBlock.Bass, knobs),
+                    (CircuitAmpBlock.Middle, knobs),
+                    (CircuitAmpBlock.Treble, knobs)
+                ).AsSpan(12_000)
+            )
+        );
+        var (noon, closed) = (Level(5), Level(0));
+        output.WriteLine($"{model}: {noon:0.0} dB at noon, {closed:0.0} dB with the three at 0");
+        Assert.True(closed > noon - 30, $"{closed:0.0} dB with the tone knobs at 0, {noon:0.0} dB at noon");
+    }
+
     static int TypeOf(string model) => AmpDesign.All.ToList().FindIndex(a => a.Name == model);
 
     static float[] Render(int type, float[] input, params (int Index, float Value)[] settings) {

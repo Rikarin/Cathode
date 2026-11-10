@@ -30,7 +30,10 @@ namespace Cathode.Dsp.Amp.Models;
 ///     </para>
 /// </remarks>
 public static class LaneyGH100L {
-    /// <summary>The drawing's stack, with the 22 nF bass cap (see the remarks).</summary>
+    /// <summary>
+    ///     The drawing's stack, with the 22 nF bass cap (see the remarks). Its middle pot is a variable resistor here;
+    ///     whether the drawing puts the middle cap on the wiper, as the Marshalls do (#196), was not checked.
+    /// </summary>
     public static ToneStackDesign Stack { get; } = new(
         "GH100L",
         470e-12,

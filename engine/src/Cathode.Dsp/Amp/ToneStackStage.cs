@@ -230,10 +230,11 @@ public sealed class ToneStackStage : AmpStage {
 
         (bass, middle, treble, rotation) = (controls.Bass, controls.Middle, controls.Treble, turn);
         stale = false;
-        var (top, bottom, b, m) = stack.Resistances(bass, middle, treble);
+        var (top, bottom, b, middleUpper, m) = stack.Resistances(bass, middle, treble);
         root.SetResistance(stack.TrebleTop, top);
         root.SetResistance(stack.TrebleBottom, bottom);
         root.SetResistance(stack.BassResistor, b);
+        root.SetResistance(stack.MiddleUpper, middleUpper);
         root.SetResistance(stack.MiddleResistor, m);
         var (upper, lower) = load.Resistances(turn);
         root.SetResistance(load.Top, upper);
@@ -338,9 +339,10 @@ public sealed class ToneStackStage : AmpStage {
         const double Omega = 2 * Math.PI * 1_000;
         const double Gmin = 1e-12;
         const double EndStop = RTypeScattering.EndStop;
-        const int Grid = 1, Cathode = 2, Top = 3, Slope = 4, Bottom = 5, Middle = 6, Output = 7, Wiper = 8, Plate = 9;
+        const int Grid = 1, Cathode = 2, Top = 3, Slope = 4, Bottom = 5, Foot = 6, Middle = 7, Output = 8, Wiper = 9;
+        const int Plate = 10;
         var follower = Design.Driver == StackDriver.CathodeFollower;
-        var n = follower ? 8 : 9;
+        var n = follower ? 9 : 10;
         var plate = follower ? 0 : Plate; // a follower's plate sits on the supply: signal ground
         var driven = follower ? Cathode : Plate;
         Span<double> a = stackalloc double[n * n];
@@ -381,7 +383,7 @@ public sealed class ToneStackStage : AmpStage {
         }
 
         var design = stack.Design;
-        var (trebleTop, trebleBottom, bassPot, middlePot) = stack.Resistances(bass, middle, treble);
+        var (trebleTop, trebleBottom, bassPot, middleUpper, middlePot) = stack.Resistances(bass, middle, treble);
         var (upper, lower) = load.Resistances(rotation);
         RTypeScattering.Conductance(a, n, driven, Top, Omega * design.TrebleCap / stackScale);
         RTypeScattering.Conductance(a, n, driven, Slope, 1 / design.SlopeResistor);
@@ -389,7 +391,8 @@ public sealed class ToneStackStage : AmpStage {
         RTypeScattering.Conductance(a, n, Slope, Middle, Omega * design.MiddleCap / stackScale);
         RTypeScattering.Conductance(a, n, Top, Output, 1 / Math.Max(trebleTop, EndStop));
         RTypeScattering.Conductance(a, n, Output, Bottom, 1 / Math.Max(trebleBottom, EndStop));
-        RTypeScattering.Conductance(a, n, Bottom, Middle, 1 / Math.Max(bassPot, EndStop));
+        RTypeScattering.Conductance(a, n, Bottom, Foot, 1 / Math.Max(bassPot, EndStop));
+        RTypeScattering.Conductance(a, n, Foot, Middle, 1 / Math.Max(middleUpper, EndStop)); // to the middle's wiper
         RTypeScattering.Conductance(a, n, Middle, 0, 1 / Math.Max(middlePot, EndStop));
         RTypeScattering.Conductance(a, n, Output, Wiper, 1 / Math.Max(upper, EndStop));
         RTypeScattering.Conductance(a, n, Wiper, 0, 1 / Math.Max(lower, EndStop));

@@ -55,7 +55,10 @@ public static class Bassman {
     /// <summary>The idle V1 half's plate: a 12AY7's r_p (about 27k at 1.65 mA) in parallel with its 100k.</summary>
     const double IdlePlate = 21e3;
 
-    /// <summary>The Bassman 5F6-A stack (Yeh and Smith, DAFx-06).</summary>
+    /// <summary>
+    ///     The Bassman 5F6-A stack (Yeh and Smith, DAFx-06): the 25k middle pot's whole track under the bass pot, the
+    ///     middle cap on its wiper (their R3, which stays in the response at any middle setting).
+    /// </summary>
     public static ToneStackDesign Stack { get; } = new(
         "Bassman 5F6-A",
         250e-12,
@@ -65,7 +68,7 @@ public static class Bassman {
         new(250e3, PotTaper.Linear),
         new(1e6, PotTaper.Audio),
         new(25e3, PotTaper.Linear)
-    );
+    ) { MiddleOnWiper = true };
 
     public static AmpDesign Design { get; } = Build("Bassman 5F6-A", InputStage(), "Normal Input");
 

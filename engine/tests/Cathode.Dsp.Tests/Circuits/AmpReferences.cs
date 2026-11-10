@@ -149,8 +149,17 @@ static class AmpReferences {
         c.Capacitor(slope, mid, d.MiddleCap);
         c.Resistor(top, output, Math.Max((1 - t) * d.Treble.Ohms, Floor));
         c.Resistor(output, bottom, Math.Max(t * d.Treble.Ohms, Floor));
-        c.Resistor(bottom, mid, Math.Max(d.Bass.Fraction(bass) * d.Bass.Ohms, Floor));
-        c.Resistor(mid, 0, Math.Max(d.Middle.Fraction(middle) * d.Middle.Ohms, Floor));
+        var m = d.Middle.Fraction(middle);
+        if (d.MiddleOnWiper) {
+            // The whole middle track under the bass pot, the middle cap on its wiper.
+            var foot = c.Node();
+            c.Resistor(bottom, foot, Math.Max(d.Bass.Fraction(bass) * d.Bass.Ohms, Floor));
+            c.Resistor(foot, mid, Math.Max((1 - m) * d.Middle.Ohms, Floor));
+        } else {
+            c.Resistor(bottom, mid, Math.Max(d.Bass.Fraction(bass) * d.Bass.Ohms, Floor));
+        }
+
+        c.Resistor(mid, 0, Math.Max(m * d.Middle.Ohms, Floor));
         return output;
     }
 
