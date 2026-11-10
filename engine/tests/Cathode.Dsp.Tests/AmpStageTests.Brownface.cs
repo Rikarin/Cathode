@@ -7,8 +7,9 @@ namespace Cathode.Dsp.Tests;
 ///     Stream C's new stage combinations against the reference MNA simulator: the brownface tone network and split
 ///     plate loads, the harmonic vibrato's crossover and mixer pair (at rest: the dry path), the 6G3's tone and mix,
 ///     the 6G11's tapped treble network, the Bassman 135's stacks with Deep and its shared-cathode mix, the Scout's
-///     6EU7 stages with the bridged T. Each preamp is also run as a whole chain, joined in one circuit with no Thévenin
-///     cut.
+///     6EU7 stages with the bridged T, the Supro 1624T's channels (the second with the tremolo's follower on its
+///     cathode) and its mixer into the inverter's first half. Each preamp is also run as a whole chain, joined in one
+///     circuit with no Thévenin cut.
 /// </summary>
 public partial class AmpStageTests {
     public static TheoryData<string, string, double> StreamCNetworks =>
@@ -30,7 +31,11 @@ public partial class AmpStageTests {
             { "Bassman 135", "V2A vb", 0.3 },
             { "Bassman 135", "V1B", 1 },
             { "Scout GA-17RVT", "V2A", 0.1 },
-            { "Scout GA-17RVT", "V2B", 1 }
+            { "Scout GA-17RVT", "V2B", 1 },
+            { "Supro 1624T", "V1A", 0.3 },
+            { "Supro 1624T", "V1A b", 0.3 },
+            { "Supro 1624T", "V1B v", 0.3 },
+            { "Supro 1624T", "V2A", 1 }
         };
 
     public static TheoryData<string, bool, double, double> StreamCChains =>
@@ -43,7 +48,9 @@ public partial class AmpStageTests {
             { "Vibrolux 6G11", true, 0.01, -35 },
             { "Bassman 135", false, 0.01, -35 },
             { "Bassman 135", true, 0.01, -35 },
-            { "Scout GA-17RVT", false, 0.01, -35 }
+            { "Scout GA-17RVT", false, 0.01, -35 },
+            { "Supro 1624T", false, 0.01, -35 },
+            { "Supro 1624T", true, 0.01, -35 }
         };
 
     [Theory]

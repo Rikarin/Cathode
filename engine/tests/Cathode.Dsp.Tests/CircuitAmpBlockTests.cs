@@ -54,6 +54,7 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
             : design.Tube == PentodeModel.EL34 ? 25
             : design.Tube == PentodeModel.SixV6GT ? 14
             : design.Tube == PentodeModel.SixAQ5 ? 12
+            : design.Tube == PentodeModel.SixtyNineSeventyThree ? 12
             : 30;
         output.WriteLine(
             $"{design.Name}: B+ {power.Supply:0.0} V, screen node {power.ScreenSupply:0.0} V, preamp node "
@@ -67,7 +68,10 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         // across 270 Î© (89 mA a tube, about 31 W of plate dissipation at 390 V).
         // The Tweed Deluxe 5E3's 6V6s, on the drawing's shared 250 Ω with their screens straight on its 5k node, idle
         // close to the rating: 37 mA a tube (Robinette measures 38 mA), about 13 W of the 6V6GT's 14 W.
+        // The Supro 1624T's 6973s on their shared 250 Ω run past the rating too: AmpBooks has about 23 V there at about
+        // 92 mA for the pair with 327 V from plate to cathode, some 14 W a tube of the 6973's 12 W.
         var hot = design.CathodeBias && design.Tube == PentodeModel.EL84 ? 1.45
+            : design.CathodeBias && design.Tube == PentodeModel.SixtyNineSeventyThree ? 1.25
             : design.CathodeBias && design.Tube == PentodeModel.EL34 ? 1.5
             : design.CathodeBias && design.Tube == PentodeModel.SixV6GT ? 1
             : 0.9;

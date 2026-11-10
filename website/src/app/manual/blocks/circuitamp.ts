@@ -36,7 +36,8 @@ usually go after the Cab, as they would in an effects loop or a studio. The amp 
   Vibroverb, Vibrolux, Bandmaster, Tremolux, the brownface Concert, Super, Deluxe 6G3 and Vibrolux 6G11. A Twin
   stays clean longest; a Deluxe or Princeton breaks up early and sweetly.
 - **Tweed (raw, compressed, early breakup):** Champ 5F1, Princeton 5F2-A, Tweed Deluxe 5E3, Bassman 5F6-A, Tweed
-  Twin. The *Jumped* versions run both channels at once, the classic way to play them.
+  Twin. The *Jumped* versions run both channels at once, the classic way to play them. The Supro 1624T belongs
+  here by its sound: a small 1960s combo with no feedback that goes thick and gritty when turned up.
 - **British crunch and classic rock:** JTM45, Plexi, Plexi 100W, 1959SLP, 1987X, 1959T Tremolo, Bluesbreaker 1962,
   18 W 1974X, Major 1967, JCM800 2203 and 2204, Hiwatt DR103 and DR504.
 - **Chime and class A:** AC30, AC15, DC-30, Chieftain, Hot Cat 30, Tiny Terror, Liverpool, Express.
@@ -455,8 +456,8 @@ have been playing over the last second or two.`,
     tremrate: `The tremolo's speed in Hz. On the models with a tremolo or vibrato circuit of their own (the blackface
 Fenders' vibrato: Deluxe, Twin, Super and Princeton Reverb, Vibroverb, Vibrolux Reverb, Bandmaster, Tremolux and
 Princeton AA964; the Vibro-King, the brownface Deluxe and Vibrolux, the brownface Concert and Super's harmonic
-vibrato, the 18 W and the Scout) it is that circuit's *Speed*, held to the original knob's range. On every other model
-it is a sine that swings the power tubes' bias.`,
+vibrato, the 18 W, the Scout and the Supro 1624T) it is that circuit's *Speed*, held to the original knob's range. On
+every other model it is a sine that swings the power tubes' bias.`,
 
     tremdepth: `The tremolo's depth; 0 is off. On models with their own tremolo it is that circuit's *Intensity* (or
 *Depth*) knob. Elsewhere it swings the power tubes' bias around the *Bias* setting, 100 % taking it all the way from
@@ -634,6 +635,8 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'Vibrolux 6G11': 'Fender brownface Vibrolux 6G11 with its bias tremolo.',
       'Bassman 135': 'Fender silverface Bassman 135 bass amp, Bass and Normal channels.',
       'Scout GA-17RVT': 'Gibson Scout: a small 60s combo with its bias tremolo.',
+      'Supro 1624T':
+        'Supro 1624T Dual-Tone: two 6973s and a paraphase inverter, thick and gritty when cranked; tremolo on its second channel.',
       'Major 1967': 'Marshall Major 1967, 200 W: huge, loud and clean until it is very loud.',
       'Bass 400': 'Mesa/Boogie Bass 400 with its graphic EQ.',
       'JVM410H Clean/Crunch': 'Marshall JVM410H Clean and Crunch channels.',

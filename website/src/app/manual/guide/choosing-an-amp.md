@@ -88,9 +88,11 @@ The JC-120 is a glassy, very clean transistor amp: no breakup, so effects stay p
 
 ### Bass and others
 
-**SVT**, **Portaflex B-15N**, **Bassman 135**, **Bass 400**, and the small Gibson **Scout GA-17RVT**.
+**SVT**, **Portaflex B-15N**, **Bassman 135**, **Bass 400**, and two small 1960s combos, the Gibson **Scout GA-17RVT** and the **Supro 1624T**.
 
 Bass amps work on guitar too: the SVT and Bass 400 make thick, heavy crunch; the Portaflex is warm and round.
+
+The Supro 1624T (the Dual-Tone) has one **Volume** and one **Tone**, no master and no negative feedback. It is dark and fat when clean, and turned up it gives a thick, raw, midrange-heavy grind with a ragged edge: garage rock and raw blues. **Treble Input** is the amp's second jack, which thins the lows. **Tremolo Ch** plays its second channel, the one with the tremolo (**Speed** and **Intensity**); its tremolo is deep and turns into a hard chop well before Intensity reaches 100 %.
 
 ## The front panel
 

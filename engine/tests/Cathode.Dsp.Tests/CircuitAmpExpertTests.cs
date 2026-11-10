@@ -81,6 +81,10 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                         // class-A pair on one cathode): its output tubes draw too little extra current to sag.
                         && !(index is CircuitAmpBlock.PreampSag or CircuitAmpBlock.SupplyTime
                             && (design == PrincetonAA964.Design || design == GibsonScout.Design))
+                        // Nor does the B+ time constant on the Supro 1624T: its 6973 pair idles at 44 mA a tube on one
+                        // cathode resistor, and RCA's sheet has such a pair drawing only a fifth more at full power
+                        // (about -66 dB).
+                        && !(index == CircuitAmpBlock.SupplyTime && design == Supro1624T.Design)
                         && !(index == CircuitAmpBlock.PowerTube
                             && design.Power.Name.Contains(tube ?? "-", StringComparison.Ordinal))
                         && !(index is CircuitAmpBlock.PresenceFrequency or CircuitAmpBlock.DepthFrequency
