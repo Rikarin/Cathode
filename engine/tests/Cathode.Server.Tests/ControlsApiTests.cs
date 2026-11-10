@@ -206,10 +206,14 @@ public sealed class ControlsApiTests : IAsyncLifetime {
     public async Task Taps_over_rest_are_averaged_on_the_engines_clock_and_the_preset_follows() {
         // A REST tap carries no time: the engine stamps it with its own clock when it arrives. So the test paces its
         // taps by that clock, 32,000 samples apart (90 BPM at 48 kHz), not by a wall-clock sleep that a busy machine
-        // stretches.
+        // stretches. A request takes time on that clock too, a quarter of a second on a loaded CI runner (Windows
+        // averaged 79.8 BPM), so the test reads the clock on both sides of each tap: the engine's stamp lies between
+        // the two readings.
         var engine = server.Host.Engine;
         Assert.Equal(120, (await Live()).Preset.Tempo);
         var start = engine.SampleTime;
+        var before = new long[4];
+        var after = new long[4];
 
         for (var i = 0; i < 4; i++) {
             var at = start + i * 32_000;
@@ -217,14 +221,21 @@ public sealed class ControlsApiTests : IAsyncLifetime {
                 await Task.Delay(1, Token);
             }
 
+            before[i] = engine.SampleTime;
             using var tap = await client.PostAsync("/api/v1/live/tap", null, Token);
+            after[i] = engine.SampleTime;
             Assert.Equal(HttpStatusCode.NoContent, tap.StatusCode);
         }
 
-        // Within 5 BPM: a tap is as late as its request, but four taps at 120 BPM's spacing could not land here.
+        // The tempo is the average of the three intervals between the four stamps: no shorter than from the end of
+        // the first request to the start of the last, no longer than from the start of the first to the end of the
+        // last. On an idle machine that is 90 BPM to within one or two, where the preset's 120 could not land.
+        var perMinute = 60.0 * engine.Spec.SampleRate;
+        var slowest = perMinute * 3 / (after[3] - before[0]);
+        var fastest = perMinute * 3 / (before[3] - after[0]);
         await ServerFixture.Eventually(
-            () => Math.Abs(engine.Tempo - 90) < 5,
-            () => $"engine tempo {engine.Tempo}"
+            () => engine.Tempo > slowest - 0.01 && engine.Tempo < fastest + 0.01,
+            () => $"engine tempo {engine.Tempo}, expected {slowest} to {fastest}"
         );
         await ServerFixture.Eventually(async () => Math.Abs((await Live()).Preset.Tempo - engine.Tempo) < 0.06);
     }
