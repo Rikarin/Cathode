@@ -8,13 +8,29 @@ namespace Cathode.Server.Api;
 ///     Who may call the API. With <see cref="ServerOptions.Token" /> set (the desktop app always sets one, and a Server
 ///     reachable beyond localhost must) every request needs <c>Authorization: Bearer &lt;token&gt;</c>, or
 ///     <c>?access_token=</c> on the WebSocket, which browsers cannot give headers; any origin may then call, as a page
-///     cannot forge the token. Without a token (development) only loopback origins pass CORS, so an arbitrary web page
-///     cannot drive the rig through the browser.
+///     cannot forge the token. Without a token (development) the Server listens on loopback only and answers only
+///     this machine's own pages: a request that names another origin, or that was addressed to a host name other than
+///     a loopback one, is refused before anything runs (<see cref="RefusalWithoutToken" />).
 /// </summary>
 public static class Access {
     public static void AddCathodeCors(this IServiceCollection services) => services.AddCors();
 
     public static void UseCathodeAccess(this WebApplication app, string? token) {
+        if (token is null) {
+            // Before CORS and everything else. CORS alone only keeps a foreign page from reading answers and from
+            // sending requests that need a preflight; a body-less POST or a raw upload needs none and would run.
+            app.Use(static async (context, next) => {
+                    if (RefusalWithoutToken(context.Request) is { } reason) {
+                        await TypedResults.Problem(reason, statusCode: StatusCodes.Status403Forbidden)
+                            .ExecuteAsync(context);
+                        return;
+                    }
+
+                    await next(context);
+                }
+            );
+        }
+
         app.UseCors(policy => policy.SetIsOriginAllowed(origin => token is not null || IsLoopbackOrigin(origin))
             .AllowAnyHeader()
             .AllowAnyMethod()
@@ -22,18 +38,6 @@ public static class Access {
         );
 
         if (token is null) {
-            // Browsers apply no CORS to WebSockets, so check the origin here: no foreign page may listen in.
-            app.Use(static async (context, next) => {
-                    if (context.Request.Path.StartsWithSegments("/ws")
-                        && context.Request.Headers.Origin.ToString() is { Length: > 0 } origin
-                        && !IsLoopbackOrigin(origin)) {
-                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                        return;
-                    }
-
-                    await next(context);
-                }
-            );
             return;
         }
 
@@ -78,6 +82,44 @@ public static class Access {
         }
     }
 
+    /// <summary>
+    ///     Why a Server without a token refuses the request, or null when it may run. Three checks, each for what a
+    ///     web page in a browser on this machine could otherwise do:
+    ///     <list type="bullet">
+    ///         <item>
+    ///             the <c>Host</c> must be a loopback name or address: a page that rebinds its own name to 127.0.0.1
+    ///             is same-origin with the Server as far as the browser knows, but still sends its own name here;
+    ///         </item>
+    ///         <item>
+    ///             an <c>Origin</c>, when sent, must be a loopback one, on every path and method (the WebSocket
+    ///             included, to which browsers apply no CORS);
+    ///         </item>
+    ///         <item>
+    ///             a request that changes something and carries no <c>Origin</c> must not be marked
+    ///             <c>Sec-Fetch-Site: cross-site</c> by the browser.
+    ///         </item>
+    ///     </list>
+    ///     A client that is not a browser (curl, a script) sends neither header and is not affected.
+    /// </summary>
+    public static string? RefusalWithoutToken(HttpRequest request) {
+        if (request.Host.Host is { Length: > 0 } host && !IsLoopbackHost(host)) {
+            return $"This Server has no access token and answers only on localhost, not as '{host}'.";
+        }
+
+        if (request.Headers.Origin.ToString() is { Length: > 0 } origin) {
+            return IsLoopbackOrigin(origin)
+                ? null
+                : $"This Server has no access token and takes no requests from '{origin}'.";
+        }
+
+        var reads = HttpMethods.IsGet(request.Method)
+            || HttpMethods.IsHead(request.Method)
+            || HttpMethods.IsOptions(request.Method);
+        return !reads && request.Headers["Sec-Fetch-Site"].ToString() == "cross-site"
+            ? "This Server has no access token and takes no requests from other sites."
+            : null;
+    }
+
     static string? Presented(HttpRequest request) {
         var header = request.Headers.Authorization.ToString();
         if (header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)) {
@@ -99,7 +141,10 @@ public static class Access {
     }
 
     static bool IsLoopbackOrigin(string origin) =>
-        Uri.TryCreate(origin, UriKind.Absolute, out var uri)
-        && (uri.Host == "localhost"
-            || (IPAddress.TryParse(uri.Host, out var address) && IPAddress.IsLoopback(address)));
+        Uri.TryCreate(origin, UriKind.Absolute, out var uri) && IsLoopbackHost(uri.Host);
+
+    /// <summary><c>localhost</c> or a loopback address (an IPv6 one with or without its brackets).</summary>
+    static bool IsLoopbackHost(string host) =>
+        host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+        || (IPAddress.TryParse(host.AsSpan().Trim("[]"), out var address) && IPAddress.IsLoopback(address));
 }

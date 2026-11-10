@@ -113,6 +113,78 @@ public class AccessTests {
     }
 
     [Theory]
+    // No preflight: a body-less POST, and an upload whose body is read whatever its content type.
+    [InlineData("/api/v1/live/new", "https://evil.example", null, false)]
+    [InlineData("/api/v1/presets/import", "https://evil.example", null, false)]
+    [InlineData("/api/v1/assets?name=x.wav", "null", null, false)] // a sandboxed frame or a local file
+    // An old browser that sends no Origin still says where the request came from.
+    [InlineData("/api/v1/live/new", null, "cross-site", false)]
+    [InlineData("/api/v1/live/new", "http://localhost:4200", "cross-site", true)] // the dev editor, another port
+    [InlineData("/api/v1/live/new", null, "same-origin", true)]
+    [InlineData("/api/v1/live/new", null, null, true)] // curl, a script
+    public async Task Without_a_token_a_foreign_page_cannot_post(
+        string path,
+        string? origin,
+        string? fetchSite,
+        bool allowed
+    ) {
+        await using var server = new ServerFixture();
+        using var client = server.CreateClient();
+        var before = (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Cancel))!.Revision;
+        var request = new HttpRequestMessage(HttpMethod.Post, path) { Content = new ByteArrayContent([1, 2, 3]) };
+        request.Content.Headers.ContentType = new("text/plain"); // a "simple" request's content type
+        if (origin is not null) {
+            request.Headers.Add("Origin", origin);
+        }
+
+        if (fetchSite is not null) {
+            request.Headers.Add("Sec-Fetch-Site", fetchSite);
+        }
+
+        using var response = await client.SendAsync(request, Cancel);
+
+        if (allowed) {
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            return;
+        }
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(before, (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Cancel))!.Revision);
+    }
+
+    [Theory]
+    [InlineData("localhost", true)]
+    [InlineData("127.0.0.1:5180", true)]
+    [InlineData("[::1]:5180", true)]
+    [InlineData("rebound.evil.example:5180", false)] // a name its owner pointed at 127.0.0.1
+    [InlineData("192.168.1.20:5180", false)]
+    public async Task Without_a_token_only_a_loopback_host_is_answered(string host, bool allowed) {
+        await using var server = new ServerFixture();
+        using var client = server.CreateClient();
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/live");
+        request.Headers.Host = host;
+
+        using var response = await client.SendAsync(request, Cancel);
+
+        Assert.Equal(allowed ? HttpStatusCode.OK : HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task With_a_token_the_origin_and_host_are_not_checked() {
+        await using var server = new ServerFixture(token: Token);
+        using var client = server.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new("Bearer", Token);
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/live/new");
+        request.Headers.Add("Origin", "http://192.168.1.50:4200");
+        request.Headers.Host = "rig.local:5180";
+
+        using var response = await client.SendAsync(request, Cancel);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Theory]
     [InlineData("http://127.0.0.1:5180", null, true)]
     [InlineData("http://localhost:5180;http://[::1]:5180", null, true)]
     [InlineData("http://0.0.0.0:5180", null, false)]
