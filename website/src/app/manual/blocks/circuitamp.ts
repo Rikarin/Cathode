@@ -43,8 +43,8 @@ usually go after the Cab, as they would in an effects loop or a studio. The amp 
 - **Smooth, vocal overdrive:** ODS 97, ODS 70s, Cornford MK50H II, Lone Star, Subway Blues.
 - **Hot-rodded British and modern rock:** Silver Jubilee, JCM900 4100 and 4502, DSL100, JVM410H, BE-100 and
   BE-100 HBE, AFD100, Quick Rod, Laney GH100L, Hot Rod Deluxe.
-- **High gain:** SLO-100, 5150, 5150III, Dual Rectifier, Dual Rectifier 3-Ch, Triple Rectifier, Rect-o-Verb,
-  Mark IIC+, Mark IV, Mark V, TriAxis, Legacy VL100, Powerball, Savage 120, Prometheus.
+- **High gain:** SLO-100, 5150, 5150III, Dual Rectifier, Dual Rectifier 3-Ch, Dual Rectifier 3-Ch Orange, Triple
+  Rectifier, Rect-o-Verb, Mark IIC+, Mark IV, Mark V, TriAxis, Legacy VL100, Powerball, Savage 120, Prometheus.
 - **Bass:** SVT, Portaflex B-15N, Bassman 135, Bass 400.
 - **Solid state:** JC-120 and Valvestate 8080 (a tube preamp into a transistor power amp). Their tube-only knobs are
   hidden.
@@ -94,7 +94,10 @@ bite and cut, down to soften harsh tops. Because it acts in the feedback loop, i
 with no feedback it has nothing to work on. On the Mark IIC+ and Mark IV the presence is a rheostat in series with the
 feedback, as on the amps: turning it up lowers the feedback at every frequency and the treble's most, so the amp also
 gets a little louder and looser; at 0 it is at its darkest and tightest. A few models wire their presence elsewhere
-(the Rectifiers' is a preamp control, shown as Control 2); the ODS 70s calls it *Accent*. On the Chieftain and Hot Cat 30 this knob is the amp's
+(the Rectifiers' is shown as Control 2: a preamp treble control on the two-channel Dual Rectifier and the Rect-o-Verb;
+on the three-channel Dual Rectifier and the Triple Rectifier it is in the feedback in Raw and Vintage and a preamp
+control in Modern, and on the three-channel's orange channel a preamp control in Raw and in the feedback otherwise, so
+in that channel's Modern it does next to nothing, as on the drawing); the ODS 70s calls it *Accent*. On the Chieftain and Hot Cat 30 this knob is the amp's
 *Brilliance*, on the Tiny Terror its *Tone*: a pot and cap across the power tubes' grids, like a Vox cut but wired the
 other way, so turning it **up** puts more resistance in front of the cap and brings the treble back (0 is darkest).`,
 
@@ -586,7 +589,9 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       DSL100: 'Marshall DSL100, both channels with Clean/Crunch and Lead 1/Lead 2.',
       'JMP-1': "Marshall JMP-1 preamp (Clean and OD) into the JCM900 4100's power amp.",
       'Quick Rod': 'Splawn Quick Rod, both channels with its gear switches (the power amp is assumed).',
-      AFD100: 'Marshall AFD100 (Slash), #34 and AFD modes.'
+      AFD100: 'Marshall AFD100 (Slash), #34 and AFD modes.',
+      'Dual Rectifier 3-Ch Orange':
+        'Mesa/Boogie Dual Rectifier three-channel Solo Head, channel 2 (orange), with Raw, Vintage and Modern.'
     },
     pretube: {
       Stock: "The schematic's own preamp tubes.",

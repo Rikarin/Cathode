@@ -324,7 +324,8 @@ export const ENGINE = {
         'DSL100',
         'JMP-1',
         'Quick Rod',
-        'AFD100'
+        'AFD100',
+        'Dual Rectifier 3-Ch Orange'
       ]
     },
     {

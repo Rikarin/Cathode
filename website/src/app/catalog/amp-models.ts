@@ -88,6 +88,7 @@ export const AMP_MODELS: Record<string, { family: AmpFamily; basedOn: string }> 
   'Mark V': { family: 'highgain', basedOn: 'Mesa/Boogie Mark V' },
   'Dual Rectifier': { family: 'highgain', basedOn: 'Mesa/Boogie Dual Rectifier (2-channel)' },
   'Dual Rectifier 3-Ch': { family: 'highgain', basedOn: 'Mesa/Boogie Dual Rectifier (3-channel)' },
+  'Dual Rectifier 3-Ch Orange': { family: 'highgain', basedOn: 'Mesa/Boogie Dual Rectifier (3-channel), channel 2' },
   'Triple Rectifier': { family: 'highgain', basedOn: 'Mesa/Boogie Triple Rectifier' },
   'Rect-o-Verb': { family: 'highgain', basedOn: 'Mesa/Boogie Rect-o-Verb' },
   'Lone Star': { family: 'highgain', basedOn: 'Mesa/Boogie Lone Star' },

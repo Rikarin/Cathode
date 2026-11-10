@@ -10,10 +10,11 @@ namespace Cathode.Dsp.Amp.Models;
 ///     39k, 100k plate with 1 nF to the supply), 20 nF with 330k to ground and 220k into V3a (220k from 435 V, 1.8k
 ///     with 1 µF through 100 Ω), the cathode follower V3b (100k) into channel 3's stack (500 pF, and 180 pF more in
 ///     Modern, to the 250k linear treble; 47k; 20 nF to the 1M audio bass; 20 nF to the 25k linear middle's wiper), the
-///     presence shunt on the treble wiper (22k, 3 nF and the 100k linear presence pot) and the 1M audio master; 20 nF
-///     into a long-tail pair (82k / 91k from 435 V, 470 Ω, 10k + 4.7k tail), feedback 47k with 0.1 µF into the 4.7k
-///     except in Modern; four 6L6GC at 475 V with 1k screens, the rectifier switch (silicon or two 5U4) and
-///     Bold/Spongy.
+///     presence shunt on the treble wiper (22k and 3 nF, in Modern into the 100k linear presence pot) and the 1M audio
+///     master; 20 nF into a long-tail pair (82k / 91k from 435 V, 470 Ω, 10k + 4.7k tail), feedback 47k with 0.1 µF
+///     into the 4.7k except in Modern, with the presence pot and 0.1 µF across the 4.7k in Raw and Vintage; four 6L6GC
+///     at 475 V with 1k screens, the rectifier switch (silicon or two 5U4) and Bold/Spongy. Channel 2 (orange) is a
+///     type of its own, <see cref="Orange" />.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -31,47 +32,91 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         Against the two-channel drawing (<see cref="DualRectifier" />): the gain pot is 250k (not 1M), the cathodes
 ///         carry 100 Ω in series with their 1 µF bypasses, the grid stoppers are 475k, the stack's treble cap is 500 pF
-///         with 180 pF added in Modern (RY7a), Modern takes the feedback out (RY7b) and moves the presence pot from the
-///         feedback into the preamp shunt (RY9), and Raw drops the 680k ‖ 2 nF branch (RY6a; Raw and Vintage share the
-///         other relays). As read from the relay contacts: in Raw and Vintage the 22k and 3 nF stay on the treble wiper
-///         and the presence pot sits in the feedback; here the presence pot is the preamp shunt's rheostat in every
-///         mode (Control 2) and the feedback's presence is fixed at noon (simplified, marked).
+///         with 180 pF added in Modern (RY7a), Modern takes the feedback out (RY7b), and Raw drops the 680k ‖ 2 nF
+///         branch (RY6a).
+///     </para>
+///     <para>
+///         The presence pot (100k linear, Control 2) is moved by RY9. In Raw and Vintage it sits in the feedback: its
+///         wiper through 0.1 µF to the top of the tail's 4.7k (FB'), its top to ground, so the 0.1 µF and the pot as a
+///         rheostat lie across the 4.7k, and the 22k and 3 nF on the treble wiper go straight to ground. In Modern,
+///         which has no feedback, the pot is the rheostat under the 22k and 3 nF. The modes are the handwritten notes
+///         on the contacts ("raw vin" and "mod"). The printed relay driver on the voicing sheet would instead release
+///         RY9 in Raw alone, which leaves Modern a presence pot in a feedback that RY7b has opened, so the notes are
+///         followed.
+///     </para>
+///     <para>
+///         Channel 2 (<see cref="Orange" />) shares the five triodes, the voicing network (RY6a in Raw) and RY7b
+///         (Modern takes the feedback out). RY3 gives it a gain pot of its own with the same values and RY4 a stack of
+///         its own: 500 pF with no 180 pF, the same 47k, 20 nF, 20 nF and pots, and a presence of 33k, 3 nF and a 25k
+///         linear pot, moved by RY8. By the notes on RY8's contacts the pot is the preamp shunt's rheostat in Raw and
+///         sits in the feedback in Vintage and Modern, so in Modern, without feedback, it has next to nothing to act
+///         on (the printed driver holds RY8 on whenever the channel plays, which gives the same in Modern). In Raw the
+///         feedback has no presence branch; here the pot's whole track stays in series with the 0.1 µF across the 4.7k
+///         (4.7k ‖ 25k above 60 Hz: simplified, marked).
 ///     </para>
 ///     <para>
 ///         Guesses, marked: the feedback tap (8 Ω); the 120 pF across each inverter plate resistor, the 75 pF between
 ///         the plates and the master's 10 pF are left out; the effects loop and the Output/Solo controls are bypassed.
 ///         Not printed: the output transformer (1.9k), the idle current (40 mA). Raw is on the Bright switch (the
-///         panel's three-way is Raw / Vintage / Modern; with Raw and Modern both on, Raw's voicing and Modern's stack,
-///         feedback and presence apply together).
+///         panel's three-way is Raw / Vintage / Modern; with Raw and Modern both on, Raw's voicing and Modern's stack
+///         and feedback apply together, and on channel 3 Modern's presence). Channel 1 (Clean / Pushed: its own stack
+///         ahead of V2a, then V1b) is not modelled.
 ///     </para>
 /// </remarks>
 public static class DualRectifier3Channel {
+    /// <summary>Channel 3 (red).</summary>
     public static AmpDesign Design { get; } = new(
         "Dual Rectifier 3-Ch",
-        [
-            new NetworkStageDesign("V1a", DualRectifier.InputStage(413, 100)) { SupplyNode = 2 },
-            new NetworkStageDesign(
-                "V2a",
-                DualRectifier.GainStage(new(250e3, PotTaper.Audio), 475e3, 394, 100, SwitchRole.Bright)
-            ) { SupplyNode = 1 },
-            new NetworkStageDesign("V2b", DualRectifier.ColdClipper(475e3, 394)) { SupplyNode = 1 },
-            new NetworkStageDesign("V3a", DualRectifier.FourthStage(435, 100)),
-            new NetworkStageDesign(
-                "V3b",
-                DualRectifier.FollowerAndStack(435, 500e-12, 180e-12, new(100e3, PotTaper.Linear))
-            )
-        ],
-        DualRectifier.Design.Power with {
-            Supply = 475,
-            PhaseInverter = new LongTailPairDesign(TriodeModel.Ecc83, 435, 82e3, 91e3, 14.7e3, 470),
-            Feedback = new(1, 47e3, 4.7e3, new(100e3, PotTaper.Linear), 0.1e-6),
-            // 220 + 220 µF stacked, the choke to B's 30 µF, 2.7k to C's three 10 µF parts: 471 V to 435 V is 13.3 mA.
-            PowerSupply = new(30, 110e-6, 100, 30e-6, 2.7e3, 30e-6, 13.3e-3, RectifierModel.Silicon)
-        },
+        Preamp(180e-12, new(100e3, PotTaper.Linear), 22e3, SwitchRole.Switch1),
+        Power(new(100e3, PotTaper.Linear), null),
         -7
     ) {
         Panel = DualRectifier.Design.Panel with { Bright = "Raw" },
         // From C: 15k to D (V2) and 22k to E (V1a), two 10 µF parts on each.
         PreampSupply = DualRectifier.Decoupling(394, 413, 20e-6, 435)
     };
+
+    /// <summary>
+    ///     Channel 2 (orange): channel 3's preamp into its own stack and presence (33k, 3 nF, 25k linear; the pot in
+    ///     the shunt in Raw, in the feedback otherwise).
+    /// </summary>
+    public static AmpDesign Orange { get; } = Design with {
+        Name = "Dual Rectifier 3-Ch Orange",
+        Preamp = Preamp(null, new(25e3, PotTaper.Linear), 33e3, SwitchRole.Bright),
+        Power = Power(new(25e3, PotTaper.Linear), new(SwitchRole.Bright))
+    };
+
+    /// <summary>
+    ///     V1a to V3b with a channel's stack: <paramref name="modern" /> beside the 500 pF treble cap in Modern, and
+    ///     the presence shunt (<paramref name="shunt" />, 3 nF, <paramref name="presence" />) with the pot in it while
+    ///     <paramref name="shuntMode" /> is on.
+    /// </summary>
+    static AmpStageDesign[] Preamp(double? modern, Pot presence, double shunt, SwitchRole shuntMode) => [
+        new NetworkStageDesign("V1a", DualRectifier.InputStage(413, 100)) { SupplyNode = 2 },
+        new NetworkStageDesign(
+            "V2a",
+            DualRectifier.GainStage(new(250e3, PotTaper.Audio), 475e3, 394, 100, SwitchRole.Bright)
+        ) { SupplyNode = 1 },
+        new NetworkStageDesign("V2b", DualRectifier.ColdClipper(475e3, 394)) { SupplyNode = 1 },
+        new NetworkStageDesign("V3a", DualRectifier.FourthStage(435, 100)),
+        new NetworkStageDesign(
+            "V3b",
+            DualRectifier.FollowerAndStack(435, 500e-12, modern, presence, shunt, shuntMode)
+        )
+    ];
+
+    /// <summary>
+    ///     The power amp with a channel's <paramref name="presence" /> pot (Control 2) and 0.1 µF across the tail's
+    ///     4.7k, the pot out of the feedback while <paramref name="presenceOut" /> is on.
+    /// </summary>
+    static PowerAmpDesign Power(Pot presence, PresenceOutDesign? presenceOut) =>
+        DualRectifier.Design.Power with {
+            Supply = 475,
+            PhaseInverter = new LongTailPairDesign(TriodeModel.Ecc83, 435, 82e3, 91e3, 14.7e3, 470),
+            Feedback = new(1, 47e3, 4.7e3, presence, 0.1e-6),
+            // 220 + 220 µF stacked, the choke to B's 30 µF, 2.7k to C's three 10 µF parts: 471 V to 435 V is 13.3 mA.
+            PowerSupply = new(30, 110e-6, 100, 30e-6, 2.7e3, 30e-6, 13.3e-3, RectifierModel.Silicon),
+            PresencePot = PotRole.Control2,
+            PresenceOut = presenceOut
+        };
 }

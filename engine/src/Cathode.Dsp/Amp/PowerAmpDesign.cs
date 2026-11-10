@@ -118,6 +118,15 @@ public sealed record SpeakerDesign(
 }
 
 /// <summary>
+///     A relay that takes the presence pot out of the feedback while <paramref name="Switch" /> is on (or, with
+///     <paramref name="WhileOn" /> false, while it is off): the feedback's presence then stays at
+///     <paramref name="Rotation" /> whatever the knob. 0, the pot's whole track in series with the cap, is the nearest
+///     the network comes to no presence branch (the three-channel Rectifier's channel 2 in Raw); another rotation is a
+///     fixed resistor the relay puts in the pot's place (the Rect-o-Verb's 5.6k on the lead channel).
+/// </summary>
+public readonly record struct PresenceOutDesign(SwitchRole Switch, bool WhileOn = true, double Rotation = 0);
+
+/// <summary>
 ///     Global negative feedback from a speaker tap to the bottom of the phase inverter's tail: the feedback resistor
 ///     into a shunt resistor, with the presence control (a pot in series with a cap) across the shunt, which lowers the
 ///     feedback, and so lifts the response, at high frequencies; or, with <see cref="PresenceIsShunt" />, the presence
@@ -536,6 +545,14 @@ public enum PowerTopology {
 ///     brighter, and the Circuit Amp's Presence knob (which these panels name after the control) turns it, from noon
 ///     by default. The Cut knob and the feedback's presence then do nothing (the presence stays at noon).
 /// </param>
+/// <param name="PresencePot">
+///     The model control that turns the feedback's presence pot in place of the Presence knob: one presence pot that
+///     the amp's relays move between the feedback and a preamp stage (the three-channel Rectifiers', on Control 2).
+///     Null for the Presence knob.
+/// </param>
+/// <param name="PresenceOut">
+///     A front-panel switch whose relay takes the presence pot out of the feedback (see the type); null for none.
+/// </param>
 public sealed record PowerAmpDesign(
     string Name,
     PentodeModel Tube,
@@ -570,7 +587,9 @@ public sealed record PowerAmpDesign(
     double ScreenSupply = 0,
     SwitchRole? FeedbackOffSwitch = null,
     LoopStageDesign? Loop = null,
-    bool Brilliance = false
+    bool Brilliance = false,
+    PotRole? PresencePot = null,
+    PresenceOutDesign? PresenceOut = null
 ) {
     /// <summary>1 when single-ended, else 2.</summary>
     public int Sides => Topology == PowerTopology.SingleEnded ? 1 : 2;
