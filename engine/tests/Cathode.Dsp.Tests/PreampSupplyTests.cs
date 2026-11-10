@@ -178,6 +178,7 @@ public class PreampSupplyTests {
     [InlineData("Mark IV")] // the same supply: its sheets name the nodes and print no voltages
     [InlineData("Mark IV Rhythm 1")]
     [InlineData("Mark IV Rhythm 2")]
+    [InlineData("5150III Clean/Crunch")] // #306: the service diagram's Y, X and W: 402, 341 and 297 V
     public void Assumed_rails_are_the_chains_rest_voltages(string type) {
         var design = AmpDesign.All.Single(a => a.Name == type);
         var channel = new AmpChannel(design, 2 * Rate);

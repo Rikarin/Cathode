@@ -71,7 +71,8 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
             : design.CathodeBias && design.Tube == PentodeModel.EL34 ? 1.5
             : design.CathodeBias && design.Tube == PentodeModel.SixV6GT ? 1
             : 0.9;
-        var coldest = design.IdleCurrent < 0.02 ? 0.15 : 0.4;
+        // The 5150III's service diagram sets 20 mA a tube at 485 V (9.7 W of 30 W), so 20 mA counts as cold too.
+        var coldest = design.IdleCurrent <= 0.02 ? 0.15 : 0.4;
         Assert.InRange(dissipation, coldest * rating, hot * rating);
         Assert.InRange(power.Supply, 0.97 * design.Supply, 1.03 * design.Supply);
     }

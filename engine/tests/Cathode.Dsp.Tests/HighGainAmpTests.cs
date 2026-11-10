@@ -23,7 +23,9 @@ namespace Cathode.Dsp.Tests;
 ///     taken at 1 kHz) costs more: -15 dB in the linear range (it was under -22) and -9 dB driven hard. The
 ///     Rectifier's chain
 ///     was -60 dB while it followed a redraw without the plate cap; the factory drawing has 1 nF there, and it is -8
-///     dB.
+///     dB. The rhythm and clean channels have no cold clipper and are here for the same check of their first four
+///     stages: the 5150's rhythm channel -31 dB, the 5150III's channels one and two -26 dB (-23 dB on channel two
+///     driven hard).
 /// </remarks>
 public partial class AmpStageTests {
     public static TheoryData<string, bool, double, double> ColdClipperChains =>
@@ -34,8 +36,14 @@ public partial class AmpStageTests {
             { "SLO-100", true, 0.05, -28 },
             { "5150", false, 0.002, -25 },
             { "5150", false, 0.05, -20 },
+            { "5150", true, 0.002, -27 },
+            { "5150", true, 0.05, -27 },
             { "Dual Rectifier", false, 0.05, -5 },
             { "5150III", false, 0.05, -6 },
+            { "5150III Clean/Crunch", false, 0.002, -23 },
+            { "5150III Clean/Crunch", false, 0.05, -23 },
+            { "5150III Clean/Crunch", true, 0.002, -23 },
+            { "5150III Clean/Crunch", true, 0.05, -20 },
             { "Legacy VL100", false, 0.002, -21 },
             { "Legacy VL100", false, 0.05, -14 },
             { "Legacy VL100", true, 0.05, -45 }
@@ -102,7 +110,8 @@ public partial class AmpStageTests {
 public class HighGainAmpTests(ITestOutputHelper output) {
     const double Rate = 48_000;
 
-    static readonly string[] Models = ["SLO-100", "Mark IIC+", "5150", "Dual Rectifier", "5150III", "Mark IV"];
+    static readonly string[] Models =
+        ["SLO-100", "Mark IIC+", "5150", "Dual Rectifier", "5150III", "Mark IV", "5150III Clean/Crunch"];
 
     public static TheoryData<string> Types => [..Models];
 
@@ -128,6 +137,213 @@ public class HighGainAmpTests(ITestOutputHelper output) {
 
         Assert.Equal("Normal Ch", Label("switch1", "SLO-100"));
         Assert.Empty(Label("eq1", "5150"));
+        Assert.Equal(["Rhythm Ch", "Crunch", string.Empty], Switches("5150"));
+        Assert.Equal("Bright", Label("bright", "5150"));
+        Assert.Equal(["Crunch", string.Empty, string.Empty], Switches("5150III Clean/Crunch"));
+        Assert.Equal("Volume", Label("master", "5150III Clean/Crunch"));
+        Assert.Equal("Resonance", Label("depth", "5150III Clean/Crunch"));
+        Assert.Empty(Label("bright", "5150III Clean/Crunch"));
+    }
+
+    /// <summary>
+    ///     Issue #306: Fender's service diagram for the 5150-III prints the signal at test points along channels one
+    ///     and two for a 1 kHz sine at the jack (10.7 mV on channel one, 17.0 mV on channel two), every control at half
+    ///     rotation but Two Gain at 20 %, and allows 20 %: TP3 (V1B's plate), TP5 (V2A's), TP7 (V2B's), TP9 (V3A's),
+    ///     and 1.10 V at the top of the playing channel's volume (TP11, TP12), which at half rotation leaves 30 % of
+    ///     the track, loaded by the 10M after the relays, below the wiper. The channel's netlists are joined in one
+    ///     reference circuit (so each plate carries the next stage's load, as the test point does) and taken
+    ///     small-signal at its operating point; the WDF stages against the same circuit are
+    ///     <see cref="AmpStageTests.Cold_clipper_chains_match_the_reference" />'s.
+    /// </summary>
+    /// <remarks>
+    ///     Held stage by stage (each test point over the one before it), which is what the netlist between the two
+    ///     decides. Every stage is within the sheet's 20 % but two. V1B's gain is 50 where the sheet has 41 on both
+    ///     channels (a 12AX7 of 100 and 62k into about 200k gives 50; the sheet's figure is a weaker tube's), so it is
+    ///     held to 25 %. And channel two's gain pot at 20 % of its rotation: the model's audio law leaves 9 % of the
+    ///     track below the wiper there, the sheet's TP5 is what 3.4 % would give (the model at 0.8 of 10), so the
+    ///     model is 2.2 times the sheet at that one point. A real 30 % pot is not exponential near the bottom of its
+    ///     travel, and the sheet's "9 o'clock" is a nominal setting; from TP5 on, channel two's stages agree with the
+    ///     sheet to 3 %. With the knob at noon channel one lands within 7 % of every printed voltage after TP3.
+    /// </remarks>
+    [Theory]
+    [InlineData(false, 0.0107, 0.5, 0.442, 0.737, 2.39, 22.3)]
+    [InlineData(true, 0.0170, 0.2, 0.709, 0.408, 3.72, 34.5)]
+    public void The_5150III_clean_and_crunch_channels_reach_the_service_diagrams_test_voltages(
+        bool two,
+        double input,
+        double gain,
+        double tp3,
+        double tp5,
+        double tp7,
+        double tp9
+    ) {
+        var channel = Assert.IsType<ChannelSwitchStageDesign>(Evh5150III.CleanCrunch.Preamp[1]);
+        AmpStageDesign[] designs = [Evh5150III.CleanCrunch.Preamp[0], ..two ? channel.On : channel.Off];
+        var controls = new AmpControls(gain, 0.5, 0.5, 0.5, 0.5, false, Switch1: two);
+        var circuit = new ReferenceCircuit();
+        var jack = circuit.Node();
+        circuit.Source(jack, 0, static _ => 0);
+        var nodes = new int[designs.Length];
+        var node = jack;
+        for (var i = 0; i < designs.Length; i++) {
+            var network = designs[i] is TriodeStageDesign triode ? triode.ToNetwork() : (NetworkStageDesign)designs[i];
+            nodes[i] = node = AmpReferences.Append(circuit, network, controls, PreampSettings.Stock, node);
+        }
+
+        var reference = new ReferenceSimulator(circuit);
+        reference.OperatingPoint(40);
+        var below = 1 / (1 / 0.3e6 + 1 / (two ? 10e6 : 5e6));
+        double[] printed = [tp3, tp5, tp7, tp9, 1.10 * below / (0.7e6 + below)];
+        var (before, printedBefore) = (input, input);
+        for (var i = 0; i < designs.Length; i++) {
+            var volts = input * reference.Ac(new(0, 2 * Math.PI * 1_000), 0, nodes[i], linearised: true).Magnitude;
+            var (gain1k, printedGain) = (volts / before, printed[i] / printedBefore);
+            output.WriteLine(
+                $"{designs[i].Name}: {volts:0.000} V for the sheet's {printed[i]:0.000} V; the stage's gain "
+                + $"{gain1k:0.000} for {printedGain:0.000} ({100 * (gain1k / printedGain - 1):+0;-0} %)"
+            );
+            var (low, high) = i == 0 ? (1, 1.25) : two && i == 1 ? (1.8, 2.6) : (0.8, 1.2);
+            Assert.InRange(gain1k / printedGain, low, high);
+            (before, printedBefore) = (volts, printed[i]);
+        }
+    }
+
+    /// <summary>
+    ///     Issue #306: what tells the service diagram's channel two from channel one, and the type from the red one.
+    ///     K2B grounds 68k at V2B's grid on channel one and 330k ahead of its 390k on channel two; channel one's stack
+    ///     has 250 pF and a 100k slope, channel two's 470 pF and 47k behind 43k; each channel's Gain is its own 250k
+    ///     pot with the other one a fixed load. The power amp is the red type's with the sheet's 20 mA bias and its
+    ///     rails: X (V3A, V3B) on node 1 and W (V1B, V2A, V2B) on node 2.
+    /// </summary>
+    [Fact]
+    public void The_5150III_clean_and_crunch_channels_have_the_service_diagrams_parts() {
+        var design = Evh5150III.CleanCrunch;
+        var channel = Assert.IsType<ChannelSwitchStageDesign>(design.Preamp[1]);
+        Assert.Equal(SwitchRole.Switch1, channel.Switch);
+        foreach (var chain in new[] { channel.Off, channel.On }) {
+            Assert.Equal([2, 2, 1, 1], chain.Select(static s => s.SupplyNode));
+            var gain = Elements(chain[0]);
+            Assert.Equal(
+                2,
+                gain.Count(static e => e is { Role: PotRole.Gain, Value: 250e3 } && e.Part != PotPart.None)
+            );
+            Assert.Contains(gain, static e => e is { Kind: ElementKind.Resistor, Value: 250e3, Part: PotPart.None });
+            Assert.Contains(gain, static e => e is { Kind: ElementKind.Capacitor, Value: 750e-12 });
+            Assert.Contains(gain, static e => e is { Kind: ElementKind.Capacitor, Value: 4.7e-9 });
+        }
+
+        Assert.True(Has(channel.Off[1], ElementKind.Resistor, 68e3));
+        Assert.False(Has(channel.Off[1], ElementKind.Resistor, 330e3));
+        Assert.True(Has(channel.On[1], ElementKind.Resistor, 330e3));
+        Assert.False(Has(channel.On[1], ElementKind.Resistor, 68e3));
+        Assert.True(Has(channel.Off[3], ElementKind.Capacitor, 250e-12));
+        Assert.True(Has(channel.Off[3], ElementKind.Resistor, 100e3));
+        Assert.False(Has(channel.Off[3], ElementKind.Resistor, 43e3));
+        Assert.True(Has(channel.On[3], ElementKind.Capacitor, 470e-12));
+        Assert.True(Has(channel.On[3], ElementKind.Resistor, 47e3));
+        Assert.Equal(2, Elements(channel.On[3]).Count(static e => e is { Kind: ElementKind.Resistor, Value: 43e3 }));
+
+        var red = Evh5150III.Design.Power;
+        Assert.Equal(0.020, design.Power.IdleCurrent);
+        Assert.Equal(red with { IdleCurrent = 0.020, PowerSupply = design.Power.PowerSupply }, design.Power);
+        var (x, w) = (design.PreampSupply!.Nodes[0], design.PreampSupply.Nodes[1]);
+        Assert.Equal((5e3, 47e-6, 0), (x.Resistance, x.Cap, x.Parent));
+        Assert.Equal((10e3, 22e-6, 1), (w.Resistance, w.Cap, w.Parent));
+        Assert.Equal(7.8e-3, x.Current, 1e-9);
+        Assert.Equal(4.4e-3, w.Current, 1e-9);
+
+        static IReadOnlyList<StageElement> Elements(AmpStageDesign stage) =>
+            Assert.IsType<NetworkStageDesign>(stage).Netlist.Elements;
+
+        static bool Has(AmpStageDesign stage, ElementKind kind, double value) =>
+            Elements(stage).Any(e => e.Kind == kind && e.Value == value && e.Part == PotPart.None);
+    }
+
+    /// <summary>
+    ///     Issue #306, on the block: small-signal at 1 kHz with the knobs alike, channel two has more gain than channel
+    ///     one and the red type far more than either; at a guitar's level with the gain up, channel two distorts where
+    ///     channel one stays nearly clean.
+    /// </summary>
+    [Fact]
+    public void The_5150III_crunch_channel_has_more_gain_than_the_clean_and_less_than_the_red() {
+        const string Type = "5150III Clean/Crunch";
+        (int, float) gainAt5 = (CircuitAmpBlock.Gain, 5f);
+        var clean = Small(Type, 1_000, gainAt5);
+        var crunch = Small(Type, 1_000, gainAt5, (CircuitAmpBlock.Switch1, 1f));
+        var red = Small("5150III", 1_000, gainAt5);
+        output.WriteLine($"1 kHz, gain 5: clean {clean:0.0} dB, crunch {crunch:0.0} dB, red {red:0.0} dB");
+        Assert.True(crunch - clean > 6, $"channel two is only {crunch - clean:0.0} dB over channel one");
+        Assert.True(red - crunch > 10, $"the red channel is only {red - crunch:0.0} dB over channel two");
+
+        var (cleanThd, crunchThd) = (Distortion(0f), Distortion(1f));
+        output.WriteLine($"THD at 20 mV, gain 5: clean {100 * cleanThd:0.0} %, crunch {100 * crunchThd:0.0} %");
+        Assert.True(crunchThd > 3 * cleanThd, $"crunch {100 * crunchThd:0.0} %, clean {100 * cleanThd:0.0} %");
+
+        // A coherent sine (bin 171 of 8192: 1002 Hz, above channel two's 750 pF coupling) with the volume low, so
+        // that the power amp stays clean.
+        static double Distortion(float crunchOn) {
+            using var block = Create(
+                Type,
+                (CircuitAmpBlock.Gain, 5f),
+                (CircuitAmpBlock.Master, 2f),
+                (CircuitAmpBlock.Switch1, crunchOn)
+            );
+            var rendered = BlockRender.Mono(block, Signals.Sine(171 * Rate / 8_192, Rate, 32_768, 0.02f), 64);
+            return Analysis.Thd(rendered.AsSpan(rendered.Length - 8_192), 171);
+        }
+    }
+
+    /// <summary>
+    ///     Issue #201: the 5150's rhythm channel as the factory pages draw it with their relays at rest. V1B's cathode
+    ///     has C26's 22 µF beside the 1 µF and V2A's grid R20's 220k beside the 1M (K1), which the lead channel has
+    ///     neither of; Crunch (K4) swaps 470k ‖ 270 pF for 2.2M ‖ 470 pF and lifts the 39k shunt; Bright closes 470
+    ///     pF across the 1M.
+    /// </summary>
+    [Fact]
+    public void The_5150_rhythm_channel_has_the_scans_parts() {
+        var channel = Assert.IsType<ChannelSwitchStageDesign>(Peavey5150.Design.Preamp[1]);
+        Assert.Equal(SwitchRole.Switch1, channel.Switch);
+        var lead = Assert.IsType<NetworkStageDesign>(channel.Off[0]).Netlist.Elements;
+        var rhythm = Assert.IsType<NetworkStageDesign>(channel.On[0]).Netlist.Elements;
+        Assert.Contains(rhythm, static e => e is { Kind: ElementKind.Capacitor, Value: 22e-6, B: StageNetlist.Ground });
+        Assert.DoesNotContain(lead, static e => e is { Kind: ElementKind.Capacitor, Value: 22e-6 });
+        Assert.Contains(rhythm, static e => e is { Value: 2.2e6, OffValue: 470e3, Switch: SwitchRole.Switch2 });
+        Assert.Contains(rhythm, static e => e is { Value: 470e-12, OffValue: 270e-12, Switch: SwitchRole.Switch2 });
+        Assert.Contains(rhythm, static e => e is { OffValue: 39e3, Switch: SwitchRole.Switch2 });
+        Assert.Contains(rhythm, static e => e is { Kind: ElementKind.Resistor, Switch: SwitchRole.Bright });
+        Assert.DoesNotContain(lead, static e => e.Switch is not null);
+
+        Assert.Equal(1e6, Assert.IsType<TriodeStageDesign>(channel.Off[1]).GridLeak);
+        Assert.Equal(1e6 * 220e3 / (1e6 + 220e3), Assert.IsType<TriodeStageDesign>(channel.On[1]).GridLeak, 1e-6);
+    }
+
+    /// <summary>
+    ///     Issue #201, on the block: small-signal at 1 kHz the rhythm channel is far below the lead (its pre gain
+    ///     sits behind 470k and 1M with 39k to ground), Crunch gives most of that back, and Crunch and Bright do
+    ///     nothing while the lead channel plays. Bright lifts the treble of the rhythm channel at a low gain setting
+    ///     and leaves its lows within 1 dB (at 100 Hz the closed cap's current leads the 39k + 0.1 µF shunt's, and
+    ///     the level falls by half a dB).
+    /// </summary>
+    [Fact]
+    public void The_5150_rhythm_channel_is_clean_until_crunch_and_bright_lifts_its_treble() {
+        static double Level(double frequency, params (int Index, float Value)[] settings) =>
+            Small("5150", frequency, [(CircuitAmpBlock.Gain, 3f), ..settings]);
+
+        (int, float) rhythmOn = (CircuitAmpBlock.Switch1, 1f);
+        (int, float) crunchOn = (CircuitAmpBlock.Switch2, 1f);
+        (int, float) brightOn = (CircuitAmpBlock.Bright, 1f);
+        var (lead, rhythm, crunch) = (Level(1_000), Level(1_000, rhythmOn), Level(1_000, rhythmOn, crunchOn));
+        output.WriteLine($"1 kHz: lead {lead:0.0} dB, rhythm {rhythm:0.0} dB, with Crunch {crunch:0.0} dB");
+        Assert.True(lead - rhythm > 20, $"the lead is only {lead - rhythm:0.0} dB over the rhythm channel");
+        Assert.InRange(crunch - rhythm, 10, 35);
+        Assert.True(lead > crunch, "Crunch has more gain than the lead");
+        Assert.Equal(lead, Level(1_000, crunchOn, brightOn), 6);
+
+        var high = Level(5_000, rhythmOn, brightOn) - Level(5_000, rhythmOn);
+        var low = Level(100, rhythmOn, brightOn) - Level(100, rhythmOn);
+        output.WriteLine($"Bright on the rhythm channel: {high:+0.0;-0.0} dB at 5 kHz, {low:+0.0;-0.0} dB at 100 Hz");
+        Assert.True(high > 3, "Bright does not lift the treble");
+        Assert.InRange(low, -1, 0.5);
     }
 
     /// <summary>
@@ -429,6 +645,13 @@ public class HighGainAmpTests(ITestOutputHelper output) {
             var rendered = BlockRender.Mono(block, Signals.Sine(frequency, Rate, 24_000, 1e-4f), 64);
             return Analysis.ToDb(Analysis.Rms(rendered.AsSpan(12_000)));
         }
+    }
+
+    /// <summary>The level in dB of a 0.1 mV sine through the block, with the master at 3.</summary>
+    static double Small(string type, double frequency, params (int Index, float Value)[] settings) {
+        using var block = Create(type, [(CircuitAmpBlock.Master, 3f), ..settings]);
+        var rendered = BlockRender.Mono(block, Signals.Sine(frequency, Rate, 24_000, 1e-4f), 64);
+        return Analysis.ToDb(Analysis.Rms(rendered.AsSpan(12_000)));
     }
 
     static int TypeOf(string name) => AmpDesign.All.ToList().FindIndex(a => a.Name == name);

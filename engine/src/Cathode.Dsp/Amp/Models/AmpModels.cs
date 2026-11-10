@@ -106,6 +106,7 @@ public sealed partial record AmpDesign {
         TripleRectifier.Orange,
         TripleRectifier.Clean,
         MarkV.Clean,
-        MarkV.Crunch
+        MarkV.Crunch,
+        Evh5150III.CleanCrunch
     ];
 }
