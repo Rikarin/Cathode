@@ -103,6 +103,18 @@ interface LcdFigure {
             <button xuiButton type="button" variant="outline" size="sm" (click)="toggleLog()">
               {{ engineLog() === null ? 'Show engine log' : 'Hide engine log' }}
             </button>
+            @if (engineLog(); as log) {
+              <button
+                xuiButton
+                type="button"
+                variant="ghost"
+                size="sm"
+                data-testid="copy-engine-log"
+                (click)="copyLog(log)"
+              >
+                Copy
+              </button>
+            }
           </div>
           @if (engineLog(); as log) {
             <pre
@@ -618,6 +630,16 @@ export class SetupPage {
     this.engineLog.set(
       [...section('cathode-host', logs.host), '', ...section('cathode-server', logs.server)].join('\n')
     );
+  }
+
+  /** Puts the log as shown on the clipboard, to paste into a bug report. */
+  protected async copyLog(log: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(log);
+      this.notify.success('Copied the engine log.');
+    } catch (error) {
+      this.notify.error(error);
+    }
   }
 
   protected async latencyTest(): Promise<void> {
