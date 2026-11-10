@@ -10,15 +10,18 @@ const TokenKey = 'cathode.token:';
  * Where the Server is. In the desktop app the preload says (its sidecars, or a remote Server). In a browser: the
  * `server` query parameter; else the page's own origin when the Server served the editor (a headless rig, which marks
  * the page with `<meta name="cathode-server" content="same-origin">`); else a development Server on this machine. The
- * token comes from the `token` query parameter or the one remembered for that Server in this browser, and the address
- * keeps it: a Home Screen shortcut or bookmark made from the page opens straight in (an iPad's Home Screen app has
- * storage of its own, so it cannot find the one Safari remembered).
+ * token comes from the `token` query parameter or the one remembered for that Server in this browser. Once it is
+ * remembered it leaves the address: there it would be on screen, in the history and in the request line of every page
+ * load. {@link showTokenInAddress} puts it back on request, for a Home Screen shortcut or bookmark that opens signed in
+ * (an iPad's Home Screen app has storage of its own, so it cannot find the one Safari remembered).
  */
 @Injectable({ providedIn: 'root' })
 export class ConnectionService {
   readonly desktop: CathodeDesktop | null = typeof window !== 'undefined' ? (window.cathode ?? null) : null;
   readonly connection = signal<Connection | null>(null);
   private api: CathodeClient | null = null;
+  /** The address shows the token because {@link showTokenInAddress} was asked to. */
+  readonly tokenInAddress = signal(false);
 
   /**
    * In a browser, the Server refused this connection's token after the editor had started: the token was replaced (the
@@ -40,9 +43,10 @@ export class ConnectionService {
     const connection = this.desktop
       ? await this.desktop.connection()
       : fromLocation(window.location, servedByServer(document), storedToken);
-    if (!this.desktop && connection.token) {
-      rememberToken(connection.baseUrl, connection.token);
-      showTokenInAddress(window, connection.token);
+    if (!this.desktop && connection.token && rememberToken(connection.baseUrl, connection.token)) {
+      // Not when the browser keeps nothing (a private window): the address is then the only place that has it.
+      replaceAddress(window, addressWithoutToken(window.location.href));
+      this.tokenInAddress.set(false);
     }
 
     this.api = createCathodeClient(connection, async request => {
@@ -77,9 +81,21 @@ export class ConnectionService {
   /** Keeps a token typed in the browser for this Server; the next {@link connect} uses it. */
   useToken(token: string): void {
     const baseUrl = this.connection()?.baseUrl;
-    if (baseUrl) {
-      rememberToken(baseUrl, token.trim());
-      showTokenInAddress(window, token.trim()); // the address's token wins over the stored one
+    if (baseUrl && !rememberToken(baseUrl, token.trim())) {
+      // Nothing is kept in this browser, so the address carries it (and replaces a token it still has, which wins).
+      replaceAddress(window, addressWithToken(window.location.href, token.trim()));
+    }
+  }
+
+  /**
+   * Puts this connection's token in the page's address, in a browser, so a Home Screen shortcut or bookmark made now
+   * opens signed in. It stays until the page loads again.
+   */
+  showTokenInAddress(): void {
+    const token = this.connection()?.token;
+    if (!this.desktop && token) {
+      replaceAddress(window, addressWithToken(window.location.href, token));
+      this.tokenInAddress.set(true);
     }
   }
 }
@@ -99,10 +115,7 @@ function servedByServer(document: Document): boolean {
   return document.querySelector('meta[name="cathode-server"]')?.getAttribute('content') === 'same-origin';
 }
 
-/**
- * `href` with `token` as its `token` query parameter, or null when it already has it. The token stays in the address
- * so a Home Screen shortcut or bookmark made from the page carries it; the hash (the editor's route) is kept.
- */
+/** `href` with `token` as its `token` query parameter, or null when it already has it; the hash (the route) is kept. */
 export function addressWithToken(href: string, token: string): string | null {
   const url = new URL(href);
   if (url.searchParams.get('token') === token) {
@@ -113,8 +126,18 @@ export function addressWithToken(href: string, token: string): string | null {
   return url.toString();
 }
 
-function showTokenInAddress(window: Window, token: string): void {
-  const address = addressWithToken(window.location.href, token);
+/** `href` without its `token` query parameter, or null when it has none; the rest of the address is kept. */
+export function addressWithoutToken(href: string): string | null {
+  const url = new URL(href);
+  if (!url.searchParams.has('token')) {
+    return null;
+  }
+
+  url.searchParams.delete('token');
+  return url.toString();
+}
+
+function replaceAddress(window: Window, address: string | null): void {
   if (address) {
     window.history.replaceState(window.history.state, '', address);
   }
@@ -128,10 +151,12 @@ function storedToken(baseUrl: string): string | null {
   }
 }
 
-function rememberToken(baseUrl: string, token: string): void {
+/** Whether the browser kept it: a private window or blocked storage keeps nothing. */
+function rememberToken(baseUrl: string, token: string): boolean {
   try {
     localStorage.setItem(TokenKey + baseUrl, token);
+    return localStorage.getItem(TokenKey + baseUrl) === token;
   } catch {
-    // private window or blocked storage: the token works for this visit only
+    return false;
   }
 }

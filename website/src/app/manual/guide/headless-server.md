@@ -97,7 +97,7 @@ If you lose the token, it is the `Cathode__Token` line in `/etc/cathode/cathode.
 sudo grep Cathode__Token /etc/cathode/cathode.env
 ```
 
-> **Tip:** The editor also reads a `server` and a `token` from its address, for example `?server=http://192.168.1.20:5180`, which lets an editor served from one place talk to a server somewhere else. A token in the address (a scanned QR code's) is remembered, and the address keeps it, so a bookmark or a Home Screen shortcut made from the page opens straight in. That matters on an iPad, where a Home Screen app has storage of its own and cannot find the token Safari remembered. Treat such a link like the token itself: anyone who has it can open the editor.
+> **Tip:** The editor also reads a `server` and a `token` from its address, for example `?server=http://192.168.1.20:5180`, which lets an editor served from one place talk to a server somewhere else. A token in the address (a scanned QR code's) is remembered and then leaves the address, so it is not on screen or in the browser's history. An iPad's Home Screen app has storage of its own and cannot find the token Safari remembered, so it asks for the token once. To make a Home Screen shortcut or a bookmark that opens signed in, choose **Settings ▸ Audio setup ▸ Home Screen shortcut ▸ Put the token in the address** first, then add the page. Treat such a link like the token itself: anyone who has it can open the editor.
 
 ## Connect from the desktop app
 
