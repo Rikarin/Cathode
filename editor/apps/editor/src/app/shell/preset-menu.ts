@@ -352,6 +352,7 @@ export class PresetMenu {
 
   protected async loadSnapshot(snapshot: SnapshotSummary): Promise<void> {
     if (await this.live.loadSnapshot(snapshot.id)) {
+      this.compare.reset();
       this.snapshotsOpen.set(false);
     }
   }

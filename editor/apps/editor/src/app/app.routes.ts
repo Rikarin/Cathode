@@ -1,4 +1,5 @@
 import type { Route } from '@angular/router';
+import { askBeforeLeaving } from './core/leave-guard';
 
 export const appRoutes: Route[] = [
   { path: '', loadComponent: () => import('./pages/editor-page').then(m => m.EditorPage), title: 'Cathode' },
@@ -36,6 +37,7 @@ export const appRoutes: Route[] = [
   {
     path: 'manage',
     loadComponent: () => import('./pages/manage-page').then(m => m.ManagePage),
+    canDeactivate: [askBeforeLeaving],
     title: 'Manage presets · Cathode'
   },
   { path: '**', redirectTo: '' }

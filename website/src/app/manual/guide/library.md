@@ -58,7 +58,7 @@ To organise banks, choose **Preset ▸ Manage presets…** in the preset bar. Th
 - With slots selected: **Rename…** (one preset), **Duplicate**, **Colour**, **Favourite** and **Delete**.
 - **Reset Amp blocks…**: puts every Amp setting of the selected presets back to its default, except each amp's own front-panel knobs and switches. Useful after changing your speakers or your guitar, when the expert settings you tuned before no longer fit.
 
-Your changes to slots, names, colours and favourites are held, and marked with a dot, until you click **Save**. **Close** goes back to the editor and discards anything not saved. Creating, renaming and deleting **banks** happens at once, and **Reset Amp blocks** changes the stored presets at once after a confirmation.
+Your changes to slots, names, colours and favourites are held, and marked with a dot, until you click **Save**. **Close** goes back to the editor. Leaving the page, by **Close** or any other way, discards anything not saved; Cathode asks first. If a step of **Save** fails, the message names it, the changes not saved yet stay on the page, and **Save** tries them again. A preset that a setlist holds is not deleted: the rest is saved, and the message says which setlist to take it out of first. Creating, renaming and deleting **banks** happens at once, and **Reset Amp blocks** changes the stored presets at once after a confirmation.
 
 From the factory bank you can drag presets into your own banks. **⇧-drag** makes a copy you can change.
 

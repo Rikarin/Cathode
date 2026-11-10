@@ -79,6 +79,48 @@ describe('Manage Presets', () => {
     expect(m.banks.map(b => b.id)).toEqual(['one']);
   });
 
+  it('lets go of each step Save has stored, so a Save that failed part-way can be tried again', () => {
+    const m = session();
+    m.duplicateSlots([{ bank: 'one', slot: 0 }]);
+    m.setMeta('new1', { color: 'red' });
+    m.rename('b', 'Bravo');
+    m.move({ bank: 'one', slot: 2 }, { bank: 'two', slot: 0 });
+    m.delete(['d']);
+
+    // The copy and the rename were stored; then a request was refused.
+    m.copyStored('new1');
+    m.metaStored('b');
+
+    let plan = m.plan();
+    expect(plan.copies).toEqual([]);
+    expect(plan.meta).toEqual([['new1', { color: 'red' }]]); // the copy is a stored preset now: all of it is sent
+    expect(plan.banks.map(b => b.id)).toEqual(['one', 'two']);
+    expect(plan.deletes).toEqual(['d']);
+    expect(m.nameOf('new1')).toBe('Alpha copy');
+    expect(m.nameOf('b')).toBe('Bravo');
+    expect(m.dirty).toBe(true);
+
+    m.metaStored('new1');
+    m.bankStored('one');
+    plan = m.plan();
+    expect(plan.banks.map(b => b.id)).toEqual(['two']);
+    expect(m.isChanged({ bank: 'one', slot: 3 })).toBe(false);
+
+    m.bankStored('two');
+    m.deleteStored('d');
+    expect(m.dirty).toBe(false);
+    expect(m.presets.has('d')).toBe(false);
+  });
+
+  it('takes a preset back out of the deletions', () => {
+    const m = session();
+    m.delete(['d']);
+    m.keep(['d']);
+
+    expect(m.plan().deletes).toEqual([]);
+    expect(m.bank('two').slots[0]).toBeNull(); // it stays out of the slot it left
+  });
+
   it('starts clean, and a bank stored by the page joins it without a change to save', () => {
     const m = session();
     m.addBank({ id: 'three', name: 'Three', slots: [] });

@@ -71,6 +71,11 @@ export class LibraryStore {
   /** Asset reference to the stored presets that use it, by name. */
   readonly usage = signal<ReadonlyMap<string, readonly string[]>>(new Map());
 
+  /** The setlist save in progress; the next waits for it (see {@link saveSetlist}). */
+  private savingSetlists: Promise<unknown> = Promise.resolve();
+  /** How many setlist saves the Server has refused. */
+  private setlistRefusals = 0;
+
   constructor() {
     const events = inject(EventStream);
     const subscriptions = [
@@ -155,10 +160,28 @@ export class LibraryStore {
   }
 
   /**
-   * Stores a setlist, new or changed, and shows it at once; false (the refusal reported, and the stored setlists read
-   * again) if the Server refused it, for example for a new entry whose preset does not exist.
+   * Stores a setlist, new or changed; false (the refusal reported, and the stored setlists read again) if the Server
+   * refused it, for example for a new entry whose preset does not exist.
+   *
+   * {@link setlists} shows the change before the Server has answered, so an edit made straight after this one is
+   * built from it, not from the setlist as it was. The requests go out one at a time, in the order the edits were
+   * made: each carries the whole setlist, and the last one must be the one that stays stored.
    */
-  async saveSetlist(setlist: Setlist): Promise<boolean> {
+  saveSetlist(setlist: Setlist): Promise<boolean> {
+    this.setlists.update(list => withSetlist(list, setlist));
+    const refusals = this.setlistRefusals;
+    const result = this.savingSetlists.then(() => this.putSetlist(setlist, refusals));
+    this.savingSetlists = result.catch(() => undefined);
+    return result;
+  }
+
+  private async putSetlist(setlist: Setlist, refusals: number): Promise<boolean> {
+    // An edit made while a save that was then refused was still on its way was built on the refused change, and what
+    // is shown has since been read back from the Server: it is dropped with it.
+    if (refusals !== this.setlistRefusals) {
+      return false;
+    }
+
     const done = await this.notify.run(async () => {
       unwrap(
         await this.connection.client.PUT('/api/v1/setlists/{id}', {
@@ -168,9 +191,8 @@ export class LibraryStore {
       );
       return true;
     });
-    if (done) {
-      this.setlists.update(list => withSetlist(list, setlist));
-    } else {
+    if (!done) {
+      this.setlistRefusals++;
       await this.refreshSetlists(); // show what is stored, not the refused change
     }
 
@@ -179,6 +201,7 @@ export class LibraryStore {
 
   /** Deletes a setlist (its presets stay in the library); the Server stops playing it if it was the active one. */
   async deleteSetlist(id: string): Promise<boolean> {
+    await this.savingSetlists; // a save still on its way would store the setlist again
     const done = await this.notify.run(async () => {
       unwrap(await this.connection.client.DELETE('/api/v1/setlists/{id}', { params: { path: { id } } }));
       return true;
