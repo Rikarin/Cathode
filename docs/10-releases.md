@@ -43,7 +43,10 @@ Either proves the file was built by this repository's `release.yml` from the tag
 (`--bundle` checks against the published bundle; without it `gh` fetches the attestation from GitHub.)
 
 Running the workflow by hand (Actions, release, Run workflow) builds everything as workflow artifacts without
-publishing. [`desktop.yml`](../.github/workflows/desktop.yml) still builds the desktop app on every push to master.
+publishing. [`desktop.yml`](../.github/workflows/desktop.yml) still builds the desktop app on every push to master,
+and on a pull request that changes the desktop app's main process, its packaging scripts or the native build.
+A pull request that changes the engine's sources runs `editor.yml` too, for its Playwright tests of the desktop app
+against the real engine.
 
 Signing is optional (see the top of `release.yml`): without certificates, macOS builds are signed ad hoc and Windows
 builds are unsigned.

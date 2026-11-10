@@ -10,7 +10,7 @@ name: skala
 
 on:
   pull_request:
-    paths: ["engine/**", "skala.jsonc", ".editorconfig", ".skala/**", "dotnet-tools.json", ".github/workflows/skala.yml"]
+    paths: ["engine/**", "skala.jsonc", ".editorconfig", ".skala/**", "dotnet-tools.json", ".github/actions/**", ".github/workflows/skala.yml"]
   push:
     branches: [master]
 

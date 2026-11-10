@@ -4,14 +4,25 @@ name: desktop
 # cross-compile: a .dmg and .zip for Apple Silicon Macs, an NSIS installer for Windows x64 and an AppImage for Linux
 # x64, and uploads them as workflow artifacts. Version tags are built and released by release.yml.
 #
+# It runs on every push to master that touches the editor or the engine, and on a pull request that changes what only
+# packaging exercises: the desktop app's main process and its packaging scripts, the native build, the .NET setup
+# action, or this file.
+#
 # Signing is optional. Without secrets, macOS builds are signed ad hoc (Gatekeeper asks users to allow them) and Windows
 # builds are unsigned. Set CSC_LINK (base64 .p12) and CSC_KEY_PASSWORD to sign, and on macOS APPLE_ID,
-# APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID to notarise.
+# APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID to notarise. Only a build of master is given them: a pull request, or
+# a manual run on another branch, builds code that has not been reviewed and is packaged unsigned.
 
 on:
   push:
     branches: [master]
-    paths: ["editor/**", "engine/**", ".github/workflows/desktop.yml"]
+    paths: ["editor/**", "engine/**", ".github/actions/**", ".github/workflows/desktop.yml"]
+  pull_request:
+    paths:
+      - "editor/apps/desktop/**"
+      - "engine/native/**"
+      - ".github/actions/**"
+      - ".github/workflows/desktop.yml"
   workflow_dispatch:
 
 permissions:
@@ -54,13 +65,13 @@ jobs:
         shell: bash
         env:
           CATHODE_VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_LINK: ${{ github.ref == 'refs/heads/master' && secrets.CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ github.ref == 'refs/heads/master' && secrets.CSC_KEY_PASSWORD || '' }}
+          APPLE_ID: ${{ github.ref == 'refs/heads/master' && secrets.APPLE_ID || '' }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ github.ref == 'refs/heads/master' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ github.ref == 'refs/heads/master' && secrets.APPLE_TEAM_ID || '' }}
           # Without a certificate, do not let electron-builder pick one up from the runner's keychain.
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ github.ref == 'refs/heads/master' && secrets.CSC_LINK != '' }}
         run: pnpm dist
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
