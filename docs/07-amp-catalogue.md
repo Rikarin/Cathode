@@ -109,7 +109,7 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 | Mesa/Boogie Dual Rectifier | ✅ Done (factory two-channel drawing, 1993, red channel; Modern takes the feedback out) | Dual Rectifier, red | GPL: Mini Rectifier (not the same amp) | Dual/Triple Rec, modern and vintage modes, tube vs SS rectifier | 4x12 closed, Vintage 30 |
 | Bogner Ecstasy | ⏸ Waiting (only a modded "83K" redraw and an OD-channel-only redraw of unknown version; no 100B/101B or 20th Anniversary drawing found) | — | GPL: Ecstasy Blue *pedal* (not the amp) | Blue/red channels; a stock 100B/101B schematic | 4x12 closed, Vintage 30 / Greenback |
 | Diezel VH4 (ch 3) | ⏸ Waiting (a 2005 factory sheet gives the topology but no values; an owner's trace gives the stacks only; the clone redraws disagree) | — | — | Channel 3 and 4 values | 4x12 closed, Vintage 30 |
-| Mesa/Boogie Mark IV (lead) | ✅ Done (presence: the rheostat in series with the feedback, as drawn) | Mark IV, lead | GPL: Mark IV | Settings stated | 1x12 / 4x12 closed |
+| Mesa/Boogie Mark IV | ✅ Done, all three channels (presence: the rheostat in series with the feedback, as drawn, with the lead and Rhythm 2 pull shifts on the Presence Shift switch) | Mark IV, lead; Mark IV Rhythm 1 (clean; Bright) and Mark IV Rhythm 2 (crunch; Switch 1 Fat), from the factory scan's preamp sheets | GPL: Mark IV | Settings stated | 1x12 / 4x12 closed |
 | Carvin Legacy VL100 | ✅ Done (factory schematic) | Legacy VL100: lead; Switch 1 the clean channel | — | Any VL100 capture, settings stated (Vai: Drive 7.5, Bass 6, Mid 4, Treble 8, Presence 8) | 4x12 / 2x12 closed, Vintage 30 |
 | Mesa/Boogie Lone Star | ✅ Done (factory drawing, its node voltages included) | Lone Star, both channels (Switch 1 "Channel 2", Switch 2 "Drive Mode") | — | Clean/edge channels, 50 W mode | 1x12 / 2x12 open |
 | Bogner Uberschall | ⏸ Waiting (two redraws that disagree on the stack topology and several caps) | — | — | A factory drawing or a third trace | 4x12 closed |
@@ -195,7 +195,7 @@ Counted over every table in this file, including the two sections added from Fra
 
 ### Circuit Amp types by index
 
-The Circuit Amp block has 89 types. The "Cathode type" column above names them; this is their order in the Type list.
+The Circuit Amp block has 91 types. The "Cathode type" column above names them; this is their order in the Type list.
 
 | # | Type | # | Type | # | Type |
 |---|---|---|---|---|---|
@@ -228,9 +228,10 @@ The Circuit Amp block has 89 types. The "Cathode type" column above names them; 
 | 26 | Legacy VL100 | 56 | Hiwatt DR103 | 86 | Quick Rod |
 | 27 | Chieftain | 57 | 1959SLP | 87 | AFD100 |
 | 28 | Hot Cat 30 | 58 | 1987X | 88 | Mark IIC+ Rhythm |
-| 29 | ODS 97 | 59 | 1959T Tremolo |  |  |
+| 29 | ODS 97 | 59 | 1959T Tremolo | 89 | Mark IV Rhythm 1 |
+|  |  |  |  | 90 | Mark IV Rhythm 2 |
 
-Types 81 to 88, the newest, are:
+Types 81 to 90, the newest, are:
 
 | # | Type | Family | Modelled after |
 |---|---|---|---|
@@ -242,6 +243,8 @@ Types 81 to 88, the newest, are:
 | 86 | Quick Rod | Splawn | Splawn Quick Rod, the two-channel version with three 12AX7s |
 | 87 | AFD100 | Marshall | Marshall AFD100 (Slash), both modes and the Low input |
 | 88 | Mark IIC+ Rhythm | Mesa/Boogie | Mesa/Boogie Mark IIC+, the rhythm channel (the lead channel is type 21) |
+| 89 | Mark IV Rhythm 1 | Mesa/Boogie | Mesa/Boogie Mark IV, Rhythm 1, the clean channel (the lead channel is type 25) |
+| 90 | Mark IV Rhythm 2 | Mesa/Boogie | Mesa/Boogie Mark IV, Rhythm 2, the crunch channel |
 
 Match quality against the references is in `docs/06-amp-modelling-spec.md` (as-built notes per family) and in the
 manifest's targets. Only the Prometheus clean channel reaches the spec's ESR target; captures with stated knob settings
@@ -367,9 +370,9 @@ exists:
 - **High gain:**
   - EVH: the 5150III Stealth (100S).
   - Mesa: Mark IIC+ Bright/Deep, the Mark IV rhythm and mid-gain voicings, the Mark V IIC+/MKIV/XT modes (now the
-    Mark V type's mode switches), and JP-2C Shred. The IIC+ rhythm channel is the Mark IIC+ Rhythm type, read from
-    the factory scan (Boogie_mkiic_plus.pdf). The Mark IV rhythm channels are on its factory scan (Boogie_mkiv.pdf)
-    but not modelled yet.
+    Mark V type's mode switches), and JP-2C Shred. The IIC+ rhythm channel is the Mark IIC+ Rhythm type and the
+    Mark IV's are the Mark IV Rhythm 1 and Rhythm 2 types, read from the factory scans (Boogie_mkiic_plus.pdf,
+    Boogie_mkiv.pdf); the Mark IV's mid-gain voicing is its Rhythm 2.
   - Others: Ecstasy 20th Anniversary (no drawing found), Diezel Herbert MkIII (no drawing found), Carvin VL300, Revv Generator Green/Purple/Red, PRS Archon Clean/Lead/Bright, Fryette D60 Less/More.
 - **Boutique:** Two-Rock and ODS PAB switch variants.
 

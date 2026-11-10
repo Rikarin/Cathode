@@ -97,6 +97,8 @@ public sealed partial record AmpDesign {
         Jmp1.Design,
         QuickRod.Design,
         MarshallAfd100.Design,
-        MarkIIC.Rhythm
+        MarkIIC.Rhythm,
+        MarkIV.Rhythm1,
+        MarkIV.Rhythm2
     ];
 }

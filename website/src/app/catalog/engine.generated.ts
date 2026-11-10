@@ -325,7 +325,9 @@ export const ENGINE = {
         'JMP-1',
         'Quick Rod',
         'AFD100',
-        'Mark IIC+ Rhythm'
+        'Mark IIC+ Rhythm',
+        'Mark IV Rhythm 1',
+        'Mark IV Rhythm 2'
       ]
     },
     {

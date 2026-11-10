@@ -86,6 +86,8 @@ export const AMP_MODELS: Record<string, { family: AmpFamily; basedOn: string }> 
   'Mark IIC+': { family: 'highgain', basedOn: 'Mesa/Boogie Mark IIC+' },
   'Mark IIC+ Rhythm': { family: 'highgain', basedOn: 'Mesa/Boogie Mark IIC+, rhythm channel' },
   'Mark IV': { family: 'highgain', basedOn: 'Mesa/Boogie Mark IV' },
+  'Mark IV Rhythm 1': { family: 'highgain', basedOn: 'Mesa/Boogie Mark IV, Rhythm 1 (clean)' },
+  'Mark IV Rhythm 2': { family: 'highgain', basedOn: 'Mesa/Boogie Mark IV, Rhythm 2 (crunch)' },
   'Mark V': { family: 'highgain', basedOn: 'Mesa/Boogie Mark V' },
   'Dual Rectifier': { family: 'highgain', basedOn: 'Mesa/Boogie Dual Rectifier (2-channel)' },
   'Dual Rectifier 3-Ch': { family: 'highgain', basedOn: 'Mesa/Boogie Dual Rectifier (3-channel)' },
