@@ -34,6 +34,8 @@ public partial class AmpStageTests {
             { "SLO-100", true, 0.05, -28 },
             { "5150", false, 0.002, -25 },
             { "5150", false, 0.05, -20 },
+            { "5150", true, 0.002, -27 },
+            { "5150", true, 0.05, -27 },
             { "Dual Rectifier", false, 0.05, -5 },
             { "5150III", false, 0.05, -6 },
             { "Legacy VL100", false, 0.002, -21 },
@@ -128,6 +130,61 @@ public class HighGainAmpTests(ITestOutputHelper output) {
 
         Assert.Equal("Normal Ch", Label("switch1", "SLO-100"));
         Assert.Empty(Label("eq1", "5150"));
+        Assert.Equal(["Rhythm Ch", "Crunch", string.Empty], Switches("5150"));
+        Assert.Equal("Bright", Label("bright", "5150"));
+    }
+
+    /// <summary>
+    ///     Issue #201: the 5150's rhythm channel as the factory pages draw it with their relays at rest. V1B's cathode
+    ///     has C26's 22 µF beside the 1 µF and V2A's grid R20's 220k beside the 1M (K1), which the lead channel has
+    ///     neither of; Crunch (K4) swaps 470k ‖ 270 pF for 2.2M ‖ 470 pF and lifts the 39k shunt; Bright closes 470
+    ///     pF across the 1M.
+    /// </summary>
+    [Fact]
+    public void The_5150_rhythm_channel_has_the_scans_parts() {
+        var channel = Assert.IsType<ChannelSwitchStageDesign>(Peavey5150.Design.Preamp[1]);
+        Assert.Equal(SwitchRole.Switch1, channel.Switch);
+        var lead = Assert.IsType<NetworkStageDesign>(channel.Off[0]).Netlist.Elements;
+        var rhythm = Assert.IsType<NetworkStageDesign>(channel.On[0]).Netlist.Elements;
+        Assert.Contains(rhythm, static e => e is { Kind: ElementKind.Capacitor, Value: 22e-6, B: StageNetlist.Ground });
+        Assert.DoesNotContain(lead, static e => e is { Kind: ElementKind.Capacitor, Value: 22e-6 });
+        Assert.Contains(rhythm, static e => e is { Value: 2.2e6, OffValue: 470e3, Switch: SwitchRole.Switch2 });
+        Assert.Contains(rhythm, static e => e is { Value: 470e-12, OffValue: 270e-12, Switch: SwitchRole.Switch2 });
+        Assert.Contains(rhythm, static e => e is { OffValue: 39e3, Switch: SwitchRole.Switch2 });
+        Assert.Contains(rhythm, static e => e is { Kind: ElementKind.Resistor, Switch: SwitchRole.Bright });
+        Assert.DoesNotContain(lead, static e => e.Switch is not null);
+
+        Assert.Equal(1e6, Assert.IsType<TriodeStageDesign>(channel.Off[1]).GridLeak);
+        Assert.Equal(1e6 * 220e3 / (1e6 + 220e3), Assert.IsType<TriodeStageDesign>(channel.On[1]).GridLeak, 1e-6);
+    }
+
+    /// <summary>
+    ///     Issue #201, on the block: small-signal at 1 kHz the rhythm channel is far below the lead (its pre gain
+    ///     sits behind 470k and 1M with 39k to ground), Crunch gives most of that back, and Crunch and Bright do
+    ///     nothing while the lead channel plays. Bright lifts the treble of the rhythm channel at a low gain setting
+    ///     and leaves its lows within 1 dB (at 100 Hz the closed cap's current leads the 39k + 0.1 µF shunt's, and
+    ///     the level falls by half a dB).
+    /// </summary>
+    [Fact]
+    public void The_5150_rhythm_channel_is_clean_until_crunch_and_bright_lifts_its_treble() {
+        static double Level(double frequency, params (int Index, float Value)[] settings) =>
+            Small("5150", frequency, [(CircuitAmpBlock.Gain, 3f), ..settings]);
+
+        (int, float) rhythmOn = (CircuitAmpBlock.Switch1, 1f);
+        (int, float) crunchOn = (CircuitAmpBlock.Switch2, 1f);
+        (int, float) brightOn = (CircuitAmpBlock.Bright, 1f);
+        var (lead, rhythm, crunch) = (Level(1_000), Level(1_000, rhythmOn), Level(1_000, rhythmOn, crunchOn));
+        output.WriteLine($"1 kHz: lead {lead:0.0} dB, rhythm {rhythm:0.0} dB, with Crunch {crunch:0.0} dB");
+        Assert.True(lead - rhythm > 20, $"the lead is only {lead - rhythm:0.0} dB over the rhythm channel");
+        Assert.InRange(crunch - rhythm, 10, 35);
+        Assert.True(lead > crunch, "Crunch has more gain than the lead");
+        Assert.Equal(lead, Level(1_000, crunchOn, brightOn), 6);
+
+        var high = Level(5_000, rhythmOn, brightOn) - Level(5_000, rhythmOn);
+        var low = Level(100, rhythmOn, brightOn) - Level(100, rhythmOn);
+        output.WriteLine($"Bright on the rhythm channel: {high:+0.0;-0.0} dB at 5 kHz, {low:+0.0;-0.0} dB at 100 Hz");
+        Assert.True(high > 3, "Bright does not lift the treble");
+        Assert.InRange(low, -1, 0.5);
     }
 
     /// <summary>
@@ -429,6 +486,13 @@ public class HighGainAmpTests(ITestOutputHelper output) {
             var rendered = BlockRender.Mono(block, Signals.Sine(frequency, Rate, 24_000, 1e-4f), 64);
             return Analysis.ToDb(Analysis.Rms(rendered.AsSpan(12_000)));
         }
+    }
+
+    /// <summary>The level in dB of a 0.1 mV sine through the block, with the master at 3.</summary>
+    static double Small(string type, double frequency, params (int Index, float Value)[] settings) {
+        using var block = Create(type, [(CircuitAmpBlock.Master, 3f), ..settings]);
+        var rendered = BlockRender.Mono(block, Signals.Sine(frequency, Rate, 24_000, 1e-4f), 64);
+        return Analysis.ToDb(Analysis.Rms(rendered.AsSpan(12_000)));
     }
 
     static int TypeOf(string name) => AmpDesign.All.ToList().FindIndex(a => a.Name == name);
