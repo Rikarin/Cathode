@@ -246,12 +246,12 @@ public sealed class ControlsApiTests : IAsyncLifetime {
 
         using var first = await client.PutAsJsonAsync("/api/v1/live/external/0", new ValueRequest(0.75f), Token);
         using var last = await client.PutAsJsonAsync("/api/v1/live/external/7", new ValueRequest(4f), Token);
-        using var ninth = await client.PutAsJsonAsync("/api/v1/live/external/8", new ValueRequest(0.5f), Token);
+        using var past = await client.PutAsJsonAsync("/api/v1/live/external/16", new ValueRequest(0.5f), Token);
         using var negative = await client.PutAsJsonAsync("/api/v1/live/external/-1", new ValueRequest(0.5f), Token);
 
         Assert.Equal(HttpStatusCode.NoContent, first.StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, last.StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, ninth.StatusCode); // External 1-8 are index 0-7
+        Assert.Equal(HttpStatusCode.BadRequest, past.StatusCode); // External 1-16 are index 0-15
         Assert.Equal(HttpStatusCode.BadRequest, negative.StatusCode);
         await ServerFixture.Eventually(() => Rig("ext1") == 0.75f && Rig("ext8") == 1f); // clamped to 0..1
         await ServerFixture.Eventually(

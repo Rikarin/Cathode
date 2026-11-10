@@ -550,8 +550,10 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         for (var type = 0; type < AmpDesign.All.Count; type++) {
             var design = AmpDesign.All[type];
             var feedback = design.Power.Feedback;
-            // Depth Freq: a Depth knob, or a fixed low shelf in the feedback network (the BE-100).
-            var hasDepth = design.Panel.HasTubes && (design.Panel.Depth is not null || feedback.LowFeedback != 1);
+            // Depth Freq: a Depth knob, a fixed low shelf in the feedback network (the BE-100), or a Deep switch whose
+            // resonance it moves (the DSL100).
+            var hasDepth = design.Panel.HasTubes
+                && (design.Panel.Depth is not null || feedback.LowFeedback != 1 || feedback.Deep is not null);
             Assert.True(hasDepth == (depth[type] == "Depth Freq"), $"{design.Name}: Depth Freq '{depth[type]}'");
             // Presence Freq: a presence cap in a tube power amp's feedback network, with a knob on it or not.
             var hasPresence = design.Panel.HasTubes && feedback.PresenceCap >= 1e-9;
