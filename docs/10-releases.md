@@ -17,6 +17,8 @@ and builds nothing if it does not. Then it:
    cross-compile, and starts the packaged app on its runner (`CATHODE_PACKAGED=1`, `packaged.spec.ts` and
    `sidecars.spec.ts`): it runs the engine in its `resources/engine`, the server reports the engine connected and
    serves the editor, and quitting leaves no engine process behind.
+   On Linux the engine is not built by these jobs: the `linux-engine` job links it in a Debian 12 container for x64
+   and ARM64, and they package that one (see [The oldest Linux it runs on](#the-oldest-linux-it-runs-on)).
 2. Builds the headless package on Linux x64 and Linux ARM64 runners (`packaging/headless/build.sh`), installs it on the
    runner with `install.sh` and checks it: the host passes `--self-test`, the services start, the server reports the
    engine connected, the web editor loads and the API refuses a request without the token. Then it uninstalls it
@@ -170,20 +172,34 @@ user's guide (install, choose the interface, connect, logs). In short:
 
 ### The oldest Linux it runs on
 
-The NativeAOT host and the native shims bind to the C library of the machine that links them, so the build runner sets
-the minimum: **glibc 2.39**, Ubuntu 24.04's (also Debian 13 and Raspberry Pi OS based on it). Both Linux builds in
-`release.yml`, the headless package and the AppImage, run on `ubuntu-24.04` runners for that reason, not on
-`ubuntu-latest`. `cth_nam` links its C++ runtime statically, so no `libstdc++` version comes on top, and
-cathode-server uses Microsoft's own prebuilt runtime, which asks for less.
+The NativeAOT host and the native shims bind to the C library of the system that links them, so that system sets the
+minimum. A release links them on **Debian 12** ("bookworm"), which makes the minimum **glibc 2.36**: Debian 12 and
+Raspberry Pi OS based on it, Ubuntu 24.04, Fedora 37, and everything newer. Debian 12 is what most Raspberry Pi 5s and
+many mini PCs still run, and it is the oldest system whose own packages build the engine: its CMake (3.25) and GCC
+(12, for the C++20 of NeuralAmpModelerCore) are new enough, where Ubuntu 22.04 (glibc 2.35) would need both from
+elsewhere. Ubuntu 22.04 and Debian 11 are not supported.
 
-- [`packaging/glibc-floor.sh`](../packaging/glibc-floor.sh) reads the newest glibc version the built binaries ask for
-  and fails the release when it is above 2.39.
+How `release.yml` does it:
+
+- The `linux-engine` job runs in a `debian:12` container, once on an x64 runner and once on an ARM64 one (NativeAOT
+  cannot cross-compile). It runs `publish-engine.mjs`, checks the result, runs the host's self-test there, on Debian
+  12's C library, and hands the engine on as a workflow artifact.
+- The `headless` job and the Linux leg of the `desktop` job take that engine instead of building their own
+  (`CATHODE_ENGINE_PREBUILT=1`, read by `publish-engine.mjs`) and package it on an `ubuntu-24.04` runner, where
+  systemd, Electron and Playwright are at hand for the install check and the packaged-app tests.
+- [`packaging/glibc-floor.sh`](../packaging/glibc-floor.sh) reads the newest glibc version the binaries ask for and
+  fails the release when it is above 2.36. It runs where the engine is built and again on each package.
+- `cth_nam` links its C++ runtime statically, so no `libstdc++` version comes on top, and cathode-server uses
+  Microsoft's own prebuilt runtime, which asks for less.
 - `install.sh` runs `cathode-host --version` and `ldd` on the shims before it installs anything, and says what is
   missing.
 
-To support an older distribution (Debian 12 has glibc 2.36, Ubuntu 22.04 has 2.35), link the engine on that
-distribution, for example in a container, and lower the number in the workflow, `install.sh`, the READMEs and the
-manual. To move to a newer runner, raise it in the same places.
+Only releases are built this way. A snapshot from `desktop.yml`, or a package built by hand with
+`packaging/headless/build.sh`, carries an engine linked on the machine that built it and needs that machine's C
+library or newer.
+
+To change the minimum, change the container image in `linux-engine` and the number in the workflow, `install.sh`,
+the READMEs and the manual. The image must bring CMake 3.24, a C++20 compiler and Clang (for NativeAOT's link).
 
 Audio on the rig needs the Linux backend of the native shim (`engine/native/cth_audio`). Without a device the engine
 runs on the null backend, which is how CI checks the package.

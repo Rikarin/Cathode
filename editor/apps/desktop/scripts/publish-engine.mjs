@@ -3,6 +3,11 @@
 // single file, and the native shims (built by engine/native/build.sh) beside them. NativeAOT cannot cross-compile, so
 // each OS builds its own; CI runs this on one runner per OS (.github/workflows/desktop.yml).
 //
+// With CATHODE_ENGINE_PREBUILT=1 nothing is built: dist/engine already holds the engine for this OS and CPU, and the
+// script only checks that it is all there. release.yml uses this on Linux, where the engine is linked in a Debian 12
+// container (its `linux-engine` job) so that it runs on that system's C library and on every newer one, and is then
+// packaged on the runner (docs/10-releases.md, "The oldest Linux it runs on").
+//
 // The licence files of what those binaries contain go into dist/engine/licenses, which the installers ship as their
 // licenses folder (THIRD-PARTY-NOTICES.md): .NET's from the Server's publish (Cathode.Server.csproj), and here those of
 // the code compiled into cth_nam.
@@ -25,6 +30,23 @@ const rids = {
 const rid = rids[`${process.platform}-${process.arch}`];
 if (!rid) {
   throw new Error(`No .NET runtime identifier for ${process.platform}-${process.arch}`);
+}
+
+if (process.env['CATHODE_ENGINE_PREBUILT'] === '1') {
+  const exe = process.platform === 'win32' ? '.exe' : '';
+  const shim = name =>
+    process.platform === 'win32' ? `${name}.dll` : `lib${name}.${process.platform === 'darwin' ? 'dylib' : 'so'}`;
+  const needed = [`cathode-host${exe}`, `cathode-server${exe}`, shim('cth_audio'), shim('cth_nam'), 'licenses'];
+  const missing = needed.filter(entry => !existsSync(join(out, entry)));
+  if (missing.length > 0) {
+    throw new Error(
+      `CATHODE_ENGINE_PREBUILT is set, but ${out} lacks ${missing.join(', ')}: put the engine built for ${rid} there ` +
+        'first, or unset the variable to build it here.'
+    );
+  }
+
+  console.log(`Using the engine already in ${out} (CATHODE_ENGINE_PREBUILT)`);
+  process.exit(0);
 }
 
 const run = (command, args) => execFileSync(command, args, { cwd: engine, stdio: 'inherit' });

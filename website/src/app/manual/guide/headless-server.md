@@ -5,7 +5,7 @@ The headless server runs Cathode's engine on a small Linux computer that lives i
 ## What you need
 
 - **A small Linux computer** with a 64-bit system: a Raspberry Pi 5 (ARM64), or a mini PC or NUC (x64). The installer needs **systemd**, which most distributions use, including Raspberry Pi OS and Ubuntu.
-- **A recent system:** glibc 2.39 or newer, which means Ubuntu 24.04, Debian 13, Raspberry Pi OS based on Debian 13 ("trixie"), Fedora 40, or later. The engine does not start on older ones, such as Debian 12 ("bookworm") or Ubuntu 22.04.
+- **A recent system:** glibc 2.36 or newer, which means Debian 12, Raspberry Pi OS based on Debian 12 ("bookworm"), Ubuntu 24.04, Fedora 37, or later. The engine does not start on older ones, such as Ubuntu 22.04 or Debian 11 ("bullseye").
 - **A USB audio interface** that works on Linux without special drivers (most class-compliant ones do).
 - **A network** shared with the device you will edit from: Ethernet, or the same Wi-Fi.
 - Optionally a USB MIDI foot controller. It plugs into the rig, not into the device you edit from.
