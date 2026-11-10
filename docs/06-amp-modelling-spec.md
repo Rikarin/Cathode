@@ -718,6 +718,24 @@ cites its drawings and marks what is read, inferred or guessed:
   (−27 / −24 and −23 / −20 dB with one stage per tube). CPU 18.8 / 38.6 % #34, 22.2 / 52.0 % AFD with the Plexi at
   8.3 / 14.7 %, Newton tolerance 1e-4 and chord steps in every stage: over the high-gain budget by the user's choice
   of accuracy, as the Quick Rod.
+- **JCM800 2210 and 2205** (`JCM2210.cs`, issue #367), from the factory drawings "2210 Preamp" issue 2 (10-5-88, PCB
+  JMB3) and "2210 STD Output Stage & PSU" issue 2 and the 2205's of the same issues (DrTube). V1A drives both channels
+  from its plate. Normal: a two-knob tone network, the Volume, V2a and V2b, 470k to the Master's top. Boost: 2 nF and
+  100k onto the front gang of the Gain pot, V1B (470k plate, its 10k cathode resistor held at a junction's drop by the
+  1N4007 across it), the back gang, 27k ‖ 2 nF onto the W005 bridge with a 1N4007 across its DC terminals (three
+  junctions each way), the Volume, V3A, its tone stack and 100k to the Master's top. Then the Master, 470k ‖ 100 pF
+  onto 10k (the send), V4A, and the inverter as drawn (22k tail, 330k leak; its 100 pF between the plates left out). The channels
+  are switched by a CA3046 that mutes grids through 0.22 µF, and their outputs stay joined at the Master, so each
+  channel's netlists hold the muted channel's passive parts (pots at half rotation, the muted tube's plate as its
+  small-signal resistance). Switch 1 is Normal; Gain is the Boost Gain and the Normal Volume; Control 1 the Boost
+  Volume, which defaults to 10 on this model (`AmpPanel.Defaults`): at the block's 5, with four log pots in a row and
+  the send's pad, the amp plays 36 dB under a 2203 at the same settings. Guessed: every DC voltage (the sheets have none): B+, idle current and OT as the 2203 / 2204; the one preamp
+  node, through 10k from the screens, computed at 372 V (364 V on the 2205) from the tubes' 9.7 mA. Not modelled: the
+  reverb, the loop, the DI, the inverter's second grid leak (120k). Stages: V1A with V1B and both clippers (`TTDD`),
+  V3A with the stack, V4A; Normal runs V1A with V2 (`TTT`); V1A's partly bypassed cathode is a poor Thévenin source,
+  so no cut is made at its plate (−15 to −21 dB with one). Chain against the one-circuit reference: Boost −49 / −58 dB
+  at 20 / 200 mV (an absolute floor of about 30 µV), Normal −55 / −63 dB at 10 / 300 mV. CPU: Boost 15.2 / 28.5 %,
+  Normal 12.7 / 22.5 % with the Plexi at 8.0 / 14.2 % (measured on a loaded machine).
 - **Not built: JVM410HJS.** Its sheets (-60-02 iss 2, -61-02 iss 1, -62-02 iss 1) carry the JVM410H's channel networks
   and three-path cascade with other values, plus the input buffer, the THAT4301 gate and mid-shift relays, but five
   main-board relays (RL101, RL103 B/C, RL104, RL105) where the JVM410H has three, and its handbook describes the modes'

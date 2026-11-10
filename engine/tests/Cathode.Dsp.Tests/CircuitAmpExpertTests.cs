@@ -173,6 +173,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
             block.Params.SetTarget(CircuitAmpBlock.Type, type);
             block.Params.SetTarget(CircuitAmpBlock.Gain, 7);
             block.Params.SetTarget(CircuitAmpBlock.Master, 10); // the power amp driven, so its settings are heard
+            CircuitAmpBlockTests.SecondMasterFullUp(block, type);
             block.Params.SetTarget(CircuitAmpBlock.Depth, 5);
             block.Params.SetTarget(CircuitAmpBlock.Bright, 1);
             foreach (var (i, v) in settings) {
@@ -582,6 +583,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     [Fact]
     public void Expert_controls_hide_on_models_without_the_part_they_act_on() {
         var parameters = CircuitAmpBlock.Info.Params;
+
         string[] Hidden(string id) {
             var labels = parameters.Single(p => p.Id == id).TypeLabels!;
             return [..AmpDesign.All.Where((_, type) => labels[type] == string.Empty).Select(static a => a.Name)];
@@ -637,6 +639,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     public void Preamp_tube_reaches_a_stage_of_paralleled_twelve_ax7s(string model) {
         var type = AmpDesign.All.ToList().FindIndex(a => a.Name == model);
         Assert.True(type >= 0, model);
+
         float[] Render(float tube) {
             using var block = TestBlocks.Create<CircuitAmpBlock>(
                 (CircuitAmpBlock.Type, type),

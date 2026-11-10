@@ -197,6 +197,7 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         using var fresh = new CircuitAmpBlock();
         fresh.Params.SetTarget(CircuitAmpBlock.Type, type);
         fresh.Params.SetTarget(CircuitAmpBlock.Master, 10);
+        SecondMasterFullUp(fresh, type); // as Create set the moved one
         fresh.Prepare(new(44_100, 64));
 
         var expected = BlockRender.Mono(fresh, chord, 64);
@@ -274,15 +275,69 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
     /// </summary>
     public static TheoryData<int, float, double, OversamplingPhase, int> BadSamples =>
         new() {
-            { 0, float.NaN, 48_000, OversamplingPhase.Minimum, 0 },
-            { 0, float.PositiveInfinity, 48_000, OversamplingPhase.Minimum, 0 },
-            { 1, float.NaN, 48_000, OversamplingPhase.Minimum, 0 },
-            { 1, float.NegativeInfinity, 48_000, OversamplingPhase.Minimum, 0 },
-            { 1, float.NaN, 48_000, OversamplingPhase.Linear, 0 },
-            { 1, float.NaN, 96_000, OversamplingPhase.Minimum, 0 },
-            { 1, float.PositiveInfinity, 96_000, OversamplingPhase.Minimum, 2 },
-            { 2, float.NaN, 48_000, OversamplingPhase.Minimum, 0 },
-            { 2, float.PositiveInfinity, 48_000, OversamplingPhase.Minimum, 1 }
+            {
+                0,
+                float.NaN,
+                48_000,
+                OversamplingPhase.Minimum,
+                0
+            },
+            {
+                0,
+                float.PositiveInfinity,
+                48_000,
+                OversamplingPhase.Minimum,
+                0
+            },
+            {
+                1,
+                float.NaN,
+                48_000,
+                OversamplingPhase.Minimum,
+                0
+            },
+            {
+                1,
+                float.NegativeInfinity,
+                48_000,
+                OversamplingPhase.Minimum,
+                0
+            },
+            {
+                1,
+                float.NaN,
+                48_000,
+                OversamplingPhase.Linear,
+                0
+            },
+            {
+                1,
+                float.NaN,
+                96_000,
+                OversamplingPhase.Minimum,
+                0
+            },
+            {
+                1,
+                float.PositiveInfinity,
+                96_000,
+                OversamplingPhase.Minimum,
+                2
+            },
+            {
+                2,
+                float.NaN,
+                48_000,
+                OversamplingPhase.Minimum,
+                0
+            },
+            {
+                2,
+                float.PositiveInfinity,
+                48_000,
+                OversamplingPhase.Minimum,
+                1
+            }
         };
 
     [Theory]
@@ -300,6 +355,7 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         var type = AmpDesign.All.ToList().IndexOf(designs[model]);
         const int At = 9_000;
         var sine = Signals.Sine(220, rate, (int)rate, 0.2f);
+
         float[] Render(float sample) {
             using var block = new CircuitAmpBlock { OversamplingPhase = phase };
             block.Params.SetTarget(CircuitAmpBlock.Type, type);
@@ -321,12 +377,24 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         var block = new CircuitAmpBlock();
         block.Params.SetTarget(CircuitAmpBlock.Type, type);
         block.Params.SetTarget(CircuitAmpBlock.Master, 10); // the levels and limits here are a fully driven power amp's
+        SecondMasterFullUp(block, type);
         foreach (var (index, value) in settings) {
             block.Params.SetTarget(index, value);
         }
 
         block.Prepare(new(Rate, 64));
         return block;
+    }
+
+    /// <summary>
+    ///     On a model whose own volume stands between its preamp and the Master like a second master (the
+    ///     split-channel JCM800s' Boost Volume, after the clipper), that volume full up as well: with it at the block's
+    ///     5 the Master at 10 does not drive the power amp, which is what these tests set the Master to 10 for.
+    /// </summary>
+    internal static void SecondMasterFullUp(CircuitAmpBlock block, int type) {
+        if (AmpDesign.All[type].Panel.Control1 == "Boost Volume") {
+            block.Params.SetTarget(CircuitAmpBlock.Control1, 10);
+        }
     }
 
     [Fact]
