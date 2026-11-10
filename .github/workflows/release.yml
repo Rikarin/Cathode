@@ -3,7 +3,8 @@ name: release
 # A version tag (v1.2.3, or v1.2.3-rc.1 for a prerelease) builds every installer and publishes a GitHub release:
 #
 # - The desktop app (the editor, Electron and the engine sidecars): a .dmg and .zip for Apple Silicon Macs, an NSIS
-#   installer for Windows x64 and an AppImage for Linux x64.
+#   installer for Windows x64 and an AppImage for Linux x64. Each is started on its runner as packaged and checked: it
+#   runs the engine it carries, serves its editor, passes the sidecar tests and leaves nothing running when it quits.
 # - The headless rig (the engine and server with the web editor, systemd services and an install script) for small
 #   Linux computers without a display, x64 and ARM64: cathode-server-<version>-linux-<arch>.tar.gz. Each is installed
 #   on its runner and checked: the services start, the web editor loads and the API wants the token.
@@ -123,6 +124,24 @@ jobs:
           # Without a certificate, do not let electron-builder pick one up from the runner's keychain.
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ needs.tag.outputs.release == 'true' && secrets.CSC_LINK != '' }}
         run: pnpm dist
+      # The app as packaged, started from where electron-builder left it unpacked beside the installers: it runs the
+      # engine it carries (resources/engine), serves its own editor and stops cleanly, and the sidecar tests pass
+      # against it on this OS. editor.yml runs those tests on Linux only, against a development build.
+      - name: Linux libraries for Electron
+        if: runner.os == 'Linux'
+        run: pnpm exec playwright install-deps chromium
+      - name: The packaged app starts and stops its engine (Playwright)
+        shell: bash
+        env:
+          CATHODE_PACKAGED: "1"
+        run: |
+          run=(pnpm exec playwright test --config apps/desktop/e2e/playwright.config.ts packaged.spec.ts sidecars.spec.ts)
+          if [ "$RUNNER_OS" = Linux ]; then xvfb-run --auto-servernum "${run[@]}"; else "${run[@]}"; fi
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: packaged-e2e-${{ matrix.name }}
+          path: editor/dist/e2e-*
       # Hashed here, where they were built: the release job checks what it downloads against these and publishes
       # them as SHA256SUMS. "<sha256>  <name>" per line (Git Bash marks binary mode with "*"; that is dropped).
       - name: Checksums

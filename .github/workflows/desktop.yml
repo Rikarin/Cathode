@@ -2,7 +2,8 @@ name: desktop
 
 # Builds the desktop app (`pnpm dist`: the editor, Electron and the engine sidecars) on each OS, since NativeAOT cannot
 # cross-compile: a .dmg and .zip for Apple Silicon Macs, an NSIS installer for Windows x64 and an AppImage for Linux
-# x64, and uploads them as workflow artifacts. Version tags are built and released by release.yml.
+# x64, and uploads them as workflow artifacts. Before that it starts the packaged app on its runner and runs the
+# packaged-app and sidecar Playwright tests against it. Version tags are built and released by release.yml.
 #
 # It runs on every push to master that touches the editor or the engine, and on a pull request that changes what only
 # packaging exercises: the desktop app's main process and its packaging scripts, the native build, the .NET setup
@@ -80,6 +81,24 @@ jobs:
           # Without a certificate, do not let electron-builder pick one up from the runner's keychain.
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ github.ref == 'refs/heads/master' && secrets.CSC_LINK != '' }}
         run: pnpm dist
+      # The app as packaged, started from where electron-builder left it unpacked beside the installers: it runs the
+      # engine it carries (resources/engine), serves its own editor and stops cleanly, and the sidecar tests pass
+      # against it on this OS. editor.yml runs those tests on Linux only, against a development build.
+      - name: Linux libraries for Electron
+        if: runner.os == 'Linux'
+        run: pnpm exec playwright install-deps chromium
+      - name: The packaged app starts and stops its engine (Playwright)
+        shell: bash
+        env:
+          CATHODE_PACKAGED: "1"
+        run: |
+          run=(pnpm exec playwright test --config apps/desktop/e2e/playwright.config.ts packaged.spec.ts sidecars.spec.ts)
+          if [ "$RUNNER_OS" = Linux ]; then xvfb-run --auto-servernum "${run[@]}"; else "${run[@]}"; fi
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: packaged-e2e-${{ matrix.name }}
+          path: editor/dist/e2e-*
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: cathode-${{ matrix.name }}

@@ -1,6 +1,5 @@
 import { chromium } from '@playwright/test';
-import { createServer } from 'node:net';
-import { expect, test } from './fixtures';
+import { expect, freePort, test } from './fixtures';
 
 // Control from other devices: the desktop app's Server also on the network, serving the editor, with a token.
 
@@ -104,14 +103,3 @@ test.describe('when on', () => {
     }
   });
 });
-
-function freePort(): Promise<number> {
-  return new Promise((done, fail) => {
-    const probe = createServer();
-    probe.once('error', fail);
-    probe.listen(0, '0.0.0.0', () => {
-      const address = probe.address();
-      probe.close(() => (typeof address === 'object' && address ? done(address.port) : fail(new Error('No port'))));
-    });
-  });
-}

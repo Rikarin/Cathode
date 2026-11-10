@@ -1,9 +1,7 @@
-import type { ElectronApplication, Page } from '@playwright/test';
-import { execFileSync, spawn } from 'node:child_process';
-import { readdirSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { spawn } from 'node:child_process';
 import { expect, test } from './fixtures';
+import { commandLines, connection, hosts, mainPid, servers, socketExists } from './processes';
+import { launchTarget } from './target';
 
 // The engine sidecars as processes: what other programs on the machine can see of them.
 
@@ -77,10 +75,11 @@ test('launching it again brings the running app forward instead of starting a se
 
   // Linux CI has no setuid sandbox helper, so Electron needs --no-sandbox there, as Playwright passes to the first app.
   const sandbox = process.platform === 'linux' ? ['--no-sandbox'] : [];
+  const target = launchTarget();
   // In Node, the electron package exports the path of its binary, which its typings (the Electron API) do not describe.
   // eslint-disable-next-line @typescript-eslint/no-require-imports -- require() is how that path is read
-  const binary = require('electron') as string;
-  const second = spawn(binary, [...sandbox, resolve(__dirname, '../../../dist/apps/desktop/main.js')], {
+  const binary = target.executablePath ?? (require('electron') as string);
+  const second = spawn(binary, [...sandbox, ...target.args], {
     env: { ...process.env, CATHODE_USER_DATA: userData },
     stdio: 'ignore'
   });
@@ -135,53 +134,4 @@ test('the editor shows when the engine host is down, and its log says why', asyn
 
 interface Desktop {
   audio: { settings(): Promise<unknown>; apply(settings: unknown): Promise<void> };
-}
-
-/** The app's main process (which, on Windows, is not the one Playwright started). */
-function mainPid(app: ElectronApplication): Promise<number> {
-  return app.evaluate(() => process.pid);
-}
-
-/** The socket between the host and Server of the app whose main process is `pid`. */
-function socket(pid: number): string {
-  return join(tmpdir(), `cathode-${pid}.sock`);
-}
-
-/** Whether that socket is there: listed, as Windows cannot stat a Unix socket. */
-function socketExists(pid: number): boolean {
-  return readdirSync(tmpdir()).includes(`cathode-${pid}.sock`);
-}
-
-/** The engine hosts that app runs (on its socket), by command line. */
-function hosts(pid: number): string[] {
-  return commandLines().filter(
-    line => line.includes('cathode-host') && line.includes('--serve') && line.includes(socket(pid))
-  );
-}
-
-/** The Servers that app runs (on its host's socket), by command line. */
-function servers(pid: number): string[] {
-  return commandLines().filter(line => line.includes('cathode-server') && line.includes(socket(pid)));
-}
-
-/** The connection the desktop app hands its editor: the local Server's address and token. */
-function connection(window: Page): Promise<{ baseUrl: string; token: string }> {
-  return window.evaluate(() =>
-    (
-      globalThis as unknown as { cathode: { connection(): Promise<{ baseUrl: string; token: string }> } }
-    ).cathode.connection()
-  );
-}
-
-/** Every process's command line, as any account on the machine can list them. */
-function commandLines(): string[] {
-  const output =
-    process.platform === 'win32'
-      ? execFileSync(
-          'powershell.exe',
-          ['-NoProfile', '-Command', 'Get-CimInstance Win32_Process | ForEach-Object { $_.CommandLine }'],
-          { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }
-        )
-      : execFileSync('ps', ['-ewwo', 'args'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
-  return output.split(/\r?\n/).filter(Boolean);
 }

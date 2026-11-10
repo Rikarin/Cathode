@@ -14,7 +14,9 @@ prerelease. [`release.yml`](../.github/workflows/release.yml) first checks that 
 and builds nothing if it does not. Then it:
 
 1. Builds the desktop app on macOS, Windows and Linux (`pnpm dist`), each on its own OS since NativeAOT cannot
-   cross-compile.
+   cross-compile, and starts the packaged app on its runner (`CATHODE_PACKAGED=1`, `packaged.spec.ts` and
+   `sidecars.spec.ts`): it runs the engine in its `resources/engine`, the server reports the engine connected and
+   serves the editor, and quitting leaves no engine process behind.
 2. Builds the headless package on Linux x64 and Linux ARM64 runners (`packaging/headless/build.sh`), installs it on the
    runner with `install.sh` and checks it: the host passes `--self-test`, the services start, the server reports the
    engine connected, the web editor loads and the API refuses a request without the token. Then it uninstalls it.
