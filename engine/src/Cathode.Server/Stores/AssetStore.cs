@@ -18,6 +18,8 @@ namespace Cathode.Server.Stores;
 public sealed partial class AssetStore {
     public const long MaxBytes = 64 * 1024 * 1024;
     const string Prefix = "sha256:";
+    const string TemporaryPrefix = "upload-";
+    const string TemporarySuffix = ".tmp";
 
     readonly string folder;
     readonly string indexPath;
@@ -33,6 +35,7 @@ public sealed partial class AssetStore {
         Directory.CreateDirectory(folder);
         indexPath = Path.Combine(folder, "index.json");
         index = new(StringComparer.Ordinal);
+        DeleteStaleUploads(logger);
         if (!File.Exists(indexPath)) {
             return;
         }
@@ -55,6 +58,20 @@ public sealed partial class AssetStore {
             File.Copy(indexPath, indexPath + ".damaged", true);
             Rebuild();
             SaveIndex();
+        }
+    }
+
+    /// <summary>
+    ///     Removes the temporary files of uploads a Server that was killed or lost power left half written. No upload
+    ///     is running yet: the store is made once, before the Server takes requests.
+    /// </summary>
+    void DeleteStaleUploads(ILogger logger) {
+        foreach (var file in Directory.EnumerateFiles(folder, TemporaryPrefix + "*" + TemporarySuffix)) {
+            try {
+                File.Delete(file);
+            } catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
+                StaleUploadKept(logger, file, e.Message);
+            }
         }
     }
 
@@ -171,53 +188,51 @@ public sealed partial class AssetStore {
                 + "or a .cabgrid IR pack."
             );
 
-        var temporary = Path.Combine(folder, $"upload-{Guid.NewGuid():n}.tmp");
-        long size = 0;
-        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        await using (var file = File.Create(temporary)) {
-            var buffer = new byte[81_920];
-            int read;
-            while ((read = await content.ReadAsync(buffer, cancellationToken)) > 0) {
-                size += read;
-                if (size > MaxBytes) {
-                    file.Close();
-                    File.Delete(temporary);
-                    throw TooLarge();
+        // Deleted on every way out but the move into place: a client that disconnects, or a chunked body Kestrel
+        // refuses at the request limit, throws from the read.
+        var temporary = Path.Combine(folder, $"{TemporaryPrefix}{Guid.NewGuid():n}{TemporarySuffix}");
+        try {
+            long size = 0;
+            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+            await using (var file = File.Create(temporary)) {
+                var buffer = new byte[81_920];
+                int read;
+                while ((read = await content.ReadAsync(buffer, cancellationToken)) > 0) {
+                    size += read;
+                    if (size > MaxBytes) {
+                        throw TooLarge();
+                    }
+
+                    hash.AppendData(buffer, 0, read);
+                    await file.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
                 }
-
-                hash.AppendData(buffer, 0, read);
-                await file.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
             }
-        }
 
-        if (size == 0) {
-            File.Delete(temporary);
-            throw new RigException(400, "The upload is empty.");
-        }
+            if (size == 0) {
+                throw new RigException(400, "The upload is empty.");
+            }
 
-        if (kind == "ir") {
-            // Stored as uploaded, but read later by the engine, the mixer and Tone Match: it must be a WAV they read.
-            try {
+            if (kind == "ir") {
+                // Stored as uploaded, but read later by the engine, the mixer and Tone Match: it must be a WAV they
+                // read.
                 await using var stored = File.OpenRead(temporary);
                 Checked(name, () => WavFile.ReadHeader(stored).Frames);
-            } catch (RigException) {
-                File.Delete(temporary);
-                throw;
-            }
-        }
-
-        var reference = Prefix + Convert.ToHexStringLower(hash.GetHashAndReset());
-        lock (gate) {
-            if (index.TryGetValue(reference, out var existing)) {
-                File.Delete(temporary);
-                return existing;
             }
 
-            File.Move(temporary, FilePath(reference, kind), true);
-            var info = new AssetInfo(reference, Path.GetFileName(name), kind, size, DateTimeOffset.UtcNow);
-            index[reference] = info;
-            SaveIndex();
-            return info;
+            var reference = Prefix + Convert.ToHexStringLower(hash.GetHashAndReset());
+            lock (gate) {
+                if (index.TryGetValue(reference, out var existing)) {
+                    return existing;
+                }
+
+                File.Move(temporary, FilePath(reference, kind), true);
+                var info = new AssetInfo(reference, Path.GetFileName(name), kind, size, DateTimeOffset.UtcNow);
+                index[reference] = info;
+                SaveIndex();
+                return info;
+            }
+        } finally {
+            File.Delete(temporary); // no error when it was moved into place
         }
     }
 
@@ -332,6 +347,12 @@ public sealed partial class AssetStore {
         Message = "The asset index {Path} is damaged ({Error}); rebuilt from the files in the folder"
     )]
     static partial void IndexDamaged(ILogger logger, string path, string error);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "The unfinished upload {Path} could not be removed ({Error})"
+    )]
+    static partial void StaleUploadKept(ILogger logger, string path, string error);
 
     /// <summary>
     ///     Written atomically (<see cref="AtomicRename.Write" />): rewritten on every upload, rename and

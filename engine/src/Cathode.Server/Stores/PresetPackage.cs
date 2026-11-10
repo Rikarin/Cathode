@@ -13,7 +13,8 @@ namespace Cathode.Server.Stores;
 ///     The <c>.cthpreset</c> package: a zip of <c>manifest.json</c>, <c>preset.json</c> and the IRs and models the
 ///     preset uses as <c>assets/&lt;sha256&gt;.&lt;wav|cabgrid|nam|aidax&gt;</c>. Import treats the file as hostile:
 ///     only those exact names are accepted (nothing is ever extracted to a path taken from the zip), sizes are enforced
-///     while reading rather than trusted from headers, and every asset must hash to its name before it enters the
+///     while reading rather than trusted from headers, the preset must have a shape the library stores
+///     (<see cref="PresetShape.Check" />) and every asset must hash to its name before anything enters the asset
 ///     store.
 /// </summary>
 public sealed partial class PresetPackage(PresetStore presets, AssetStore assets) {
@@ -121,6 +122,9 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
             );
         }
 
+        // Before its blocks are walked or anything enters the asset store: a preset the library would refuse leaves
+        // no assets behind, and one with "blocks": null is repaired or refused here, not a null reference below.
+        PresetShape.Check(preset);
         var packaged = await VerifiedAssetsAsync(zip, cancellationToken);
         var missing = preset.Blocks.SelectMany(static b => b.Assets.Values)
             .Distinct(StringComparer.Ordinal)
@@ -184,7 +188,8 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
                 continue;
             }
 
-            var name = manifest.Assets.FirstOrDefault(a => a.Ref == reference)?.Name is { Length: > 0 } original
+            // The manifest is the package's own word: it may have no asset list, or null entries in it.
+            var name = manifest.Assets?.FirstOrDefault(a => a?.Ref == reference)?.Name is { Length: > 0 } original
                 ? Path.ChangeExtension(Path.GetFileName(original), Path.GetExtension(entry.Name))
                 : entry.Name;
             await using var content = await entry.OpenAsync(cancellationToken);

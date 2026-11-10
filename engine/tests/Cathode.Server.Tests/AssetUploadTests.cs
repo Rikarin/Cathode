@@ -1,5 +1,7 @@
 using Cathode.Contracts;
+using Cathode.Server.Rig;
 using Cathode.Server.Stores;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Metadata;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -113,6 +115,81 @@ public sealed class AssetUploadTests : IAsyncLifetime {
             )!
                 .Length
         );
+    }
+
+    [Fact]
+    public async Task An_upload_that_fails_while_it_is_read_leaves_no_temporary_file() {
+        var store = server.Services.GetRequiredService<AssetStore>();
+        var folder = Path.Combine(server.DataDirectory, "assets");
+
+        // The client goes away mid-body, Kestrel refuses a chunked body at the request limit, and the store's own
+        // answers for an empty upload and for a file that is not a WAV.
+        await Assert.ThrowsAsync<IOException>(() => store.AddAsync(
+                new FailingStream(100_000, new IOException("The client went away.")),
+                "gone.nam",
+                Token
+            )
+        );
+        await Assert.ThrowsAsync<BadHttpRequestException>(() => store.AddAsync(
+                new FailingStream(100_000, new BadHttpRequestException("Request body too large.", 413)),
+                "chunked.nam",
+                Token
+            )
+        );
+        await Assert.ThrowsAsync<RigException>(() => store.AddAsync(new MemoryStream(), "empty.nam", Token));
+        await Assert.ThrowsAsync<RigException>(() => store.AddAsync(new MemoryStream([1, 2, 3]), "bad.wav", Token));
+
+        Assert.Empty(Directory.EnumerateFiles(folder, "upload-*"));
+        Assert.Empty(store.List());
+    }
+
+    [Fact]
+    public async Task Unfinished_uploads_of_an_earlier_run_are_removed_at_start_up() {
+        await using var restarted = new ServerFixture();
+        var folder = Directory.CreateDirectory(Path.Combine(restarted.DataDirectory, "assets")).FullName;
+        var stale = Path.Combine(folder, $"upload-{Guid.NewGuid():n}.tmp");
+        await File.WriteAllBytesAsync(stale, new byte[1_000], Token);
+        // Only the store's own temporary files are its to delete.
+        var other = Path.Combine(folder, "upload-notes.txt");
+        await File.WriteAllTextAsync(other, "mine", Token);
+
+        using var http = await restarted.ConnectedClientAsync();
+        using var upload = await http.PostAsync("/api/v1/assets?name=a.nam", new ByteArrayContent([5, 6]), Token);
+
+        Assert.Equal(HttpStatusCode.OK, upload.StatusCode);
+        Assert.False(File.Exists(stale));
+        Assert.True(File.Exists(other));
+    }
+
+    /// <summary>A request body that gives <c>good</c> bytes and then fails, as a dropped connection does.</summary>
+    sealed class FailingStream(int good, Exception failure) : Stream {
+        int left = good;
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            if (left == 0) {
+                throw failure;
+            }
+
+            var read = Math.Min(left, count);
+            Array.Clear(buffer, offset, read);
+            left -= read;
+            return read;
+        }
+
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 
     [Fact]

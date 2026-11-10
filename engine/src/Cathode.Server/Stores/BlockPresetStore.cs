@@ -3,6 +3,7 @@ using Cathode.Dsp.Parameters;
 using Cathode.Server.Realtime;
 using Cathode.Server.Rig;
 using Microsoft.Extensions.Options;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace Cathode.Server.Stores;
@@ -49,21 +50,7 @@ public sealed class BlockPresetStore(
             throw RigException.Conflict("Factory block presets cannot be changed; save it under another id.");
         }
 
-        var descriptor = catalog.Descriptor(preset.Type)
-            ?? throw new RigException(400, $"'{preset.Type}' is not a block type with parameters.");
-        var unknown = preset.Values.Keys.Where(k => descriptor.IndexOf(k) < 0).ToList();
-        if (unknown.Count > 0) {
-            throw new RigException(
-                400,
-                $"{descriptor.Name} has no parameter(s) {string.Join(", ", unknown)}.",
-                unknown
-            );
-        }
-
-        if (string.IsNullOrWhiteSpace(preset.Name)) {
-            throw new RigException(400, "A block preset needs a name.");
-        }
-
+        var descriptor = Check(preset);
         var channels = preset.Channels?.Where(c => Preset.ChannelNames.IndexOf(c.Key) is var i
             && i >= 0
             && i < descriptor.Channels
@@ -99,14 +86,75 @@ public sealed class BlockPresetStore(
     }
 
     /// <summary>
-    ///     Adds every entry of an exported file as a new user entry (fresh ids); factory flags are dropped.
+    ///     What <see cref="Save" /> refuses: a type without parameters, a value of no parameter, no name.
     /// </summary>
-    public BlockPreset[] Import(BlockPresetFile file) {
-        if (file.Format != BlockPresetFile.FormatName) {
-            throw new RigException(400, $"Not a Block Library file (format '{file.Format}').");
+    BlockDescriptor Check(BlockPreset preset) {
+        var descriptor = catalog.Descriptor(preset.Type)
+            ?? throw new RigException(400, $"'{preset.Type}' is not a block type with parameters.");
+        var unknown = preset.Values.Keys.Where(k => descriptor.IndexOf(k) < 0).ToList();
+        if (unknown.Count > 0) {
+            throw new RigException(
+                400,
+                $"{descriptor.Name} has no parameter(s) {string.Join(", ", unknown)}.",
+                unknown
+            );
         }
 
-        return [..file.Presets.Select(p => Save(Preset.NewId(), p))];
+        return string.IsNullOrWhiteSpace(preset.Name)
+            ? throw new RigException(400, "A block preset needs a name.")
+            : descriptor;
+    }
+
+    /// <summary>
+    ///     Adds every entry of an exported file (<see cref="BlockPresetFile" />) as a new user entry (fresh ids);
+    ///     factory flags are dropped. The file may come from an earlier Cathode, so it is taken as JSON and each entry
+    ///     is upgraded as the store's own files are (<see cref="Upgrade" />) before it is read: an entry without a
+    ///     <c>schemaVersion</c> is schema 1. Nothing is added unless every entry can be.
+    /// </summary>
+    public BlockPreset[] Import(JsonNode? document) {
+        if (document is not JsonObject file) {
+            throw new RigException(400, "Not a Block Library file.");
+        }
+
+        if (file["format"] is not JsonValue format
+            || !format.TryGetValue<string>(out var name)
+            || name != BlockPresetFile.FormatName) {
+            throw new RigException(400, $"Not a Block Library file (format '{file["format"]}').");
+        }
+
+        if (file["presets"] is not JsonArray entries) {
+            throw new RigException(400, "The Block Library file has no entries.");
+        }
+
+        var presets = new List<BlockPreset>(entries.Count);
+        foreach (var entry in entries) {
+            BlockPreset? preset;
+            try {
+                preset = Upgrade(entry)?.Deserialize(ContractsJsonContext.Default.BlockPreset);
+            } catch (Exception e) when (e is JsonException
+                                            or InvalidOperationException
+                                            or FormatException
+                                            or OverflowException) {
+                // JSON of the wrong shape for the serializer's or the upgrade's type checks.
+                throw new RigException(400, $"The Block Library file is not valid: {e.Message}");
+            }
+
+            if (preset is null) {
+                throw new RigException(400, "The Block Library file has an empty entry.");
+            }
+
+            if (preset.SchemaVersion > BlockPreset.CurrentSchemaVersion) {
+                throw RigException.Conflict(
+                    $"Block preset '{preset.Name}' was saved by a newer version of Cathode "
+                    + $"(schema {preset.SchemaVersion})."
+                );
+            }
+
+            Check(preset);
+            presets.Add(preset);
+        }
+
+        return [..presets.Select(p => Save(Preset.NewId(), p))];
     }
 
     /// <summary>The entries <paramref name="ids" /> as a file to save.</summary>

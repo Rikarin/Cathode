@@ -156,6 +156,84 @@ public sealed class PresetPackageTests : IAsyncLifetime {
         Assert.Contains("preset.json is not valid", body, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("""{ "name": "x", "blocks": null }""")]
+    [InlineData("""{ "name": "x", "blocks": [ { "id": "a", "type": "chorus", "assets": null } ] }""")]
+    public async Task A_preset_with_lists_missing_is_repaired_as_the_library_does(string json) {
+        var id = await SaveRigWithCab(from, "Sparse");
+        var package = Rewrite(
+            await from.GetByteArrayAsync($"/api/v1/presets/{id}/export", Token),
+            static e => e == "preset.json",
+            System.Text.Encoding.UTF8.GetBytes(json)
+        );
+
+        var imported = await Import(to, package);
+
+        Assert.Equal("x", imported.Preset.Name);
+    }
+
+    [Theory]
+    [InlineData("""{ "name": "x", "scenes": [] }""", "exactly 8 scenes")]
+    [InlineData("""{ "name": "x", "rows": 0 }""", "The preset is not valid")]
+    public async Task A_preset_the_library_would_refuse_is_refused_before_its_assets_are_added(
+        string json,
+        string reason
+    ) {
+        var id = await SaveRigWithCab(from, "Refused");
+        var package = Rewrite(
+            await from.GetByteArrayAsync($"/api/v1/presets/{id}/export", Token),
+            static e => e == "preset.json",
+            System.Text.Encoding.UTF8.GetBytes(json)
+        );
+
+        var (status, body) = await TryImport(to, package);
+
+        Assert.Equal(HttpStatusCode.BadRequest, status);
+        Assert.Contains(reason, body, StringComparison.Ordinal);
+        Assert.Empty((await to.GetFromJsonAsync<AssetInfo[]>("/api/v1/assets", Token))!);
+    }
+
+    [Fact]
+    public async Task A_bad_grid_is_refused_before_the_packages_assets_are_added() {
+        var id = await SaveRigWithCab(from, "Bad grid");
+        var exported = await from.GetByteArrayAsync($"/api/v1/presets/{id}/export", Token);
+        var preset = System.Text.Json.Nodes.JsonNode.Parse(Read(exported, "preset.json"))!;
+        preset["rows"] = 99; // every list and asset reference is whole; only the grid is not one the library stores
+        var package = Rewrite(
+            exported,
+            static e => e == "preset.json",
+            System.Text.Encoding.UTF8.GetBytes(preset.ToJsonString())
+        );
+
+        var (status, body) = await TryImport(to, package);
+
+        Assert.Equal(HttpStatusCode.BadRequest, status);
+        Assert.Contains("The preset is not valid", body, StringComparison.Ordinal);
+        Assert.Empty((await to.GetFromJsonAsync<AssetInfo[]>("/api/v1/assets", Token))!);
+        Assert.DoesNotContain(
+            (await to.GetFromJsonAsync<PresetSummary[]>("/api/v1/presets", Token))!,
+            static p => p.Name == "Bad grid"
+        );
+    }
+
+    [Theory]
+    [InlineData("""{ "format": "cathode-preset", "version": 1, "presetId": "x", "presetName": "x" }""")]
+    [InlineData("""{ "format": "cathode-preset", "version": 1, "assets": [ null ] }""")]
+    public async Task A_manifest_without_an_asset_list_imports_under_the_assets_file_names(string manifest) {
+        var id = await SaveRigWithCab(from, "No list");
+        var package = Rewrite(
+            await from.GetByteArrayAsync($"/api/v1/presets/{id}/export", Token),
+            static e => e == "manifest.json",
+            System.Text.Encoding.UTF8.GetBytes(manifest)
+        );
+
+        var imported = await Import(to, package);
+
+        Assert.Equal(1, imported.AssetsAdded);
+        var asset = Assert.Single((await to.GetFromJsonAsync<AssetInfo[]>("/api/v1/assets", Token))!);
+        Assert.Equal(asset.Ref[7..] + ".wav", asset.Name);
+    }
+
     [Fact]
     public async Task Oversized_entries_are_stopped_while_reading() {
         var id = await SaveRigWithCab(from, "Bomb");
@@ -233,6 +311,14 @@ public sealed class PresetPackageTests : IAsyncLifetime {
                 stream.Write(content);
             }
         );
+
+    static byte[] Read(byte[] package, string name) {
+        using var zip = new ZipArchive(new MemoryStream(package), ZipArchiveMode.Read);
+        using var stream = zip.GetEntry(name)!.Open();
+        using var buffer = new MemoryStream();
+        stream.CopyTo(buffer);
+        return buffer.ToArray();
+    }
 
     static byte[] Remove(byte[] package, Func<string, bool> which) => Transform(package, which, static (_, _) => { });
 

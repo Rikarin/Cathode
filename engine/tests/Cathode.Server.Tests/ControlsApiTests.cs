@@ -123,13 +123,102 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         await PutGlobal(static g => g.MidiMappings.Add(new("tap", "cc", 0, 80, "tap")));
         var router = server.Services.GetRequiredService<MidiRouter>();
 
-        // Four taps exactly half a second apart on the engine's clock: 120 BPM, however late they are delivered.
+        // The rig and a new working copy both start at 120 BPM, so the taps must be at another tempo to show anything.
+        Assert.Equal(120, server.Host.Engine.Tempo);
+        Assert.Equal(120, (await Live()).Preset.Tempo);
+
+        // Four taps exactly 32,000 samples apart on the engine's clock: 90 BPM at 48 kHz. They are delivered
+        // unevenly and far closer together than that (by their arrival they would be a tempo off the scale), so
+        // only their sample times can give 90.
+        int[] waitMs = [0, 40, 5, 90];
         for (var i = 0; i < 4; i++) {
-            router.OnMidi([new(0xB0, 80, 127, 1_000 + i * 24_000)]);
+            await Task.Delay(waitMs[i], Token);
+            router.OnMidi([new(0xB0, 80, 127, 1_000 + i * 32_000)]);
         }
 
-        await ServerFixture.Eventually(() => Math.Abs(server.Host.Engine.Tempo - 120) < 0.01);
-        await ServerFixture.Eventually(async () => (await Live()).Preset.Tempo == 120);
+        await ServerFixture.Eventually(
+            () => Math.Abs(server.Host.Engine.Tempo - 90) < 0.01,
+            () => $"engine tempo {server.Host.Engine.Tempo}"
+        );
+        await ServerFixture.Eventually(async () => (await Live()).Preset.Tempo == 90);
+    }
+
+    [Fact]
+    public async Task Taps_over_rest_are_averaged_on_the_engines_clock_and_the_preset_follows() {
+        // A REST tap carries no time: the engine stamps it with its own clock when it arrives. So the test paces its
+        // taps by that clock, 32,000 samples apart (90 BPM at 48 kHz), not by a wall-clock sleep that a busy machine
+        // stretches.
+        var engine = server.Host.Engine;
+        Assert.Equal(120, (await Live()).Preset.Tempo);
+        var start = engine.SampleTime;
+
+        for (var i = 0; i < 4; i++) {
+            var at = start + i * 32_000;
+            while (engine.SampleTime < at) {
+                await Task.Delay(1, Token);
+            }
+
+            using var tap = await client.PostAsync("/api/v1/live/tap", null, Token);
+            Assert.Equal(HttpStatusCode.NoContent, tap.StatusCode);
+        }
+
+        // Within 5 BPM: a tap is as late as its request, but four taps at 120 BPM's spacing could not land here.
+        await ServerFixture.Eventually(
+            () => Math.Abs(engine.Tempo - 90) < 5,
+            () => $"engine tempo {engine.Tempo}"
+        );
+        await ServerFixture.Eventually(async () => Math.Abs((await Live()).Preset.Tempo - engine.Tempo) < 0.06);
+    }
+
+    [Fact]
+    public async Task External_controllers_set_over_rest_reach_the_modifiers_that_follow_them() {
+        await Put(
+            "/api/v1/live/modifiers",
+            new List<PresetModifier> {
+                new() {
+                    Block = "delay1",
+                    Param = "mix",
+                    Source = "ext1",
+                    Min = 0,
+                    Max = 100
+                }
+            }
+        );
+
+        using var first = await client.PutAsJsonAsync("/api/v1/live/external/0", new ValueRequest(0.75f), Token);
+        using var last = await client.PutAsJsonAsync("/api/v1/live/external/7", new ValueRequest(4f), Token);
+        using var ninth = await client.PutAsJsonAsync("/api/v1/live/external/8", new ValueRequest(0.5f), Token);
+        using var negative = await client.PutAsJsonAsync("/api/v1/live/external/-1", new ValueRequest(0.5f), Token);
+
+        Assert.Equal(HttpStatusCode.NoContent, first.StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, last.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, ninth.StatusCode); // External 1-8 are index 0-7
+        Assert.Equal(HttpStatusCode.BadRequest, negative.StatusCode);
+        await ServerFixture.Eventually(() => Rig("ext1") == 0.75f && Rig("ext8") == 1f); // clamped to 0..1
+        await ServerFixture.Eventually(
+            () => server.Graph!.Modifiers.Count == 1 && Math.Abs(server.Graph.ModifierValues[0] - 75f) < 0.5f,
+            () => $"the modifier's value: {server.Graph!.ModifierValues[0]}"
+        );
+        Assert.All(["ext2", "ext3", "ext4", "ext5", "ext6", "ext7"], id => Assert.Equal(0f, Rig(id)));
+    }
+
+    [Fact]
+    public async Task The_rig_catalogue_lists_every_rig_parameter_as_the_engine_has_it() {
+        var rig = (await client.GetFromJsonAsync<BlockTypeInfo>("/api/v1/catalog/rig", Token))!;
+
+        Assert.Equal(RigControls.BlockId, rig.TypeId);
+        Assert.Equal(1, rig.Channels);
+        Assert.Empty(rig.AssetSlots);
+        // The Controllers page builds its controls from these: every parameter, in the engine's order.
+        Assert.Equal(RigControls.Descriptor.Params.Select(static p => p.Id), rig.Params.Select(static p => p.Id));
+        Assert.All(rig.Params, static p => Assert.False(string.IsNullOrEmpty(p.Name)));
+        var tempo = rig.Params.Single(static p => p.Id == "tempo");
+        Assert.Equal((30f, 300f, 120f, "BPM"), (tempo.Min, tempo.Max, tempo.Default, tempo.Unit));
+        var stages = rig.Params.Single(static p => p.Id == "seqStages");
+        Assert.Equal((2f, (float)RigControls.SequencerStages, 8f), (stages.Min, stages.Max, stages.Default));
+        foreach (var id in new[] { "lfo1Rate", "adsr2Attack", "envGain", "level", "manualA", "scene4", "ext8" }) {
+            Assert.Contains(rig.Params, p => p.Id == id);
+        }
     }
 
     [Fact]

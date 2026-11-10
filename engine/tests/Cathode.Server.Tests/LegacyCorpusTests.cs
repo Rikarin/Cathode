@@ -13,16 +13,20 @@ namespace Cathode.Server.Tests;
 /// <summary>
 ///     The legacy corpus (docs/03-testing-strategy.md §9): <c>tests/assets/legacy/&lt;version&gt;/</c> holds a data
 ///     folder written by each released Cathode, through its own API: two factory presets duplicated into the library,
-///     a user's edit saved as a new preset (a Tiny Terror with its Cut on channel A, a 5881 on channel B, the amp made
-///     a global block), a user block preset of a Hot Cat and a <c>global.json</c> with a setting changed. Every
-///     release since must read all of it, upgraded, and render every distinct scene of every preset finite, the same
-///     twice, and at the loudness recorded in <c>levels.json</c>. A deliberate change of sound (an amp model refit)
-///     moves those levels: rewrite them with <c>CATHODE_UPDATE_LEGACY_LEVELS=1</c> and say why in the commit.
+///     a user's edit saved as a new preset (a Tiny Terror on channel A, another power tube on channel B, the amp made
+///     a global block), a user block preset of a Hot Cat, that entry exported as <c>legacy-hot-cat.cthblock</c> and a
+///     <c>global.json</c> with a setting changed; since 1.0.0-rc.4 also two modifiers on the edited preset and a
+///     setlist. Up to 1.0.0-rc.3 (schema 1) the Tiny Terror has its Cut set and channel B a 5881, which schema 2
+///     changed. Every release since must read all of it, upgraded, and render every distinct scene of every preset
+///     finite, the same twice, and at the loudness recorded in <c>levels.json</c>. A deliberate change of sound (an
+///     amp model refit) moves those levels: rewrite them with <c>CATHODE_UPDATE_LEGACY_LEVELS=1</c> and say why in
+///     the commit.
 /// </summary>
 /// <remarks>
-///     To add a release: start its Server (<c>Cathode:Engine:Mode=inprocess</c> on 1.0.0-rc.*) on an empty data
-///     folder, make the same files through its API, copy <c>presets</c>, <c>block-presets</c> and
-///     <c>global.json</c> into a folder named after the version, and record the levels.
+///     To add a release (a step of releasing, docs/10-releases.md): start its Server on an empty data folder and run
+///     <c>tests/assets/legacy/make-corpus.mjs</c> against it, which makes the files through the API and copies them
+///     into a folder named after the version; then record the levels. The script's header has the commands. A
+///     release that changes a stored schema also gets its line in <see cref="Schemas" />.
 /// </remarks>
 public sealed class LegacyCorpusTests {
     /// <summary>Loudness tolerance, LU: tight enough to catch a migration that changes a value.</summary>
@@ -35,22 +39,79 @@ public sealed class LegacyCorpusTests {
 
     static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
 
-    /// <summary>The releases in the corpus, oldest first.</summary>
-    static readonly string[] Releases = [
-        ..Directory.EnumerateDirectories(Corpus).Select(static d => Path.GetFileName(d)).Order(StringComparer.Ordinal)
+    /// <summary>
+    ///     Every released version, oldest first: the headings of CHANGELOG.md but the one marked unreleased. A
+    ///     release's section is written before it is tagged, so its folder must be in the corpus by then.
+    /// </summary>
+    static readonly string[] Released = [
+        ..File.ReadLines(Path.Combine(EngineRoot(), "..", "CHANGELOG.md"))
+            .Where(static line => line.StartsWith("## ", StringComparison.Ordinal)
+                && !line.Contains("unreleased", StringComparison.OrdinalIgnoreCase)
+            )
+            .Select(static line => line[3..].Split(' ', 2)[0])
+            .Reverse()
     ];
+
+    /// <summary>The releases in the corpus, in the order they were released (one that never was comes last).</summary>
+    static readonly string[] Releases = [
+        ..Directory.EnumerateDirectories(Corpus)
+            .Select(static d => Path.GetFileName(d))
+            .OrderBy(static v => Array.IndexOf(Released, v) is var i && i >= 0 ? i : int.MaxValue)
+            .ThenBy(static v => v, StringComparer.Ordinal)
+    ];
+
+    /// <summary>
+    ///     The schema each release stores, by the first release that wrote it. Presets, block presets and the global
+    ///     settings have changed schema together so far; give them a column each when they stop.
+    /// </summary>
+    static readonly (string Since, int Schema)[] Schemas = [("1.0.0-rc.1", 1), ("1.0.0-rc.4", 2)];
 
     public static TheoryData<string> Versions => [..Releases];
 
+    /// <summary>
+    ///     The schema <paramref name="version" /> stores: that of the last entry of <see cref="Schemas" /> not after
+    ///     it.
+    /// </summary>
+    static int SchemaOf(string version) =>
+        Schemas.Last(s => Array.IndexOf(Released, s.Since) <= Array.IndexOf(Released, version)).Schema;
+
     [Fact]
-    public void The_corpus_holds_every_release_since_the_first_and_only_schema_1_files() {
-        Assert.Equal(["1.0.0-rc.1", "1.0.0-rc.2", "1.0.0-rc.3"], Releases);
-        foreach (var file in Directory.EnumerateFiles(Corpus, "*.json", SearchOption.AllDirectories)) {
-            if (file != LevelsPath) {
-                var document = JsonNode.Parse(File.ReadAllText(file))!.AsObject();
+    public void The_corpus_holds_every_release_and_each_folders_files_are_of_its_releases_schema() {
+        Assert.True(
+            Released.Length >= 5 && Released[0] == "1.0.0-rc.1",
+            "CHANGELOG.md's release headings were not read"
+        );
+        Assert.True(
+            Released.SequenceEqual(Releases),
+            $"The corpus has {string.Join(", ", Releases)}; CHANGELOG.md lists the releases "
+            + $"{string.Join(", ", Released)}. Add the missing release's folder: see "
+            + "tests/assets/legacy/make-corpus.mjs."
+        );
+        Assert.All(Schemas, static s => Assert.Contains(s.Since, Released));
+        Assert.True(Schemas.Select(static s => s.Schema).SequenceEqual(Enumerable.Range(1, Schemas.Length)));
+        Assert.True(Schemas[^1].Schema <= Preset.CurrentSchemaVersion);
+
+        foreach (var version in Releases) {
+            var folder = Path.Combine(Corpus, version);
+            string[] stored = [
+                Path.Combine(folder, "global.json"),
+                ..Directory.EnumerateFiles(Path.Combine(folder, "presets"), "*.json"),
+                ..Directory.EnumerateFiles(Path.Combine(folder, "block-presets"), "*.json")
+            ];
+            var exported = JsonNode.Parse(File.ReadAllText(Path.Combine(folder, "legacy-hot-cat.cthblock")))!;
+            JsonNode[] documents = [
+                ..stored.Select(static f => JsonNode.Parse(File.ReadAllText(f))!),
+                ..exported["presets"]!.AsArray().Select(static e => e!)
+            ];
+            Assert.True(documents.Length >= 6, $"{version}: files are missing");
+            foreach (var document in documents) {
+                // A file without a version is schema 1: 1.0.0-rc.3 and earlier wrote none into a block preset.
+                var schema = document["schemaVersion"]?.GetValue<int>() ?? 1;
+                var json = document.ToJsonString();
                 Assert.True(
-                    document["schemaVersion"] is null || document["schemaVersion"]!.GetValue<int>() == 1,
-                    $"{file} is not a schema-1 file"
+                    schema == SchemaOf(version),
+                    $"{version}: a file is schema {schema}, but that release stored schema {SchemaOf(version)}:\n"
+                    + json[..Math.Min(json.Length, 200)]
                 );
             }
         }
@@ -81,19 +142,45 @@ public sealed class LegacyCorpusTests {
             }
         }
 
-        // The edited preset, its global amp and the block preset come through schema 2's Amp changes.
+        // The edited preset, its global amp and the block preset: the same Tiny Terror and Hot Cat in every release.
         var edits = presets.Single(static p => p.Name == "Legacy Edits");
         var amp = edits.Blocks.Single(static b => b.Type == "circuitamp");
-        AssertSchema1AmpUpgraded(amp.Channels["A"], amp.Channels["B"]);
         var global = (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!;
         Assert.False(global.PresetSpillover);
         var shared = global.Blocks.Single(g => g.Id == amp.Global);
-        AssertSchema1AmpUpgraded(shared.Channels["A"], shared.Channels["B"]);
         var hotCat = (await client.GetFromJsonAsync<BlockPreset[]>("/api/v1/block-presets?type=circuitamp", Token))!
             .Single(static p => p.Id == "legacy-hot-cat");
-        Assert.Equal(10 - 7, hotCat.Values["presence"]);
-        Assert.Equal(1, hotCat.Values["powertube"]); // the 5881 is the 6L6GC
-        Assert.False(hotCat.Values.ContainsKey("cut"));
+        foreach (var channels in new[] { amp.Channels, shared.Channels }) {
+            Assert.Equal(63, channels["A"]["type"]);
+            Assert.Equal(7, channels["A"]["presence"]);
+            Assert.Equal(10, channels["A"]["master"]);
+            Assert.Equal(1, channels["B"]["powertube"]);
+        }
+
+        Assert.Equal(3, hotCat.Values["presence"]);
+        Assert.Equal(1, hotCat.Values["powertube"]);
+        if (SchemaOf(version) == 1) {
+            // They come through schema 2's Amp changes.
+            AssertSchema1AmpUpgraded(amp.Channels["A"], amp.Channels["B"]);
+            AssertSchema1AmpUpgraded(shared.Channels["A"], shared.Channels["B"]);
+            Assert.False(hotCat.Values.ContainsKey("cut")); // the Cut of 7 is the Presence knob's 3
+        }
+
+        if (SchemaOf(version) == Preset.CurrentSchemaVersion) {
+            // Nothing to upgrade: every file reads back as that release wrote it. (A field added since may come
+            // back beside what the file has.) When the schema is raised, these folders get their own checks above.
+            await AssertReadsAsWritten(client, version);
+        }
+
+        // The same entry as that release exported it (a .cthblock file) comes through the import upgraded alike.
+        using var exported = new ByteArrayContent(
+            await File.ReadAllBytesAsync(Path.Combine(Corpus, version, "legacy-hot-cat.cthblock"), Token)
+        );
+        exported.Headers.ContentType = new("application/json");
+        using var import = await client.PostAsync("/api/v1/block-presets/import", exported, Token);
+        Assert.Equal(HttpStatusCode.OK, import.StatusCode);
+        var imported = Assert.Single((await import.Content.ReadFromJsonAsync<BlockPreset[]>(Token))!);
+        Assert.Equal(hotCat.Values, imported.Values);
 
         // Loading one plays it: the live rig takes it and the engine reports no error.
         using var load = await client.PutAsync($"/api/v1/live/preset/{edits.Id}", null, Token);
@@ -167,6 +254,80 @@ public sealed class LegacyCorpusTests {
             + "\nAfter a deliberate change of sound, rewrite them: CATHODE_UPDATE_LEGACY_LEVELS=1 dotnet test "
             + "--project tests/Cathode.Server.Tests --filter-class Cathode.Server.Tests.LegacyCorpusTests"
         );
+    }
+
+    /// <summary>
+    ///     Every preset, block preset and setlist of a release's folder, and its global settings, as the API gives
+    ///     them: all that the file holds, with the same values.
+    /// </summary>
+    async Task AssertReadsAsWritten(HttpClient client, string version) {
+        var folder = Path.Combine(Corpus, version);
+        foreach (var (directory, route) in new[] {
+                     ("presets", "presets"), ("block-presets", "block-presets"), ("setlists", "setlists")
+                 }) {
+            foreach (var file in Directory.EnumerateFiles(Path.Combine(folder, directory), "*.json")) {
+                var id = Path.GetFileNameWithoutExtension(file);
+                var read = route == "block-presets"
+                    ? (await client.GetFromJsonAsync<JsonArray>($"/api/v1/{route}", Token))!.Single(p =>
+                        p!["id"]!.GetValue<string>() == id
+                    )
+                    : await client.GetFromJsonAsync<JsonNode>($"/api/v1/{route}/{id}", Token);
+                AssertHolds(
+                    JsonNode.Parse(await File.ReadAllTextAsync(file, Token)),
+                    read,
+                    $"{version}/{directory}/{id}"
+                );
+            }
+        }
+
+        AssertHolds(
+            JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(folder, "global.json"), Token)),
+            await client.GetFromJsonAsync<JsonNode>("/api/v1/global", Token),
+            $"{version}/global"
+        );
+    }
+
+    /// <summary>
+    ///     <paramref name="read" /> holds everything <paramref name="written" /> does: each property of an object
+    ///     (a null one may be missing), each element of an array in order, and equal values.
+    /// </summary>
+    static void AssertHolds(JsonNode? written, JsonNode? read, string path) {
+        switch (written) {
+            case null:
+                Assert.True(read is null, $"{path}: null was written, {read?.ToJsonString()} is read");
+                break;
+            case JsonObject expected:
+                Assert.True(
+                    read is JsonObject,
+                    $"{path}: an object was written, {read?.ToJsonString() ?? "null"} is read"
+                );
+                foreach (var (name, value) in expected) {
+                    AssertHolds(value, read![name], $"{path}.{name}");
+                }
+
+                break;
+            case JsonArray expected:
+                Assert.True(
+                    read is JsonArray actual && actual.Count == expected.Count,
+                    $"{path}: {expected.ToJsonString()} was written, {read?.ToJsonString() ?? "null"} is read"
+                );
+                for (var i = 0; i < expected.Count; i++) {
+                    AssertHolds(expected[i], read![i], $"{path}[{i}]");
+                }
+
+                break;
+            default:
+                var numbers = written.GetValueKind() == JsonValueKind.Number
+                    && read?.GetValueKind() == JsonValueKind.Number;
+                var same = numbers
+                    ? Math.Abs(written.GetValue<double>() - read!.GetValue<double>()) < 1e-6
+                    : read is not null && JsonNode.DeepEquals(written, read);
+                Assert.True(
+                    same,
+                    $"{path}: {written.ToJsonString()} was written, {read?.ToJsonString() ?? "null"} is read"
+                );
+                break;
+        }
     }
 
     /// <summary>A schema-1 Tiny Terror with Cut 3 (channel A) and a 5881 (channel B), upgraded.</summary>
