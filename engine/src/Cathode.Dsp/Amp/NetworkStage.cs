@@ -229,6 +229,31 @@ public sealed class StageNetlist {
     /// <summary>A supply rail at <paramref name="volts" /> (nominal; it follows the preamp's sag).</summary>
     public void Supply(int node, double volts) => Add(new(ElementKind.Supply, node, Ground, volts));
 
+    /// <summary>
+    ///     A common-cathode triode with its grid on <paramref name="grid" />: a rail of <paramref name="supply" />
+    ///     volts, <paramref name="plateResistor" /> from it to the plate, and <paramref name="cathodeResistor" /> to
+    ///     ground with <paramref name="bypass" /> farads across it (0 for none). Returns the plate.
+    /// </summary>
+    public int CommonCathode(
+        int grid,
+        TriodeModel tube,
+        double supply,
+        double plateResistor,
+        double cathodeResistor,
+        double bypass = 0
+    ) {
+        var (rail, plate, cathode) = (Node(), Node(), Node());
+        Supply(rail, supply);
+        Resistor(rail, plate, plateResistor);
+        CathodeResistor(cathode, Ground, cathodeResistor);
+        if (bypass > 0) {
+            Capacitor(cathode, Ground, bypass);
+        }
+
+        Triode(plate, grid, cathode, tube);
+        return plate;
+    }
+
     public void Triode(int plate, int grid, int cathode, TriodeModel tube) =>
         Add(new(ElementKind.Triode, plate, grid, 0) { C = cathode, Triode = tube });
 

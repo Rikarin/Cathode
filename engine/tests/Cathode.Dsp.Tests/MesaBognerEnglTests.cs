@@ -14,7 +14,10 @@ namespace Cathode.Dsp.Tests;
 ///     cuts under grid current. The Savage's four network stages agree to -87 dB at 2 mV; driven hard, its V2B (330k
 ///     plate, unbypassed 3.3k) into V3B's grid current is the cuts' known weak spot (-8 dB), as the Rect-o-Verb's cold
 ///     clipper with a plate bypass cap is (-13 dB). The Savage's Smooth path, through its stack and V3A (five stages),
-///     agrees to -42 dB at 2 mV and -32 dB at 50 mV: its pad keeps V3B's grid current small.
+///     agrees to -42 dB at 2 mV and -32 dB at 50 mV: its pad keeps V3B's grid current small. The Powerball's lead,
+///     with the corrected copy's networks, agrees to -22.5 dB at 0.5 mV and -8.4 dB at 50 mV (it was -28 and -13 dB
+///     as the factory drawing has it): V6A now has 1 nF across its 330k plate resistor, the same weak spot. Its
+///     channel 1, three stages behind a 33 dB divider, agrees to -42 dB.
 /// </remarks>
 public partial class AmpStageTests {
     /// <summary>
@@ -23,20 +26,104 @@ public partial class AmpStageTests {
     /// </summary>
     public static TheoryData<string, bool, int, double, double> MesaEnglChains =>
         new() {
-            { "Mark V", false, 4, 0.002, -16 },
-            { "Mark V", false, 4, 0.05, -16 },
-            { "Rect-o-Verb", false, 4, 0.002, -15 },
-            { "Rect-o-Verb", false, 4, 0.05, -9 },
-            { "Rect-o-Verb", true, 3, 0.002, -45 },
-            { "Rect-o-Verb", true, 3, 0.05, -45 },
-            { "Powerball", false, 4, 0.0005, -25 },
-            { "Powerball", false, 4, 0.05, -10 },
-            { "Powerball", true, 4, 0.002, -38 },
-            { "Powerball", true, 4, 0.05, -15 },
-            { "Savage 120", false, 4, 0.002, -80 },
-            { "Savage 120", false, 4, 0.05, -5 },
-            { "Savage 120", true, 5, 0.002, -35 },
-            { "Savage 120", true, 5, 0.05, -25 }
+            {
+                "Mark V",
+                false,
+                4,
+                0.002,
+                -16
+            },
+            {
+                "Mark V",
+                false,
+                4,
+                0.05,
+                -16
+            },
+            {
+                "Rect-o-Verb",
+                false,
+                4,
+                0.002,
+                -15
+            },
+            {
+                "Rect-o-Verb",
+                false,
+                4,
+                0.05,
+                -9
+            },
+            {
+                "Rect-o-Verb",
+                true,
+                3,
+                0.002,
+                -45
+            },
+            {
+                "Rect-o-Verb",
+                true,
+                3,
+                0.05,
+                -45
+            },
+            {
+                "Powerball",
+                false,
+                4,
+                0.0005,
+                -20
+            },
+            {
+                "Powerball",
+                false,
+                4,
+                0.05,
+                -6
+            },
+            {
+                "Powerball",
+                true,
+                4,
+                0.002,
+                -38
+            },
+            {
+                "Powerball",
+                true,
+                4,
+                0.05,
+                -15
+            },
+            {
+                "Savage 120",
+                false,
+                4,
+                0.002,
+                -80
+            },
+            {
+                "Savage 120",
+                false,
+                4,
+                0.05,
+                -5
+            },
+            {
+                "Savage 120",
+                true,
+                5,
+                0.002,
+                -35
+            },
+            {
+                "Savage 120",
+                true,
+                5,
+                0.05,
+                -25
+            }
         };
 
     /// <summary>
@@ -64,11 +151,7 @@ public partial class AmpStageTests {
             Switch1: other && onSwitch1,
             Switch3: other && !onSwitch1
         );
-        var designs = AmpDesign.All.Single(a => a.Name == type)
-            .Preamp
-            .SelectMany(s => s is ChannelSwitchStageDesign c ? controls.IsOn(c.Switch) ? c.On : c.Off : [s])
-            .Take(count)
-            .ToArray();
+        var designs = Playing(AmpDesign.All.Single(a => a.Name == type).Preamp, controls).Take(count).ToArray();
 
         var stages = designs.Select(static d => d.Create(Rate)).ToArray();
         var (rest, resistance) = (0.0, 0.0);
@@ -182,7 +265,6 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
 
     [Fact]
     public void Panels_name_the_real_controls() {
-
         Assert.Equal(
             ["Channel 2", "Drive Mode", "Tube Rectifier"],
             new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "Lone Star"))
@@ -269,8 +351,9 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
 
     /// <summary>
     ///     The Powerball's channel 1 (Switch 3) runs three of the lead's four stages behind a divider: far less gain
-    ///     than the lead, Crunch (Switch 2) above Clean by its hotter divider, and a Bright switch that lifts the highs
-    ///     at a low gain setting and does nothing in the lead.
+    ///     than the lead, Crunch (Switch 2) above Clean by its hotter divider (470k over 470k behind 1 nF against
+    ///     Clean's 1M over 22k: 22 dB at 1 kHz with the volumes full), and a Bright switch that lifts the highs at a
+    ///     low gain setting and does nothing in the lead.
     /// </summary>
     [Fact]
     public void Powerball_channel_one_is_the_clean_and_crunch_of_three_stages() {
@@ -294,7 +377,7 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         output.WriteLine($"Powerball at 1 kHz: lead {lead:0.0} dB, clean {clean:0.0} dB, crunch {crunch:0.0} dB");
         output.WriteLine($"Bright at 5 kHz: channel 1 {bright:0.0} dB, lead {leadBright:0.00} dB");
         Assert.True(clean < lead - 20, $"clean {clean:0.0} dB against the lead's {lead:0.0} dB");
-        Assert.InRange(crunch - clean, 1, 8);
+        Assert.InRange(crunch - clean, 15, 29);
         Assert.True(bright > 3, $"Bright lifts 5 kHz by {bright:0.0} dB");
         Assert.Equal(0, leadBright, 6);
     }
@@ -348,7 +431,33 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         output.WriteLine($"Treble 0 to 10 on a driven note's highs: Rough {rough:0.0} dB, Smooth {smoothed:0.0} dB");
         Assert.InRange(small, -60, -20);
         Assert.InRange(driven, -12, 3);
-        Assert.True(smoothed < rough - 2,$"Smooth's treble reaches {smoothed:0.0} dB, Rough's {rough:0.0} dB");
+        Assert.True(smoothed < rough - 2, $"Smooth's treble reaches {smoothed:0.0} dB, Rough's {rough:0.0} dB");
+    }
+
+    /// <summary>
+    ///     Issue #512, "the Powerball model is fuzzy". Built from the factory drawing alone, the lead had 65 dB of gain
+    ///     at Gain 5 against about 40 for the 5150 and the Dual Rectifier, and a 220 Hz note at 0.2 mV played within
+    ///     2 dB of one at 0.1 V: a square wave whatever was played. With the interstage networks of the corrected copy
+    ///     (1 nF and 470k dividers, the Lo and Hi networks) its gain is the other high-gain models' and a note that
+    ///     dies away gets quieter.
+    /// </summary>
+    [Fact]
+    public void Powerball_lead_has_a_high_gain_amps_gain_and_follows_the_playing() {
+        static double At(string type, float amplitude) {
+            using var block = Create(type);
+            return Level(block, 220, amplitude) - Analysis.ToDb(amplitude / Math.Sqrt(2));
+        }
+
+        var (powerball, peavey, rectifier) = (At("Powerball", 1e-6f), At("5150", 1e-6f), At("Dual Rectifier", 1e-6f));
+        using var loud = Create("Powerball");
+        using var quiet = Create("Powerball");
+        var dynamics = Level(loud, 220, 0.1f) - Level(quiet, 220, 2e-4f);
+        output.WriteLine(
+            $"Gain at 220 Hz, stock knobs: Powerball {powerball:0.0} dB, 5150 {peavey:0.0}, Dual Rectifier "
+            + $"{rectifier:0.0}; 0.1 V against 0.2 mV: {dynamics:0.0} dB"
+        );
+        Assert.InRange(powerball, Math.Min(peavey, rectifier) - 8, Math.Max(peavey, rectifier) + 8);
+        Assert.True(dynamics > 15, $"a 0.2 mV note plays only {dynamics:0.0} dB below a 0.1 V one");
     }
 
     /// <summary>

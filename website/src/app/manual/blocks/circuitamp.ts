@@ -585,7 +585,7 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'Triple Rectifier':
         'Mesa/Boogie Triple Rectifier: built as the three-channel Dual Rectifier with six 6L6s, as no schematic was found.',
       Powerball:
-        'Engl Powerball: channel 2 (lead), Lo and Hi modes, with its Open and Focused middle, and on Switch 3 channel 1, Clean and Crunch. Tight modern metal. Two supply filter nodes are assumed (not on the drawing) to stop it motorboating.',
+        'Engl Powerball: channel 2 (lead), Lo and Hi modes, with its Open and Focused middle, its noise gate (Gate Threshold) and Bottom, and on Switch 3 channel 1, Clean and Crunch. Tight modern metal. The factory drawing of its preamp is wrong, so the stages are coupled as a hand-corrected copy of it shows.',
       'Savage 120': 'Engl Savage 120 lead channel, Rough and (Switch 3) Smooth: aggressive, mid-forward high gain.',
       SVT: 'Ampeg SVT: the classic tube bass amp, with Ultra Hi, Ultra Lo and Bass Cut.',
       'Portaflex B-15N': 'Ampeg B-15N Portaflex: warm, round vintage bass. One channel: its two are the same circuit.',
@@ -785,8 +785,8 @@ away and back: every knob returns to the model's stock setting.
 
 **Differences from the Axe-Fx.** Cathode's expert controls scale real components (a cap, a resistor, a tube's curve)
 rather than behaviour, and a control the model has no part for is hidden and does nothing. Some models rest on
-assumed values where the schematic was incomplete (the Powerball's two extra supply filter nodes, the Prometheus as a
-whole, several output transformers); the model descriptions say where.
+assumed values where the schematic was incomplete or wrong (the Powerball's preamp, taken from a hand-corrected copy
+of the factory drawing, the Prometheus as a whole, several output transformers); the model descriptions say where.
 
 **CPU.** The amp runs a full circuit at twice the sample rate (at rates below 64 kHz), so it is the heaviest block in
 most presets, and the high-gain models are the heaviest of all. Two amps in one preset is fine on most computers; see
