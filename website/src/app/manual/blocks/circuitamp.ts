@@ -144,8 +144,9 @@ Rectifiers, the *Modern* switch takes the feedback out as on the real amp.`,
 bypass the pot. The boost is biggest with the pot turned down and fades as you turn it up. Some models give it their
 own name and meaning: *Brilliance* (AC15), *Brilliant* (Prometheus Clean), *Thick* (Lone Star), *Raw* (Rectifiers),
 *Bright Input* (SVT, Portaflex), *Sat* (BE-100), *OD2* (Quick Rod). On the Mark IIC+ it pulls both brights, Volume 1's
-and the Lead Master's. The value of the cap is on the Advanced page as
-*Bright Cap*.`,
+and the Lead Master's. On the three-channel Dual Rectifier and the Triple Rectifier, *Raw* and *Modern* (Switch 1) are
+the amp's one Raw / Vintage / Modern switch: both off is Vintage, and with both on the model is in Modern. The value
+of the cap is on the Advanced page as *Bright Cap*.`,
 
     level: `The block's output level in dB, after everything else. A clean digital volume: it does not change the amp's
 drive or tone. Use it to balance this amp against other presets or the other amp. See
@@ -160,7 +161,8 @@ Each switches the real components on the model's schematic. Some worth knowing:
   real amp.
 - **Powerball, *Focused*:** swaps the open middle pot for the focused one (*Mid Focused*, Control 1) and doubles the
   treble cap.
-- **Mark V, *IIC+ Mode*:** with *Mark IV Mode* (Switch 2), selects the channel-3 mode; both off is Extreme.
+- **Mark V, *IIC+ Mode*:** with *Mark IV Mode* (Switch 2), selects the channel-3 mode; both off is Extreme. The amp
+  has one three-position switch, so with both on the model is in Mark IV mode.
 - **TriAxis, *Yellow*:** with *Red* (Switch 2), the preamp's mode switches.
 - **AFD100, *AFD*:** off is the #34 mode, on is AFD.
 - **JC-120, *Distortion*:** the effect channel's distortion (the footswitch on the real amp): the *Distortion* knob
@@ -171,12 +173,19 @@ Each switches the real components on the model's schematic. Some worth knowing:
 rectifiers instead of silicon: more sag), *Crunch* on the SLO-100's normal channel, *Deep* on the Mark IIC+
 (a bass boost), *Bite Up* on the Prometheus, *Hi Lead* on the Powerball (the hotter Hi lead mode), *Mark IV Mode* on
 the Mark V, *C45* on the BE-100, *Rhythm Clip* on the Silver Jubilee, *Ultra Lo* on the SVT and B-15. It switches the
-same parts the real switch does.`,
+same parts the real switch does.
+
+Where the amp has one three-position switch, the model shows its two outer positions as two switches and both off is
+the middle position: *Bite Up* and *Bite Down* on the Prometheus, *Ultra Lo* and *Bass Cut* on the SVT, *IIC+ Mode*
+and *Mark IV Mode* on the Mark V, *Raw* and *Modern* on the three-channel Rectifiers. The amp cannot have both at
+once, so with both on the model takes the second of each pair as named here and ignores the first.`,
 
     switch3: `A model's third switch, where it has one: *Spongy* on the Rectifiers (a lower supply voltage, modelled as
 90 % mains, for a softer, saggier feel), *Bass Shift* on the Mark IIC+, *Bite Down* on the Prometheus, *Mid Gain*
-on the Mark IV (the amp's Harmonics / Mid Gain switch; off is Harmonics), *Bright* on the Mark V, *Bass Cut* on the SVT, *Voice* on the BE-100, *Low Power* on the Silver
-Jubilee, *Tone Shift* on the DSL100, *3rd Gear* on the Quick Rod.`,
+on the Mark IV (the amp's Harmonics / Mid Gain switch; off is Harmonics), *Bright* on the Mark V, *Bass Cut* on the
+SVT, *Voice* on the BE-100, *Low Power* on the Silver Jubilee, *Tone Shift* on the DSL100, *3rd Gear* on the Quick Rod.
+*Bite Down* and *Bass Cut* are the other side of the switch that *Bite Up* and *Ultra Lo* (Switch 2) belong to, and
+win when both are on.`,
 
     control1: `A model's own extra knob, where it has one: a second volume (*Normal Vol* on Plexis and Bassmans,
 *Mic Vol* on the Tweed Deluxe, *Loudness 2*, *Volume II*), a lead drive (*Lead Drive* on the Mark IIC+ and IV,

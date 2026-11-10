@@ -25,7 +25,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         As drawn, marked: the stack's 750 pF and 250 pF treble caps are both connected (1000 pF). The relays read
 ///         from the drawing: Mark IV mode (RYM8) adds the 4.7k at V6A's grid; IIC+ mode (RYM7) puts 4.4 µF (two
-///         2.2 µF) on V6A's cathode in place of 15 µF.
+///         2.2 µF) on V6A's cathode in place of 15 µF. The amp's mode switch has three positions and the panel here
+///         two switches (IIC+ Mode, Mark IV Mode; both off is Extreme): with both on the model is in Mark IV mode
+///         (<see cref="AmpPanel.ThreeWay" />), so the IIC+'s 4.4 µF and the Mark IV's pad never meet.
 ///     </para>
 ///     <para>
 ///         Guesses, marked: the drawing does not say which mode drives the JFET switches. Here V1A's 15 µF bypass
@@ -86,7 +88,9 @@ public static class MarkV {
             Switch1 = "IIC+ Mode",
             Switch2 = "Mark IV Mode",
             Switch3 = "Bright",
-            Equalizer = ["80", "240", "750", "2200", "6600"]
+            Equalizer = ["80", "240", "750", "2200", "6600"],
+            // One mode switch on the amp (IIC+ / Mark IV / Extreme): with both on it is Mark IV.
+            ThreeWay = [new(SwitchRole.Switch1, SwitchRole.Switch2)]
         }
     };
 

@@ -41,8 +41,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         Guesses, marked: the feedback tap (8 Ω); the 120 pF across each inverter plate resistor, the 75 pF between
 ///         the plates and the master's 10 pF are left out; the effects loop and the Output/Solo controls are bypassed.
 ///         Not printed: the output transformer (1.9k), the idle current (40 mA). Raw is on the Bright switch (the
-///         panel's three-way is Raw / Vintage / Modern; with Raw and Modern both on, Raw's voicing and Modern's stack,
-///         feedback and presence apply together).
+///         amp's three-way is Raw / Vintage / Modern, here Raw and Modern with both off for Vintage; with both on
+///         the model is in Modern, <see cref="AmpPanel.ThreeWay" />).
 ///     </para>
 /// </remarks>
 public static class DualRectifier3Channel {
@@ -70,7 +70,11 @@ public static class DualRectifier3Channel {
         },
         -7
     ) {
-        Panel = DualRectifier.Design.Panel with { Bright = "Raw" },
+        Panel = DualRectifier.Design.Panel with {
+            Bright = "Raw",
+            // One Raw / Vintage / Modern switch on the amp: with both on it is Modern.
+            ThreeWay = [new(SwitchRole.Bright, SwitchRole.Switch1)]
+        },
         // From C: 15k to D (V2) and 22k to E (V1a), two 10 µF parts on each.
         PreampSupply = DualRectifier.Decoupling(394, 413, 20e-6, 435)
     };
