@@ -8,9 +8,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///     audio), V1B (100k, 1.5k ‖ 15 µF), the lead drive (680k into 1M audio, 470k at the wiper, 120 pF to the cathode)
 ///     into V2A (82k, 1.5k ‖ 2.2 µF), a 270k/68k ‖ 1 nF divider into V2B (270k ‖ 1 nF, 3.3k with 0.22 µF through 22k,
 ///     shorted by Bright), 220k ‖ 250 pF into 100k ‖ 500 pF and V3A (100k, 1.5k with 15 µF through 22k, and 2.2 µF
-///     straight across with Mid Boost), the lead master (100k audio shunt) into a 150k/4.7k pad and 3.3k to V4A (120k,
-///     1k ‖ 15 µF), the master (250k audio), the five-band EQ, and Simul-Class power with four 6L6GC (a pentode pair
-///     beside a triode-strapped pair).
+///     straight across with Mid Gain, the amp's Harmonics / Mid Gain switch; off is Harmonics), the lead master (100k
+///     audio shunt) into a 150k/4.7k pad and 3.3k to V4A (120k, 1k ‖ 15 µF), the master (250k audio), the five-band
+///     EQ, and Simul-Class power with four 6L6GC (a pentode pair beside a triode-strapped pair).
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -65,7 +65,7 @@ public static class MarkIV {
             Control2 = "Lead Master",
             Switch1 = "Fat",
             Switch2 = "Bright",
-            Switch3 = "Mid Boost",
+            Switch3 = "Mid Gain",
             Equalizer = ["80", "240", "750", "2200", "6600"]
         }
     };
@@ -131,7 +131,7 @@ public static class MarkIV {
 
     /// <summary>
     ///     Back into V3A: 47 nF, 220k ‖ 250 pF into 100k ‖ 500 pF (with V3A's own 47 pF); 100k plate, 1.5k with 15 µF
-    ///     through 22k and, with Mid Boost, 2.2 µF straight across.
+    ///     through 22k and, with Mid Gain, 2.2 µF straight across.
     /// </summary>
     static StageNetlist LeadReturn() {
         var net = new StageNetlist();

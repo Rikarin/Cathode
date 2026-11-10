@@ -44,7 +44,7 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         Panel: the real amp's two Shift pulls (Treble, on the treble pot: the 750 pF; Bass, on the bass pot: V1A's
 ///         15 µF bypass) are Switch 1 and Switch 3. Five pulls on four switches: the Lead Master's Bright pull (V3B's
-///         0.22 µF bypass) shares the Bright switch with Volume 1's, as the Mark IV's model lumps them.
+///         0.22 µF bypass) shares the Bright switch with Volume 1's.
 ///     </para>
 /// </remarks>
 public static class MarkIIC {

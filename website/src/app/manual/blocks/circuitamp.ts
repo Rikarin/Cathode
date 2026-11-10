@@ -174,8 +174,8 @@ the Mark V, *C45* on the BE-100, *Rhythm Clip* on the Silver Jubilee, *Ultra Lo*
 same parts the real switch does.`,
 
     switch3: `A model's third switch, where it has one: *Spongy* on the Rectifiers (a lower supply voltage, modelled as
-90 % mains, for a softer, saggier feel), *Bass Shift* on the Mark IIC+, *Bite Down* on the Prometheus, *Mid Boost*
-on the Mark IV, *Bright* on the Mark V, *Bass Cut* on the SVT, *Voice* on the BE-100, *Low Power* on the Silver
+90 % mains, for a softer, saggier feel), *Bass Shift* on the Mark IIC+, *Bite Down* on the Prometheus, *Mid Gain*
+on the Mark IV (the amp's Harmonics / Mid Gain switch; off is Harmonics), *Bright* on the Mark V, *Bass Cut* on the SVT, *Voice* on the BE-100, *Low Power* on the Silver
 Jubilee, *Tone Shift* on the DSL100, *3rd Gear* on the Quick Rod.`,
 
     control1: `A model's own extra knob, where it has one: a second volume (*Normal Vol* on Plexis and Bassmans,

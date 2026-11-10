@@ -107,7 +107,7 @@ public class HighGainAmpTests(ITestOutputHelper output) {
         Assert.Equal("Lead Drive", Label("control1", "Mark IIC+"));
         Assert.Equal("Lead Master", Label("control2", "Mark IIC+"));
         Assert.Equal(["Treble Shift", "Deep", "Bass Shift"], Switches("Mark IIC+"));
-        Assert.Equal(["Fat", "Bright", "Mid Boost"], Switches("Mark IV"));
+        Assert.Equal(["Fat", "Bright", "Mid Gain"], Switches("Mark IV"));
         Assert.Equal(
             ["80", "240", "750", "2200", "6600"],
             Enumerable.Range(1, 5).Select(static b => Label($"eq{b}", "Mark IIC+"))
