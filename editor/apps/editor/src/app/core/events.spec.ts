@@ -264,6 +264,39 @@ describe('EventStream connection', () => {
     expect(stream.modulation()).toBeNull();
   });
 
+  it('forgets the telemetry, scope and RTA frames when the socket drops: no meter keeps its last level', () => {
+    const { stream, socket } = start();
+    socket().hello();
+    socket().send({ type: 'telemetry', inputPeak: 1, blocks: { in1: { peak: 0.8 } } });
+    socket().send({ type: 'scope', samples: [0] });
+    socket().send({ type: 'rta', bands: [0] });
+    expect(stream.latest?.inputPeak).toBe(1);
+    expect(stream.blockMeter('in1', 'peak')).toBe(0.8);
+    expect(stream.scope).not.toBeNull();
+    expect(stream.rta).not.toBeNull();
+
+    socket().drop();
+    expect(stream.latest).toBeNull();
+    expect(stream.blockMeter('in1', 'peak')).toBeUndefined();
+    expect(stream.scope).toBeNull();
+    expect(stream.rta).toBeNull();
+  });
+
+  it('has no telemetry frame once the newest is 2 s old (the engine stopped), and has one again when they resume', () => {
+    const { stream, socket } = start();
+    socket().hello();
+    socket().send({ type: 'telemetry', inputPeak: 1 });
+    vi.advanceTimersByTime(2_000);
+    expect(stream.latest?.inputPeak).toBe(1);
+
+    vi.advanceTimersByTime(1);
+    expect(stream.latest).toBeNull();
+    expect(stream.status()).toBe('open');
+
+    socket().send({ type: 'telemetry', inputPeak: 0.5 });
+    expect(stream.latest?.inputPeak).toBe(0.5);
+  });
+
   it('stops retrying and says so when the Server refuses the token: the handshake fails and a request answers 401', async () => {
     let refused = false;
     const { stream, socket, probes, refusals } = start({ refused: () => refused });

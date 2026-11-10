@@ -293,6 +293,12 @@ export class Transport {
     onAnimationFrame(() => {
       const t = this.events.latest;
       if (!t) {
+        // No current frame (disconnected, or the engine stopped): the tempo is the last one known, but a looper
+        // position would only look as if it were running.
+        if (this.looper()) {
+          this.looper.set(null);
+        }
+
         return;
       }
 
