@@ -4,23 +4,23 @@ On Windows and Linux, read **⌘** as **Ctrl**, **⌥** as **Alt** and **⇧** a
 
 ## Presets
 
-| Shortcut | Action                                                              |
-| -------- | ------------------------------------------------------------------- |
-| P        | Open the preset picker (search by name, or type a bank slot number) |
-| ⌘PgUp    | Previous preset                                                     |
-| ⌘PgDn    | Next preset                                                         |
-| ⇧⌘PgUp   | Previous setlist song (of the setlist being played)                 |
-| ⇧⌘PgDn   | Next setlist song                                                   |
-| F5       | Reload the preset (the saved version, as a fresh load)              |
-| ⌘S       | Save                                                                |
-| ⇧⌘S      | Save as…                                                            |
-| ⌘L       | Preset Leveling                                                     |
+| Shortcut        | Action                                                              |
+| --------------- | ------------------------------------------------------------------- |
+| P               | Open the preset picker (search by name, or type a bank slot number) |
+| ⌘PgUp or PgUp   | Previous preset                                                     |
+| ⌘PgDn or PgDn   | Next preset                                                         |
+| ⇧⌘PgUp or ⇧PgUp | Previous setlist song (of the setlist being played)                 |
+| ⇧⌘PgDn or ⇧PgDn | Next setlist song                                                   |
+| F5              | Reload the preset (the saved version, as a fresh load)              |
+| ⌘S              | Save                                                                |
+| ⇧⌘S             | Save as…                                                            |
+| ⌘L or L         | Preset Leveling                                                     |
 
 ## Scenes
 
-| Shortcut | Action             |
-| -------- | ------------------ |
-| ⌘1 to ⌘8 | Scene 1 to Scene 8 |
+| Shortcut           | Action             |
+| ------------------ | ------------------ |
+| ⌘1 to ⌘8 or 1 to 8 | Scene 1 to Scene 8 |
 
 ## Channels
 
@@ -114,7 +114,19 @@ On Windows and Linux, read **⌘** as **Ctrl**, **⌥** as **Alt** and **⇧** a
 
 ## In a browser
 
-A browser keeps some keys for itself and never passes them to the page. **⌘T** (Ctrl+T) opens a new browser tab, so press **T** for the tuner. A browser may also keep Ctrl+PgUp and Ctrl+PgDn for switching its own tabs; the arrows beside the preset name and the setlist's buttons step presets and songs there.
+A browser keeps some keys for itself and never passes them to the page. **⌘T** (Ctrl+T) always opens a new browser tab. Depending on the browser and the system, it may also keep the keys that switch its own tabs (Ctrl+PgUp and Ctrl+PgDn, ⌘1 to ⌘8 or Ctrl+1 to Ctrl+8) and **⌘L** (Ctrl+L), which goes to the address bar.
+
+Each of these commands has a second key without ⌘ or Ctrl, which every browser passes on:
+
+| Key          | Action                         |
+| ------------ | ------------------------------ |
+| T            | Tuner                          |
+| L            | Preset Leveling                |
+| 1 to 8       | Scene 1 to Scene 8             |
+| PgUp, PgDn   | Previous preset, next preset   |
+| ⇧PgUp, ⇧PgDn | Previous and next setlist song |
+
+In a browser, Cathode's tooltips name these keys. They work in the desktop app too. Like every key without ⌘, they are left alone while you type in a field, and a focused knob keeps Page Up and Page Down for itself (see above): click an empty part of the page first, or use the arrows beside the preset name and the setlist's buttons.
 
 ## In the desktop app's menus
 

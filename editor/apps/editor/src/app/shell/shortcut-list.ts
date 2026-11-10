@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { keyNames } from '@cathode/audio-ui';
 import { XuiKbdImports } from '@xui/kbd';
-import { ShortcutGroups, Shortcuts, shortcutKeys, shortcutLabel } from './shortcuts';
+import { ShortcutGroups, shortcutRows } from './shortcuts';
 
 /** The Keyboard shortcuts tab of Settings (`?` opens it): every shortcut, grouped as the editor's commands are. */
 @Component({
@@ -19,9 +19,15 @@ import { ShortcutGroups, Shortcuts, shortcutKeys, shortcutLabel } from './shortc
             @for (item of group.items; track item.id) {
               <div class="flex min-h-8 items-center justify-between gap-3 px-3 py-1">
                 <dt>{{ item.label }}</dt>
-                <dd class="flex shrink-0 gap-0.5">
-                  @for (key of item.keys; track $index) {
-                    <kbd xuiKbd>{{ key }}</kbd>
+                <!-- Each binding as keycaps: the command's own, then "or" and each alias (⌘T or T). -->
+                <dd class="flex shrink-0 items-center gap-0.5">
+                  @for (keys of item.bindings; track $index) {
+                    @if ($index > 0) {
+                      <span class="text-foreground-muted px-1 text-xs">or</span>
+                    }
+                    @for (key of keys; track $index) {
+                      <kbd xuiKbd>{{ key }}</kbd>
+                    }
                   }
                 </dd>
               </div>
@@ -45,12 +51,7 @@ import { ShortcutGroups, Shortcuts, shortcutKeys, shortcutLabel } from './shortc
 })
 export class ShortcutList {
   protected readonly keys = keyNames();
-  protected readonly groups = ShortcutGroups.map(name => ({
-    name,
-    items: Shortcuts.filter(s => s.group === name).map(s => ({
-      id: s.id,
-      label: shortcutLabel(s),
-      keys: shortcutKeys(s)
-    }))
-  })).filter(g => g.items.length > 0);
+  protected readonly groups = ShortcutGroups.map(name => ({ name, items: shortcutRows(name) })).filter(
+    g => g.items.length > 0
+  );
 }

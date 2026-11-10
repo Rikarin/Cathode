@@ -732,7 +732,6 @@ export class GridEditor {
       disconnect: onGrid(withBlock(block => void this.live.disconnect(block.id))),
       shunt: onGrid(() => this.addShunt()),
       remove: onGrid(() => this.remove()),
-      removeBackspace: onGrid(() => this.remove()),
       cable: onGrid(() => this.startCable()),
       selectCable: onGrid(() => this.selectNextCable())
     });

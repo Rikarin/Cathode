@@ -298,6 +298,17 @@ describe('App', () => {
       expect(step.mock.calls).toEqual([[1], [-1]]);
     });
 
+    it('runs the bare keys a browser delivers as well: 1–8, L and ⇧PgUp/PgDn', () => {
+      const { app, live, step, press } = render(saved);
+
+      press('2', { code: 'Digit2' });
+      expect(live.selectScene).toHaveBeenCalledWith(1);
+      press('l');
+      expect(app.levelingOpen()).toBe(true);
+      press('PageDown', { shiftKey: true });
+      expect(step).toHaveBeenCalledWith(1);
+    });
+
     it('leaves the rig alone while a dialog is open: no save, no scene change, but the tuner and mute still work', async () => {
       const { live, ui, press } = render(saved);
       const dialog = document.createElement('div');

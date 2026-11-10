@@ -1,15 +1,18 @@
 import {
+  ShortcutGroups,
   ShortcutService,
   Shortcuts,
   controlTakesKey,
   findShortcut,
   hasSelectedText,
+  hintedShortcut,
   isDialogOpen,
   isOnControl,
   isTyping,
   shortcutHint,
   shortcutKeys,
-  shortcutLabel
+  shortcutLabel,
+  shortcutRows
 } from './shortcuts';
 
 function key(key: string, options: Partial<KeyboardEventInit> & { code?: string } = {}): KeyboardEvent {
@@ -77,7 +80,7 @@ describe('keyboard shortcuts', () => {
   it('gives the tuner a bare key as well, because a browser keeps ⌘T and Ctrl+T for a new tab', () => {
     const service = new ShortcutService();
     let toggled = 0;
-    service.register({ tuner: () => toggled++, tunerAlias: () => toggled++ });
+    service.register({ tuner: () => toggled++ });
 
     const bare = key('t');
     document.body.dispatchEvent(bare);
@@ -96,6 +99,120 @@ describe('keyboard shortcuts', () => {
 
     expect(shortcutHint('tunerAlias', true)).toBe('T');
     expect(shortcutHint('tunerAlias', false)).toBe('T');
+  });
+
+  // #260: a browser may keep the keys that switch its tabs and reach its address bar, so each command on one of
+  // them has a bare key as well.
+  it('gives preset and song stepping, the scenes and Preset Leveling bare keys a browser delivers', () => {
+    expect(findShortcut(key('PageUp'))?.id).toBe('presetPreviousAlias');
+    expect(findShortcut(key('PageDown'))?.id).toBe('presetNextAlias');
+    expect(findShortcut(key('PageUp', { shiftKey: true }))?.id).toBe('songPreviousAlias');
+    expect(findShortcut(key('PageDown', { shiftKey: true }))?.id).toBe('songNextAlias');
+    expect(findShortcut(key('l'))?.id).toBe('levelAlias');
+    expect(findShortcut(key('5', { code: 'Digit5' }))?.id).toBe('scene5Alias');
+    // By the key's place, as ⌘5 is: on a French keyboard the unshifted key types "(".
+    expect(findShortcut(key('(', { code: 'Digit5' }))?.id).toBe('scene5Alias');
+    expect(findShortcut(key('9', { code: 'Digit9' }))).toBeNull();
+
+    const browserKept = ['tuner', 'level', 'presetPrevious', 'presetNext', 'songPrevious', 'songNext'].concat(
+      [1, 2, 3, 4, 5, 6, 7, 8].map(n => `scene${n}`)
+    );
+    for (const id of browserKept) {
+      const alias = Shortcuts.find(s => s.aliasOf === id && s.browser);
+      expect(alias, id).toBeDefined();
+      // A browser keeps keys with ⌘, Ctrl or Alt for itself, never a bare one.
+      expect(alias?.mod ?? alias?.alt ?? false, id).toBe(false);
+    }
+  });
+
+  it('runs the command’s handler for an alias, under the command’s rules', () => {
+    const service = new ShortcutService();
+    const ran: string[] = [];
+    service.register({
+      presetNext: () => ran.push('presetNext'),
+      songPrevious: () => ran.push('songPrevious'),
+      level: () => ran.push('level'),
+      scene3: () => ran.push('scene3'),
+      redo: () => ran.push('redo'),
+      remove: () => ran.push('remove')
+    });
+
+    const pageDown = key('PageDown');
+    document.body.dispatchEvent(pageDown);
+    expect(service.dispatch(pageDown)).toBe(true);
+    expect(pageDown.defaultPrevented).toBe(true); // the page does not scroll as well
+    for (const event of [
+      key('PageUp', { shiftKey: true }),
+      key('l'),
+      key('3', { code: 'Digit3' }),
+      key('y', { ctrlKey: true }),
+      key('Backspace')
+    ]) {
+      document.body.dispatchEvent(event);
+      service.dispatch(event);
+    }
+
+    expect(ran).toEqual(['presetNext', 'songPrevious', 'level', 'scene3', 'redo', 'remove']);
+
+    // A focused knob keeps its Page keys (a tenth of its travel); the digit still changes scene from it.
+    const knob = document.createElement('div');
+    knob.setAttribute('role', 'slider');
+    document.body.append(knob);
+    const onKnob = key('PageDown');
+    knob.dispatchEvent(onKnob);
+    expect(service.dispatch(onKnob)).toBe(false);
+    const digit = key('3', { code: 'Digit3' });
+    knob.dispatchEvent(digit);
+    expect(service.dispatch(digit)).toBe(true);
+    knob.remove();
+
+    // Behind a dialog an alias waits as its command does.
+    const dialog = document.createElement('div');
+    dialog.setAttribute('aria-modal', 'true');
+    document.body.append(dialog);
+    const behind = key('PageDown');
+    document.body.dispatchEvent(behind);
+    expect(service.dispatch(behind)).toBe(false);
+    expect(behind.defaultPrevented).toBe(false); // so Page Down still scrolls the dialog
+    dialog.remove();
+  });
+
+  it('names the key a browser delivers in a browser, and the command’s own in the desktop app', () => {
+    expect(hintedShortcut('tuner', true)).toBe('tuner');
+    expect(hintedShortcut('tuner', false)).toBe('tunerAlias');
+    expect(shortcutHint(hintedShortcut('presetNext', false), true)).toBe('PgDn');
+    expect(shortcutHint(hintedShortcut('songNext', false), true)).toBe('⇧PgDn');
+    expect(shortcutHint(hintedShortcut('songNext', false), false)).toBe('Shift+PgDn');
+    expect(shortcutHint(hintedShortcut('scene2', false), false)).toBe('2');
+    expect(shortcutHint(hintedShortcut('level', false), true)).toBe('L');
+    // A key no browser keeps is named as it is, and so is a command with an alias that is only a second key.
+    expect(hintedShortcut('save', false)).toBe('save');
+    expect(hintedShortcut('redo', false)).toBe('redo');
+  });
+
+  it('lists a command once, with the keys of each of its bindings', () => {
+    const rows = ShortcutGroups.flatMap(group => shortcutRows(group, true));
+    const row = (id: string) => rows.find(r => r.id === id);
+
+    expect(row('tuner')?.bindings).toEqual([['⌘', 'T'], ['T']]);
+    expect(row('redo')?.bindings).toEqual([
+      ['⌘', '⇧', 'Z'],
+      ['⌘', 'Y']
+    ]);
+    expect(row('remove')?.bindings).toEqual([['Del'], ['⌫']]);
+    expect(row('songNext')?.bindings).toEqual([
+      ['⌘', '⇧', 'PgDn'],
+      ['⇧', 'PgDn']
+    ]);
+    expect(row('scene8')?.bindings).toEqual([['⌘', '8'], ['8']]);
+    expect(row('save')?.bindings).toEqual([['⌘', 'S']]);
+
+    // Every shortcut is on exactly one row: its own, or its command's.
+    expect(rows.map(r => r.id)).toEqual(Shortcuts.filter(s => !s.aliasOf).map(s => s.id));
+    for (const alias of Shortcuts.filter(s => s.aliasOf)) {
+      expect(row(alias.aliasOf ?? ''), alias.id).toBeDefined();
+      expect(Shortcuts.find(s => s.id === alias.aliasOf)?.group, alias.id).toBe(alias.group);
+    }
   });
 
   it('writes a hint for a tooltip or a menu item with the keys the keyboard has', () => {
