@@ -35,7 +35,10 @@ This is the research spec for [Phase 7](04-implementation-plan.md#phase-7-circui
 | **M** | Model data only: lives in `AmpDesign`, not exposed (or only in a "designer" view later). |
 | **D** | Generic DSP outside the circuit (EQ, compressor, boost): implement once, reuse existing blocks' code. |
 | **S** | Skip, with the reason given. |
-| **✓** | Already covered by the current Circuit Amp block. |
+| **✓** | A parameter of the Circuit Amp block (`circuitamp`); the cell gives its id. |
+| ◐ | Partly covered. |
+
+The codes K, E, M and D were this section's recommendations before the work. The "Cathode" column of §1.3 now says what the block has: every row that became a parameter is marked **✓** with its id in `CircuitAmpBlock.Parameters.cs` (🆕 marks the later rounds), and only the rows that are still model data (**M**) or skipped (**S**) keep their code.
 
 ### 1.3 Parameters by page
 
@@ -43,18 +46,18 @@ This is the research spec for [Phase 7](04-implementation-plan.md#phase-7-circui
 
 | Parameter | Range | Default | Physical meaning | Cathode |
 |---|---|---|---|---|
-| Amp Type | enum (300+ models) | — | Selects the circuit and loads its defaults | **✓** Type |
-| Gain (Input Drive) | 0–10 | model | Preamp volume/gain pot at its real place in the circuit, with its taper and the bright-cap "treble peaker" | **✓** Gain |
-| Bass / Mid / Treble | 0–10 | model | Passive tone stack, exact | **✓** Bass, Middle, Treble |
-| Master Volume | 0–10 | model; 10 on amps without one | Power-amp drive (pre-PI master) | **✓** Master |
-| Presence | 0–10 | model | High-frequency shaping of the negative feedback | **✓** Presence |
-| Depth | 0–10 | model | Low-frequency shaping of the feedback (resonance) | **✓** Depth |
-| Hi-Cut (Cut) | 0–10 | model | Vox-style cut across the PI plates; every model has it since Cygnus | **✓** Cut |
-| Bright Switch | off/on | model | Bright cap across the gain pot | **✓** Bright |
-| Input Trim | about 0.1–10 × *(unverified)* | 1.0 | Input gain with no tone change | **K** cheap, useful for matching pickup level |
-| Overdrive / Lead Master / Ratio | 0–10 | model, some models only | A model's extra gain control (e.g. Mark lead drive, JCM800 2203's preamp vs master) | **K** model-specific second gain pot |
-| Presence Shift | off/on | model, some models | Mark-series pull-shift | **E** model-specific switch |
-| Model-specific knobs (Authentic mode) | varies | model | E.g. Plexi channel jumpering, Fat, Contour | **K** per model, as switches/pots in `AmpDesign` |
+| Amp Type | enum (300+ models) | — | Selects the circuit and loads its defaults | **✓** `type` (88 models, docs/07) |
+| Gain (Input Drive) | 0–10 | model | Preamp volume/gain pot at its real place in the circuit, with its taper and the bright-cap "treble peaker" | **✓** `gain` |
+| Bass / Mid / Treble | 0–10 | model | Passive tone stack, exact | **✓** `bass`, `middle`, `treble` |
+| Master Volume | 0–10 | model; 10 on amps without one | Power-amp drive (pre-PI master) | **✓** `master` |
+| Presence | 0–10 | model | High-frequency shaping of the negative feedback | **✓** `presence` |
+| Depth | 0–10 | model | Low-frequency shaping of the feedback (resonance) | **✓** `depth` |
+| Hi-Cut (Cut) | 0–10 | model | Vox-style cut across the PI plates; every model has it since Cygnus | **✓** `cut` |
+| Bright Switch | off/on | model | Bright cap across the gain pot | **✓** `bright` |
+| Input Trim | about 0.1–10 × *(unverified)* | 1.0 | Input gain with no tone change | **✓** `intrim` (±20 dB at the input jack, before the boost and Input Dynamics) |
+| Overdrive / Lead Master / Ratio | 0–10 | model, some models only | A model's extra gain control (e.g. Mark lead drive, JCM800 2203's preamp vs master) | **✓** a model's own second gain pot on `control1` or `control2`, named by its panel (Lead Drive, Overdrive, ...); on a model without one, `overdrive` (up to 20 dB more swing into the last gain stage) |
+| Presence Shift | off/on | model, some models | Mark-series pull-shift | **✓** a model's own shift on `switch1`–`switch3`; on a model without one, `presshift` (the presence frequency an octave down) |
+| Model-specific knobs (Authentic mode) | varies | model | E.g. Plexi channel jumpering, Fat, Contour | **✓** `switch1`–`switch3`, `control1`, `control2` and `eq1`–`eq5`, named per model by its `AmpPanel` and hidden where the model has none |
 
 **Preamp page**
 
@@ -62,44 +65,44 @@ This is the research spec for [Phase 7](04-implementation-plan.md#phase-7-circui
 |---|---|---|---|---|
 | Input Boost / Boost Type / Boost Level | on/off; pedal voicings; dB (0–20 *unverified*) | off | A built-in boost pedal | 🆕 **✓** `boost` (six Drive circuits at the amp's 2x rate), `boostdrive`, `boosttone`, `boostlevel` (docs/08 §4) |
 | Saturation Switch / Saturation Drive | OFF / ON AUTH / ON IDEAL; 0–10 | model | The common "saturation" mod between preamp and stack (adds a clipping stage) | 🆕 **✓** `saturation` and `satdrive`: a diode-style clipper between preamp and power amp (generic, not each model's own mod) |
-| Fat Switch | off/on | off | Moves the tone stack's centre frequency down | **E** (scale the stack's mid cap; Friedman has a real Fat switch) |
-| Cut Switch | off/on | off | Low cut at the input | **E** (a smaller input coupling cap) |
-| Preamp Tube Type | enum (12AX7 variants, EF86, …) | model | Triode characteristics | **E** (12AX7, 12AY7, 5751, 12AT7, 12AU7) |
-| Bright Cap | pF | model | Bright-cap value | **E** (we have only on/off; make the value overridable) |
-| High Treble | 0–10 | model | Extra treble control after the preamp | **S** use the EQ |
+| Fat Switch | off/on | off | Moves the tone stack's centre frequency down | **✓** a model's own Fat switch on `switch1`–`switch3`; on a model without one, `fatsw` (the stack's frequencies × 0.6) |
+| Cut Switch | off/on | off | Low cut at the input | **✓** a model's own Bass Cut; on a model without one, `cutsw` (the input high-pass at 150 Hz at least) |
+| Preamp Tube Type | enum (12AX7 variants, EF86, …) | model | Triode characteristics | **✓** `pretube` (Stock, 12AX7, 12AY7, 5751, 12AT7, 12AU7: every 12AX7 of the preamp; the inverter keeps its own) |
+| Bright Cap | pF | model | Bright-cap value | **✓** `brightcap` (the model's bright caps scaled, 25–400 %), beside `bright` |
+| High Treble | 0–10 | model | Extra treble control after the preamp | **✓** a model's own Hi Treble on `control1` or `control2`; on a model without one, `hitreble` (±12 dB shelf at 3 kHz before the power amp, 5 flat) |
 
 **Input EQ and Output EQ pages**
 
 | Parameter | Range | Default | Physical meaning | Cathode |
 |---|---|---|---|---|
 | Input EQ filters (Type/Freq/Q/Gain) | — | flat | Parametric EQ before the amp | 🆕 **✓** `infilter` (shelves, peak, high/low-pass), `inffreq`, `infq`, `infgain` |
-| Low Cut | Hz (about 10–2000 *unverified*) | model | Input high-pass ("tightening") | **D** one cheap first-order HPF before V1 |
+| Low Cut | Hz (about 10–2000 *unverified*) | model | Input high-pass ("tightening") | **✓** `lowcut` (0–500 Hz, 0 off: a first-order high-pass before the first stage) |
 | High Cut | Hz | model | Low-pass between preamp and power amp; deprecated in fw 33.00 b2 | **S** (deprecated upstream) |
 | Definition | bipolar tilt | 0 | Tilt EQ at the input | 🆕 **✓** `definition`: a treble/bass tilt around 650 Hz into the preamp, ±4 dB |
-| Graphic EQ bands | dB (±12 *unverified*) | 0 | Built-in graphic EQ | **D** later; the Mark 5-band EQ must be **M** (it is part of the circuit) |
+| Graphic EQ bands | dB (±12 *unverified*) | 0 | Built-in graphic EQ | **✓** `outeq1`–`outeq10` (the Output EQ's bands); a Mark's five-band EQ is in its circuit, on `eq1`–`eq5` |
 | EQ Type / EQ Location / EQ On | enum; INPUT, PRE PA, OUTPUT | OUTPUT | Number of bands; where the EQ sits | 🆕 **✓** `outeq` (every Graphic EQ layout), `outeqloc` (input, pre power amp, output), `outeq1`–`outeq10` |
 
 **Power Supply page**
 
 | Parameter | Range | Default | Physical meaning | Cathode |
 |---|---|---|---|---|
-| Supply Sag | 0–10 | model | Supply source impedance, i.e. B+ droop | **✓** Sag |
-| B+ Time Constant | ms | model | Reservoir RC speed | **E** (scale reservoir C; already in `PowerSupplyDesign`) |
-| Supply Type | AC / DC | model | Rectified AC with ripple, or ideal DC | **E** with rectifier ripple (not modelled yet) |
-| AC Line Frequency | 50 / 60 Hz | 60 *(unverified)* | Ripple frequency | **✓** Supply Type AC 60 Hz / AC 50 Hz (the transformer's peak calibrated so the reservoir averages the design's B+ through its own source resistance, which Sag scales; silicon's charging step implicit) |
-| Variac | % of line (about 50–150 *unverified*) | 100 % | Mains voltage; level-compensated | **E** cheap: scales every supply node; the "brown sound" |
-| Screen Frequency / Screen Q | Hz / Q | model | Resonance of the screen supply's filter | **M** (falls out of the supply network) |
+| Supply Sag | 0–10 | model | Supply source impedance, i.e. B+ droop | **✓** `sag` |
+| B+ Time Constant | ms | model | Reservoir RC speed | **✓** `btc` (the reservoir cap scaled, 25–400 %) |
+| Supply Type | AC / DC | model | Rectified AC with ripple, or ideal DC | **✓** `supply` (Stock, DC, AC 60 Hz, AC 50 Hz: an ideal source, or rectified mains with its ripple) |
+| AC Line Frequency | 50 / 60 Hz | 60 *(unverified)* | Ripple frequency | **✓** `supply`: AC 60 Hz or AC 50 Hz (the transformer's peak calibrated so the reservoir averages the design's B+ through its own source resistance, which Sag scales; silicon's charging step implicit) |
+| Variac | % of line (about 50–150 *unverified*) | 100 % | Mains voltage; level-compensated | **✓** `variac` (50–130 %: every supply node, and a fixed bias with them) |
+| Screen Frequency / Screen Q | Hz / Q | model | Resonance of the screen supply's filter | **✓** `screenfreq` (the screen node's cap scaled), `screenq` (above 0 its feed is a choke) |
 
 **Power Amp page**
 
 | Parameter | Range | Default | Physical meaning | Cathode |
 |---|---|---|---|---|
-| Power Amp Modeling | off/on | on | Bypass the power amp for use with a real tube power amp | **K** (preamp-only output; also the "R5 hybrid" building block) |
-| Power Tube Type | 6AQ5, 6CA7, 6L6GB, 6L6GC, 6V6, 300B, 5881, 6550, 6973, EL34, EL84, KT66, KT77, KT88, Transistor (fw 32) | model | Tube curves | **E** (add 6V6, 5881, KT66, KT88, 6550, KT77, 6146B as needed by the models) |
-| Power Tube Grid Bias | % | model | Bias point, class B to class A | **✓** Bias |
-| Negative Feedback | 0–10 | model | Global feedback amount | **✓** Feedback |
-| Power Tube Hardness | 0–10 | model | Knee sharpness | **S** our tubes come from Koren curves; a "hardness" knob has no circuit meaning. Revisit if matching needs it |
-| Transformer Matching | ratio (about 0.5–2 *unverified*) | model | OT impedance ratio vs stock | **E** (scales `PlateToPlate`) |
+| Power Amp Modeling | off/on | on | Bypass the power amp for use with a real tube power amp | **✓** `poweramp` (off: the output is the phase inverter's input) |
+| Power Tube Type | 6AQ5, 6CA7, 6L6GB, 6L6GC, 6V6, 300B, 5881, 6550, 6973, EL34, EL84, KT66, KT77, KT88, Transistor (fw 32) | model | Tube curves | **✓** `powertube` (Stock, 6L6GC, EL34, EL84, 6V6GT, KT66, KT88, 6550, rebiased to the design's idle current; a 5881 is the 6L6GC). A model's own tubes can be others (`PentodeModel`) |
+| Power Tube Grid Bias | % | model | Bias point, class B to class A | **✓** `bias` |
+| Negative Feedback | 0–10 | model | Global feedback amount | **✓** `feedback` |
+| Power Tube Hardness | 0–10 | model | Knee sharpness | **✓** `pthard` (5 stock: both knees of the pentode law, K_p and K_vb, sharpened or softened 4× to 0.25×) |
+| Transformer Matching | ratio (about 0.5–2 *unverified*) | model | OT impedance ratio vs stock | **✓** `xfmrmatch` (the primary impedance scaled, 50–200 %) |
 | Speaker Impedance | × nominal | 1.0 | Load mismatch (4 Ω speaker on the 8 Ω tap) | **✓** `spkimp` *Load impedance* (scales the speaker load) |
 | Bias Trem Frequency / Depth | Hz / % | depth 0 | Real bias tremolo | 🆕 **✓** `tremrate`, `tremdepth`: on the 14 models with a tremolo of their own, its circuit (Speed in hertz within the knob's range, Intensity as the knob; stream T, §3.1); elsewhere a sine on the Bias control (64-frame steps) |
 
@@ -133,17 +136,17 @@ no Cab, or one playing only IRs, the load is Stock. The load expert knobs scale 
 | LF Resonance Frequency | Hz (real speakers 50–150) | model | Bass impedance peak | **✓** `spkres` *Load resonance* (`SpeakerDesign.Resonance`) |
 | LF Resonance Q | Q | model | Peak sharpness | **✓** `spkq` *Load Q* (`SpeakerDesign.Q`) |
 | LF Resonance (amount) | dB | model | Peak height | **✓** `spkpeak` *Load peak* (`PeakImpedance`) |
-| HF Resonance Frequency / amount | Hz (about 1–10 k) | model | Voice-coil inductance against transformer capacitance | **E** |
-| HF Slope | 3.0–4.5 typical, about 3.7 median | model | Voice-coil semi-inductance (eddy losses) | **E** (we have a "lossy voice coil": expose its exponent) |
+| HF Resonance Frequency / amount | Hz (about 1–10 k) | model | Voice-coil inductance against transformer capacitance | ◐ `spkhf` *Load HF* (the voice coil's inductance scaled): one control, not a frequency and an amount |
+| HF Slope | 3.0–4.5 typical, about 3.7 median | model | Voice-coil semi-inductance (eddy losses) | **S** no parameter: the load's voice coil is one lossy inductance (`spkhf` scales it); Follow Cab fits it to the speaker's semi-inductance |
 | Cabinet Resonance | % | model | Scales the cabinet part of the impedance curve | 🆕 ◐ `cabres`, the frequency of the Thump boost |
-| Speaker Impedance Curve | enum (82+ measured curves) | model | Measured load curves | **M** a small set of parametric presets (open-back 1×12, closed 4×12, 2×12 combo, bass 8×10). Do not copy Fractal's measured curves |
+| Speaker Impedance Curve | enum (82+ measured curves) | model | Measured load curves | **✓** `speaker` *Speaker load*: Stock, five parametric presets (open 1×12, 2×12, 4×10, closed 4×12, 8×10) or Follow Cab. Fractal's measured curves are not copied |
 | Auto Dyna-Cab Impedance | off/on | — | Curve follows the Cab block | 🆕 **✓** *Speaker load: Follow Cab*: the next Cab block's DynaCab speaker and cabinet, from the speaker's own Thiele–Small data (`AutoSpeaker`, `SpeakerElectrical`) |
 | Speaker Drive | 0–10 | model | Cone distortion | 🆕 **✓** `spkdrive`: soft saturation of the band below 150 Hz at the amp's output |
 | Speaker Thump | 0–10 | 2.5 on reset | Subsonic cone nonlinearity | 🆕 **✓** `thump`: up to +12 dB at `cabres` (50–250 Hz) |
 | Speaker Compression / Speaker Time Constant | dB / ms | about 3 dB | Voice-coil thermal compression | 🆕 **✓** `spkcomp`, `spkcomptc`: voice-coil heating, an RMS power detector with its time constant |
-| Speaker Compliance | % | 50 % | Suspension nonlinearity | **S** Cab block |
-| Transformer LF / HF | Hz | model | OT bandwidth (primary inductance; leakage and capacitance) | **E** (scale magnetising and leakage inductance in `OutputTransformerDesign`) |
-| Transformer Drive | 0–10 | model | Core saturation | **E** after transformer saturation exists (not modelled yet) |
+| Speaker Compliance | % | 50 % | Suspension nonlinearity | **S** no parameter (the load's `spkq` and `spkpeak` cover the linear part; the cone is the Cab block's) |
+| Transformer LF / HF | Hz | model | OT bandwidth (primary inductance; leakage and capacitance) | **✓** `xfmrlf`, `xfmrhf` (magnetising inductance; leakage and capacitance; 25–400 %) |
+| Transformer Drive | 0–10 | model | Core saturation | **✓** `xfmrdrive` (0 stock: core saturation, the knee's flux halving every 2) |
 
 **Dynamics page**
 
@@ -151,45 +154,45 @@ no Cab, or one playing only IRs, the load is Stock. The load expert knobs scale 
 |---|---|---|---|---|
 | Input Dynamics | bipolar | 0 | Input compander | 🆕 **✓** `indyn`: expands or compresses the input by its envelope around −20 dBV, within ±12 dB |
 | Output Compression / Type / Threshold / Clarity | — | 0 | Output compressor (Output, Feedback, Gain Enhancer) | 🆕 **✓** `comptype` (Output, Feedback), `compamount`, `compthresh`, `compclarity` (detector high-pass) |
-| Master Bias Excursion | % | 100 % mostly | Scales all bias-excursion effects | **S** in a circuit model, bias excursion is a consequence of the coupling caps and grid current, not a knob |
+| Master Bias Excursion | % | 100 % mostly | Scales all bias-excursion effects | **✓** `masterbiasx` (0–200 %: scales the preamp's, the inverter's and the power tubes' grid current together) |
 
 **Advanced page**
 
 | Parameter | Range | Default | Physical meaning | Cathode |
 |---|---|---|---|---|
-| Input Select | L / R / L+R | L+R | Mono input source | **K** trivial (block now takes Left) |
-| Output Mode | FRFR / SS power amp + cab | FRFR | Leaves speaker compression to a real cab | **S** (we do no speaker compression in the amp) |
-| Tonestack Type | enum (any model's stack, ACTIVE) | model | Swap stacks | **E** later; easy since stacks are data (`ToneStackDesign`) |
-| Tonestack Frequency | Hz | model | Stack centre frequency | **E** (scale stack caps) |
-| Tonestack Location | PRE / MID / POST / END | model | Where the stack sits | **M** (fixed by the circuit; END has no circuit meaning) |
-| Preamp Sag | off/on | model | Preamp sees B+ sag (integrated head) | **✓** Preamp Sag (0–200 %: scales the sag reaching every node of the decoupling chain, §3.7) |
-| Preamp Tube Hardness | 0–10 | model | Triode saturation sharpness | **S** (as Power Tube Hardness) |
-| Triode 1 / Triode 2 Plate Freq | Hz | model | Corner of a cap across the plate resistor of the last two triodes | **M** (a plate-bypass cap in `TriodeStageDesign`, e.g. 1 nF on the SLO cold clipper) |
-| Preamp Bias | bipolar | model | Bias of the last triode (even harmonics) | **E** (scale the cathode resistor of the last gain stage) |
-| Preamp Bias Excursion | % | model | Grid-current bias shift ("blocking") | **S** emerges from the circuit (grid current through coupling caps) |
-| CF Compression / CF Harmonics | 0–10 | model | Cathode follower behaviour | **S** emerges from the CF model once grid current into the CF is in |
-| Master Vol Trim | × | 1.0 | Scales the master's range | **E** |
-| Master Vol Cap | pF | model | Bright cap on the master pot | **M** |
-| Master Vol Location | PRE PI / POST PI / PRE-TRIODE | model | Where the master sits | **M** (circuit fact per amp) |
-| Presence Freq / Depth Freq | × | model | Shift presence and depth frequencies | **E** (scale presence and depth caps) |
-| P.A. Cathode Resistance / Time Const | Ω / ms | model | Cathode-bias resistor and bypass on cathode-biased amps | **✓** partly, through Bias (cathode amps scale the resistor). Time constant **E** (scale bypass C) |
-| PI Bias Excursion | % | model | PI bias shift; since fw 32 also PI distortion | **S** emerges once grid current into the PI is modelled |
-| Power Tube Bias Excursion / Excursion Time / Recovery Time | % / ms | model | Coupling-cap charging when the power grids conduct | **S** already emerges (grid networks and grid conduction are in `PowerAmp`) |
-| Dynamic Damping | — | model | Plate impedance | **S** emerges from the tube model |
-| Plate Suppressor Diodes | off/on | model | Flyback diodes | **E** later (cheap clamp on the primary) |
-| Level / Balance / Bypass | dB / L-R / bool | 0 | Common | **✓** Level, 🆕 Balance; bypass is generic |
+| Input Select | L / R / L+R | L+R | Mono input source | **✓** `inputsel` (Left, Right, Left + Right; Left by default) |
+| Output Mode | FRFR / SS power amp + cab | FRFR | Leaves speaker compression to a real cab | **✓** `outmode` (FRFR; SS Power Amp + Cab turns Speaker Drive, Thump and Compression off, leaving them to the real cab) |
+| Tonestack Type | enum (any model's stack, ACTIVE) | model | Swap stacks | **✓** `stacktype` (Stock, or any model's stack; on models with a tone-stack stage). No ACTIVE type |
+| Tonestack Frequency | Hz | model | Stack centre frequency | **✓** `stackfreq` (the stack's caps divided by it, 50–200 %) |
+| Tonestack Location | PRE / MID / POST / END | model | Where the stack sits | **✓** `stackloc` (Stock, Pre, Mid, Post: the stack's stage moved, each stage kept at its operating point). End: **S**, no circuit meaning |
+| Preamp Sag | off/on | model | Preamp sees B+ sag (integrated head) | **✓** `presag` (0–200 %: scales the sag reaching every node of the decoupling chain, §3.7) |
+| Preamp Tube Hardness | 0–10 | model | Triode saturation sharpness | **✓** `prehard` (as Power Tube Hardness, on the triodes) |
+| Triode 1 / Triode 2 Plate Freq | Hz | model | Corner of a cap across the plate resistor of the last two triodes | **✓** `t2plate` (the plate-bypass cap of the last gain stage that has one, e.g. 1 nF on the SLO cold clipper; 25–400 %). Triode 1 (`t1plate`) was removed in preset schema 2: no model has a second such cap (#5) |
+| Preamp Bias | bipolar | model | Bias of the last triode (even harmonics) | **✓** `prebias` (±100 %: the last gain stage's cathode resistor from twice to half of stock) |
+| Preamp Bias Excursion | % | model | Grid-current bias shift ("blocking") | **✓** `prebiasx` (0–400 %: the preamp stages' grid current) |
+| CF Compression / CF Harmonics | 0–10 | model | Cathode follower behaviour | **✓** `cfcomp` (the cathode follower's grid current, 0–400 %), `cfharm` (its cathode resistor, 50–200 %); on models whose stack is driven by a follower |
+| Master Vol Trim | × | 1.0 | Scales the master's range | **✓** `mvtrim` (10–200 %: scales the master's rotation) |
+| Master Vol Cap | pF | model | Bright cap on the master pot | **M** (a bright cap on the master is model data). `mvcap` was removed in preset schema 2: no model had the cap it scaled (#5) |
+| Master Vol Location | PRE PI / POST PI / PRE-TRIODE | model | Where the master sits | **✓** `mvloc` (Stock, Post PI: the master as a divider after the inverter; push-pull models with a master). Pre-Triode: **S** |
+| Presence Freq / Depth Freq | × | model | Shift presence and depth frequencies | **✓** `presfreq`, `depthfreq` (25–400 %) |
+| P.A. Cathode Resistance / Time Const | Ω / ms | model | Cathode-bias resistor and bypass on cathode-biased amps | **✓** `bias` (on a cathode-biased amp it scales the resistor, 2× to 0.5×) and `katc` (the bypass cap, 25–400 %) |
+| PI Bias Excursion | % | model | PI bias shift; since fw 32 also PI distortion | **✓** `pibiasx` (0–400 %: grid current into the inverter; on models with the inverter's input network) |
+| Power Tube Bias Excursion / Excursion Time / Recovery Time | % / ms | model | Coupling-cap charging when the power grids conduct | **✓** `ptbiasx` (the power grids' current, 0–400 %), `ptbiastime` (the coupling caps), `ptrecovery` (the grid leaks) |
+| Dynamic Damping | — | model | Plate impedance | **S** emerges from the tube model; no parameter |
+| Plate Suppressor Diodes | off/on | model | Flyback diodes | **✓** `suppressor` (clamp diodes that keep each plate from swinging below its cathode) |
+| Level / Balance / Bypass | dB / L-R / bool | 0 | Common | **✓** `level`, 🆕 `balance`; bypass is generic |
 
 ### 1.4 Parity summary
 
 - About **90 distinct Axe-Fx III Amp parameters** once duplicates across pages are removed (the boost, the EQ bands and the compressor counted as a few each).
-- **Covered now: 13** (Type, Gain, Bass, Mid, Treble, Master, Presence, Depth, Cut, Bright, Supply Sag, Grid Bias, Negative Feedback) plus Level.
-- **Recommended additions:** about 25 expert parameters (**E**), of which the most valuable first are Preamp Tube Type, Power Tube Type, Bright Cap value, Transformer Matching, Speaker Impedance, the three LF-resonance values, Transformer LF/HF, Presence/Depth Freq, Variac, B+ Time Constant, Preamp Sag, Preamp Bias, Master Vol Trim, Tonestack Frequency, and a Power Amp Modeling off switch. Add model-specific panel controls (**K**): second gain pot (lead drive), channel jumpering, Fat, Contour, Presence Shift.
-- **Generic DSP (D):** input Low Cut, Definition, and later a graphic EQ with a PRE PA location.
-- **Skip (S), about 30:** the "emergent" parameters (bias excursions, CF compression and harmonics, hardness, damping), because in a circuit model they are consequences of component values, not knobs; and the speaker-cone and compressor parameters, which belong to the Cab and Compressor blocks. This is a deliberate difference: Cathode's expert parameters are component values, Fractal's are partly behavioural.
+- **Covered at the time of the audit: 13** (Type, Gain, Bass, Mid, Treble, Master, Presence, Depth, Cut, Bright, Supply Sag, Grid Bias, Negative Feedback) plus Level. **Covered now:** every row of §1.3 marked **✓** or ◐, which is all of them except Master Vol Cap (model data) and the ones listed under "Still skipped" below.
+- **Recommended additions (the plan at the time; all built since):** about 25 expert parameters (**E**), of which the most valuable first are Preamp Tube Type, Power Tube Type, Bright Cap value, Transformer Matching, Speaker Impedance, the three LF-resonance values, Transformer LF/HF, Presence/Depth Freq, Variac, B+ Time Constant, Preamp Sag, Preamp Bias, Master Vol Trim, Tonestack Frequency, and a Power Amp Modeling off switch. Add model-specific panel controls (**K**): second gain pot (lead drive), channel jumpering, Fat, Contour, Presence Shift.
+- **Generic DSP (D), built since:** input Low Cut (`lowcut`), Definition (`definition`), and a graphic EQ with a Pre Power Amp location (`outeq`, `outeqloc`).
+- **Skip (S), about 30 at the time (round 3 below built most of them):** the "emergent" parameters (bias excursions, CF compression and harmonics, hardness, damping), because in a circuit model they are consequences of component values, not knobs; and the speaker-cone and compressor parameters, which belong to the Cab and Compressor blocks. This is a deliberate difference: Cathode's expert parameters are component values, Fractal's are partly behavioural.
 
-- 🆕 **Round 3 (stream PB):** most of the **S** rows above now exist after all, as scales on a component the model already has rather than as behavioural knobs, each stock at its default and hidden on a model without the component: Power Tube and Preamp Hardness (the Koren knees K_p and K_vb), Preamp, PI and Power Tube Bias Excursion with Excursion and Recovery Time (grid current, coupling caps, grid leaks), Master Bias Excursion, CF Compression and Harmonics, Triode 1/2 Plate Freq, Tonestack Type and Location (Pre, Mid, Post), Master Location (Post PI) and Cap, Plate Suppressor Diodes, Screen Freq and Q, Output Mode, Auto speaker load from the Cab block, and generic Fat, Presence Shift, Cut, High Treble and Overdrive where a model has none. Still skipped: Tonestack Location End, Master Location Pre-Triode, Dynamic Damping, Speaker Compliance. See [08 §4](08-blocks-parity.md#4-amp-block-pp-918).
+- 🆕 **Round 3 (stream PB):** most of the **S** rows above now exist after all, as scales on a component the model already has rather than as behavioural knobs, each stock at its default and hidden on a model without the component: Power Tube and Preamp Hardness (the Koren knees K_p and K_vb), Preamp, PI and Power Tube Bias Excursion with Excursion and Recovery Time (grid current, coupling caps, grid leaks), Master Bias Excursion, CF Compression and Harmonics, Triode 2 Plate Freq, Tonestack Type and Location (Pre, Mid, Post), Master Location (Post PI), Plate Suppressor Diodes, Screen Freq and Q, Output Mode, Auto speaker load from the Cab block, and generic Fat, Presence Shift, Cut, High Treble and Overdrive where a model has none. Triode 1 Plate Freq (`t1plate`) and Master Cap (`mvcap`) were built in this round and removed in preset schema 2: no model had the parts they scaled (#5). Still skipped: High Cut (deprecated upstream), HF Slope, Tonestack Location End, the ACTIVE tone stack, Master Location Pre-Triode, Dynamic Damping, Speaker Compliance. See [08 §4](08-blocks-parity.md#4-amp-block-pp-918).
 
-**Gaps that block parity, in order:** transformer saturation (Transformer Drive), rectifier ripple (Supply Type), grid current into the phase inverter and cathode followers (needed for the "emergent" parameters to emerge at all), tube types beyond the six we have, and a pre-power-amp EQ slot for the Mark series.
+**Gaps that blocked parity at the time of the audit, all closed since:** transformer saturation (`xfmrdrive`), rectifier ripple (`supply`), grid current into the phase inverter and cathode followers (`pibiasx`, `cfcomp`), tube types beyond the six there were then (`pretube`, `powertube`, and the models' own tables), and a pre-power-amp EQ slot for the Mark series (`outeqloc`; a Mark's own EQ is in its circuit).
 
 ---
 
