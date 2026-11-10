@@ -1,4 +1,5 @@
 using Cathode.Contracts;
+using Cathode.Dsp.IO;
 using Cathode.Dsp.Looping;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
@@ -526,6 +527,12 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         // Stop once the audio thread has recorded something, rather than after a fixed time: on a busy machine the null
         // backend can take both commands in one callback, which records nothing.
         await ServerFixture.Eventually(() => server.Host.Engine.Looper!.Length > 0);
+
+        // The loop grows under an export while it records: refused, and the engine goes on recording.
+        using var early = await client.GetAsync("/api/v1/looper/export", Token);
+        Assert.Equal(HttpStatusCode.Conflict, early.StatusCode);
+        Assert.Equal(LooperState.Recording, server.Host.Engine.Looper!.State);
+
         await Ok(client.PostAsync("/api/v1/looper/stop", null, Token));
         await ServerFixture.Eventually(() => server.Host.Engine.Looper!.State != LooperState.Recording);
 
@@ -534,6 +541,9 @@ public sealed class ControlsApiTests : IAsyncLifetime {
 
         Assert.Equal(HttpStatusCode.OK, export.StatusCode);
         Assert.Equal("RIFF"u8.ToArray(), wav[..4]);
+        var audio = WavFile.Read(new MemoryStream(wav));
+        Assert.Equal(2, audio.Channels.Length);
+        Assert.Equal(server.Host.Engine.Looper!.Length, audio.Frames);
         using var unknown = await client.PostAsync("/api/v1/looper/rewind", null, Token);
         Assert.Equal(HttpStatusCode.BadRequest, unknown.StatusCode);
     }

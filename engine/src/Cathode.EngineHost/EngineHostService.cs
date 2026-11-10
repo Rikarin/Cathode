@@ -357,13 +357,45 @@ public sealed class EngineHostService : IDisposable {
             : IpcMessage.Fail(request.Id, "The engine command queue is full.");
     }
 
+    /// <summary>
+    ///     Writes the loop to a WAV file while the audio thread goes on using it. The state and the length are the
+    ///     audio thread's, so each is read once: a loop that is being recorded (its length grows every sample) or
+    ///     overdubbed is refused. The samples go to the file a chunk at a time from the stack, because a whole loop in
+    ///     managed arrays (115 MB for 300 s) would bring on the collection the host is built to avoid.
+    /// </summary>
     IpcMessage ExportLooper(IpcMessage request) {
-        if (Engine.Looper is not { Length: > 0 } looper || request.Path is null) {
+        const int chunk = 1_024;
+        if (Engine.Looper is not { } looper || request.Path is null) {
             return IpcMessage.Fail(request.Id, "The looper is empty.");
         }
 
-        var (left, right) = looper.Snapshot();
-        WavFile.Write(request.Path, new((int)Engine.Spec.SampleRate, [left, right]));
+        var state = looper.State;
+        var frames = looper.Length;
+        if (state is LooperState.Recording or LooperState.Overdubbing) {
+            return IpcMessage.Fail(request.Id, "Finish recording or overdubbing before exporting the loop.");
+        }
+
+        if (state is not (LooperState.Playing or LooperState.Stopped) || frames <= 0) {
+            return IpcMessage.Fail(request.Id, "The looper is empty.");
+        }
+
+        Span<float> left = stackalloc float[chunk];
+        Span<float> right = stackalloc float[chunk];
+        Span<byte> bytes = stackalloc byte[8 * chunk];
+        try {
+            using var stream = File.Create(request.Path);
+            WavFile.WriteHeader(stream, (int)Engine.Spec.SampleRate, 2, frames);
+            for (var offset = 0; offset < frames; offset += chunk) {
+                var count = Math.Min(chunk, frames - offset);
+                var read = looper.Read(offset, left[..count], right[..count]);
+                left[read..count].Clear();
+                right[read..count].Clear();
+                WavFile.WriteFloatFrames(stream, left[..count], right[..count], bytes);
+            }
+        } catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
+            return IpcMessage.Fail(request.Id, $"The loop could not be written: {e.Message}");
+        }
+
         return IpcMessage.Ok(request.Id);
     }
 

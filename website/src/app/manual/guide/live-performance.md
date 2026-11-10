@@ -137,6 +137,8 @@ The dialog shows the looper's **state** (empty, recording, playing, overdubbing,
 
 Each of these is also a MIDI and footswitch action: `looper record`, `looper play`, `looper overdub`, `looper stop`, `looper undo`, `looper reverse`, `looper halfSpeed` and `looper clear`. Footswitch LEDs can show recording, playing and overdubbing.
 
+Export WAV is available while the loop plays or is stopped, not while you record or overdub.
+
 ### The rig looper and the Looper block
 
 Without a Looper block on the grid, the buttons drive the **rig looper**: up to 60 seconds of stereo, recorded at the very end of the chain, after the whole preset and the scene level. It is not part of any preset, so the loop keeps playing when you change preset, and what you play over it goes through the new preset.

@@ -155,6 +155,7 @@ public sealed class LooperBlock() : DspBlock(Info), ILooperBlock {
         loop.Configure(settings);
         if (loop.State == LooperState.Empty) {
             // Nothing to play or record: only the dry level applies.
+            loop.Idle(n);
             GainRamp.Apply(io.Left, dryGain, dryEnd);
             GainRamp.Apply(io.Right, dryGain, dryEnd);
         } else {

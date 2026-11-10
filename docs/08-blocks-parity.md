@@ -526,18 +526,18 @@ One core (`Cathode.Dsp.Looping.Looper`) serves both. The grid block takes the tr
 
 | Parameter | Cathode | Note | Effort |
 |---|---|---|---|
-| Record, Play, Undo, Reverse | ✅ | Toolbar, MIDI and footswitch actions; Undo also divides out the pass's overdub level |  |
-| Erase | ✅ |  |  |
+| Record, Play, Undo, Reverse | ✅ | Toolbar, MIDI and footswitch actions; Undo also divides out the pass's overdub level. It is heard at once; the samples are restored a slice at a time, so a minutes-long loop costs no dropout |  |
+| Erase | ✅ | The loop is empty at once and a new recording can start on the next sample; the old samples are zeroed a slice at a time, ahead of the recording |  |
 | Once (one-shot) | 🆕 ✅ | Playback stops at the end of the loop |  |
 | Trim Start, Trim End | 🆕 ✅ | % of the loop; playback, reverse and overdub stay inside the window |  |
 | Threshold recording | 🆕 ✅ | Record arms (state `armed`); the recording starts on the first sample above the level |  |
 | Max Loop Time | 🆕 ✅ | 1–300 s on the block (memory committed only as it is recorded); the rig looper keeps 60 s |  |
 | Playback Level, Dry Level | 🆕 ✅ | Block only, ramped per sample |  |
 | Overdub Level (loop decay) | 🆕 ✅ | Each pass scales what the loop held; at 0 % Undo cannot bring it back |  |
-| Crossfade | 🆕 ✅ | The playing that follows a closing recording is faded into the loop's first samples (up to 100 ms), so the seam continues the performance; only on a forward first pass at normal speed |  |
+| Crossfade | 🆕 ✅ | The playing that follows a closing recording is faded into the loop's first samples (up to 100 ms), so the seam continues the performance; only on a forward first pass at normal speed, and not for a recording closed into Stopped (Stop, or Record 2nd Press = Stop), whose start stays as recorded |  |
 | Loop Quantize (to tempo) | 🆕 ✅ | The closing length is rounded to whole beats of the tempo (quarter notes), padded with silence |  |
 | Record 2nd Press (overdub, play, stop) | 🆕 ✅ | Default Play, which is what the rig looper always did |  |
-| Speed | 🆕 ✅ | Normal, Half, Double; the Half Speed action halves whichever is set |  |
+| Speed | 🆕 ✅ | Normal, Half, Double; the Half Speed action halves whichever is set. An overdub is stored once per loop sample at any speed (the mean of the input over a sample when slower, interpolated onto every sample passed when faster), so it keeps its level when the speed changes back |  |
 | Low Cut, High Cut | 🆕 ✅ | On the loop's playback |  |
 | As a grid block (placed mid-chain, bypass modes) | 🆕 ✅ | `looper`, one per preset. 🆕 A preset change to another preset with a Looper block hands the loop over, still playing (§9); to one without, it stops, where the rig looper plays through. Bypassed in Thru or Mute the block stops running, so the loop pauses; the other modes keep it playing (Mute FX In: the loop plays on while nothing new reaches it) |  |
 

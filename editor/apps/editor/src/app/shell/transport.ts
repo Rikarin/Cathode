@@ -253,7 +253,7 @@ const LooperColors: Record<string, 'error' | 'warning' | 'success' | 'none'> = {
       </xui-dialog-body>
       <xui-dialog-footer align="between">
         <button xuiButton variant="ghost" color="error" type="button" (click)="act('clear')">Clear</button>
-        <button xuiButton variant="outline" type="button" [disabled]="!looper()?.lengthSeconds" (click)="export()">
+        <button xuiButton variant="outline" type="button" [disabled]="!canExport()" (click)="export()">
           <ng-icon xui name="matDownloadRound" size="sm" /> Export WAV
         </button>
       </xui-dialog-footer>
@@ -277,6 +277,10 @@ export class Transport {
   protected readonly looper = signal<LooperInfo | null>(null);
   /** The looper's state, empty before the first telemetry. */
   protected readonly state = computed(() => this.looper()?.state ?? 'empty');
+  /** A loop can be exported while it plays or is stopped: the engine refuses one being recorded or overdubbed. */
+  protected readonly canExport = computed(
+    () => !!this.looper()?.lengthSeconds && (this.state() === 'playing' || this.state() === 'stopped')
+  );
   /** Record's fill: red while recording, amber while armed (waiting for the threshold), none otherwise. */
   protected readonly recordColor = computed(() =>
     this.state() === 'recording' ? 'error' : this.state() === 'armed' ? 'warning' : null
