@@ -122,7 +122,7 @@ public sealed class CompiledGraph : IDisposable {
     public InputPort? Inputs { get; }
 
     /// <summary>True when a modifier follows the input pitch, so the host must run pitch detection.</summary>
-    public bool UsesPitch => modifiers.Any(static m => m.Source == ModSource.Pitch);
+    public bool UsesPitch => modifiers.Any(static m => m.Source == ModSource.Pitch || m.Source2 == ModSource.Pitch);
 
     internal CompiledGraph(
         int generation,
@@ -235,8 +235,14 @@ public sealed class CompiledGraph : IDisposable {
                 continue;
             }
 
+            var source = modulation.Value(modifier.Source);
+            if (modifier.Source2 is { } second) {
+                source = Modulation.Combine(source, modulation.Value(second), modifier.Multiply);
+            }
+
             var target = Modulation.Map(
-                modulation.Value(modifier.Source),
+                source,
+                modifier.Shape,
                 modifier.Curve,
                 modifier.Min,
                 modifier.Max,
@@ -651,6 +657,15 @@ public struct ModifierBinding(
     public bool Log { get; } = log;
     public float AttackMs { get; } = attackMs;
     public float ReleaseMs { get; } = releaseMs;
+
+    /// <summary>A second source combined with <see cref="Source" /> (<see cref="Modulation.Combine" />), or null.</summary>
+    public ModSource? Source2 { get; init; }
+
+    /// <summary>Whether <see cref="Source2" /> multiplies <see cref="Source" />; otherwise it is added.</summary>
+    public bool Multiply { get; init; }
+
+    /// <summary>The response applied to the source before <see cref="Curve" />.</summary>
+    public ModShape Shape { get; init; } = ModShape.Identity;
 
     /// <summary>The slewed value; NaN until the first sub-block, which then starts at its target.</summary>
     public float Value { get; set; } = float.NaN;

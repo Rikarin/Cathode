@@ -5747,6 +5747,68 @@
             "type": "string",
             "description": "linear, exp, log or scurve."
           },
+          "source2": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A second source, combined with string PresetModifier.Source by string? PresetModifier.Operation before anything else.\nNull is none."
+          },
+          "operation": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "How string? PresetModifier.Source2 joins string PresetModifier.Source: \u0060add\u0060 (the sum, held within 0-1) or\n\u0060multiply\u0060. Null is \u0060add\u0060."
+          },
+          "start": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The response to the source, applied before string PresetModifier.Curve: the output (0-1) with the source at\nrest. Null is 0.",
+            "format": "float"
+          },
+          "mid": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The output (0-1) with the source half way. Null is 0.5.",
+            "format": "float"
+          },
+          "end": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The output (0-1) with the source at full travel. Null is 1.",
+            "format": "float"
+          },
+          "slope": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "How the source is bent around its centre before Start/Mid/End (0-1): above 0.5 steeper through the\nmiddle, below 0.5 flatter. Null is 0.5, straight.",
+            "format": "float"
+          },
+          "scale": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Multiplies the Start/Mid/End output (0-10); the result is held within 0-1. Null is 1.",
+            "format": "float"
+          },
+          "offset": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Added to the scaled output (\u22121 to 1); the result is held within 0-1. Null is 0.",
+            "format": "float"
+          },
           "attackMs": {
             "type": "number",
             "format": "float"

@@ -160,6 +160,52 @@ public enum ModCurve {
     SCurve
 }
 
+/// <summary>
+///     A modifier's response to its source (0..1 in, 0..1 out), applied before the <see cref="ModCurve" />. Slope bends
+///     the source around its centre (0.5 is straight; above it the response is steeper through the middle and flatter
+///     at the ends, below it the other way round). The bent source then runs along two straight lines, from
+///     <see cref="Start" /> at 0 through <see cref="Mid" /> at 0.5 to <see cref="End" /> at 1. That output is
+///     multiplied by <see cref="Scale" />, <see cref="Offset" /> is added, and the result is held within 0..1. So
+///     Start 1, End 0 inverts a pedal, Scale 2 reaches the top at half travel, and Offset lifts the floor.
+/// </summary>
+public readonly record struct ModShape(float Start, float Mid, float End, float Slope, float Scale, float Offset) {
+    public const float MaxScale = 10f;
+
+    /// <summary>The response that changes nothing: what a modifier without these settings has.</summary>
+    public static ModShape Identity { get; } = new(0f, 0.5f, 1f, 0.5f, 1f, 0f);
+
+    public bool IsIdentity => this == Identity;
+
+    /// <summary>The settings a modifier stores (null = default), each held within its range.</summary>
+    public static ModShape From(float? start, float? mid, float? end, float? slope, float? scale, float? offset) =>
+        new(
+            Unit(start, 0f),
+            Unit(mid, 0.5f),
+            Unit(end, 1f),
+            Unit(slope, 0.5f),
+            Finite(scale, 1f, 0f, MaxScale),
+            Finite(offset, 0f, -1f, 1f)
+        );
+
+    /// <summary>The response to <paramref name="source" />, 0..1.</summary>
+    public float Apply(float source) {
+        var x = Math.Clamp(source, 0f, 1f);
+
+        // Slope: a sigmoid through (0, 0), (0.5, 0.5) and (1, 1), a straight line at 0.5.
+        var k = (0.5f - Slope) * 1.8f;
+        var u = 2f * x - 1f;
+        x = 0.5f + 0.5f * (u - k * u) / (k - 2f * k * Math.Abs(u) + 1f);
+
+        var y = x < 0.5f ? Start + (Mid - Start) * 2f * x : Mid + (End - Mid) * (2f * x - 1f);
+        return Math.Clamp(y * Scale + Offset, 0f, 1f);
+    }
+
+    static float Unit(float? value, float fallback) => Finite(value, fallback, 0f, 1f);
+
+    static float Finite(float? value, float fallback, float min, float max) =>
+        value is { } v && float.IsFinite(v) ? Math.Clamp(v, min, max) : fallback;
+}
+
 /// <summary>What engages a block from its engage modifier (<see cref="ModNames.EngageParam" />).</summary>
 public enum EngageMode {
     /// <summary>The modified value: engaged at or above the threshold, bypassed below it.</summary>
@@ -188,6 +234,12 @@ public static class ModNames {
 
     public static readonly ImmutableArray<string> Curves = ["linear", "exp", "log", "scurve"];
 
+    /// <summary>
+    ///     How a modifier's second source joins its first (<see cref="Modulation.Combine" />); the first entry is what
+    ///     a modifier that names none uses.
+    /// </summary>
+    public static readonly ImmutableArray<string> Operations = ["add", "multiply"];
+
     /// <summary>The <see cref="EngageMode" /> names, in order.</summary>
     public static readonly ImmutableArray<string> EngageModes = ["position", "moving"];
 
@@ -200,6 +252,13 @@ public static class ModNames {
     public static bool TryParseCurve(string name, out ModCurve curve) {
         var index = Curves.IndexOf(name);
         curve = (ModCurve)Math.Max(index, 0);
+        return index >= 0;
+    }
+
+    /// <summary>An operation by name; none (null) is <c>add</c>.</summary>
+    public static bool TryParseOperation(string? name, out bool multiply) {
+        var index = name is null ? 0 : Operations.IndexOf(name);
+        multiply = index == 1;
         return index >= 0;
     }
 

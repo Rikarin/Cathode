@@ -282,6 +282,42 @@ public sealed class PresetModifier {
     /// <summary>linear, exp, log or scurve.</summary>
     public string Curve { get; set; } = "linear";
 
+    /// <summary>
+    ///     A second source, combined with <see cref="Source" /> by <see cref="Operation" /> before anything else.
+    ///     Null is none.
+    /// </summary>
+    public string? Source2 { get; set; }
+
+    /// <summary>
+    ///     How <see cref="Source2" /> joins <see cref="Source" />: <c>add</c> (the sum, held within 0-1) or
+    ///     <c>multiply</c>. Null is <c>add</c>.
+    /// </summary>
+    public string? Operation { get; set; }
+
+    /// <summary>
+    ///     The response to the source, applied before <see cref="Curve" />: the output (0-1) with the source at
+    ///     rest. Null is 0.
+    /// </summary>
+    public float? Start { get; set; }
+
+    /// <summary>The output (0-1) with the source half way. Null is 0.5.</summary>
+    public float? Mid { get; set; }
+
+    /// <summary>The output (0-1) with the source at full travel. Null is 1.</summary>
+    public float? End { get; set; }
+
+    /// <summary>
+    ///     How the source is bent around its centre before Start/Mid/End (0-1): above 0.5 steeper through the
+    ///     middle, below 0.5 flatter. Null is 0.5, straight.
+    /// </summary>
+    public float? Slope { get; set; }
+
+    /// <summary>Multiplies the Start/Mid/End output (0-10); the result is held within 0-1. Null is 1.</summary>
+    public float? Scale { get; set; }
+
+    /// <summary>Added to the scaled output (−1 to 1); the result is held within 0-1. Null is 0.</summary>
+    public float? Offset { get; set; }
+
     public float AttackMs { get; set; }
 
     public float ReleaseMs { get; set; }

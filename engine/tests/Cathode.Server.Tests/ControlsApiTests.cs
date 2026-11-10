@@ -63,6 +63,65 @@ public sealed class ControlsApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task A_modifiers_second_source_and_response_reach_the_compiled_graph() {
+        var live = await Put(
+            "/api/v1/live/modifiers",
+            new List<PresetModifier> {
+                new() {
+                    Block = "delay1",
+                    Param = "mix",
+                    Source = "ext1",
+                    Source2 = "lfo2",
+                    Operation = "multiply",
+                    Min = 10,
+                    Max = 60,
+                    Start = 1f,
+                    End = 0f,
+                    Scale = 2f
+                }
+            }
+        );
+
+        Assert.Equal("lfo2", live.Preset.Modifiers[0].Source2);
+        Assert.Null(live.Preset.Modifiers[0].Mid);
+        await ServerFixture.Eventually(() => server.Graph?.Modifiers.Count == 1);
+        var bound = server.Graph!.Modifiers[0];
+        Assert.Equal(ModSource.Lfo2, bound.Source2);
+        Assert.True(bound.Multiply);
+        Assert.Equal(new ModShape(1f, 0.5f, 0f, 0.5f, 2f, 0f), bound.Shape);
+    }
+
+    [Theory]
+    [InlineData("lfo9", null, null, null)]
+    [InlineData(null, "divide", null, null)]
+    [InlineData(null, null, 1.5f, null)]
+    [InlineData(null, null, null, -2f)]
+    public async Task A_modifier_with_a_bad_second_source_operation_or_response_is_refused(
+        string? source2,
+        string? operation,
+        float? start,
+        float? offset
+    ) {
+        using var invalid = await client.PutAsJsonAsync(
+            "/api/v1/live/modifiers",
+            new List<PresetModifier> {
+                new() {
+                    Block = "delay1",
+                    Param = "mix",
+                    Source = "lfo1",
+                    Source2 = source2,
+                    Operation = operation,
+                    Start = start,
+                    Offset = offset
+                }
+            },
+            Token
+        );
+
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+    }
+
+    [Fact]
     public async Task A_dragged_scene_level_or_scene_controller_is_one_undo_step() {
         await Patch("/api/v1/live/scenes/0", new SceneUpdateRequest("Verse"));
         // Each drag names its gesture: one step however slowly the test machine sends it (no 2 s window applies).

@@ -2568,6 +2568,48 @@ export interface components {
       max: number;
       /** @description linear, exp, log or scurve. */
       curve: string;
+      /**
+       * @description A second source, combined with string PresetModifier.Source by string? PresetModifier.Operation before anything else.
+       *     Null is none.
+       */
+      source2?: null | string;
+      /**
+       * @description How string? PresetModifier.Source2 joins string PresetModifier.Source: `add` (the sum, held within 0-1) or
+       *     `multiply`. Null is `add`.
+       */
+      operation?: null | string;
+      /**
+       * Format: float
+       * @description The response to the source, applied before string PresetModifier.Curve: the output (0-1) with the source at
+       *     rest. Null is 0.
+       */
+      start?: null | number;
+      /**
+       * Format: float
+       * @description The output (0-1) with the source half way. Null is 0.5.
+       */
+      mid?: null | number;
+      /**
+       * Format: float
+       * @description The output (0-1) with the source at full travel. Null is 1.
+       */
+      end?: null | number;
+      /**
+       * Format: float
+       * @description How the source is bent around its centre before Start/Mid/End (0-1): above 0.5 steeper through the
+       *     middle, below 0.5 flatter. Null is 0.5, straight.
+       */
+      slope?: null | number;
+      /**
+       * Format: float
+       * @description Multiplies the Start/Mid/End output (0-10); the result is held within 0-1. Null is 1.
+       */
+      scale?: null | number;
+      /**
+       * Format: float
+       * @description Added to the scaled output (−1 to 1); the result is held within 0-1. Null is 0.
+       */
+      offset?: null | number;
       /** Format: float */
       attackMs: number;
       /** Format: float */

@@ -77,6 +77,9 @@ export const ModifierSources = [
 
 export const ModifierCurves = ['linear', 'exp', 'log', 'scurve'] as const;
 
+/** How a modifier's second source joins its first (ModNames.Operations); a missing operation is add. */
+export const ModifierOperations = ['add', 'multiply'] as const;
+
 /** How an engage modifier engages its block (ModNames.EngageModes); a missing mode is position. */
 export const EngageModes = ['position', 'moving'] as const;
 
