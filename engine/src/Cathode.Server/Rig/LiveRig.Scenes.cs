@@ -1,4 +1,5 @@
 using Cathode.Contracts;
+using Cathode.Server.Stores;
 using System.Text.Json;
 
 namespace Cathode.Server.Rig;
@@ -167,20 +168,50 @@ public sealed partial class LiveRig {
         );
 
     /// <summary>
-    ///     MIDI Vol Inc / Vol Dec: steps the active scene's level by <paramref name="deltaDb" /> and saves the preset,
-    ///     so the change is kept. A working copy without a name (after Clear) is stepped but not saved: the library
-    ///     holds no nameless preset (<see cref="SaveAsync" />).
+    ///     MIDI Vol Inc / Vol Dec: steps the active scene's level by <paramref name="deltaDb" /> and stores that level,
+    ///     and nothing else, in the preset's file, so the change is kept. Other unsaved edits of the working copy stay
+    ///     unsaved. A factory preset, or one not saved yet, has no file of the user's to store it in: the step is then
+    ///     an unsaved edit like any other, no copy is made, and the preset stays the one its bank slot or setlist
+    ///     entry names (<see cref="LiveState.Position" />).
     /// </summary>
     public Task<LiveState> StepSceneLevelAsync(float deltaDb) =>
         Locked(() => {
                 PushUndo(null);
                 var scene = preset.Scenes[activeScene];
-                scene.Level = Math.Clamp(scene.Level + deltaDb, -60f, 12f);
+                scene.Level = ClampSceneLevel(scene.Level + deltaDb);
                 engine.SetParams(generation, SceneValues());
-                var stepped = Changed("sceneUpdated", scene: activeScene);
-                return Task.FromResult(string.IsNullOrWhiteSpace(preset.Name) ? stepped : SaveWorkingCopy());
+                if (!StoreSceneLevel(activeScene, scene.Level)) {
+                    return Task.FromResult(Changed("sceneUpdated", scene: activeScene));
+                }
+
+                // Stored: the step itself leaves nothing unsaved (edits made before it still are).
+                Changed("sceneUpdated", scene: activeScene, markDirty: false);
+                return Task.FromResult(Changed("presetSaved", markDirty: false));
             }
         );
+
+    /// <summary>
+    ///     Writes one scene's level into the working copy's preset in the library and into the copy Scene Revert
+    ///     recalls; false, storing nothing, for a factory preset or one the library does not have.
+    /// </summary>
+    bool StoreSceneLevel(int scene, float level) {
+        if (preset.Factory == true
+            || FactoryPresets.IsFactoryId(preset.Id)
+            || presets.Get(preset.Id) is not { } stored
+            || stored.Scenes.Count != Preset.SceneCount) {
+            return false;
+        }
+
+        stored.Scenes[scene].Level = level;
+        presets.Save(stored);
+        var saved = JsonSerializer.Deserialize(savedJson, ContractsJsonContext.Default.Preset)!;
+        if (saved.Id == preset.Id && saved.Scenes.Count == Preset.SceneCount) {
+            saved.Scenes[scene].Level = level;
+            savedJson = JsonSerializer.Serialize(saved, ContractsJsonContext.Default.Preset);
+        }
+
+        return true;
+    }
 
     /// <summary>Loads the global startup preset, if one is set and still in the library.</summary>
     /// <returns>Why the startup preset did not load, or null; the rig then stays on the default preset.</returns>

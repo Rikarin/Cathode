@@ -29,13 +29,22 @@ public sealed class Library(
         logger: logger
     );
 
-    readonly JsonFileStore<Bank> banks = new(
-        Path.Combine(options.Value.DataDirectory, "banks"),
-        "bank",
-        ContractsJsonContext.Default.Bank,
-        static b => b.Id,
-        logger: logger
+    /// <summary>
+    ///     The banks as last read, so preset next/previous does not parse every bank file for every step. The entries
+    ///     are the index's own: <see cref="Banks" /> hands out copies.
+    /// </summary>
+    readonly JsonFileIndex<Bank, Bank> bankIndex = new(
+        new(
+            Path.Combine(options.Value.DataDirectory, "banks"),
+            "bank",
+            ContractsJsonContext.Default.Bank,
+            static b => b.Id,
+            logger: logger
+        ),
+        static (bank, _) => bank
     );
+
+    JsonFileStore<Bank> banks => bankIndex.Store;
 
     public Setlist[] Setlists() =>
         [..setlists.All().Select(static e => e.Item).OrderBy(static s => s.Name, StringComparer.OrdinalIgnoreCase)];
@@ -44,7 +53,9 @@ public sealed class Library(
 
     public Bank[] Banks() => [
         presets.Factory.Bank(),
-        ..banks.All().Select(static e => e.Item).OrderBy(static b => b.Name, StringComparer.OrdinalIgnoreCase)
+        ..bankIndex.All()
+            .Select(static b => new Bank { Id = b.Id, Name = b.Name, Factory = b.Factory, Slots = [..b.Slots] })
+            .OrderBy(static b => b.Name, StringComparer.OrdinalIgnoreCase)
     ];
 
     public Bank? Bank(string id) => id == FactoryPresets.BankId ? presets.Factory.Bank() : banks.Get(id);
@@ -127,8 +138,7 @@ public sealed class Library(
                 .Where(s => s.Entries.Exists(e => e.PresetId == id))
                 .Select(static s => $"setlist '{s.Name}'")
                 .Concat(
-                    banks.All()
-                        .Select(static e => e.Item)
+                    bankIndex.All()
                         .Where(b => b.Slots.Contains(id))
                         .Select(static b => $"bank '{b.Name}'")
                 )

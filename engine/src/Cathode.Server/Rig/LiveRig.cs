@@ -693,7 +693,7 @@ public sealed partial class LiveRig(
                 }
 
                 if (request.Level is { } level) {
-                    target.Level = Math.Clamp(level, -60f, 12f);
+                    target.Level = ClampSceneLevel(level);
                 }
 
                 if (request.Controllers is { Count: 4 } controllers) {

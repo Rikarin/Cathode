@@ -18,7 +18,7 @@ public sealed partial class LiveRig {
         );
 
     /// <summary>
-    ///     A Circuit Amp's speaker load resonance in its active channel: the frequency at Load resonance 100 % for its
+    ///     A Circuit Amp's speaker load resonance in the channel it is running: the frequency at Load resonance 100 % for its
     ///     model and Speaker load (with Follow Cab, the speaker and cabinet of the Cab block it follows), the Load
     ///     resonance setting, and the frequency that gives.
     /// </summary>
@@ -30,18 +30,17 @@ public sealed partial class LiveRig {
             throw new RigException(400, $"'{id}' is not a Circuit Amp.");
         }
 
-        var scene = state.Preset.Scenes[state.ActiveScene];
         var info = CircuitAmpBlock.Info;
-        var speaker = (int)ValueIn(scene, block, info, CircuitAmpBlock.SpeakerCurve);
-        var cab = speaker == CircuitAmpBlock.SpeakerAuto ? FollowedCab(scene, state.Preset, id) : null;
-        var model = (int)ValueIn(scene, block, info, CircuitAmpBlock.Type);
+        var speaker = (int)ValueIn(state, block, info, CircuitAmpBlock.SpeakerCurve);
+        var cab = speaker == CircuitAmpBlock.SpeakerAuto ? FollowedCab(state, id) : null;
+        var model = (int)ValueIn(state, block, info, CircuitAmpBlock.Type);
         var baseHz = CircuitAmpBlock.SpeakerResonanceHz(model, speaker, cab);
-        var percent = ValueIn(scene, block, info, CircuitAmpBlock.SpeakerResonance);
+        var percent = ValueIn(state, block, info, CircuitAmpBlock.SpeakerResonance);
         return new(baseHz, percent, baseHz * percent / 100);
     }
 
     /// <summary>
-    ///     The frequency response of a block's graphic EQ in its active channel, measured on the engine's own
+    ///     The frequency response of a block's graphic EQ in the channel it is running, measured on the engine's own
     ///     equaliser at <see cref="ResponseFrequencies" />, with its layout's band centres: a Graphic EQ's
     ///     (<see cref="GraphicEqResponse" />), a Drive's EQ 2 (<see cref="DriveEqResponse" />) or an Amp's Output EQ
     ///     (<see cref="AmpEqResponse" />). 400 for a block without one.
@@ -73,11 +72,10 @@ public sealed partial class LiveRig {
                 _ => throw new RigException(400, $"'{id}' has no graphic EQ.")
             };
 
-        var scene = state.Preset.Scenes[state.ActiveScene];
         var values = new ParamBank(kind.Info.Params);
-        values.SetTarget(kind.Type, ValueIn(scene, block, kind.Info, kind.Type)); // the type first
+        values.SetTarget(kind.Type, ValueIn(state, block, kind.Info, kind.Type)); // the type first
         for (var p = 0; p < kind.Info.Params.Count; p++) {
-            values.SetTarget(p, ValueIn(scene, block, kind.Info, p));
+            values.SetTarget(p, ValueIn(state, block, kind.Info, p));
         }
 
         values.SnapToTargets();
@@ -87,16 +85,19 @@ public sealed partial class LiveRig {
     /// <summary>The frequencies a block's response is given at: 256, log-spaced from 20 Hz to 20 kHz.</summary>
     static readonly float[] ResponseFrequencies = EqResponse.Frequencies();
 
-    /// <summary>A parameter of a block in the channel <paramref name="scene" /> gives it, or the default.</summary>
-    static float ValueIn(Scene scene, PresetBlock of, BlockDescriptor descriptor, int index) {
-        return descriptor.ValueOf(index, of.Channels.GetValueOrDefault(scene.StateOf(of.Id).Channel));
-    }
+    /// <summary>
+    ///     A parameter of a block in the channel it is running (<see cref="LiveState.LiveOf" />: a block Scene Ignore
+    ///     holds is not on the active scene's channel), or the default.
+    /// </summary>
+    static float ValueIn(LiveState state, PresetBlock of, BlockDescriptor descriptor, int index) =>
+        descriptor.ValueOf(index, of.Channels.GetValueOrDefault(state.LiveOf(of.Id).Channel));
 
     /// <summary>
     ///     As the graph compiler links it (ICabFollower): the nearest Cab block downstream through the cables, breadth
     ///     first; in it the first unmuted DynaCab slot.
     /// </summary>
-    static (int Enclosure, int Speaker)? FollowedCab(Scene scene, Preset preset, string from) {
+    static (int Enclosure, int Speaker)? FollowedCab(LiveState state, string from) {
+        var preset = state.Preset;
         var queue = new Queue<string>([from]);
         var seen = new HashSet<string> { from };
         while (queue.Count > 0) {
@@ -108,7 +109,7 @@ public sealed partial class LiveRig {
 
                 var next = BlockById(preset, cable.To);
                 if (next?.Type == CabBlock.Info.TypeId) {
-                    return DynaCabOf(scene, next);
+                    return DynaCabOf(state, next);
                 }
 
                 queue.Enqueue(cable.To);
@@ -121,14 +122,14 @@ public sealed partial class LiveRig {
     static PresetBlock? BlockById(Preset preset, string id) => preset.Blocks.Find(b => b.Id == id);
 
     /// <summary>A Cab block's first unmuted DynaCab slot: its enclosure and speaker; null for none.</summary>
-    static (int Enclosure, int Speaker)? DynaCabOf(Scene scene, PresetBlock cab) {
+    static (int Enclosure, int Speaker)? DynaCabOf(LiveState state, PresetBlock cab) {
         for (var slot = 0; slot < CabBlock.Slots; slot++) {
-            if ((int)ValueIn(scene, cab, CabBlock.Info, CabBlock.SlotParam(slot, CabBlock.Source))
+            if ((int)ValueIn(state, cab, CabBlock.Info, CabBlock.SlotParam(slot, CabBlock.Source))
                 == CabBlock.SourceDynaCab
-                && ValueIn(scene, cab, CabBlock.Info, CabBlock.SlotParam(slot, CabBlock.Mute)) < 0.5f) {
+                && ValueIn(state, cab, CabBlock.Info, CabBlock.SlotParam(slot, CabBlock.Mute)) < 0.5f) {
                 return (
-                    (int)ValueIn(scene, cab, CabBlock.Info, CabBlock.SlotParam(slot, CabBlock.Cab)),
-                    (int)ValueIn(scene, cab, CabBlock.Info, CabBlock.SlotParam(slot, CabBlock.Speaker))
+                    (int)ValueIn(state, cab, CabBlock.Info, CabBlock.SlotParam(slot, CabBlock.Cab)),
+                    (int)ValueIn(state, cab, CabBlock.Info, CabBlock.SlotParam(slot, CabBlock.Speaker))
                 );
             }
         }

@@ -41,6 +41,51 @@ public sealed class JsonFileStoreTests : IDisposable {
         Assert.Equal(200 % 12, store.Get(preset.Id)!.Scenes[0].Level);
     }
 
+    [Fact]
+    public void An_index_reads_a_file_again_only_when_it_changed() {
+        var reads = 0;
+        var presets = new JsonFileStore<Preset>(
+            folder,
+            "preset",
+            ContractsJsonContext.Default.Preset,
+            static p => p.Id,
+            node => {
+                reads++; // the upgrade runs once for every file read
+                return node;
+            }
+        );
+        var index = new JsonFileIndex<Preset, string>(presets, static (preset, _) => preset.Name);
+        var kept = new Preset { Id = "kept", Name = "Kept" };
+        var edited = new Preset { Id = "edited", Name = "Before" };
+        var removed = new Preset { Id = "removed", Name = "Removed" };
+        presets.Save(kept);
+        presets.Save(edited);
+        presets.Save(removed);
+
+        Assert.Equal(["Before", "Kept", "Removed"], index.All().Order());
+        Assert.Equal(3, reads);
+        Assert.Equal(["Before", "Kept", "Removed"], index.All().Order());
+        Assert.Equal(3, reads); // a second listing parses nothing
+
+        // The store's own save and delete show at once, whatever the file system's clock resolution.
+        edited.Name = "Edited"; // the same length as before
+        presets.Save(edited);
+        presets.Delete("removed");
+        Assert.Equal(["Edited", "Kept"], index.All().Order());
+        Assert.Equal(4, reads);
+
+        // Changes behind the store's back: a file edited by hand, one copied in, one deleted.
+        var path = Path.Combine(folder, "kept.json");
+        File.WriteAllText(path, File.ReadAllText(path).Replace("Kept", "By hand", StringComparison.Ordinal));
+        File.Copy(Path.Combine(folder, "edited.json"), Path.Combine(folder, "copied.json"));
+        Assert.Equal(["By hand", "Edited", "Edited"], index.All().Order());
+        Assert.Equal(6, reads);
+        File.Delete(Path.Combine(folder, "copied.json"));
+        File.WriteAllText(Path.Combine(folder, "broken.json"), "not json");
+        Assert.Equal(["By hand", "Edited"], index.All().Order());
+        Assert.Equal(6, reads); // the unreadable file never reaches the upgrade
+    }
+
     [Theory]
     [InlineData("""{ "id": "bad", "schemaVersion": 2.5 }""")]
     [InlineData("""{ "id": "bad", "schemaVersion": 1e30 }""")]

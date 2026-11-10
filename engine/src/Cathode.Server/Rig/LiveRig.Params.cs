@@ -97,9 +97,12 @@ public sealed partial class LiveRig {
         return recompile;
     }
 
-    /// <summary>A block linked to a global block writes the channel through to it.</summary>
+    /// <summary>
+    ///     A block linked to a global block writes the channel through to it: at once in memory, to the settings file
+    ///     shortly after (a dragged knob gets here for every step).
+    /// </summary>
     void ShareWithGlobal(string link, string target, Dictionary<string, float> stored) =>
-        globals.Update(g => {
+        globals.UpdateLive(g => {
                 if (g.Blocks.Find(b => b.Id == link) is { } shared) {
                     shared.Channels[target] = new(stored);
                 }

@@ -81,6 +81,76 @@ public sealed partial class LiveRig {
         }
     }
 
+    /// <summary>A tempo as the rig takes it: 30 to 300 BPM.</summary>
+    static double ClampTempo(double bpm) => Math.Clamp(bpm, 30, 300);
+
+    /// <summary>A scene level as the rig takes it: -60 to +12 dB.</summary>
+    static float ClampSceneLevel(float db) => Math.Clamp(db, -60f, 12f);
+
+    /// <summary>
+    ///     Holds the parts of a whole preset a client sent (<see cref="PutAsync" />) that have no check of their own
+    ///     there to what their endpoints take. Brought into range: the tempo, every scene's level and its four
+    ///     controllers, and each block's channel values (ids the block type lacks are dropped, as a block preset's
+    ///     are). Scene entries of blocks the preset does not have are dropped, as removing a block drops them, and a
+    ///     built-in block is not bypassed. Refused (400), with every problem: a scene's MIDI messages
+    ///     (<see cref="CheckSceneMidi" />) and a scene channel its block does not have.
+    /// </summary>
+    void SanitizeContent(Preset next) {
+        next.Tempo = ClampTempo(next.Tempo);
+        foreach (var block in next.Blocks) {
+            if (catalog.Descriptor(block.Type) is { } descriptor) {
+                block.Channels = block.Channels.ToDictionary(
+                    static c => c.Key,
+                    c => descriptor.Sanitized(c.Value),
+                    StringComparer.Ordinal
+                );
+            }
+        }
+
+        var problems = new List<string>();
+        for (var index = 0; index < next.Scenes.Count; index++) {
+            var scene = next.Scenes[index];
+            scene.Level = ClampSceneLevel(scene.Level);
+            var controllers = scene.Controllers;
+            scene.Controllers = [
+                ..Enumerable.Range(0, 4).Select(i => i < controllers.Count ? Math.Clamp(controllers[i], 0f, 1f) : 0f)
+            ];
+            CheckSceneMidi(scene.Midi);
+            scene.Blocks = SceneStates(next, scene, index, problems);
+        }
+
+        if (problems.Count > 0) {
+            throw new RigException(400, "The preset is not valid.", problems);
+        }
+    }
+
+    /// <summary>
+    ///     A scene's block states for the blocks of <paramref name="next" />; a channel its block does not have is
+    ///     added to <paramref name="problems" />.
+    /// </summary>
+    Dictionary<string, SceneBlockState> SceneStates(Preset next, Scene scene, int index, List<string> problems) {
+        var states = new Dictionary<string, SceneBlockState>(StringComparer.Ordinal);
+        foreach (var block in next.Blocks) {
+            if (!scene.Blocks.TryGetValue(block.Id, out var state)) {
+                continue;
+            }
+
+            var channels = catalog.Descriptor(block.Type)?.Channels ?? Preset.ChannelNames.Length;
+            var channel = state.Channel is null ? -1 : Preset.ChannelNames.IndexOf(state.Channel);
+            if (channel < 0 || channel >= channels) {
+                problems.Add(
+                    $"Scene {index + 1}: block '{block.Id}' has no channel '{state.Channel}'; it has "
+                    + $"{string.Join(", ", Preset.ChannelNames[..channels])}."
+                );
+                continue;
+            }
+
+            states[block.Id] = BuiltInTypes.IsBuiltIn(block.Type) ? state with { Bypassed = false } : state;
+        }
+
+        return states;
+    }
+
     static void CheckScene(int scene) {
         if (scene is < 0 or >= Preset.SceneCount) {
             throw new RigException(400, $"Scenes are numbered 0 to {Preset.SceneCount - 1}.");

@@ -730,6 +730,50 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         Assert.Equal(HttpStatusCode.BadRequest, notController.StatusCode);
     }
 
+    [Fact]
+    public async Task A_replaced_working_copy_is_held_to_what_the_single_endpoints_take() {
+        await Post("/api/v1/live/blocks", new AddBlockRequest("delay", 0, 2));
+        var next = (await Live()).Preset;
+        var time = DelayBlock.Info.Params[DelayBlock.Info.IndexOf("time")];
+        next.Tempo = 0;
+        next.Scenes[0].Level = 200;
+        next.Scenes[1].Level = -500;
+        next.Scenes[0].Controllers = [7, -3];
+        next.Scenes[2].Blocks["ghost"] = new(true, "D"); // a block the preset does not have
+        next.Scenes[2].Blocks["in1"] = new(true, "A"); // an Input cannot be bypassed
+        next.Blocks.Single(static b => b.Id == "delay1").Channels["A"] = new() { ["time"] = 1e9f, ["noSuch"] = 1 };
+
+        var replaced = (await Put("/api/v1/live", next)).Preset;
+
+        Assert.Equal(30, replaced.Tempo);
+        Assert.Equal(12, replaced.Scenes[0].Level);
+        Assert.Equal(-60, replaced.Scenes[1].Level);
+        Assert.Equal([1, 0, 0, 0], replaced.Scenes[0].Controllers);
+        Assert.False(replaced.Scenes[2].Blocks.ContainsKey("ghost"));
+        Assert.False(replaced.Scenes[2].Blocks["in1"].Bypassed);
+        var channel = replaced.Blocks.Single(static b => b.Id == "delay1").Channels["A"];
+        Assert.Equal(time.Max, channel["time"]);
+        Assert.False(channel.ContainsKey("noSuch"));
+
+        // What cannot be brought into range is refused, and the rig keeps its preset.
+        var revision = (await Live()).Revision;
+        replaced.Scenes[3].Midi = [..Enumerable.Repeat(new SceneMidiMessage(), SceneMidiMessage.MaxPerScene + 1)];
+        using var tooManyMessages = await client.PutAsJsonAsync("/api/v1/live", replaced, Token);
+        Assert.Equal(HttpStatusCode.BadRequest, tooManyMessages.StatusCode);
+        replaced.Scenes[3].Midi = [new("sysex")];
+        using var badMessage = await client.PutAsJsonAsync("/api/v1/live", replaced, Token);
+        Assert.Equal(HttpStatusCode.BadRequest, badMessage.StatusCode);
+        replaced.Scenes[3].Midi = [];
+        replaced.Scenes[3].Blocks["delay1"] = new(false, "E");
+        using var noSuchChannel = await client.PutAsJsonAsync("/api/v1/live", replaced, Token);
+        Assert.Equal(HttpStatusCode.BadRequest, noSuchChannel.StatusCode);
+        replaced.Scenes[3].Blocks["delay1"] = new(false, null!); // used to be a 500 from the graph builder
+        using var nullChannel = await client.PutAsJsonAsync("/api/v1/live", replaced, Token);
+        Assert.Equal(HttpStatusCode.BadRequest, nullChannel.StatusCode);
+        Assert.Contains("Scene 4", await nullChannel.Content.ReadAsStringAsync(Token), StringComparison.Ordinal);
+        Assert.Equal(revision, (await Live()).Revision);
+    }
+
     async Task<LiveState> Delete(string url) => await Read(await client.DeleteAsync(url, Token));
 
     async Task<LiveState> Live() => (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!;
