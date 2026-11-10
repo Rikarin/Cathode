@@ -47,7 +47,7 @@ Either proves the file was built by this repository's `release.yml` from the tag
 
 Running the workflow by hand (Actions, release, Run workflow) builds everything as workflow artifacts without
 publishing. Such a run can be started on any branch, so its builds get no signing secrets and no attestation. [`desktop.yml`](../.github/workflows/desktop.yml) still builds the desktop app on every push to master,
-and on a pull request that changes the desktop app's main process, its packaging scripts or the native build.
+as a snapshot (it sets `CATHODE_VERSION` to the default version plus the commit, `1.2.3+abc1234`), and on a pull request that changes the desktop app's main process, its packaging scripts or the native build.
 A pull request that changes the engine's sources runs `editor.yml` too, for its Playwright tests of the desktop app
 against the real engine.
 
@@ -124,9 +124,10 @@ and cathode-server listens on the network, so a release is built with the curren
 
 ### The preset format
 
-Presets carry `schemaVersion` (`Preset.CurrentSchemaVersion`: 1 in 1.0.0-rc.1 to rc.3, 2 since rc.4). Every place that
-reads a stored preset passes its JSON through `PresetMigrations` first: the library files, snapshots, templates and
-`.cthpreset` imports. So a preset saved by an earlier release keeps loading.
+Presets carry `schemaVersion` (`Preset.CurrentSchemaVersion`). It is 2 since 1.0.0-rc.4; schema 1 is the format of
+1.0.0-rc.1 to rc.3, and a preset without the field is schema 1. Every place that reads a stored preset passes its JSON
+through `PresetMigrations` first: the library files, snapshots, templates and `.cthpreset` imports. So a preset saved
+by an earlier release keeps loading.
 
 Parameter values are stored sparsely, so new parameters, block types and amp models need no new schema. Only a change
 that would make an older file read wrongly does. That covers a renamed, re-ranged or re-meant parameter, or a moved
@@ -138,6 +139,21 @@ field. For such a change:
 
 Released steps are never edited. A preset from a newer release is refused on load and import with a message that
 says so.
+
+## Dependencies
+
+[Dependabot](../.github/dependabot.yml) opens the update pull requests every Monday: the editor's and the website's npm
+packages, the engine's NuGet packages and the actions the workflows pin by commit. Minor and patch updates of one
+ecosystem come in one pull request, a major update in its own, and Angular, Nx and Storybook each as a family. The
+test workflows run on each of them.
+
+[`audit.yml`](../.github/workflows/audit.yml) runs every night and on pull requests that change a manifest or
+lockfile. It fails on a known vulnerability in a package that ships (`pnpm audit --prod` in `editor/` and `website/`,
+`dotnet list package --vulnerable --include-transitive` in `engine/`). Advisories against the development tool chain
+(Storybook, Vite, Nx) are listed in the job's summary without failing it.
+
+The native libraries are not covered: NeuralAmpModelerCore and the ASIO SDK are pinned (by commit, by URL and hash) in
+`engine/native/*/CMakeLists.txt` and moved by hand ([ADR-0003](adr/0003-nam-hosting.md)).
 
 ## The headless rig
 

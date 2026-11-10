@@ -77,4 +77,5 @@ On real signal, fast tanh gives ESR 7.7e-6 (A1) and 2.3e-5 (LSTM) against exact 
 - **Still to do:**
   - investigate the 10–14 % A2/LSTM gap with a profiler
   - Windows and Linux numbers once CI runs
-  - an AIDA-X/RTNeural wrapper (deferred: NAM covers the Tone3000 library)
+  - ~~an AIDA-X/RTNeural wrapper (deferred: NAM covers the Tone3000 library)~~
+    **Amended 2026-11-10:** done on 2026-10-23, before 1.0.0-rc.1, without a wrapper. AIDA-X models (the RTNeural Keras JSON format, LSTM or GRU) are evaluated in managed code by `AidaModel` in `Cathode.Dsp.Capture` and load in the Amp NAM block beside `.nam` files. The decision above stands for NAM models.

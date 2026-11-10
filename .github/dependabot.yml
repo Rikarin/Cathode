@@ -1,8 +1,69 @@
-# Keeps engine/global.json on the current .NET SDK. CI installs exactly the SDK it names, and a release carries that
-# SDK's runtime and ASP.NET Core (docs/10-releases.md, "The .NET runtime in a release"), so a servicing release
-# reaches users only once this version moves. release.yml refuses a tag that is behind.
+# Dependabot opens the update pull requests (docs/10-releases.md, "Dependencies"): once a week, minor and patch
+# updates of one ecosystem in one pull request, each major update in its own. The package families that must move
+# together (Angular, Nx, Storybook) each get their own pull request, majors included. Security updates come as soon as
+# an advisory is published. audit.yml is the check that fails when a known vulnerability is left in.
 version: 2
+
 updates:
+  # The editor and the desktop app (pnpm).
+  - package-ecosystem: npm
+    directory: /editor
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 3
+    open-pull-requests-limit: 10
+    groups:
+      angular:
+        patterns: ["@angular/*", "@angular-devkit/*", "@schematics/angular", "angular-eslint"]
+      nx:
+        patterns: ["nx", "@nx/*"]
+      storybook:
+        patterns: ["storybook", "@storybook/*", "@chromatic-com/storybook"]
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # The website (pnpm).
+  - package-ecosystem: npm
+    directory: /website
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 3
+    groups:
+      angular:
+        patterns: ["@angular/*"]
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # The engine's packages (engine/Directory.Packages.props) and the repository's .NET tools (dotnet-tools.json).
+  - package-ecosystem: nuget
+    directories: ["/engine", "/"]
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  # The workflows' actions, which are pinned by commit: Dependabot moves the SHA and the version comment together.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # engine/global.json's .NET SDK. CI installs exactly the SDK it names, and a release carries that SDK's runtime and
+  # ASP.NET Core (docs/10-releases.md, "The .NET runtime in a release"), so a servicing release reaches users only once
+  # this version moves. release.yml refuses a tag that is behind.
   - package-ecosystem: dotnet-sdk
     directory: /engine
     schedule:

@@ -1,0 +1,81 @@
+name: audit
+
+# Known vulnerabilities in the dependencies (docs/10-releases.md, "Dependencies"). An advisory can be published
+# against a version long after it was installed, so this runs every night and not only when a lockfile changes.
+#
+# - npm (editor, website): fails on any advisory against a package that ships (`pnpm audit --prod`: the editor's and
+#   the website's runtime dependencies). Advisories against the development tool chain (Storybook, Vite, Nx, wrangler)
+#   are listed in the job summary and do not fail the job: they put developers' machines at risk, not users', and
+#   Dependabot opens the pull request that fixes them.
+# - NuGet (engine): fails when `dotnet list package --vulnerable --include-transitive` names a package in any project.
+
+on:
+  schedule:
+    - cron: "17 5 * * *" # nightly, 05:17 UTC
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "editor/package.json"
+      - "editor/pnpm-lock.yaml"
+      - "website/package.json"
+      - "website/pnpm-lock.yaml"
+      - "engine/Directory.Packages.props"
+      - "engine/**/*.csproj"
+      - ".github/workflows/audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  npm:
+    name: npm (${{ matrix.workspace }})
+    strategy:
+      fail-fast: false
+      matrix:
+        workspace: [editor, website]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ matrix.workspace }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          package_json_file: ${{ matrix.workspace }}/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      # Both read the lockfile and ask the registry; nothing is installed.
+      - name: List the tool chain's advisories
+        run: |
+          {
+            echo "### ${{ matrix.workspace }}: every dependency, development ones included"
+            echo '```'
+            pnpm audit || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Audit what ships
+        run: pnpm audit --prod
+
+  nuget:
+    name: NuGet (engine)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-dotnet
+      - run: dotnet restore Cathode.slnx
+      # The command exits 0 whatever it finds, so the job reads its report.
+      - name: Audit the packages
+        run: |
+          dotnet list Cathode.slnx package --vulnerable --include-transitive --no-restore | tee "$RUNNER_TEMP/audit.txt"
+          if grep -q "has the following vulnerable packages" "$RUNNER_TEMP/audit.txt"; then
+            echo "::error::A NuGet package has a known vulnerability; see the list above."
+            exit 1
+          fi
+          grep -q "has no vulnerable packages" "$RUNNER_TEMP/audit.txt" || {
+            echo "::error::dotnet list did not report on any project."
+            exit 1
+          }

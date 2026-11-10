@@ -30,6 +30,7 @@
 ## Consequences
 
 - MIDI and footswitch logic (Phase 5) will also run in the Server, which adds a local socket hop (about 0.1 ms) to scene changes. That is far below a buffer period, so acceptable. If it ever matters, the Host can execute pre-resolved scene command batches.
-- Telemetry runs over the same socket instead of shared memory for now. That is simpler, and the measured cost is negligible. Shared memory remains the upgrade path if meter traffic grows (RTA, scope).
+- ~~Telemetry runs over the same socket instead of shared memory for now. That is simpler, and the measured cost is negligible. Shared memory remains the upgrade path if meter traffic grows (RTA, scope).~~
+  **Amended 2026-11-10:** the upgrade was made on 2026-10-23, before 1.0.0-rc.1. The Host writes meters, block meters, the CPU histogram, xrun counts and the scope to a memory-mapped file (`TelemetryRegion`, [02-architecture.md §5.9](../02-architecture.md)), which the Server maps read-only. Only the tuner, GC counts and device timing still go over the socket, at 10 Hz.
 - WebSocket telemetry to the editor uses JSON text frames for now, not the binary frames planned in 02 §5.9. This is revisitable when the editor's needs are known.
 - Functional tests use the same host service **in process** (`InProcessEngineLink`, in the Server's test project; the Server does not reference the host). Timing and soak tests must use the real two-process setup.

@@ -81,7 +81,7 @@ Build the desktop app for this machine's OS into `dist/release`: a `.dmg` and `.
 pnpm dist
 ```
 
-NativeAOT does not cross-compile, so each OS builds its own. The `desktop` workflow builds all three on every push to master and attaches them to a GitHub release for `v*` tags. Builds are unsigned (ad hoc on macOS) unless the signing secrets it lists are set.
+NativeAOT does not cross-compile, so each OS builds its own. The `desktop` workflow builds all three on every push to master as workflow artifacts, versioned as snapshots (the `package.json` version plus the commit, `1.2.3+abc1234`). The `release` workflow builds them for a `v*` tag and attaches them to the GitHub release (see [docs/10-releases.md](../docs/10-releases.md)). Builds are unsigned (ad hoc on macOS) unless the signing secrets the workflows list are set.
 
 ## Security model
 
