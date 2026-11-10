@@ -500,7 +500,7 @@ public sealed partial class LiveRig {
     public Task<LiveState> SetPresetMetadataAsync(string id, PresetMetadataRequest change) =>
         Locked(() => {
                 if (change.Name is { } name && string.IsNullOrWhiteSpace(name)) {
-                    throw new RigException(400, "A preset needs a name.");
+                    throw new RigException(400, NeedsName);
                 }
 
                 var stored = presets.Get(id);

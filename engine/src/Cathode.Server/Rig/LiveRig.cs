@@ -67,6 +67,9 @@ public sealed partial class LiveRig(
             )
     ];
 
+    /// <summary>What a save or a rename that would leave a preset without a name is refused with.</summary>
+    const string NeedsName = "A preset needs a name.";
+
     /// <summary>The longest gesture id a parameter change may carry (<see cref="SetParamsAsync" />).</summary>
     public const int MaxGestureLength = 64;
 
@@ -147,9 +150,17 @@ public sealed partial class LiveRig(
             }
         );
 
+    /// <summary>
+    ///     Stores the working copy, under the request's name if it has one, as a new preset if it asks. A working copy
+    ///     without a name (after Clear) is refused unless the request names it: the library holds no nameless preset.
+    /// </summary>
     public Task<LiveState> SaveAsync(SaveRequest request, long? expected) =>
         Locked(() => {
                 Check(expected);
+                if (string.IsNullOrWhiteSpace(request.Name) && string.IsNullOrWhiteSpace(preset.Name)) {
+                    throw new RigException(400, NeedsName);
+                }
+
                 if (request.AsNew) {
                     preset.Id = Preset.NewId();
                 }
