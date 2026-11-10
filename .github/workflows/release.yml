@@ -9,16 +9,19 @@ name: release
 #   on its runner and checked: the services start, the web editor loads and the API wants the token.
 #
 # Every installer builds on its own OS and CPU, since NativeAOT cannot cross-compile. Running the workflow by hand
-# builds them all as workflow artifacts without publishing a release.
+# builds them all as workflow artifacts without publishing a release; those builds are neither signed nor attested.
 #
-# Nothing is published unless the tagged commit passes the same checks as master: engine.yml (the engine tests on
+# Nothing is built for a tag that does not point at a commit on master (the `tag` job, which every build waits for),
+# and nothing is published unless the tagged commit passes the same checks as master: engine.yml (the engine tests on
 # three OSes and the NativeAOT host's self-test on four targets) and editor.yml (the generated API client, type-check,
-# lint, unit tests, Storybook and the Playwright tests of the desktop app) run here as reusable workflows, and the
-# tag must point at a commit on master.
+# lint, unit tests, Storybook and the Playwright tests of the desktop app) run here as reusable workflows.
 #
 # Signing is optional. Without secrets, macOS builds are signed ad hoc (Gatekeeper asks users to allow them) and Windows
 # builds are unsigned. Set CSC_LINK (base64 .p12) and CSC_KEY_PASSWORD to sign, and on macOS APPLE_ID,
-# APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID to notarise.
+# APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID to notarise. Only a release run (a v* tag on master) passes them to
+# the build, and its desktop jobs run in the `release` environment: keep the secrets there, with the environment
+# limited to v* tags, and no run from a branch can read them, whatever its copy of this file says
+# (docs/10-releases.md, "Signing").
 
 on:
   push:
@@ -40,25 +43,38 @@ jobs:
   editor:
     uses: ./.github/workflows/editor.yml
 
-  # A release comes from master: a tag on an unmerged branch (or on a commit master has since dropped) is refused.
+  # A release comes from master: a tag on an unmerged branch (or on a commit master has since dropped) is refused, and
+  # the builds, which wait for this job, do not start. Its `release` output is 'true' for a v* tag on master and
+  # 'false' for a manual run, which builds without the signing secrets, attests nothing and publishes nothing.
   tag:
-    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    outputs:
+      release: ${{ steps.check.outputs.release }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # origin/master and the history to check ancestry against
       - name: The tagged commit is on master
+        id: check
         env:
           TAG: ${{ github.ref_name }}
         run: |
+          if [[ "$GITHUB_REF" != refs/tags/v* ]]; then
+            echo "Not a version tag: building unsigned workflow artifacts only."
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
             echo "::error::$TAG points at $GITHUB_SHA, which is not on master; tag a commit on master"
             exit 1
           fi
+          echo "release=true" >> "$GITHUB_OUTPUT"
 
   desktop:
+    needs: tag
+    # The signing secrets belong in this environment (see the top of this file). A manual run uses no environment.
+    environment: ${{ needs.tag.outputs.release == 'true' && 'release' || '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -98,13 +114,14 @@ jobs:
       - name: Build and package
         shell: bash
         env:
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Only a release run signs: a manual run builds whatever branch it was started on.
+          CSC_LINK: ${{ needs.tag.outputs.release == 'true' && secrets.CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ needs.tag.outputs.release == 'true' && secrets.CSC_KEY_PASSWORD || '' }}
+          APPLE_ID: ${{ needs.tag.outputs.release == 'true' && secrets.APPLE_ID || '' }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ needs.tag.outputs.release == 'true' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ needs.tag.outputs.release == 'true' && secrets.APPLE_TEAM_ID || '' }}
           # Without a certificate, do not let electron-builder pick one up from the runner's keychain.
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ needs.tag.outputs.release == 'true' && secrets.CSC_LINK != '' }}
         run: pnpm dist
       # Hashed here, where they were built: the release job checks what it downloads against these and publishes
       # them as SHA256SUMS. "<sha256>  <name>" per line (Git Bash marks binary mode with "*"; that is dropped).
@@ -121,7 +138,10 @@ jobs:
           if command -v sha256sum > /dev/null; then hash=(sha256sum); else hash=(shasum -a 256); fi
           "${hash[@]}" -- "${files[@]}" | sed -E 's/^([0-9a-f]{64}) [ *]/\1  /' > "$SUMS"
           cat "$SUMS"
+      # Release runs only: an attestation says "built by this repository's release.yml", and a manual run builds any
+      # branch.
       - name: Provenance
+        if: needs.tag.outputs.release == 'true'
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-checksums: editor/dist/release/SHA256SUMS.desktop-${{ matrix.name }}
@@ -137,6 +157,7 @@ jobs:
           if-no-files-found: error
 
   headless:
+    needs: tag
     strategy:
       fail-fast: false
       matrix:
@@ -212,6 +233,7 @@ jobs:
           sha256sum -- "${files[@]}" > "$SUMS"
           cat "$SUMS"
       - name: Provenance
+        if: needs.tag.outputs.release == 'true' # as for the desktop builds
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-checksums: dist/headless/SHA256SUMS.headless-${{ matrix.name }}
@@ -224,7 +246,7 @@ jobs:
           if-no-files-found: error
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: needs.tag.outputs.release == 'true'
     needs: [engine, editor, tag, desktop, headless]
     runs-on: ubuntu-latest
     timeout-minutes: 15
