@@ -133,10 +133,14 @@ static class AudioCommands {
             );
         }
 
+        using var launcherGone = LauncherGone(options);
         Console.WriteLine("Playing clicks on output 1 and listening on input 1...");
         session.Start();
-        Thread.Sleep(options.Int("seconds", 5) * 1000);
+        var abandoned = launcherGone.Wait(options.Int("seconds", 5) * 1000);
         session.Stop();
+        if (abandoned) {
+            return Abandoned();
+        }
 
         var lags = probe!.Measurements();
         var stats = session.Stats();
@@ -179,12 +183,15 @@ static class AudioCommands {
             $"Playing a {seconds:0.#} s sweep at {20 * Math.Log10(level):0} dBFS on outputs 1-2 and "
             + "recording input 1..."
         );
+        using var launcherGone = LauncherGone(options);
         session.Start();
-        while (!recorder!.Done) {
-            Thread.Sleep(50);
-        }
+        while (!recorder!.Done && !launcherGone.Wait(50)) { }
 
         session.Stop();
+        if (!recorder.Done) {
+            return Abandoned();
+        }
+
         var peak = recorder.Recorded.Max(static v => MathF.Abs(v));
         if (peak < 1e-4f) {
             Console.WriteLine("Nothing came back on input 1. Check the cabling and the input gain.");
@@ -203,6 +210,26 @@ static class AudioCommands {
             + $"({ir.Length * 1000.0 / session.SampleRate:0} ms) to {path}"
         );
         return 0;
+    }
+
+    /// <summary>
+    ///     Set once the launcher has gone, for a command it started with <c>--watch-stdin</c> (the desktop app, which
+    ///     keeps the command's standard input open as a lifeline: <see cref="StdinWatch" />). The command then stops
+    ///     playing and releases the device instead of finishing a measurement nobody waits for. Never set without the
+    ///     flag: in a terminal, standard input is not a lifeline.
+    /// </summary>
+    static ManualResetEventSlim LauncherGone(CommandLine options) {
+        var gone = new ManualResetEventSlim();
+        if (options.Flag("watch-stdin")) {
+            StdinWatch.Start(Console.OpenStandardInput(), gone.Set);
+        }
+
+        return gone;
+    }
+
+    static int Abandoned() {
+        Console.WriteLine("Stopped: standard input closed (--watch-stdin).");
+        return 1;
     }
 
     static NativeAudioSession OpenSession(

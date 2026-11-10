@@ -65,6 +65,7 @@ int Usage() {
             --ir-capture --out <file.wav> [options]
                                             measure an IR: sweep out of outputs 1-2, record input 1
                   --device <uid>  --seconds 5  --level -18 (dBFS)  --tail 1.5 (s)  --length 500 (ms)
+            (--latency-test and --ir-capture also take --watch-stdin: stop early when standard input closes)
             --bench-nam --model <file.nam|file.aidax> | --graph <graph.json> [options]
                                             CPU cost of a capture model or a whole graph through the engine (offline)
                   --buffer 64  --seconds 10  --size <0..1 for slimmable models>  --exact-tanh  --ftz  --silent-input

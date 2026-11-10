@@ -30,6 +30,28 @@ const DefaultTiming: SidecarTiming = { backoffMs: 500, maxBackoffMs: 10_000, fai
 const LogLines = 200;
 
 /**
+ * Asks a child that watches its standard input (`--watch-stdin`, `Cathode:WatchStdin`) to stop, and resolves once it
+ * has exited; it is killed if it is still running `killAfterMs` later.
+ */
+export async function endPolitely(child: ChildProcess, killAfterMs = DefaultTiming.killAfterMs): Promise<void> {
+  if (child.exitCode !== null || child.signalCode !== null || child.pid === undefined) {
+    return;
+  }
+
+  const exited = new Promise<void>(done => child.once('exit', () => done()));
+  // Closing its lifeline asks it to stop, and it then stops cleanly: the host releases the device and removes its
+  // socket. On Windows that is the only polite way: Node has no signals there, and kill() terminates outright.
+  child.stdin?.end();
+  if (process.platform !== 'win32') {
+    child.kill('SIGTERM');
+  }
+
+  const killer = setTimeout(() => child.kill('SIGKILL'), killAfterMs);
+  await exited;
+  clearTimeout(killer);
+}
+
+/**
  * One supervised child process: started with a command line computed at each (re)start, restarted with backoff
  * when it exits on its own, stopped politely on request (its standard input closed, and SIGTERM where there are
  * signals), and killed if it is still running 3 s later.
@@ -84,19 +106,8 @@ export class Sidecar {
       this.restartTimer = null;
     }
 
-    const child = this.child;
-    if (child?.exitCode === null) {
-      const exited = new Promise<void>(done => child.once('exit', () => done()));
-      // Closing its lifeline asks it to stop, and it then stops cleanly: the host releases the device and removes its
-      // socket. On Windows that is the only polite way: Node has no signals there, and kill() terminates outright.
-      child.stdin?.end();
-      if (process.platform !== 'win32') {
-        child.kill('SIGTERM');
-      }
-
-      const killer = setTimeout(() => child.kill('SIGKILL'), this.timing.killAfterMs);
-      await exited;
-      clearTimeout(killer);
+    if (this.child) {
+      await endPolitely(this.child, this.timing.killAfterMs);
     }
 
     this.set('stopped', null);
