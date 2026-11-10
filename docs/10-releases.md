@@ -45,6 +45,10 @@ Either proves the file was built by this repository's `release.yml` from the tag
 Running the workflow by hand (Actions, release, Run workflow) builds everything as workflow artifacts without
 publishing. [`desktop.yml`](../.github/workflows/desktop.yml) still builds the desktop app on every push to master.
 
+Both packages carry Cathode's `LICENSE` and a `licenses` folder with
+[`THIRD-PARTY-NOTICES.md`](../THIRD-PARTY-NOTICES.md) and the licence texts of the third-party code in the binaries
+(that file says where each comes from). The desktop app opens the folder from Help ▸ Open Source Licences.
+
 Signing is optional (see the top of `release.yml`): without certificates, macOS builds are signed ad hoc and Windows
 builds are unsigned.
 
@@ -69,6 +73,10 @@ Before tagging:
    The script's header has the commands. `LegacyCorpusTests` compares the folders with the changelog's release
    headings, so the tagged commit's tests fail without it. If the release changes a stored schema, add its line to
    `LegacyCorpusTests.Schemas`.
+
+Also before tagging, move Electron to the newest patch of its line (`pnpm outdated electron` in `editor/`, then
+`pnpm update electron`): `package.mjs` packages the version the lockfile resolves, and Electron's patch releases are
+how Chromium and Node security fixes reach the app.
 
 ### The preset format
 

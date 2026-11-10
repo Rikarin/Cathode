@@ -36,7 +36,7 @@ Work through these in order:
 1. **Is the engine running?** The status light at the right of the navigation bar is green only while it is. Amber means it is restarting or has stopped sending meters; in the desktop app, **Settings ▸ Audio setup ▸ Show engine log** shows why.
 2. **Is the engine on your interface?** Open **Settings ▸ Audio setup**. **Backend** must name an audio system, not "null" or "disconnected". If it says null, pick your interface under **Device** and click **Apply and restart engine**. The first time you run Cathode, no device is chosen.
 3. **Is Cathode muted?** The mute button in the navigation bar is red when muted. Press **M**.
-4. **Does the IN meter move when you play?** If not: the guitar is in the wrong input (Input 1 reads the interface's channel 1 unless you changed the **Input map**), the cable is faulty, or on a Mac Cathode is not allowed to use the microphone (**System Settings ▸ Privacy & Security ▸ Microphone**).
+4. **Does the IN meter move when you play?** If not: the guitar is in the wrong input (Input 1 reads the interface's channel 1 unless you changed the **Input map**), the cable is faulty, or on a Mac Cathode is not allowed to use the microphone (**Settings ▸ Audio setup** then shows a red notice; allow Cathode under **System Settings ▸ Privacy & Security ▸ Microphone**).
 5. **Does the OUT meter move?** If not, the sound stops somewhere on the grid:
    - Is there an unbroken line of cables from the **Input** to the **Output**? A block that is not cabled in is not heard.
    - Is a block bypassed with the **Mute** bypass mode, or a Multiplexer set to a row with nothing on it?

@@ -129,6 +129,14 @@ describe('SettingsStore', () => {
     expect(settings.audio).toEqual({ ...defaultSettings().audio, device: 'x' });
     expect(settings.network).toEqual({ enabled: true, port: 5180, token: 't' });
     expect(settings.target).toEqual({ mode: 'local' });
+    expect(settings.updates).toEqual({ check: true });
+  });
+
+  it('keeps the update check turned off', async () => {
+    const cipher = new FakeCipher();
+    await store(cipher).save({ ...sample(), updates: { check: false } });
+    expect(onDisk()['updates']).toEqual({ check: false });
+    expect((await store(cipher).load()).updates).toEqual({ check: false });
   });
 
   it.each(['null', '[]', '"settings"', '7'])('reads the defaults from a file that holds %s', async text => {

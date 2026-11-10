@@ -216,7 +216,7 @@ On a touch screen, double-tap an empty cell to add a block, touch and hold a blo
 
 ## Platform notes
 
-**macOS.** If Cathode hears nothing, check **System Settings ▸ Privacy & Security ▸ Microphone** and make sure Cathode is allowed. The latency test and the cab IR capture stop the engine briefly because the device cannot be shared while they run.
+**macOS.** macOS counts every audio input as the microphone. Cathode asks for that access the first time you apply an interface; if it was refused, Audio setup shows a red notice with a button, **Open Microphone settings**, that takes you to **System Settings ▸ Privacy & Security ▸ Microphone**. Turn Cathode on there and the engine restarts by itself. Until then the engine runs but hears nothing. The latency test and the cab IR capture stop the engine briefly because the device cannot be shared while they run.
 
 **Windows.** In exclusive mode, other applications cannot play through the same interface while Cathode runs. To keep Cathode in shared mode instead (higher latency, but other apps keep playing), set the environment variable `CTH_WASAPI_SHARED` to `1` before starting Cathode.
 

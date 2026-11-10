@@ -2,8 +2,12 @@
 // resources/engine (apps/desktop/src/engine.ts): cathode-host as a NativeAOT binary, cathode-server as a self-contained
 // single file, and the native shims (built by engine/native/build.sh) beside them. NativeAOT cannot cross-compile, so
 // each OS builds its own; CI runs this on one runner per OS (.github/workflows/desktop.yml).
+//
+// The licence files of what those binaries contain go into dist/engine/licenses, which the installers ship as their
+// licenses folder (THIRD-PARTY-NOTICES.md): .NET's from the Server's publish (Cathode.Server.csproj), and here those of
+// the code compiled into cth_nam.
 import { execFileSync } from 'node:child_process';
-import { existsSync, readdirSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 const workspace = resolve(import.meta.dirname, '../../..');
@@ -51,4 +55,21 @@ for (const entry of readdirSync(out)) {
   if (/\.(pdb|dbg|dSYM|xml)$/.test(entry)) {
     rmSync(join(out, entry), { recursive: true, force: true });
   }
+}
+
+// NeuralAmpModelerCore (MIT) and Eigen (MPL-2.0, with parts under the other COPYING files) as fetched for this build.
+// nlohmann/json ships no licence file with its header: THIRD-PARTY-NOTICES.md carries its notice.
+const tag = /GIT_TAG ([0-9a-f]{40})/.exec(readFileSync(join(engine, 'native/cth_nam/CMakeLists.txt'), 'utf8'))?.[1];
+const nam = join(engine, `artifacts/deps/nam_core-${tag}`);
+const eigen = join(nam, 'Dependencies/eigen');
+const licences = join(out, 'licenses/native');
+mkdirSync(join(licences, 'eigen'), { recursive: true });
+cpSync(join(nam, 'LICENSE'), join(licences, 'NeuralAmpModelerCore-LICENSE.txt'));
+const copying = readdirSync(eigen).filter(file => file.startsWith('COPYING.'));
+if (!copying.includes('COPYING.MPL2')) {
+  throw new Error(`${eigen} has no COPYING.MPL2: Eigen's licence files cannot be copied.`);
+}
+
+for (const file of copying) {
+  cpSync(join(eigen, file), join(licences, 'eigen', `${file}.txt`));
 }

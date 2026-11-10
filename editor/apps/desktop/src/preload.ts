@@ -24,6 +24,10 @@ contextBridge.exposeInMainWorld('cathode', {
     ipcRenderer.on('cathode:mayQuit', (_event, id: number) => void answer(id));
     ipcRenderer.send('cathode:mayQuit:ready');
   },
+  onOpenPreset: (listener: (preset: unknown) => void) => {
+    ipcRenderer.on('cathode:openPreset', (_event, preset: unknown) => listener(preset));
+    ipcRenderer.send('cathode:openPreset:ready');
+  },
   connection: () => ipcRenderer.invoke('cathode:connection'),
   target: () => ipcRenderer.invoke('cathode:target'),
   setTarget: (target: unknown) => ipcRenderer.invoke('cathode:setTarget', target),
@@ -40,6 +44,8 @@ contextBridge.exposeInMainWorld('cathode', {
     devices: () => ipcRenderer.invoke('cathode:audio:devices'),
     settings: () => ipcRenderer.invoke('cathode:audio:settings'),
     apply: (settings: unknown) => ipcRenderer.invoke('cathode:audio:apply', settings),
+    microphone: () => ipcRenderer.invoke('cathode:audio:microphone'),
+    openMicrophoneSettings: () => ipcRenderer.invoke('cathode:audio:microphone:settings'),
     latencyTest: () => ipcRenderer.invoke('cathode:audio:latencyTest'),
     irCapture: (options: unknown) => ipcRenderer.invoke('cathode:audio:irCapture', options)
   }

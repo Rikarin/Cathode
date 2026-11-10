@@ -13,7 +13,8 @@ export {
   type NetworkSettings,
   type ServerTarget,
   type Settings,
-  type Unchecked
+  type Unchecked,
+  type UpdateSettings
 } from './settings-store';
 
 /**

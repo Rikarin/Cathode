@@ -446,6 +446,9 @@ Live state outside the preset has events of its own, which carry the current `re
   - writes its own messages and everything the sidecars print to log files in the system's logs folder (`main.log`, `host.log`, `server.log`; 2 MB each, with one older file kept), shown by Help ▸ Show Logs
   - provides native file dialogs, auto-update and crash reporting
   - is packaged with Electron's fuses set so the shipped binary runs only its own code (no `ELECTRON_RUN_AS_NODE`, `NODE_OPTIONS` or `--inspect`; the app is loaded only from `app.asar`, whose integrity is checked on macOS and Windows), and ignores the development switches `CATHODE_EDITOR_URL`, `CATHODE_EDITOR_DIR` and `CATHODE_ENGINE_DIR` when packaged
+  - on macOS, asks for microphone access (which covers every audio input) before the host opens an interface, and tells Audio setup when it is refused: the host would otherwise play silence with no error (`microphone.ts`)
+  - asks GitHub's releases feed for a newer release shortly after the start and once a day (`updates.ts`; a setting, on by default, in the app's menu) and offers its page in the menu; nothing is downloaded or installed
+  - is the app for `.cthpreset` files (a file association in the installers): a file opened from the OS (macOS `open-file`, elsewhere the command line, also a second start's) is read in main and handed to the editor, which imports it once it has connected (`open-files.ts`)
   - has contextIsolation on and nodeIntegration off; a minimal preload exposes `window.cathode.{pickFile, revealPath, version}`
 - **Renderer:** an Angular 22 standalone, zoneless, signals-based app in an Nx workspace (the same tooling as xUI, so the libs can be consumed as source during development).
 

@@ -15,12 +15,16 @@ const workspace = resolve(import.meta.dirname, '../../..');
 const dist = join(workspace, 'dist');
 const stage = join(dist, 'apps/desktop-package');
 const engine = join(dist, 'engine');
+const licences = join(dist, 'apps/desktop-licenses');
+const repository = resolve(workspace, '..');
 const require = createRequire(import.meta.url);
 
 for (const [path, hint] of [
   [join(dist, 'apps/desktop/main.js'), 'pnpm exec nx build desktop'],
+  [join(dist, 'apps/desktop/meta.json'), 'pnpm exec nx build desktop'],
   [join(dist, 'apps/editor/browser/index.html'), 'pnpm exec nx build editor'],
-  [engine, 'node apps/desktop/scripts/publish-engine.mjs']
+  [join(dist, 'apps/editor/3rdpartylicenses.txt'), 'pnpm exec nx build editor (the production configuration)'],
+  [join(engine, 'licenses'), 'node apps/desktop/scripts/publish-engine.mjs']
 ]) {
   if (!existsSync(path)) {
     throw new Error(`${path} is missing: run ${hint} first (pnpm dist does both).`);
@@ -55,6 +59,34 @@ writeFileSync(
   )
 );
 
+// The licenses folder beside the engine in the app's resources (Help ▸ Open Source Licences opens it): Cathode's own
+// licence, the notices file, the licences of the libraries in the editor's bundle as the Angular build collected them,
+// and those the engine's publish gathered (.NET and the native code). Electron's and Chromium's come with Electron:
+// electron-builder leaves them beside the executable on Windows and Linux and deletes them on macOS, where afterExtract
+// below keeps them in this folder.
+rmSync(licences, { recursive: true, force: true });
+mkdirSync(licences, { recursive: true });
+const notices = readFileSync(join(repository, 'THIRD-PARTY-NOTICES.md'), 'utf8');
+cpSync(join(repository, 'LICENSE'), join(licences, 'LICENSE.txt'));
+cpSync(join(repository, 'THIRD-PARTY-NOTICES.md'), join(licences, 'THIRD-PARTY-NOTICES.md'));
+cpSync(join(dist, 'apps/editor/3rdpartylicenses.txt'), join(licences, 'editor-3rdpartylicenses.txt'));
+cpSync(join(engine, 'licenses'), licences, { recursive: true });
+
+// esbuild inlines main's npm dependencies into main.js, where no tool collects their licences: each must be named in
+// the notices file, so a new dependency cannot ship without its notice.
+const inlined = new Set(
+  Object.keys(JSON.parse(readFileSync(join(dist, 'apps/desktop/meta.json'), 'utf8')).inputs)
+    .map(input => /.*node_modules\/((?:@[^/]+\/)?[^/]+)\//.exec(input)?.[1])
+    .filter(Boolean)
+);
+const unlisted = [...inlined].filter(name => !notices.includes(`| ${name} |`));
+if (unlisted.length > 0) {
+  throw new Error(
+    `The desktop app's main bundle contains ${unlisted.join(', ')}, which THIRD-PARTY-NOTICES.md does not list. ` +
+      'Add a row with its licence (and its copyright notice if the package ships no licence file).'
+  );
+}
+
 // CI passes unset secrets as empty strings, and electron-builder reads an empty CSC_LINK as a certificate path (the
 // working directory): unset them so an unsigned build stays unsigned.
 for (const name of [
@@ -84,7 +116,16 @@ await build({
     // cathode-server serves the editor to other devices on the network (Settings ▸ Audio setup) and cannot read the
     // asar archive: keep the editor beside it as plain files (main.ts points the Server at app.asar.unpacked).
     asarUnpack: ['editor/**'],
-    extraResources: [{ from: engine, to: 'engine' }],
+    extraResources: [
+      { from: engine, to: 'engine', filter: ['**/*', '!licenses{,/**/*}'] },
+      { from: licences, to: 'licenses' }
+    ],
+    afterExtract: ({ appOutDir, electronPlatformName }) => {
+      if (electronPlatformName === 'darwin') {
+        cpSync(join(appOutDir, 'LICENSE'), join(licences, 'LICENSE.electron.txt'));
+        cpSync(join(appOutDir, 'LICENSES.chromium.html'), join(licences, 'LICENSES.chromium.html'));
+      }
+    },
     npmRebuild: false,
     // The shipped binary is Cathode and nothing else: it cannot be run as a plain Node (ELECTRON_RUN_AS_NODE), takes
     // no NODE_OPTIONS and no --inspect, and loads its code only from app.asar, whose contents it checks (macOS and
@@ -98,6 +139,10 @@ await build({
       onlyLoadAppFromAsar: true
     },
     icon: join(workspace, 'apps/desktop/assets/icon.png'),
+    // Double-clicking a preset opens it in Cathode, which imports it into the library (main.ts, open-files.ts).
+    fileAssociations: [
+      { ext: 'cthpreset', name: 'Cathode Preset', role: 'Editor', mimeType: 'application/x-cathode-preset' }
+    ],
     artifactName: '${productName}-${version}-${os}-${arch}.${ext}',
     mac: {
       category: 'public.app-category.music',

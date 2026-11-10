@@ -26,4 +26,17 @@
     <ProjectReference Include="../Cathode.Dsp/Cathode.Dsp.csproj"/>
     <ProjectReference Include="../Cathode.Engine/Cathode.Engine.csproj"/>
   </ItemGroup>
+  <!-- A self-contained publish carries the .NET runtime and ASP.NET Core (MIT): their licence and third-party notices,
+       from the runtime packs, go with it into licenses/dotnet, and the installers ship that folder
+       (THIRD-PARTY-NOTICES.md). -->
+  <Target Name="CopyRuntimeNotices" AfterTargets="Publish" Condition="'$(SelfContained)' == 'true'">
+    <ItemGroup>
+      <RuntimeNotice Include="%(ResolvedRuntimePack.PackageDirectory)/LICENSE.TXT;%(ResolvedRuntimePack.PackageDirectory)/THIRD-PARTY-NOTICES.TXT"
+                     Framework="%(ResolvedRuntimePack.FrameworkName)"/>
+    </ItemGroup>
+    <Error Condition="'@(RuntimeNotice)' == ''" Text="No runtime pack was resolved, so the .NET licence files cannot be copied."/>
+    <Error Condition="!Exists('%(RuntimeNotice.FullPath)')" Text="%(RuntimeNotice.FullPath) is missing: the .NET licence files cannot be copied."/>
+    <Copy SourceFiles="@(RuntimeNotice)"
+          DestinationFiles="@(RuntimeNotice->'$(PublishDir)licenses/dotnet/%(Framework)-%(Filename).txt')"/>
+  </Target>
 </Project>

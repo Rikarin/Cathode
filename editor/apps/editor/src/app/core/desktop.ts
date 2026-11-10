@@ -45,6 +45,12 @@ export interface IrCaptureResult {
   wav: Uint8Array | null;
 }
 
+/**
+ * Whether the OS lets the desktop app record. macOS counts every audio input as the microphone: without the access the
+ * engine runs and its inputs are silent. `restricted`: this Mac's owner cannot grant it. Always `granted` elsewhere.
+ */
+export type MicrophoneAccess = 'granted' | 'denied' | 'restricted' | 'not-determined';
+
 /** Which Server the desktop app talks to: its own sidecars, or a remote one. */
 export type ServerTarget = { mode: 'local' } | { mode: 'remote'; baseUrl: string; token: string };
 
@@ -69,6 +75,13 @@ export interface SidecarStatus {
   pid?: number | null;
 }
 
+/** A .cthpreset file the OS asked the desktop app to open: its bytes, or why the app could not read it. */
+export interface OpenedPreset {
+  name: string;
+  data: Uint8Array | null;
+  error: string | null;
+}
+
 /**
  * What the Electron preload exposes as `window.cathode` (apps/desktop/src/preload.ts). Absent when the editor runs in
  * a plain browser, where audio setup is not available.
@@ -85,6 +98,11 @@ export interface CathodeDesktop {
    * copy: false keeps the app open.
    */
   onQuit?(mayQuit: () => boolean | Promise<boolean>): void;
+  /**
+   * Called with each preset file opened from the OS (double-clicked, dropped on the Dock icon, or given on the command
+   * line), those from before the call included. Call it once, when the editor can import.
+   */
+  onOpenPreset?(listener: (preset: OpenedPreset) => void): void;
   /** The Server to use; in local mode it resolves once the sidecars answer. */
   connection(): Promise<Connection>;
   target(): Promise<ServerTarget>;
@@ -103,8 +121,12 @@ export interface CathodeDesktop {
   audio: {
     devices(): Promise<{ backend: string; devices: AudioDevice[] }>;
     settings(): Promise<AudioSettings>;
-    /** Restarts the engine host with these settings. */
+    /** Restarts the engine host with these settings. On macOS it first asks for microphone access if never asked. */
     apply(settings: AudioSettings): Promise<void>;
+    /** The microphone access now (absent from older desktop apps). */
+    microphone?(): Promise<MicrophoneAccess>;
+    /** Opens System Settings ▸ Privacy & Security ▸ Microphone (macOS). */
+    openMicrophoneSettings?(): Promise<void>;
     /** Stops the host, measures round-trip latency through a loopback cable, and restarts it. */
     latencyTest(): Promise<LatencyResult>;
     /** Stops the host, plays a sweep on outputs 1-2, records input 1 and returns the IR; restarts the host. */

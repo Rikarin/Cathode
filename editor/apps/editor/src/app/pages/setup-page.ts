@@ -19,7 +19,7 @@ import { XuiTextImports } from '@xui/text';
 import { NumberSteppers } from '../controls/number-steppers';
 import { InputClipLevel } from '../core/clip';
 import { ConnectionService } from '../core/connection';
-import type { AudioDevice, AudioSettings, LatencyResult } from '../core/desktop';
+import type { AudioDevice, AudioSettings, LatencyResult, MicrophoneAccess } from '../core/desktop';
 import { SidecarStatuses } from '../core/engine-health';
 import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
@@ -243,6 +243,32 @@ interface LcdFigure {
               here. To use an interface on this computer, choose This computer under Server.
             </xui-callout>
           } @else {
+            @if (microphoneBlocked(); as access) {
+              <xui-callout
+                color="error"
+                title="macOS is not letting Cathode hear this interface"
+                data-testid="microphone-blocked"
+              >
+                <div class="flex flex-col items-start gap-2">
+                  @if (access === 'restricted') {
+                    <span>
+                      macOS counts every audio input as the microphone, and this Mac's restrictions (a managed profile
+                      or Screen Time) keep Cathode from using it. The engine runs, but its inputs are silent until
+                      whoever manages this Mac allows it.
+                    </span>
+                  } @else {
+                    <span>
+                      macOS counts every audio input as the microphone, and Cathode is not allowed to use it. The engine
+                      runs, but its inputs are silent. Turn Cathode on under System Settings ▸ Privacy & Security ▸
+                      Microphone; the engine then restarts by itself.
+                    </span>
+                    <button xuiButton type="button" size="sm" variant="outline" (click)="openMicrophoneSettings()">
+                      Open Microphone settings
+                    </button>
+                  }
+                </div>
+              </xui-callout>
+            }
             <div class="flex flex-wrap items-end gap-4">
               <label class="flex flex-col gap-1 text-sm">
                 <span class="text-foreground-muted text-xs">Device</span>
@@ -427,6 +453,12 @@ export class SetupPage {
   protected readonly devices = signal<readonly AudioDevice[]>([]);
   protected readonly settings = signal<AudioSettings | null>(null);
   private readonly applied = signal<AudioSettings | null>(null);
+  private readonly microphone = signal<MicrophoneAccess>('granted');
+  /** Set (to why) when the engine runs on an interface whose inputs macOS keeps silent. */
+  protected readonly microphoneBlocked = computed(() => {
+    const access = this.microphone();
+    return this.applied()?.device && (access === 'denied' || access === 'restricted') ? access : null;
+  });
   protected readonly applying = signal(false);
   protected readonly testing = signal(false);
   protected readonly latency = signal<LatencyResult | null>(null);
@@ -678,7 +710,16 @@ export class SetupPage {
     this.testing.set(false);
   }
 
+  protected openMicrophoneSettings(): void {
+    void this.notify.run(async () => this.desktop?.audio.openMicrophoneSettings?.());
+  }
+
   private async refreshSystem(): Promise<void> {
+    // Asked each time, so the warning goes as soon as the user has allowed Cathode in System Settings.
+    void this.desktop?.audio
+      .microphone?.()
+      .then(access => this.microphone.set(access))
+      .catch(() => undefined);
     try {
       this.system.set(unwrap(await this.connection.client.GET('/api/v1/system')));
       this.latencyReport.set(unwrap(await this.connection.client.GET('/api/v1/system/latency')));
