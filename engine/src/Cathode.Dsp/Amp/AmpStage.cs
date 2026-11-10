@@ -249,6 +249,12 @@ public abstract class AmpStage {
     public virtual NewtonSolver? Newton => null;
 
     /// <summary>
+    ///     What the stage's solvers gave up on since it was built (<see cref="SolverFaults" />): its root's counters,
+    ///     and every inner stage's for a stage that holds others, playing or not. Allocation-free.
+    /// </summary>
+    public virtual SolverFaults Faults => SolverFaults.Of(Newton);
+
+    /// <summary>
     ///     The Newton steps (one matrix factorisation each) the stage's operating-point solves have taken so far: what
     ///     its resets and retunes cost (diagnostics). 0 for a stage that solves its operating point another way.
     /// </summary>

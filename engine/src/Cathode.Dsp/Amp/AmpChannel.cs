@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Cathode.Dsp.Wdf;
 
 namespace Cathode.Dsp.Amp;
 
@@ -106,6 +107,26 @@ public sealed class AmpChannel {
     ///     Per preamp supply node, the supply its stages run on as a fraction of nominal (the preamp sag applied).
     /// </summary>
     public IReadOnlyList<double> Supplies => supplies;
+
+    /// <summary>
+    ///     What the channel's solvers gave up on since it was built: every preamp stage's, the power amp's and the
+    ///     solid-state power amp's (<see cref="SolverFaults" />). Allocation-free; the audio thread reads it for the
+    ///     block's meters.
+    /// </summary>
+    public SolverFaults Faults {
+        get {
+            var faults = Power.Faults;
+            if (SolidState is { } solid) {
+                faults += solid.Faults;
+            }
+
+            foreach (var stage in stages) {
+                faults += stage.Faults;
+            }
+
+            return faults;
+        }
+    }
 
     public AmpChannel(AmpDesign design, double sampleRate) {
         Design = design;

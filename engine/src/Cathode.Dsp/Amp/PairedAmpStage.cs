@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Cathode.Dsp.Wdf;
 
 namespace Cathode.Dsp.Amp;
 
@@ -8,6 +9,8 @@ namespace Cathode.Dsp.Amp;
 ///     controls and the settings go to both, the first one first.
 /// </summary>
 public abstract class PairedAmpStage(AmpStage first, AmpStage second) : AmpStage {
+    public sealed override SolverFaults Faults => first.Faults + second.Faults;
+
     public sealed override void SetSampleRate(double sampleRate) {
         first.SetSampleRate(sampleRate);
         second.SetSampleRate(sampleRate);

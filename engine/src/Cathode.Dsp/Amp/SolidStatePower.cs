@@ -109,6 +109,9 @@ public sealed class SolidStatePowerAmp {
 
     public long NonFinite { get; private set; }
 
+    /// <summary>The two counters above as the block reports them (the stage has no matrix to recompute).</summary>
+    public SolverFaults Faults => new(Unconverged, NonFinite, 0);
+
     public int MostIterations { get; private set; }
 
     public double MeanIterations => Samples > 0 ? (double)iterations / Samples : 0;

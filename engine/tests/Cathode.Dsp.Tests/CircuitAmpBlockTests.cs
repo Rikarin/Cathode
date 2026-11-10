@@ -360,6 +360,40 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         Assert.Equal(supply, channel.Power.Supply);
     }
 
+    /// <summary>
+    ///     The solvers' fault counters reach the block's meters, and so the telemetry: a stage that runs out of Newton
+    ///     iterations (here one allowed a single iteration) shows as <c>solverUnconverged</c>, on the channel playing
+    ///     and still after a type change has put another channel in its place.
+    /// </summary>
+    [Fact]
+    public void Solver_faults_are_the_blocks_meters() {
+        var plexi = AmpDesign.All.ToList().IndexOf(Plexi.Design);
+        using var block = Create(plexi, (CircuitAmpBlock.Gain, 10));
+        IBlockMeters meters = block;
+        Assert.Equal(["solverUnconverged", "solverNonFinite", "solverFailedRecomputes"], meters.MeterIds);
+        var values = new float[3];
+        BlockRender.Mono(block, Chord(4_800, 0.5f), 64);
+        meters.ReadMeters(values);
+        Assert.Equal([0f, 0f, 0f], values);
+
+        var stage = block.Channel.Stages.First(static s => s.Newton is not null);
+        stage.Newton!.MaxIterations = 1;
+        BlockRender.Mono(block, Chord(4_800, 0.5f), 64);
+        meters.ReadMeters(values);
+        var counted = block.Faults.Unconverged;
+        output.WriteLine($"one Newton iteration on the first stage: {counted} unconverged samples");
+        Assert.True(counted > 0);
+        Assert.Equal(stage.Newton.Unconverged, counted);
+        Assert.Equal([counted, 0f, 0f], values);
+
+        block.Params.SetTarget(CircuitAmpBlock.Type, AmpDesign.All.ToList().IndexOf(MarshallAfd100.Design));
+        block.Refresh();
+        BlockRender.Mono(block, Chord(4_800, 0.5f), 64);
+        Assert.Same(MarshallAfd100.Design, block.Channel.Design);
+        meters.ReadRestingMeters(values);
+        Assert.Equal([counted, 0f, 0f], values);
+    }
+
     [Fact]
     public void An_expert_setting_finds_cached_tube_tables_while_another_model_is_being_built() {
         // The control thread builds a new channel's tables under the caches' build lock; an expert setting on the

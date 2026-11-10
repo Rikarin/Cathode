@@ -481,6 +481,9 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
 
     public override NewtonSolver? Newton => root.Device.Ports > 0 ? root.Newton : null;
 
+    /// <summary>A network without devices still counts the changes that left it singular.</summary>
+    public override SolverFaults Faults => SolverFaults.Of(root.Newton);
+
     public override bool IsGainStage { get; }
 
     internal NetworkStage(

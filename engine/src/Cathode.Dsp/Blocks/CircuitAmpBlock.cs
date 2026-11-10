@@ -221,7 +221,8 @@ namespace Cathode.Dsp.Blocks;
 ///         type's channel exists it plays the one it has. A channel built stays built, as all of them used to be.
 ///     </para>
 /// </remarks>
-public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabFollower, IControlRefresh {
+public sealed partial class CircuitAmpBlock
+    : DspBlock, IOversampledBlock, ICabFollower, IControlRefresh, IBlockMeters {
     public const int Type = 0;
     public const int Gain = 1;
     public const int Bass = 2;
@@ -383,6 +384,8 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
         PentodeModel.KT88,
         PentodeModel.SixtyFiveFifty
     ];
+
+    static readonly string[] Meters = ["solverUnconverged", "solverNonFinite", "solverFailedRecomputes"];
 
     readonly AmpChannel?[] channels = new AmpChannel?[AmpDesign.All.Count]; // built on first use (control thread)
     readonly Lock building = new();
@@ -610,6 +613,43 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
 
         return (1, 1);
     }
+
+    /// <summary>
+    ///     What the circuit solvers gave up on since the block was made, as counts (not dB), 0 on a healthy rig:
+    ///     <c>solverUnconverged</c>, the samples Newton ran out of iterations on and kept its best iterate (a click at
+    ///     worst); <c>solverNonFinite</c>, the samples a device returned a non-finite value on, the previous solution
+    ///     repeated; <c>solverFailedRecomputes</c>, the knob or switch changes that left a stage's network singular,
+    ///     its previous matrix kept (a control that stops responding). They are <see cref="Faults" />, the numbers to
+    ///     quote in a bug report.
+    /// </summary>
+    public IReadOnlyList<string> MeterIds => Meters;
+
+    /// <summary>
+    ///     Every built channel's <see cref="AmpChannel.Faults" />, the playing one's and those of the types played
+    ///     before. Allocation-free.
+    /// </summary>
+    public SolverFaults Faults {
+        get {
+            var faults = default(SolverFaults);
+            for (var i = 0; i < channels.Length; i++) {
+                if (Volatile.Read(ref channels[i]) is { } channel) {
+                    faults += channel.Faults;
+                }
+            }
+
+            return faults;
+        }
+    }
+
+    public void ReadMeters(Span<float> values) {
+        var faults = Faults;
+        values[0] = faults.Unconverged;
+        values[1] = faults.NonFinite;
+        values[2] = faults.FailedRecomputes;
+    }
+
+    /// <summary>The counts stay while the block is bypassed.</summary>
+    public void ReadRestingMeters(Span<float> values) => ReadMeters(values);
 
     /// <summary>The Cab block whose cabinet the Auto speaker load follows (<see cref="ICabFollower" />).</summary>
     public void FollowCab(CabBlock? cab) => this.cab = cab;

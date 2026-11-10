@@ -224,6 +224,9 @@ public sealed class PowerAmp {
 
     public NewtonSolver Newton => root.Newton;
 
+    /// <summary>What the power stage's solver gave up on since it was built.</summary>
+    public SolverFaults Faults => SolverFaults.Of(root.Newton);
+
     /// <summary>
     ///     The preamp node as a fraction of its nominal voltage (the preamp's sag), after the last sample.
     /// </summary>

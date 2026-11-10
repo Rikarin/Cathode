@@ -265,6 +265,8 @@ public sealed class OpticalTremoloStage : AmpStage {
 
     public override NewtonSolver? Newton => inner.Newton;
 
+    public override SolverFaults Faults => inner.Faults;
+
     public override bool IsGainStage => inner.IsGainStage;
 
     internal OpticalTremoloStage(OpticalTremoloDesign design, AmpStage inner, double sampleRate) {
