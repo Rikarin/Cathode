@@ -15,6 +15,8 @@ public class AmpThreeWaySwitchTests {
     /// <summary>The model, the switch that yields and the switch that wins.</summary>
     static readonly (string Type, int Yields, int Wins)[] Models = [
         ("Mark V", CircuitAmpBlock.Switch1, CircuitAmpBlock.Switch2),
+        ("Mark V Clean", CircuitAmpBlock.Switch1, CircuitAmpBlock.Switch2),
+        ("Mark V Crunch", CircuitAmpBlock.Switch1, CircuitAmpBlock.Switch2),
         ("Dual Rectifier 3-Ch", CircuitAmpBlock.Bright, CircuitAmpBlock.Switch1),
         ("Dual Rectifier 3-Ch Orange", CircuitAmpBlock.Bright, CircuitAmpBlock.Switch1),
         ("Triple Rectifier", CircuitAmpBlock.Bright, CircuitAmpBlock.Switch1),

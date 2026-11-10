@@ -829,6 +829,15 @@ public sealed partial class CircuitAmpBlock
         // Presence Shift is the model's own pull shift where its presence has one, else the generic octave.
         var presenceShift = Params.Current(PresenceShift) >= 0.5f && features.Presence;
         var ownShift = design.Power.Feedback.Series is { ShiftCap: > 0 };
+        // Where the amp's relays put the shift cap in (the Mark V in Extreme), the modes decide, not the parameter.
+        var shifted = presenceShift;
+        if (design.Power.ShiftUnless is { } modes) {
+            shifted = true;
+            for (var i = 0; i < modes.Count; i++) {
+                shifted &= !preamp.IsOn(modes[i]);
+            }
+        }
+
         var presenceFrequency = Percent(Params.Advance(PresenceFrequency, frames))
             * (presenceShift && !ownShift ? PresenceShiftFactor : 1);
         if (!features.Presence) {
@@ -892,7 +901,7 @@ public sealed partial class CircuitAmpBlock
             Params.Current(Suppressor) >= 0.5f,
             Percent(Params.Current(ScreenFrequency)),
             Params.Current(ScreenQ),
-            presenceShift && ownShift
+            ownShift && shifted
         );
         var lowCut = Params.Advance(LowCut, frames);
         if (Params.Current(InputCut) >= 0.5f && features.InputCut) {
@@ -1029,7 +1038,8 @@ readonly record struct AdvancedFeatures(
         new(
             AmpFeatures.Has(design, "mvloc") ? AmpFeatures.MasterPaths(design) : 0,
             AmpFeatures.Has(design, "fatsw"),
-            AmpFeatures.Has(design, "presshift"),
+            // The presence network itself: Presence Shift is hidden where the amp's relays work the shift cap.
+            AmpFeatures.Has(design, "presfreq"),
             AmpFeatures.Has(design, "cutsw"),
             AmpFeatures.Has(design, "overdrive"),
             AmpFeatures.Has(design, "hitreble"),

@@ -884,4 +884,12 @@ public sealed record PowerAmpDesign(
 
     /// <summary>A front-panel switch that raises or lowers the feedback (see the type); null for none.</summary>
     public FeedbackBoostDesign? FeedbackBoost { get; init; }
+
+    /// <summary>
+    ///     With a series presence that has a shift cap (<see cref="SeriesPresence.ShiftCap" />): the amp's relays, not
+    ///     a pull switch, put the cap in, and it is in while none of these switches is on (the Mark V's Extreme mode,
+    ///     which is neither IIC+ nor Mark IV). The Circuit Amp's Presence Shift then does nothing. Null where the
+    ///     shift is the Presence Shift parameter.
+    /// </summary>
+    public IReadOnlyList<SwitchRole>? ShiftUnless { get; init; }
 }

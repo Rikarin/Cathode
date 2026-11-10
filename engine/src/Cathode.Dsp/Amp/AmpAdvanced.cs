@@ -36,7 +36,9 @@ public static class AmpFeatures {
             "presag" => design.PreampSupply is not { Separate: true },
             "katc" => design.Power.CathodeBias,
             "mvtrim" => panel.Master is not null,
-            "presshift" or "presfreq" => HasPresenceNetwork(design),
+            "presfreq" => HasPresenceNetwork(design),
+            // Not where the amp's relays work the shift cap (the Mark V): the switch would do nothing.
+            "presshift" => HasPresenceNetwork(design) && design.Power.ShiftUnless is null,
             // The depth shelf is flat with the knob at 0, where a panel without one leaves it; a fixed low shelf in
             // the network itself (the BE-100's) is there whatever the knob.
             "depthfreq" => panel.Depth is not null
@@ -59,8 +61,8 @@ public static class AmpFeatures {
     /// </summary>
     static bool Any(IReadOnlyList<AmpStageDesign> stages, Func<AmpStageDesign, bool> has) =>
         stages.Any(s => s is ChannelSwitchStageDesign channels
-            ? Any(channels.Off, has) || Any(channels.On, has)
-            : has(s)
+                ? Any(channels.Off, has) || Any(channels.On, has)
+                : has(s)
         );
 
     /// <summary>
@@ -119,8 +121,7 @@ public static class AmpFeatures {
     ///     feedback network has a presence cap (<see cref="FeedbackDesign.HasPresenceCap" />). An amp without global
     ///     feedback (the AC30) counts while it has the cap: its Feedback knob past noon puts the network in.
     /// </summary>
-    static bool HasPresenceNetwork(AmpDesign design) =>
-        design.Panel.HasTubes && design.Power.Feedback.HasPresenceCap;
+    static bool HasPresenceNetwork(AmpDesign design) => design.Panel.HasTubes && design.Power.Feedback.HasPresenceCap;
 
     /// <summary>
     ///     Whether <paramref name="design" /> has at least <paramref name="count" /> top-level stages with a

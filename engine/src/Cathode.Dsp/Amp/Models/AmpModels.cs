@@ -104,6 +104,8 @@ public sealed partial record AmpDesign {
         DualRectifier.Orange,
         DualRectifier3Channel.Clean,
         TripleRectifier.Orange,
-        TripleRectifier.Clean
+        TripleRectifier.Clean,
+        MarkV.Clean,
+        MarkV.Crunch
     ];
 }

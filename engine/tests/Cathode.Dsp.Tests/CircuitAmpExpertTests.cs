@@ -85,6 +85,10 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                             && design.Power.Name.Contains(tube ?? "-", StringComparison.Ordinal))
                         && !(index is CircuitAmpBlock.PresenceFrequency or CircuitAmpBlock.DepthFrequency
                             && !design.Power.HasFeedback)
+                        // The Mark V's channel 3 at Gain 7, behind the loop's recovery stage with Output at 10, holds
+                        // its power amp so far into clipping that the depth corner moves the render by less (−65 dB).
+                        // Its two cleaner channels, on the same power amp, stay in the list.
+                        && !(index == CircuitAmpBlock.DepthFrequency && design == MarkV.Design)
                         && !(index == CircuitAmpBlock.MasterTrim && design.Panel.Master is null)
                         && !(index == CircuitAmpBlock.PreampTube && !StockPath(design).Any(HasTwelveAX7))
                         && !(index == CircuitAmpBlock.StackFrequency && !StockPath(design).Any(HasStack))
@@ -582,6 +586,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     [Fact]
     public void Expert_controls_hide_on_models_without_the_part_they_act_on() {
         var parameters = CircuitAmpBlock.Info.Params;
+
         string[] Hidden(string id) {
             var labels = parameters.Single(p => p.Id == id).TypeLabels!;
             return [..AmpDesign.All.Where((_, type) => labels[type] == string.Empty).Select(static a => a.Name)];
@@ -637,6 +642,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     public void Preamp_tube_reaches_a_stage_of_paralleled_twelve_ax7s(string model) {
         var type = AmpDesign.All.ToList().FindIndex(a => a.Name == model);
         Assert.True(type >= 0, model);
+
         float[] Render(float tube) {
             using var block = TestBlocks.Create<CircuitAmpBlock>(
                 (CircuitAmpBlock.Type, type),

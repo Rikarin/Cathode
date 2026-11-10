@@ -125,7 +125,7 @@ Last updated: 2026-11-10 (88 types, through the Quick Rod, AFD100, DSL100 and JM
 | Randall Satan / RG100 | ⏸ Waiting (Satan: nothing found. RG100: a legible factory scan of the solid-state RG80/RG100 on el34world; it is 4558 op-amps and JFETs. Op-amp stages can be built now (`StageNetlist.OpAmp`, as in the JC-120, Valvestate 8080 and JCM900); the JFET stages cannot yet) | — | — | Satan schematic; a JFET element in the stage library for the RG100 | 4x12 closed |
 | Hughes & Kettner TriAmp | ⏸ Waiting (nothing read yet. Found November 2026 and not opened: a 1999 TriAmp service document with schematics on manualmachine.com, `/hk/triamp/5152155-schematic`, and a 29-page service manual on elektrotanya; which mark they cover is not checked. A MkII service manual is mentioned on forums but not found) | — | — | Read the service document; MkII and Mark 3 drawings | 4x12 closed |
 | Wizard Modern Classic | ⏸ Waiting (an MCII schematic and turret layout by a forum member are ampgarage attachments, login only, viewtopic.php?p=398776; the thread text gives only the inverter and feedback values) | — | — | Read the ampgarage trace | 4x12 closed |
-| Mesa/Boogie Mark V | ✅ Done (factory drawing), channel 3 with its IIC+ / Mark IV / Extreme modes | Mark V | GPL (not usable): ToneLibrary SmartAmp Mark 5 high gain (WaveNet format the harness does not run; settings and rig unstated) | Channels 1 and 2; 45 W / 10 W modes | 4x12 / 1x12 closed |
+| Mesa/Boogie Mark V | ✅ Done (factory drawing), all three channels with their modes, the loop's recovery stage and the per-channel presence | Mark V (channel 3: IIC+ / Mark IV / Extreme), Mark V Clean (channel 1: Clean / Fat / Tweed, Bold), Mark V Crunch (channel 2: Edge / Crunch / Mark I) | GPL (not usable): ToneLibrary SmartAmp Mark 5 high gain (WaveNet format the harness does not run; settings and rig unstated) | 45 W / 10 W modes (a legend for the power amp sheet's relays, and a power amp that can drop a pair); which modes drive the JFET bypasses; the presence rheostats' values | 4x12 / 1x12 closed |
 | Mesa/Boogie Triple Rectifier | ✅ Done as a variant (no schematic; the three-channel Dual Rectifier with six 6L6), all three channels | Triple Rectifier (channel 3), Triple Rectifier Orange (channel 2), Triple Rectifier Clean (channel 1) | — | A Triple Rectifier drawing | 4x12 closed, Vintage 30 |
 | Mesa/Boogie Rect-o-Verb | ✅ Done (factory Solo 50 / Rectoverb drawing, first series), both channels (Switch 1 Rhythm, Switch 2 Pushed), the loop stage V4 and the Output Level (Control 1); the reverb is left to the Reverb block | Rect-o-Verb | — | Series II drawing | 1x12 / 2x12 closed |
 | Lichtlaerm Audio Prometheus (lead and clean channels) | ✅ Done, **topology inferred** (no schematic published) | Prometheus, Prometheus Clean | T3K: Prometheus TEASER-PACK (pipppriss; 5 captures, +18 dBu, knob settings not stated) | A schematic or gut shots; captures with knob settings | 4x12 closed, Mesa OS / Vintage 30 |
@@ -197,7 +197,7 @@ number of types.
 
 ### Circuit Amp types by index
 
-The Circuit Amp block has 96 types. The "Cathode type" column above names them; this is their order in the Type list.
+The Circuit Amp block has 98 types. The "Cathode type" column above names them; this is their order in the Type list.
 
 | # | Type | # | Type | # | Type |
 |---|---|---|---|---|---|
@@ -237,6 +237,8 @@ The Circuit Amp block has 96 types. The "Cathode type" column above names them; 
 |  |  |  |  | 93 | Dual Rectifier 3-Ch Clean |
 |  |  |  |  | 94 | Triple Rectifier Orange |
 |  |  |  |  | 95 | Triple Rectifier Clean |
+|  |  |  |  | 96 | Mark V Clean |
+|  |  |  |  | 97 | Mark V Crunch |
 
 Types 81 to 90, the newest, are:
 

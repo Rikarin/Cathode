@@ -65,7 +65,7 @@ Marshall-like voices with more gain stages. The SLO-100 is the smooth 1990s lead
 
 ### Mesa/Boogie
 
-Mark series: **Mark IIC+** and its rhythm channel, **Mark IIC+ Rhythm**, **Mark IV** with its clean and crunch channels, **Mark IV Rhythm 1** and **Mark IV Rhythm 2**, **Mark V**. Rectifiers: **Dual Rectifier** and its orange channel, **Dual Rectifier Orange**; **Dual Rectifier 3-Ch** (channel 3) with **Dual Rectifier 3-Ch Orange** (channel 2) and **Dual Rectifier 3-Ch Clean** (channel 1); **Triple Rectifier** with **Triple Rectifier Orange** and **Triple Rectifier Clean**; **Rect-o-Verb**. And **Lone Star**, **Subway Blues**, and the **TriAxis Rhythm**, **TriAxis Lead 1** and **TriAxis Lead 2** preamp modes.
+Mark series: **Mark IIC+** and its rhythm channel, **Mark IIC+ Rhythm**, **Mark IV** with its clean and crunch channels, **Mark IV Rhythm 1** and **Mark IV Rhythm 2**, **Mark V** (channel 3) with its clean and crunch channels, **Mark V Clean** and **Mark V Crunch**. Rectifiers: **Dual Rectifier** and its orange channel, **Dual Rectifier Orange**; **Dual Rectifier 3-Ch** (channel 3) with **Dual Rectifier 3-Ch Orange** (channel 2) and **Dual Rectifier 3-Ch Clean** (channel 1); **Triple Rectifier** with **Triple Rectifier Orange** and **Triple Rectifier Clean**; **Rect-o-Verb**. And **Lone Star**, **Subway Blues**, and the **TriAxis Rhythm**, **TriAxis Lead 1** and **TriAxis Lead 2** preamp modes.
 
 Two very different families:
 

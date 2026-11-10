@@ -46,7 +46,8 @@ usually go after the Cab, as they would in an effects loop or a studio. The amp 
 - **High gain:** SLO-100, 5150, 5150III, Dual Rectifier and Dual Rectifier 3-Ch (each with its other channels:
   Dual Rectifier Orange, Dual Rectifier 3-Ch Orange and Clean), Triple Rectifier (with Triple Rectifier Orange and
   Clean), Rect-o-Verb, Mark IIC+ (and its clean rhythm channel, Mark IIC+ Rhythm), Mark IV (and its clean and
-  crunch channels, Mark IV Rhythm 1 and Rhythm 2), Mark V, TriAxis, Legacy VL100, Powerball, Savage 120, Prometheus.
+  crunch channels, Mark IV Rhythm 1 and Rhythm 2), Mark V (and its channels 1 and 2, Mark V Clean and Mark V
+  Crunch), TriAxis, Legacy VL100, Powerball, Savage 120, Prometheus.
 - **Bass:** SVT, Portaflex B-15N, Bassman 135, Bass 400.
 - **Solid state:** JC-120 and Valvestate 8080 (a tube preamp into a transistor power amp). Their tube-only knobs are
   hidden.
@@ -93,7 +94,7 @@ brownface Deluxe) it appears as *Tone*.`,
     presence: `Lifts the upper treble in the power amp. On most models it works through the global negative feedback:
 the presence pot and cap reduce the feedback at high frequencies, so the power amp's gain rises there. Turn it up for
 bite and cut, down to soften harsh tops. Because it acts in the feedback loop, its effect also depends on *Feedback*:
-with no feedback it has nothing to work on. On the Mark IIC+ and Mark IV the presence is a rheostat in series with the
+with no feedback it has nothing to work on. On the Mark IIC+, Mark IV and Mark V the presence is a rheostat in series with the
 feedback, as on the amps: turning it up lowers the feedback at every frequency and the treble's most, so the amp also
 gets a little louder and looser; at 0 it is at its darkest and tightest. A few models wire their presence elsewhere
 (the Rectifiers' is shown as Control 2: a preamp treble control on the two-channel Dual Rectifier and on the
@@ -178,7 +179,10 @@ Each switches the real components on the model's schematic. Some worth knowing:
 - **Powerball, *Focused*:** in the lead channel it swaps the open middle pot for the focused one (*Mid Focused*,
   Control 1) and doubles the treble cap; in channel 1 it doubles the treble cap and makes the middle's cap smaller.
 - **Mark V, *IIC+ Mode*:** with *Mark IV Mode* (Switch 2), selects the channel-3 mode; both off is Extreme. The amp
-  has one three-position switch, so with both on the model is in Mark IV mode.
+  has one three-position switch, so with both on the model is in Mark IV mode. On Mark V Clean the pair is *Fat* and
+  *Tweed* (both off is Clean; both on is Tweed) and Switch 3 is the amp's *Bold* switch; on Mark V Crunch it is
+  *Edge* and *Mark I* (both off is Crunch; both on is Mark I). On all three, *Master* (Control 1) is the channel's
+  master and *Output* is the amp's Output control after the effects loop's tube stage.
 - **TriAxis, *Yellow*:** with *Red* (Switch 2), the preamp's mode switches.
 - **AFD100, *AFD*:** off is the #34 mode, on is AFD.
 - **JC-120, *Distortion On*:** the effect channel's distortion (on the real amp, the switch at the bottom of the
@@ -194,7 +198,8 @@ same parts the real switch does.
 
 Where the amp has one three-position switch, the model shows its two outer positions as two switches and both off is
 the middle position: *Bite Up* and *Bite Down* on the Prometheus, *Ultra Lo* and *Bass Cut* on the SVT, *IIC+ Mode*
-and *Mark IV Mode* on the Mark V, *Raw* and *Modern* on the three-channel Rectifiers. The amp cannot have both at
+and *Mark IV Mode* on the Mark V (*Fat* and *Tweed*, *Edge* and *Mark I* on its other channels), *Raw* and *Modern*
+on the three-channel Rectifiers. The amp cannot have both at
 once, so with both on the model takes the second of each pair as named here and ignores the first.`,
 
     switch3: `A model's third switch, where it has one: *Spongy* on the Rectifiers (a lower supply voltage, modelled as
@@ -586,6 +591,8 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       Express: 'Trainwreck Express, from a redraw of the circuit: raw, responsive EL34 crunch. Medium confidence.',
       'Lone Star': 'Mesa/Boogie Lone Star, both channels: warm cleans and a smooth drive mode.',
       'Mark V': 'Mesa/Boogie Mark V channel 3 with its IIC+, Mark IV and Extreme modes.',
+      'Mark V Clean': 'Mesa/Boogie Mark V channel 1 with its Clean, Fat and Tweed modes and the Bold switch.',
+      'Mark V Crunch': 'Mesa/Boogie Mark V channel 2 with its Edge, Crunch and Mark I modes.',
       'Rect-o-Verb':
         'Mesa/Boogie Rect-o-Verb (first series), both channels with its Output Level: a smaller Rectifier. For its reverb, put a Reverb block (Spring) after the Cab.',
       'Triple Rectifier':
