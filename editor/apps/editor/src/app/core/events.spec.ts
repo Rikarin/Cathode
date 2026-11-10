@@ -1,6 +1,7 @@
 import { computed, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { Telemetry } from '@cathode/api-client';
+import { Subject } from 'rxjs';
 import { ConnectionService } from './connection';
 import { EventStream, blockMeter, modulatedValue } from './events';
 
@@ -134,12 +135,25 @@ describe('EventStream connection', () => {
     vi.useRealTimers();
   });
 
-  function start() {
+  /** `refused`: whether the Server answers 401 to this connection's token; `desktop`: in the desktop app. */
+  function start(server: { refused?: () => boolean; desktop?: boolean } = {}) {
+    const tokenRefused$ = new Subject<void>();
+    let probes = 0;
+    let refusals = 0;
+    tokenRefused$.subscribe(() => refusals++);
     TestBed.configureTestingModule({
       providers: [
         {
           provide: ConnectionService,
-          useValue: { connection: signal({ baseUrl: 'http://rig.local:5180', token: null }) }
+          useValue: {
+            connection: signal({ baseUrl: 'http://rig.local:5180', token: 'old' }),
+            desktop: server.desktop ? {} : null,
+            tokenRefused$,
+            refused: () => {
+              probes++;
+              return Promise.resolve(server.refused?.() ?? false);
+            }
+          }
         }
       ]
     });
@@ -156,12 +170,12 @@ describe('EventStream connection', () => {
 
       return last;
     };
-    return { stream, socket, connections: () => connections };
+    return { stream, socket, connections: () => connections, probes: () => probes, refusals: () => refusals };
   }
 
   it('opens the events socket with its client id and is open once the Server says connected', () => {
     const { stream, socket, connections } = start();
-    expect(socket().url).toBe(`ws://rig.local:5180/ws?client=${stream.clientId}`);
+    expect(socket().url).toBe(`ws://rig.local:5180/ws?access_token=old&client=${stream.clientId}`);
     expect(stream.status()).toBe('connecting');
     expect(connections()).toBe(0);
 
@@ -263,6 +277,75 @@ describe('EventStream connection', () => {
 
     socket().drop();
     expect(stream.modulation()).toBeNull();
+  });
+
+  it('forgets the telemetry, scope and RTA frames when the socket drops: no meter keeps its last level', () => {
+    const { stream, socket } = start();
+    socket().hello();
+    socket().send({ type: 'telemetry', inputPeak: 1, blocks: { in1: { peak: 0.8 } } });
+    socket().send({ type: 'scope', samples: [0] });
+    socket().send({ type: 'rta', bands: [0] });
+    expect(stream.latest?.inputPeak).toBe(1);
+    expect(stream.blockMeter('in1', 'peak')).toBe(0.8);
+    expect(stream.scope).not.toBeNull();
+    expect(stream.rta).not.toBeNull();
+
+    socket().drop();
+    expect(stream.latest).toBeNull();
+    expect(stream.blockMeter('in1', 'peak')).toBeUndefined();
+    expect(stream.scope).toBeNull();
+    expect(stream.rta).toBeNull();
+  });
+
+  it('has no telemetry frame once the newest is 2 s old (the engine stopped), and has one again when they resume', () => {
+    const { stream, socket } = start();
+    socket().hello();
+    socket().send({ type: 'telemetry', inputPeak: 1 });
+    vi.advanceTimersByTime(2_000);
+    expect(stream.latest?.inputPeak).toBe(1);
+
+    vi.advanceTimersByTime(1);
+    expect(stream.latest).toBeNull();
+    expect(stream.status()).toBe('open');
+
+    socket().send({ type: 'telemetry', inputPeak: 0.5 });
+    expect(stream.latest?.inputPeak).toBe(0.5);
+  });
+
+  it('stops retrying and says so when the Server refuses the token: the handshake fails and a request answers 401', async () => {
+    let refused = false;
+    const { stream, socket, probes, refusals } = start({ refused: () => refused });
+    socket().hello();
+
+    socket().drop(); // the Server restarts with a new token; a socket that was connected is not a refusal
+    expect(probes()).toBe(0);
+    vi.advanceTimersByTime(250);
+    socket().drop(); // not up yet: the handshake fails, but no request answers 401
+    await vi.advanceTimersByTimeAsync(0);
+    expect(probes()).toBe(1);
+    expect(refusals()).toBe(0);
+
+    refused = true;
+    vi.advanceTimersByTime(500);
+    expect(FakeSocket.opened).toHaveLength(3);
+    socket().drop();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(refusals()).toBe(1);
+    expect(stream.status()).toBe('closed');
+
+    vi.advanceTimersByTime(10_000);
+    expect(FakeSocket.opened).toHaveLength(3);
+  });
+
+  it('does not ask about the token in the desktop app, which has no token prompt', async () => {
+    const { socket, probes, refusals } = start({ refused: () => true, desktop: true });
+    socket().drop();
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(probes()).toBe(0);
+    expect(refusals()).toBe(0);
+    vi.advanceTimersByTime(250);
+    expect(FakeSocket.opened).toHaveLength(2);
   });
 
   it('stops for good: closes the socket and opens no other, also when its close arrives later', () => {

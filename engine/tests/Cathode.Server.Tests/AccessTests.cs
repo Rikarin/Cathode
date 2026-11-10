@@ -62,6 +62,41 @@ public class AccessTests {
     }
 
     [Fact]
+    public async Task The_editor_page_cannot_be_framed_and_runs_only_its_own_scripts() {
+        var editor = Directory.CreateTempSubdirectory("cathode-editor-").FullName;
+        try {
+            await File.WriteAllTextAsync(
+                Path.Combine(editor, "index.html"),
+                "<html><head></head><body></body></html>",
+                Cancel
+            );
+            await File.WriteAllTextAsync(Path.Combine(editor, "main-ABC.js"), "console.log(1)", Cancel);
+            await using var server = new ServerFixture(token: Token, editorDirectory: editor);
+            using var client = server.CreateClient();
+
+            foreach (var path in new[] { "/", "/index.html", "/?token=" + Token }) {
+                using var page = await client.GetAsync(path, Cancel);
+                var policy = page.Headers.GetValues("Content-Security-Policy").Single().Split("; ");
+
+                Assert.Equal(EditorHosting.ContentSecurityPolicy, string.Join("; ", policy));
+                Assert.Contains("default-src 'self'", policy);
+                Assert.Contains("script-src 'self'", policy);
+                Assert.Contains("object-src 'none'", policy);
+                Assert.Contains("base-uri 'self'", policy);
+                Assert.Contains("frame-ancestors 'none'", policy);
+                Assert.Equal("DENY", page.Headers.GetValues("X-Frame-Options").Single());
+                Assert.Equal("nosniff", page.Headers.GetValues("X-Content-Type-Options").Single());
+                Assert.Equal("no-referrer", page.Headers.GetValues("Referrer-Policy").Single());
+            }
+
+            using var script = await client.GetAsync("/main-ABC.js", Cancel);
+            Assert.Equal("nosniff", script.Headers.GetValues("X-Content-Type-Options").Single());
+        } finally {
+            Directory.Delete(editor, true);
+        }
+    }
+
+    [Fact]
     public async Task With_a_token_the_websocket_takes_it_as_a_query_parameter_and_any_origin_may_call() {
         await using var server = new ServerFixture(token: Token);
         var sockets = server.Server.CreateWebSocketClient();

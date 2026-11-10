@@ -200,7 +200,7 @@ The desktop app can also serve the editor to other devices on the same network, 
 3. The section now shows the addresses to open, the **access token** and a QR code.
 4. On the iPad, point the Camera at the QR code and tap the link. Safari opens the editor, already signed in. Without a camera, type one of the addresses into the browser and paste the token when the editor asks for it.
 
-The browser remembers the token, so next time the address alone is enough. In Safari, **Share ▸ Add to Home Screen** gives the editor an icon and the full screen.
+The browser remembers the token, so next time the address alone is enough; the token does not stay in the address. In Safari, **Share ▸ Add to Home Screen** gives the editor an icon and the full screen. The Home Screen app keeps its own data, so it asks for the token once; to skip that, tap **Put the token in the address** under **Settings ▸ Audio setup ▸ Home Screen shortcut** on the iPad before you add the page.
 
 The first time you turn it on, macOS may ask whether **cathode-server** may accept incoming network connections. Choose **Allow**; if you chose Deny, allow it in **System Settings ▸ Network ▸ Firewall ▸ Options**. If the iPad still cannot connect, check that both are on the same Wi-Fi (not a guest network, which often keeps devices apart) and try the address with the numbers rather than the `.local` name.
 

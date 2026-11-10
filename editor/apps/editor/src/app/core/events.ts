@@ -12,6 +12,7 @@ import {
 } from '@cathode/api-client';
 import { Subject } from 'rxjs';
 import { ConnectionService } from './connection';
+import { StaleTelemetryMs } from './engine-health';
 import { newId } from './new-id';
 
 const MaxBackoffMs = 5_000;
@@ -42,7 +43,9 @@ export function modulatedValue(modulation: Modulation | null | undefined, block:
  * change detection: meters read {@link latest} from their own animation frames, about 30 updates a second.
  * Reconnects with backoff; every (re)connection emits on {@link connected$} so the stores resync rather than trust
  * that no event was missed. So does a `resync` message: the Server sends it in place of events this client fell too
- * far behind to receive.
+ * far behind to receive. In a browser, a socket that closes before the Server said `connected` may have been refused
+ * for its token: the stream then asks the Server, and when the token is refused it stops retrying and says so
+ * ({@link ConnectionService.tokenRefused$}).
  */
 @Injectable({ providedIn: 'root' })
 export class EventStream {
@@ -66,9 +69,19 @@ export class EventStream {
    */
   readonly clientId = newId();
 
-  /** The most recent telemetry frame (null until the first arrives). Not a signal, on purpose. */
-  latest: Telemetry | null = null;
-  /** When {@link latest} arrived (`performance.now()`), and when the socket last connected: telemetry is late after. */
+  private frame: Telemetry | null = null;
+
+  /**
+   * The most recent telemetry frame. Null until the first arrives, and again when there is nothing current to show:
+   * the connection dropped, or the newest frame is older than {@link StaleTelemetryMs} (the engine stopped behind a
+   * Server that still answers). Meters, clip marks and the tuner then read silence rather than their last frame.
+   * Not a signal, on purpose.
+   */
+  get latest(): Telemetry | null {
+    return this.frame !== null && performance.now() - this.latestAt <= StaleTelemetryMs ? this.frame : null;
+  }
+
+  /** When the newest frame arrived (`performance.now()`), and when the socket last connected: telemetry is late after. */
   latestAt = 0;
   connectedAt = 0;
 
@@ -115,6 +128,16 @@ export class EventStream {
 
     this.socket?.close();
     this.socket = null;
+    this.status.set('closed');
+    this.forgetFrames();
+  }
+
+  /** Nothing the Server sent before is current once the connection is gone. */
+  private forgetFrames(): void {
+    this.frame = null;
+    this.scope = null;
+    this.rta = null;
+    this.modulation.set(null);
   }
 
   private open(): void {
@@ -132,14 +155,26 @@ export class EventStream {
         return;
       }
 
+      const neverConnected = this.status() !== 'open';
       this.status.set('closed');
       this.socket = null;
-      this.modulation.set(null);
+      this.forgetFrames();
       if (!this.stopped) {
         const delay = Math.min(MaxBackoffMs, 250 * 2 ** this.attempts++);
         this.retry = setTimeout(() => this.open(), delay);
+        if (neverConnected && !this.connection.desktop) {
+          void this.stopIfRefused();
+        }
       }
     };
+  }
+
+  /** A refused handshake looks like any other close, so a REST request finds out whether the token is the reason. */
+  private async stopIfRefused(): Promise<void> {
+    if ((await this.connection.refused()) && !this.stopped) {
+      this.stop();
+      this.connection.tokenRefused$.next();
+    }
   }
 
   private receive(data: unknown): void {
@@ -170,9 +205,9 @@ export class EventStream {
     } else if (message.type === 'rta') {
       this.rta = message as RtaFrame;
     } else if (message.type === 'telemetry') {
-      this.latest = message as Telemetry;
+      this.frame = message as Telemetry;
       this.latestAt = performance.now();
-      const modulation = this.latest.modulation ?? null;
+      const modulation = this.frame.modulation ?? null;
       if (modulation || this.modulation()) {
         this.modulation.set(modulation);
       }

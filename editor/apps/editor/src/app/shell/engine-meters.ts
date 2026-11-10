@@ -12,7 +12,8 @@ import { LiveStore } from '../state/live.store';
  * Input and output meters, CPU and the connection light, all fed straight from telemetry frames, plus the preset's
  * estimated DSP load from the catalog's measured block costs. The light is green only while the engine itself runs:
  * the desktop app's host is up and telemetry keeps coming (engineHealth). A clip mark lights beside a meter (and holds
- * for a moment) when the input comes within 0.5 dB of full scale or an output reaches −1 dBFS.
+ * for a moment) when the input comes within 0.5 dB of full scale or an output reaches −1 dBFS. Without a current
+ * frame (the connection dropped, or the engine stopped) the meters and CPU read zero and a clip mark runs out.
  */
 @Component({
   selector: 'cth-engine-meters',

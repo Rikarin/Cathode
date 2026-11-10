@@ -373,6 +373,30 @@ interface LcdFigure {
           This editor is running in a browser, connected to {{ connection.connection()?.baseUrl }}. Choose the
           interface, sample rate and buffer in the Cathode desktop app, or start cathode-host with --device.
         </xui-callout>
+        @if (connection.connection()?.token) {
+          <section xuiCard class="flex flex-col items-start gap-3 p-4" aria-labelledby="shortcut-heading">
+            <h2 xuiHeading id="shortcut-heading" class="text-base">Home Screen shortcut</h2>
+            <p class="text-foreground-muted max-w-2xl text-xs">
+              This browser remembers the access token, so the address does not show it. A Home Screen app (Safari's
+              Share ▸ Add to Home Screen) has storage of its own and asks for the token once. To make a shortcut or a
+              bookmark that opens signed in, put the token in the address first. Treat that address like the token
+              itself; it leaves the address again when the page reloads.
+            </p>
+            <button
+              xuiButton
+              type="button"
+              size="sm"
+              variant="outline"
+              data-testid="token-in-address"
+              (click)="connection.showTokenInAddress()"
+            >
+              Put the token in the address
+            </button>
+            @if (connection.tokenInAddress()) {
+              <span class="text-xs" role="status">The address has the token now: add the page or bookmark it.</span>
+            }
+          </section>
+        }
       }
     </div>
   `

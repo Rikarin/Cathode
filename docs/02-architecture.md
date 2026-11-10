@@ -402,7 +402,7 @@ Still to come: RMS, per-block CPU, scene state, and binary frames.
 - Resources carry a `revision` (ETag) for optimistic concurrency; `If-Match` is required on mutations.
 - Errors are RFC 9457 problem+json.
 - There is no job queue: IR and model uploads and Tone Match are plain requests that answer when they finish.
-- **Auth:** the server binds to localhost by default. LAN access is opt-in, protected by a pairing token, so phones and tablets can act as remote editors.
+- **Auth:** the server binds to localhost by default. LAN access is opt-in, protected by a pairing token, so phones and tablets can act as remote editors. The editor page the Server serves carries a Content-Security-Policy (only the build's own scripts, no framing by another page), `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`, as the desktop app's copy does.
 
 | Area | Endpoints (abridged) |
 |---|---|

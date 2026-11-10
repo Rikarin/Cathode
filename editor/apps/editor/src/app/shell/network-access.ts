@@ -115,7 +115,8 @@ import { Notify } from '../core/notify';
             </div>
             <p class="text-foreground-muted max-w-md text-xs">
               Scan the code with the iPad's camera, or open an address and paste the token when the editor asks. In
-              Safari, Share ▸ Add to Home Screen gives it a full-screen icon. A new token signs every other device out.
+              Safari, Share ▸ Add to Home Screen gives it a full-screen icon, which asks for the token once. A new token
+              signs every other device out.
             </p>
             <div>
               <button

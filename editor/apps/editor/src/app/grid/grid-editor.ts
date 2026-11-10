@@ -168,7 +168,8 @@ export function dropAction(
       (keydown)="key($event)"
       (pointermove)="moveWire($event); touches.move($event)"
       (pointerup)="endWire($event); touches.cancel()"
-      (pointercancel)="touches.cancel()"
+      (pointercancel)="cancelWire(); touches.cancel()"
+      (lostpointercapture)="cancelWire()"
     >
       <!-- Rows only group the cells for assistive technology: the cells are positioned against the surface. -->
       @for (line of gridRows(); track line.row) {
@@ -1095,7 +1096,9 @@ export class GridEditor {
 
   protected moveWire(event: PointerEvent): void {
     const from = this.wiring();
-    if (from) {
+    if (from && !this.keyboardWire() && event.pointerType === 'mouse' && event.buttons === 0) {
+      this.cancelWire(); // the button was let go where this grid did not see it
+    } else if (from) {
       const point = this.local(event);
       this.wire.set(cablePath(outlet(from), point));
       this.wireHover.set(this.wireTarget(point)?.id ?? null);
@@ -1114,6 +1117,19 @@ export class GridEditor {
     this.wireHover.set(null);
     if (to) {
       void this.live.addCable(from.id, to.id);
+    }
+  }
+
+  /**
+   * Ends a cable drag without connecting: the browser took the pointer (a scroll or system gesture, a pen out of
+   * range) or the capture was lost. After a normal release there is no drag left to end. A cable started from the
+   * keyboard is not the pointer's to cancel.
+   */
+  protected cancelWire(): void {
+    if (this.wiring() && !this.keyboardWire()) {
+      this.wiring.set(null);
+      this.wire.set(null);
+      this.wireHover.set(null);
     }
   }
 
