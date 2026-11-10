@@ -36,6 +36,12 @@ public sealed partial class LiveRig(
 
     bool dirty;
 
+    /// <summary>
+    ///     Counts the names the library has given the working copy: a save under a name, a rename in the Library.
+    ///     Undo and redo do not take such a name back (<see cref="StepAsync" />).
+    /// </summary>
+    long naming;
+
     int generation;
     string compiledOversampling = "minimum";
 
@@ -133,6 +139,7 @@ public sealed partial class LiveRig(
 
                 if (!string.IsNullOrWhiteSpace(request.Name)) {
                     preset.Name = request.Name.Trim();
+                    naming++; // the library's name now: no undo brings the old one back
                 }
 
                 return Task.FromResult(SaveWorkingCopy());
@@ -787,12 +794,28 @@ public sealed partial class LiveRig(
         load++;
     }
 
+    /// <summary>
+    ///     Undo or redo: the working copy's content goes back to the step's. Which preset of the library it is does
+    ///     not: the id (Save As New, or the copy a save of a factory preset made), the factory flag, the colour tag
+    ///     and the favourite flag stay as they are now, and so does a name the library gave it after the step was
+    ///     recorded. Otherwise an undo after Save As New would turn the working copy back into the original preset,
+    ///     and the next save would overwrite that one.
+    /// </summary>
     async Task<LiveState> StepAsync(Func<Func<UndoSnapshot>, UndoSnapshot?> step, string eventType) {
         if (step(Capture) is not { } target) {
             throw RigException.Conflict($"Nothing to {eventType}.");
         }
 
+        var current = preset;
         Restore(target);
+        preset.Id = current.Id;
+        preset.Factory = current.Factory;
+        preset.Color = current.Color;
+        preset.Favorite = current.Favorite;
+        if (target.Naming != naming) {
+            preset.Name = current.Name;
+        }
+
         await SyncGraphAsync();
         return Changed(eventType);
     }
@@ -874,7 +897,7 @@ public sealed partial class LiveRig(
     }
 
     UndoSnapshot Capture() =>
-        new(JsonSerializer.SerializeToUtf8Bytes(preset, ContractsJsonContext.Default.Preset), activeScene);
+        new(JsonSerializer.SerializeToUtf8Bytes(preset, ContractsJsonContext.Default.Preset), activeScene, naming);
 
     void Restore(UndoSnapshot snapshot) {
         preset = JsonSerializer.Deserialize(snapshot.Json, ContractsJsonContext.Default.Preset)!;

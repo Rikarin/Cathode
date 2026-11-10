@@ -1,7 +1,11 @@
 namespace Cathode.Server.Rig;
 
-/// <summary>A working copy as it was: the preset as UTF-8 JSON, and the scene it was on.</summary>
-public sealed record UndoSnapshot(byte[] Json, int ActiveScene);
+/// <summary>
+///     A working copy as it was: the preset as UTF-8 JSON, and the scene it was on. <c>Naming</c> counts the names the
+///     library had given the preset by then (a save under a name, a rename in the Library): undo and redo restore the
+///     snapshot's name only when the library has not named the preset since.
+/// </summary>
+public sealed record UndoSnapshot(byte[] Json, int ActiveScene, long Naming = 0);
 
 /// <summary>
 ///     The live rig's undo and redo stacks. Each stack is bounded by steps and by bytes, dropping its oldest steps

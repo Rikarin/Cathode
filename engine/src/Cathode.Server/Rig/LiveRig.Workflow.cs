@@ -520,6 +520,9 @@ public sealed partial class LiveRig {
 
                 if (preset.Id == id) {
                     Apply(preset, change);
+                    if (change.Name is not null) {
+                        naming++; // undo does not take a rename in the Library back
+                    }
                 }
 
                 return Task.FromResult(Changed("presetMetadataChanged", markDirty: false));

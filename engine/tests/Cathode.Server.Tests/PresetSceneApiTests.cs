@@ -57,6 +57,56 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task Undo_after_save_as_new_keeps_the_new_preset_and_leaves_the_original_alone() {
+        var first = await Post("/api/v1/live/save", new SaveRequest("First", true));
+        await Patch("/api/v1/live/blocks/delay1/params?channel=A", new Dictionary<string, float> { ["time"] = 700 });
+        var second = await Post("/api/v1/live/save", new SaveRequest("Second", true));
+        Assert.NotEqual(first.Preset.Id, second.Preset.Id);
+
+        var undone = await Post("/api/v1/live/undo");
+
+        // The edit is undone; the working copy is still the second preset.
+        Assert.Equal(500f, undone.Preset.Blocks.Single(static b => b.Id == "delay1").Channels["A"]["time"]);
+        Assert.Equal((second.Preset.Id, "Second"), (undone.Preset.Id, undone.Preset.Name));
+
+        await Post("/api/v1/live/save", new SaveRequest());
+        Assert.Equal(500f, await StoredTime(second.Preset.Id)); // the save went to the second preset
+        Assert.Equal("First", (await Stored(first.Preset.Id)).Name);
+
+        // Redo keeps the identity too.
+        var redone = await Post("/api/v1/live/redo");
+        Assert.Equal((second.Preset.Id, "Second"), (redone.Preset.Id, redone.Preset.Name));
+        Assert.Equal(700f, redone.Preset.Blocks.Single(static b => b.Id == "delay1").Channels["A"]["time"]);
+    }
+
+    [Fact]
+    public async Task Undo_does_not_take_back_a_rename_or_a_colour_given_in_the_library() {
+        var saved = await Post("/api/v1/live/save", new SaveRequest("Before", true));
+        await Patch("/api/v1/live/blocks/delay1/params?channel=A", new Dictionary<string, float> { ["time"] = 700 });
+        using var renamed = await client.PatchAsJsonAsync(
+            $"/api/v1/presets/{saved.Preset.Id}/metadata",
+            new PresetMetadataRequest("After", "red", true),
+            Token
+        );
+        Assert.Equal(HttpStatusCode.NoContent, renamed.StatusCode);
+
+        var undone = await Post("/api/v1/live/undo");
+
+        Assert.Equal(("After", "red", true), (undone.Preset.Name, undone.Preset.Color, undone.Preset.Favorite));
+        await Post("/api/v1/live/save", new SaveRequest());
+        Assert.Equal("After", (await Stored(saved.Preset.Id)).Name);
+
+        // A rename made as an edit of the working copy is still undone.
+        await Patch("/api/v1/live/info", new PresetInfoRequest("Edited"));
+        Assert.Equal("After", (await Post("/api/v1/live/undo")).Preset.Name);
+    }
+
+    async Task<Preset> Stored(string id) => (await client.GetFromJsonAsync<Preset>($"/api/v1/presets/{id}", Token))!;
+
+    async Task<float> StoredTime(string id) =>
+        (await Stored(id)).Blocks.Single(static b => b.Id == "delay1").Channels["A"]["time"];
+
+    [Fact]
     public async Task Scene_ignore_holds_a_block_across_scenes_until_its_channel_stops_ignoring() {
         await Put("/api/v1/live/scenes/1/blocks/delay1", new SceneBlockState(true, "B"));
         var ignoring = await Put(
