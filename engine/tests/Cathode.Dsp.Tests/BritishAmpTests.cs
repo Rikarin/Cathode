@@ -1,4 +1,5 @@
 using Cathode.Dsp.Amp;
+using Cathode.Dsp.Amp.Models;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Tests.Circuits;
 using Cathode.Testing;
@@ -91,6 +92,12 @@ public class BritishAmpTests(ITestOutputHelper output) {
             Assert.Empty(Label("cut", type));
             Assert.NotEmpty(Label("treble", type));
         }
+    }
+
+    [Fact]
+    public void The_18_watt_1974X_is_a_one_by_twelve() {
+        // The 1974 and its reissue are the 18 W range's 1 × 12 combo (the 2 × 10 is the 1958, the 2 × 12 the 1973).
+        Assert.Same(SpeakerDesign.OpenBack1x12, Marshall18W.Design.Power.Speaker);
     }
 
     /// <summary>

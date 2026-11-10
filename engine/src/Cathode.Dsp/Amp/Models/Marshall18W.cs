@@ -10,7 +10,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     to the 500k-A Volume, 100k between them) or (switch 1) the Tremolo channel (V3A: 68k, 1M; 220k from a 100k
 ///     shared with V3B's plate; 0.005 µF, 470k, 0.005 µF into its 470 pF / 0.005 µF tone and volume); the V2 long-tail
 ///     pair (0.01 µF into 470k, 100k/100k, 820, 47k) whose two grids are the two channels' inputs; two EL84 on a shared
-///     125 Ω, no feedback, an EZ81.
+///     125 Ω, no feedback, an EZ81. The speaker load is an open-back 1 × 12's: the 1974 and its reissue are the range's
+///     1 × 12 combo (the 2 × 10 is the 1958, the 2 × 12 the 1973).
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -83,7 +84,7 @@ public static class Marshall18W {
             new(1, 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6),
             false,
             new(8e3),
-            SpeakerDesign.OpenBack2x12,
+            SpeakerDesign.OpenBack1x12,
             new(80, 32e-6, 1.5e3, 16e-6, 8.2e3, 32e-6, 3e-3, RectifierModel.EZ81),
             InverterInput: new(0.01e-6, 470e3),
             CathodeResistor: 125
