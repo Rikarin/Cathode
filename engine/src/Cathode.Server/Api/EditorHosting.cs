@@ -7,9 +7,32 @@ namespace Cathode.Server.Api;
 ///     played from any browser on the network: a phone, a tablet, a laptop. The files carry nothing secret, so they
 ///     need no token; every API call still does, and the page asks for it. <c>index.html</c> is marked same-origin, so
 ///     the editor talks to the Server that served it. Ahead of <see cref="Access.UseCathodeAccess" /> in the pipeline.
+///     <para>
+///         The page keeps the rig's token in the browser, so it is sent with the policy the desktop app gives its own
+///         copy (<see cref="ContentSecurityPolicy" />): no other page may frame it, and it runs only the scripts of
+///         its own build.
+///     </para>
 /// </summary>
 public static class EditorHosting {
     const string Marker = """<meta name="cathode-server" content="same-origin">""";
+
+    /// <summary>
+    ///     The same policy as the desktop app's (editor/apps/desktop/src/main.ts), except for <c>connect-src</c>: the
+    ///     editor may be pointed at another Server with <c>?server=</c>, so it may connect anywhere. What keeps the
+    ///     token in is that no script but the build's own runs.
+    /// </summary>
+    public const string ContentSecurityPolicy =
+        "default-src 'self'; "
+        + "script-src 'self'; "
+        // Angular and the overlay CDK set inline styles.
+        + "style-src 'self' 'unsafe-inline'; "
+        + "img-src 'self' data: blob:; "
+        + "font-src 'self' data:; "
+        + "connect-src 'self' http: https: ws: wss:; "
+        + "object-src 'none'; "
+        + "base-uri 'self'; "
+        + "form-action 'self'; "
+        + "frame-ancestors 'none'";
 
     public static void UseCathodeEditor(this WebApplication app, string directory) {
         var root = Path.GetFullPath(directory);
@@ -29,6 +52,11 @@ public static class EditorHosting {
                     // Never cached: a new build's hashed scripts must be picked up after an update.
                     context.Response.ContentType = "text/html; charset=utf-8";
                     context.Response.Headers.CacheControl = "no-cache";
+                    context.Response.Headers.ContentSecurityPolicy = ContentSecurityPolicy;
+                    context.Response.Headers.XFrameOptions = "DENY"; // for a browser without frame-ancestors
+                    context.Response.Headers.XContentTypeOptions = "nosniff";
+                    // The address may carry the token (a scanned QR code's): no link out of the page passes it on.
+                    context.Response.Headers["Referrer-Policy"] = "no-referrer";
                     await context.Response.WriteAsync(index);
                     return;
                 }
@@ -36,6 +64,12 @@ public static class EditorHosting {
                 await next(context);
             }
         );
-        app.UseStaticFiles(new StaticFileOptions { FileProvider = new PhysicalFileProvider(root) });
+        app.UseStaticFiles(
+            new StaticFileOptions {
+                FileProvider = new PhysicalFileProvider(root),
+                OnPrepareResponse = static file =>
+                    file.Context.Response.Headers.XContentTypeOptions = "nosniff"
+            }
+        );
     }
 }
