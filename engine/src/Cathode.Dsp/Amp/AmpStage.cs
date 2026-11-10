@@ -241,7 +241,9 @@ public readonly record struct PreampSettings(
         };
     }
 
-    /// <summary>The tubes the Circuit Amp's Preamp Tube choice puts in place of a 12AX7, in the choice's order.</summary>
+    /// <summary>
+    ///     The tubes the Circuit Amp's Preamp Tube choice puts in place of a 12AX7, in the choice's order.
+    /// </summary>
     public static IReadOnlyList<TriodeModel> Substitutes { get; } = [
         TriodeModel.Ecc83,
         TriodeModel.TwelveAY7,

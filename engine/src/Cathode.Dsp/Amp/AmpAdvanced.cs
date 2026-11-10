@@ -1,12 +1,13 @@
 using Cathode.Dsp.Cabinets;
+using Cathode.Dsp.Wdf;
 
 namespace Cathode.Dsp.Amp;
 
 /// <summary>
 ///     Which of the Circuit Amp's advanced controls mean something on a model (docs/08 §4): most act on a component the
 ///     model may not have (a plate-bypass cap, a cathode follower, the phase inverter's input network, a cap across the
-///     master, a presence network), and a generic switch stands in only where the model has no circuit of its own for
-///     it. A control a model
+///     master, a presence network, a bright cap, a tone stack, a 12AX7, a cathode-biased output stage, a master),
+///     and a generic switch stands in only where the model has no circuit of its own for it. A control a model
 ///     lacks is hidden on its panel (<see cref="AmpPanel.Label" />) and does nothing.
 /// </summary>
 public static class AmpFeatures {
@@ -23,15 +24,24 @@ public static class AmpFeatures {
                 }
             ),
             "pibiasx" => design.Power.InverterInput is not null,
-            "mvloc" => MasterPaths(design) != 0
+            "mvloc" => panel.HasTubes
+                && MasterPaths(design) != 0
                 && design.Power.ShuntMaster is null
                 && design.Power.Topology == PowerTopology.PushPull,
-            "fatsw" => !panel.HasSwitch("Fat"),
+            "fatsw" => !panel.HasSwitch("Fat") && Any(preamp, HasStackCap),
+            "stackfreq" => Any(preamp, HasStackCap),
+            "brightcap" => Any(preamp, HasBrightCap),
+            "pretube" => Any(preamp, HasTwelveAX7),
+            // A rack preamp on its own supply sees none of the power amp's sag.
+            "presag" => design.PreampSupply is not { Separate: true },
+            "katc" => design.Power.CathodeBias,
+            "mvtrim" => panel.Master is not null,
             "presshift" or "presfreq" => HasPresenceNetwork(design),
             // The depth shelf is flat with the knob at 0, where a panel without one leaves it; a fixed low shelf in
             // the network itself (the BE-100's) is there whatever the knob.
             "depthfreq" => panel.Depth is not null || design.Power.Feedback.LowFeedback != 1,
-            "overdrive" => !panel.HasSwitch("Overdrive")
+            "overdrive" => Any(preamp, IsGainStage)
+                && !panel.HasSwitch("Overdrive")
                 && panel.Control1 is not ("Overdrive" or "Drive" or "Lead Drive")
                 && panel.Control2 is not ("Overdrive" or "Drive" or "Lead Drive"),
             "cutsw" => !panel.HasSwitch("Bass Cut"),
@@ -39,6 +49,67 @@ public static class AmpFeatures {
             _ => true
         };
     }
+
+    /// <summary>
+    ///     Whether a stage among <paramref name="stages" />, or in either channel of a channel switch among them,
+    ///     satisfies <paramref name="has" />.
+    /// </summary>
+    static bool Any(IReadOnlyList<AmpStageDesign> stages, Func<AmpStageDesign, bool> has) =>
+        stages.Any(s => s is ChannelSwitchStageDesign channels
+            ? Any(channels.Off, has) || Any(channels.On, has)
+            : has(s)
+        );
+
+    /// <summary>
+    ///     Whether a stage has a tone-stack cap for Stack Freq (and the generic Fat) to scale: a tone-stack stage, or
+    ///     a network with a <see cref="CapacitorRole.Stack" /> cap. A stack inside the power amp's feedback loop (the
+    ///     Major's <see cref="LoopStage" />) is out of the preamp settings' reach.
+    /// </summary>
+    static bool HasStackCap(AmpStageDesign stage) =>
+        stage is ToneStackStageDesign
+        || (stage is NetworkStageDesign network
+            && network.Netlist.Elements.Any(static e => e.CapacitorRole == CapacitorRole.Stack));
+
+    /// <summary>
+    ///     Whether a stage has a bright cap the Bright Cap setting scales: a triode or tone-stack stage's, or a
+    ///     network's <see cref="CapacitorRole.Bright" /> cap. A cap across a master is left out on purpose (it is the
+    ///     master's, not a bright switch's).
+    /// </summary>
+    static bool HasBrightCap(AmpStageDesign stage) =>
+        stage switch {
+            TriodeStageDesign t => t.Volume is not null && t.BrightCap > 0 && t.VolumeRole != PotRole.Master,
+            ToneStackStageDesign t => t.BrightCap > 0,
+            NetworkStageDesign n => n.Netlist.Elements.Any(e =>
+                e.CapacitorRole == CapacitorRole.Bright && !StageNetlist.AcrossMaster(e, n.Netlist.Elements)
+            ),
+            _ => false
+        };
+
+    /// <summary>
+    ///     Whether a stage runs a 12AX7 (or both halves of one in parallel), which the Preamp Tube choice replaces
+    ///     (<see cref="PreampSettings.TubeFor" />).
+    /// </summary>
+    static bool HasTwelveAX7(AmpStageDesign stage) =>
+        stage switch {
+            TriodeStageDesign t => t.Tube.SectionsOf(TriodeModel.Ecc83) > 0,
+            ToneStackStageDesign t => t.Tube.SectionsOf(TriodeModel.Ecc83) > 0,
+            NetworkStageDesign n => n.Netlist.Elements.Any(static e =>
+                e.Kind == ElementKind.Triode && e.Triode.SectionsOf(TriodeModel.Ecc83) > 0
+            ),
+            _ => false
+        };
+
+    /// <summary>
+    ///     Whether a stage is a gain stage, into the last of which the generic Overdrive adds swing
+    ///     (<see cref="AmpStage.IsGainStage" />, read off the design).
+    /// </summary>
+    static bool IsGainStage(AmpStageDesign stage) =>
+        stage switch {
+            TriodeStageDesign or HarmonicVibratoStageDesign => true,
+            ToneStackStageDesign t => t.Driver == StackDriver.CommonCathode,
+            NetworkStageDesign n => n.Netlist.Elements.Any(static e => e.Cathode),
+            _ => false
+        };
 
     /// <summary>
     ///     Whether <paramref name="design" /> has a presence network whose frequency can move: a tube power amp whose

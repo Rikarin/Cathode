@@ -460,6 +460,43 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     }
 
     [Fact]
+    public void Expert_controls_hide_on_models_without_the_part_they_act_on() {
+        var parameters = CircuitAmpBlock.Info.Params;
+        string[] Hidden(string id) {
+            var labels = parameters.Single(p => p.Id == id).TypeLabels!;
+            return [..AmpDesign.All.Where((_, type) => labels[type] == string.Empty).Select(static a => a.Name)];
+        }
+
+        // Cathode Time Const: the bypass cap of a cathode-biased output stage.
+        Assert.Equal(
+            AmpDesign.All.Where(static a => !a.Power.CathodeBias || !a.Panel.HasTubes).Select(static a => a.Name),
+            Hidden("katc")
+        );
+        // Master Trim: a master to trim.
+        Assert.Equal(
+            AmpDesign.All.Where(static a => a.Panel.Master is null).Select(static a => a.Name),
+            Hidden("mvtrim")
+        );
+        // Preamp Sag: not a rack preamp on its own supply, nor a solid-state amp's regulated rails.
+        Assert.Equal(
+            ["JC-120", "TriAxis Rhythm", "TriAxis Lead 1", "TriAxis Lead 2", "Valvestate 8080", "JMP-1"],
+            Hidden("presag")
+        );
+        // Preamp Tube: a 12AX7 to replace (the B-15N runs 6SL7s on the 5751's curves, the Scout 6EU7s).
+        Assert.Equal(["Portaflex B-15N", "JC-120", "Scout GA-17RVT"], Hidden("pretube"));
+        // Bright Cap: a bright cap that is not across a master.
+        Assert.Contains("Champ 5F1", Hidden("brightcap"));
+        Assert.Contains("Hot Rod Deluxe", Hidden("brightcap"));
+        Assert.Contains("Mark IV", Hidden("brightcap"));
+        Assert.DoesNotContain("Plexi", Hidden("brightcap"));
+        Assert.DoesNotContain("Blackface", Hidden("brightcap"));
+        // The generic Overdrive: a gain stage to drive.
+        Assert.Contains("JC-120", Hidden("overdrive"));
+        // The B-15N's Baxandall has no middle control.
+        Assert.Contains("Portaflex B-15N", Hidden("middle"));
+    }
+
+    [Fact]
     public void Preamp_tube_replaces_paralleled_twelve_ax7s_with_both_halves_of_the_chosen_tube() {
         var paralleled = TriodeModel.Ecc83.Paralleled(2);
         Assert.Equal(2, paralleled.SectionsOf(TriodeModel.Ecc83));

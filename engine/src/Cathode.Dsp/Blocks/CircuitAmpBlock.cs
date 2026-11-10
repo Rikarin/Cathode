@@ -173,7 +173,8 @@ namespace Cathode.Dsp.Blocks;
 ///         </item>
 ///         <item>
 ///             Generic switches where a model has no circuit of its own: <b>Presence Shift</b> (the presence
-///             frequency an octave down, on a model whose power amp has a presence network), <b>Fat</b> (the stack's frequencies down by 0.6), <b>Input Cut</b> (a 150 Hz
+///             frequency an octave down, on a model whose power amp has a presence network), <b>Fat</b> (the stack's
+///             frequencies down by 0.6, on a model with a tone stack in its preamp), <b>Input Cut</b> (a 150 Hz
 ///             input high-pass at least), <b>High Treble</b> (5 flat: a ±12 dB shelf at 3 kHz before the power amp)
 ///             and <b>Overdrive</b> (0: up to 20 dB more swing into the last gain stage).
 ///         </item>
@@ -741,6 +742,13 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
             postInverter ? postMaster.Fraction(masterRotation) : 1
         );
 
+        // Presence Freq and Presence Shift move a presence network: stock on a model without one.
+        var presenceFrequency = Percent(Params.Advance(PresenceFrequency, frames))
+            * (Params.Current(PresenceShift) >= 0.5f ? PresenceShiftFactor : 1);
+        if (!features.Presence) {
+            presenceFrequency = 1;
+        }
+
         var excursion = Percent(Params.Current(MasterExcursion));
         var fat = Params.Current(Fat) >= 0.5f && features.Fat;
         var stackType = (int)Params.Current(StackType);
@@ -782,8 +790,7 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
             Percent(Params.Current(SpeakerPeak)),
             Percent(Params.Current(SpeakerHigh)),
             Percent(Params.Current(SpeakerImpedance)),
-            Percent(Params.Advance(PresenceFrequency, frames))
-            * (Params.Current(PresenceShift) >= 0.5f && features.PresenceShift ? PresenceShiftFactor : 1),
+            presenceFrequency,
             Percent(Params.Advance(DepthFrequency, frames)),
             variac,
             Percent(Params.Current(SupplyTime)),
@@ -909,7 +916,7 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
 readonly record struct AdvancedFeatures(
     int PostMaster,
     bool Fat,
-    bool PresenceShift,
+    bool Presence,
     bool InputCut,
     bool Overdrive,
     bool HighTreble

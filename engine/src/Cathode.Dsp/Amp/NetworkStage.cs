@@ -259,6 +259,21 @@ public sealed class StageNetlist {
     public void Amplifier(int nonInverting, int inverting, int output, double gain = 1e5) =>
         Add(new(ElementKind.Amplifier, nonInverting, inverting, gain) { C = output });
 
+    /// <summary>
+    ///     Whether <paramref name="cap" /> sits across the upper half of a master pot among <paramref name="all" />:
+    ///     the Bright Cap setting leaves such a cap alone.
+    /// </summary>
+    public static bool AcrossMaster(StageElement cap, IReadOnlyList<StageElement> all) {
+        for (var i = 0; i < all.Count; i++) {
+            if (all[i] is { Role: PotRole.Master, Part: PotPart.Upper } pot
+                && ((pot.A == cap.A && pot.B == cap.B) || (pot.A == cap.B && pot.B == cap.A))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     void Add(StageElement element) {
         if (element.A > Nodes || element.B > Nodes || element.C > Nodes || element.D > Nodes) {
             throw new ArgumentException("Unknown node.", nameof(element));
@@ -500,7 +515,9 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         index = new int[elements.Length];
         values = new double[elements.Length];
         // A cap across a master pot's upper half (its bright cap) follows Master Cap.
-        acrossMaster = [..elements.Select(e => e.Kind == ElementKind.Capacitor && AcrossMaster(e, elements))];
+        acrossMaster = [
+            ..elements.Select(e => e.Kind == ElementKind.Capacitor && StageNetlist.AcrossMaster(e, elements))
+        ];
         IsGainStage = elements.Any(static e => e.Cathode);
         hasMemory = devices.Any(static e => e.Kind == ElementKind.OpAmp);
         controls = new(0.5, 0.5, 0.5, 0.5, 1, false);
@@ -770,20 +787,6 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
             default:
                 return e.Value;
         }
-    }
-
-    /// <summary>
-    ///     Whether <paramref name="cap" /> sits across the upper half of a master pot among <paramref name="all" />.
-    /// </summary>
-    static bool AcrossMaster(StageElement cap, StageElement[] all) {
-        foreach (var pot in all) {
-            if (pot is { Role: PotRole.Master, Part: PotPart.Upper }
-                && ((pot.A == cap.A && pot.B == cap.B) || (pot.A == cap.B && pot.B == cap.A))) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     void ApplySupplies() {

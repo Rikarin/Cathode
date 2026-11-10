@@ -173,9 +173,19 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
 
     [Fact]
     public void Generic_switches_hide_where_the_model_has_its_own() {
-        var labels = CircuitAmpBlock.Info.Params.Single(static p => p.Id == "fatsw").TypeLabels!;
+        // The generic Fat stands in where the model has no Fat switch, and needs a tone stack in the preamp to move
+        // (the Major's sits in its power amp's loop stage, out of reach).
+        string[] noStack = ["AC15", "Champ 5F1", "JMP-1", "Major 1967", "Tiny Terror"];
+        var fat = CircuitAmpBlock.Info.Params.Single(static p => p.Id == "fatsw").TypeLabels!;
+        var stack = CircuitAmpBlock.Info.Params.Single(static p => p.Id == "stackfreq").TypeLabels!;
         for (var type = 0; type < AmpDesign.All.Count; type++) {
-            Assert.Equal(AmpDesign.All[type].Panel.HasSwitch("Fat"), labels[type] == string.Empty);
+            var design = AmpDesign.All[type];
+            var stackless = noStack.Contains(design.Name);
+            Assert.True(stackless == (stack[type] == string.Empty), $"{design.Name}: Stack Freq '{stack[type]}'");
+            Assert.True(
+                (design.Panel.HasSwitch("Fat") || stackless) == (fat[type] == string.Empty),
+                $"{design.Name}: Fat '{fat[type]}'"
+            );
         }
     }
 
