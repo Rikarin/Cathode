@@ -28,7 +28,9 @@
       },
       "targets": {
         "esr": 1.3,
-        "mrstft": 1.8
+        "mrstft": 1.8,
+        "harmonicsDb": 24.5,
+        "responseDb": 8.0
       },
       "notes": "The capture falls 17 dB from 3 kHz to 16 kHz and no knob setting brings the circuit's small-signal response within 6 dB RMS: it almost certainly includes a cab or mic, so this is a loose sanity check, not a match. Achieved (2026-10): ESRpre 1.12, ESR 0.504, MRSTFT 1.56 (Blackface type before: 1.498 / 0.611 / 1.882)."
     },
@@ -106,7 +108,9 @@
       },
       "targets": {
         "esr": 0.38,
-        "mrstft": 1.15
+        "mrstft": 1.15,
+        "harmonicsDb": 8.0,
+        "responseDb": 5.0
       },
       "notes": "SC30 is the single-channel sibling of the DC-30 (EL84 x 4 class A, no NFB): DC-30 channel 1. The knobs are not stated: gain, treble, bass and cut were fitted (ToleranceFit at 12 dBu with an input trim, which the matcher's calibration fit replaces; it now settles at 10.4 dBu instead of the range's edge). Stream F3: ESR (pre-emphasised) 0.977 and MRSTFT 2.279 against the old AC30 type; 0.332 and 1.022 here. The capture is darker than the trace's DC-30 (the fit wants the cut nearly full and the treble low)."
     },
@@ -143,7 +147,9 @@
       },
       "targets": {
         "esr": 0.95,
-        "mrstft": 1.4
+        "mrstft": 1.4,
+        "harmonicsDb": 15.0,
+        "responseDb": 4.5
       },
       "notes": "Conditioning 0.5 = Drive 5; the other knobs are not stated: Volume 4.7, Lead Master 8 and Master 8 fitted (the masters at the fit bound)."
     },
@@ -187,7 +193,9 @@
       },
       "targets": {
         "esr": 1.2,
-        "mrstft": 1.5
+        "mrstft": 1.5,
+        "harmonicsDb": 17.5,
+        "responseDb": 6.0
       },
       "notes": "Stated knobs (Volume 5, Drive 8, Bass 7, Middle 5, Treble 9, Presence 4, EQ off); Lead Master and Master are not stated: fitted (5, 7.4)."
     },
@@ -222,7 +230,9 @@
       },
       "targets": {
         "esr": 1.3,
-        "mrstft": 1.9
+        "mrstft": 1.9,
+        "harmonicsDb": 19.5,
+        "responseDb": 3.0
       },
       "notes": "Knobs not stated: fitted, most at the fit bounds, and the calibration pinned at -20 dBu: weak evidence. The 6505+ adds a few changes to the 5150 circuit modelled here."
     },
@@ -256,7 +266,9 @@
       },
       "targets": {
         "esr": 0.7,
-        "mrstft": 2.2
+        "mrstft": 2.2,
+        "harmonicsDb": 38.0,
+        "responseDb": 11.0
       },
       "notes": "A kit build, not an original Dumble (stream F3). Low gain taken as the ODS 97's clean channel driven hard; knobs fitted (gain, treble, bass, master). ESR (pre-emphasised) 1.152 and MRSTFT 2.190 at noon, 0.642 and 2.082 fitted; the calibration fit sits at its -20 dBu edge, so the kit's level or channel may differ."
     },
@@ -291,7 +303,9 @@
       },
       "targets": {
         "esr": 1.15,
-        "mrstft": 2.6
+        "mrstft": 2.6,
+        "harmonicsDb": 20.0,
+        "responseDb": 9.0
       },
       "notes": "A kit build, not an original Dumble (stream F3). The ODS 97's overdrive; volume, treble, drive and OD level fitted. ESR (pre-emphasised) 0.862 and MRSTFT 2.566 at the starting settings, 1.077 and 2.490 fitted (the fit's score weighs the spectrum)."
     },
@@ -326,7 +340,9 @@
       },
       "targets": {
         "esr": 0.9,
-        "mrstft": 1.6
+        "mrstft": 1.6,
+        "harmonicsDb": 19.0,
+        "responseDb": 7.5
       },
       "notes": "Clone (stream F3). The ODS 97's clean channel (a traced 1997 ODS 100; the clone's circuit is not stated). Knobs not stated: gain, treble, bass and master fitted (ToleranceFit, 61 renders; treble and master end at their bounds). ESR (pre-emphasised) 1.110 and MRSTFT 1.756 at noon, 0.840 and 1.446 fitted. MRSTFT target 1.55 to 1.60 after the datasheet tube refits (#86): 1.590 at the fitted knobs; a refit reaches only 1.565."
     },
@@ -362,7 +378,9 @@
       },
       "targets": {
         "esr": 1.05,
-        "mrstft": 2.25
+        "mrstft": 2.25,
+        "harmonicsDb": 10.5,
+        "responseDb": 6.5
       },
       "notes": "Clone (stream F3). The ODS 97's overdrive; volume, treble, drive and OD level fitted (the volume ends at 10). ESR (pre-emphasised) 1.057 and MRSTFT 2.328 at the starting settings, 1.001 and 2.127 fitted."
     },
@@ -398,7 +416,9 @@
       },
       "targets": {
         "esr": 1.05,
-        "mrstft": 2.05
+        "mrstft": 2.05,
+        "harmonicsDb": 14.0,
+        "responseDb": 3.5
       },
       "notes": "Clone (stream F3). The ODS 97's overdrive; volume, treble, drive and OD level fitted. ESR (pre-emphasised) 0.973 and MRSTFT 1.986 at the starting settings, 0.986 and 1.931 fitted: the fit trades ESR for spectrum."
     },
@@ -455,7 +475,9 @@
       },
       "targets": {
         "esr": 1.2,
-        "mrstft": 2.15
+        "mrstft": 2.15,
+        "harmonicsDb": 18.5,
+        "responseDb": 12.0
       },
       "notes": "Soldano model, knobs and rig not stated: fitted, the calibration pinned at -20 dBu. Weak evidence."
     },
@@ -491,7 +513,9 @@
       },
       "targets": {
         "esr": 1.2,
-        "mrstft": 2.5
+        "mrstft": 2.5,
+        "harmonicsDb": 16.5,
+        "responseDb": 10.0
       },
       "notes": "Soldano model, knobs and rig not stated: fitted, most at the fit bounds, the calibration pinned at -20 dBu, a strong low-frequency bump: probably not a direct SLO-100 output. Weak evidence."
     },
@@ -528,7 +552,9 @@
       },
       "targets": {
         "esr": 0.42,
-        "mrstft": 1.0
+        "mrstft": 1.0,
+        "harmonicsDb": 9.5,
+        "responseDb": 1.5
       },
       "notes": "Knobs not stated: treble, bass, middle and volume chosen by fitting the small-signal response (0.8 dB RMS, 80 Hz-8 kHz); the strong top-end lift is the bright cap at a low volume. Calibration fits at the -20 dBu edge: the circuit's first stage makes about 18 dB more second harmonic than the capture at equal volts, which no Twin volume reconciles with the bright-cap response; see docs/06 F1 as-built. Achieved (2026-10): ESRpre 0.365, ESR 0.123, MRSTFT 0.871 (Blackface type before: 0.571 / 0.300 / 0.867)."
     },
@@ -566,7 +592,9 @@
       },
       "targets": {
         "esr": 0.7,
-        "mrstft": 1.05
+        "mrstft": 1.05,
+        "harmonicsDb": 12.0,
+        "responseDb": 2.0
       },
       "notes": "Vibrato channel (V4B and the reverb mix divider). Knobs not stated: chosen by the small-signal response fit (1.1 dB RMS). Achieved (2026-10): ESRpre 0.599, ESR 0.238, MRSTFT 0.899 (Blackface type before: 0.496 / 0.205 / 0.781; the Blackface lacks the third stage but its fit settled at a lower calibration)."
     },
@@ -599,7 +627,9 @@
       },
       "targets": {
         "esr": 0.35,
-        "mrstft": 0.95
+        "mrstft": 0.95,
+        "harmonicsDb": 20.0,
+        "responseDb": 2.0
       },
       "notes": "JCM900 4502 type, channel A gain 4; master, tone and presence not stated (left at 5). Achieved (2026-10): ESRpre 0.296, ESR 0.079, MRSTFT 0.783 (Plexi stand-in before: 0.603 / 0.232 / 1.006)."
     },
@@ -632,7 +662,9 @@
       },
       "targets": {
         "esr": 0.5,
-        "mrstft": 1.1
+        "mrstft": 1.1,
+        "harmonicsDb": 20.0,
+        "responseDb": 2.0
       },
       "notes": "JCM900 4502 type, channel A gain 6; master, tone and presence not stated (left at 5). Achieved (2026-10): ESRpre 0.406, ESR 0.125, MRSTFT 0.94 (Plexi stand-in before: 0.548 / 0.179 / 1.048)."
     },
@@ -665,7 +697,9 @@
       },
       "targets": {
         "esr": 0.7,
-        "mrstft": 1.2
+        "mrstft": 1.2,
+        "harmonicsDb": 14.0,
+        "responseDb": 2.5
       },
       "notes": "JCM900 4502 type, channel A gain 8; master, tone and presence not stated (left at 5). Achieved (2026-10): ESRpre 0.602, ESR 0.181, MRSTFT 1.006 (Plexi stand-in before: 0.565 / 0.19 / 1.195)."
     },
@@ -698,7 +732,9 @@
       },
       "targets": {
         "esr": 0.95,
-        "mrstft": 1.3
+        "mrstft": 1.3,
+        "harmonicsDb": 9.5,
+        "responseDb": 2.5
       },
       "notes": "JCM900 4502 type, channel A gain 10; master, tone and presence not stated (left at 5). Achieved (2026-10): ESRpre 0.826, ESR 0.205, MRSTFT 1.107 (Plexi stand-in before: 0.937 / 0.291 / 1.215)."
     },
@@ -732,7 +768,9 @@
       },
       "targets": {
         "esr": 0.55,
-        "mrstft": 1.0
+        "mrstft": 1.0,
+        "harmonicsDb": 15.0,
+        "responseDb": 4.5
       },
       "notes": "JCM900 4502 type, channel B gain 8 of 20 (knob 4 of 10); master, tone and presence not stated (left at 5). Achieved (2026-10): ESRpre 0.458, ESR 0.089, MRSTFT 0.869 (Plexi stand-in before: 0.869 / 0.242 / 1.169)."
     },
@@ -766,7 +804,9 @@
       },
       "targets": {
         "esr": 0.75,
-        "mrstft": 1.25
+        "mrstft": 1.25,
+        "harmonicsDb": 10.5,
+        "responseDb": 2.5
       },
       "notes": "JCM900 4502 type, channel B gain 12 of 20 (knob 6 of 10); master, tone and presence not stated (left at 5). Achieved (2026-10): ESRpre 0.625, ESR 0.224, MRSTFT 1.072 (Plexi stand-in before: 1.106 / 0.374 / 1.339)."
     },
@@ -800,7 +840,9 @@
       },
       "targets": {
         "esr": 0.8,
-        "mrstft": 1.4
+        "mrstft": 1.4,
+        "harmonicsDb": 11.0,
+        "responseDb": 1.5
       },
       "notes": "JCM900 4502 type, channel B gain 16 of 20 (knob 8 of 10); master, tone and presence not stated (left at 5). Achieved (2026-10): ESRpre 0.691, ESR 0.34, MRSTFT 1.205 (Plexi stand-in before: 1.098 / 0.504 / 1.509)."
     },
@@ -834,7 +876,9 @@
       },
       "targets": {
         "esr": 0.95,
-        "mrstft": 1.55
+        "mrstft": 1.55,
+        "harmonicsDb": 9.5,
+        "responseDb": 2.0
       },
       "notes": "JCM900 4502 type, channel B gain 20 of 20 (knob 10 of 10); master, tone and presence not stated (left at 5). Achieved (2026-10): ESRpre 0.788, ESR 0.411, MRSTFT 1.341 (Plexi stand-in before: 1.187 / 0.535 / 1.373)."
     },
@@ -869,7 +913,9 @@
       },
       "targets": {
         "esr": 1.0,
-        "mrstft": 1.9
+        "mrstft": 1.9,
+        "harmonicsDb": 13.0,
+        "responseDb": 7.0
       },
       "notes": "AC15 Top Boost (2 x EL84); closest type the AC30's Brilliant channel with the JMI top boost (4 x EL84); the AC15 type has no top-boost channel. The knobs are not stated: gain, treble, bass and cut were fitted (ToleranceFit at 12 dBu with an input trim, which the matcher's calibration fit replaces: -2.4 dBu, off the range's edge; the fit wants the volume full, the bass off and the cut full). Stream F3: ESR (pre-emphasised) 1.114 and MRSTFT 1.776 against the old AC30; 0.896 and 1.693 here. Phillipe P's other AC15 files (JonAr1-4) have no stated settings and are left out."
     },
@@ -904,7 +950,9 @@
       },
       "targets": {
         "esr": 0.55,
-        "mrstft": 1.17
+        "mrstft": 1.17,
+        "harmonicsDb": 14.0,
+        "responseDb": 9.0
       },
       "notes": "Laney GH100L drive channel (stream F2); knobs not stated, so gain, drive (control1) and master were fitted with `fit` at +8 dBu; Lo is the Low input (switch1) (docs/06 §3.2 as built). MRSTFT target 1.15 to 1.17 after the datasheet tube refits (#86): 1.157 at the fitted knobs, and a refit does not improve it (ESR rises to 0.623)."
     },
@@ -939,7 +987,9 @@
       },
       "targets": {
         "esr": 1.15,
-        "mrstft": 1.45
+        "mrstft": 1.45,
+        "harmonicsDb": 11.0,
+        "responseDb": 5.5
       },
       "notes": "Laney GH100L drive channel (stream F2); knobs not stated, so gain, drive (control1) and master were fitted with `fit` at +8 dBu; Lo is the Low input (switch1) (docs/06 §3.2 as built). Refitted after the 12AX7/12AT7/EL34 datasheet refits (#86) moved the voicing: gain 7.5, drive 2, master 4.1 gave ESR (pre-emphasised) 1.181 against the target 1.15; refitted 1.012 and MRSTFT 1.302."
     },
@@ -973,7 +1023,9 @@
       },
       "targets": {
         "esr": 1.0,
-        "mrstft": 1.3
+        "mrstft": 1.3,
+        "harmonicsDb": 11.0,
+        "responseDb": 5.0
       },
       "notes": "Laney GH100L drive channel (stream F2); knobs not stated, so gain, drive (control1) and master were fitted with `fit` at +8 dBu (docs/06 §3.2 as built)."
     },
@@ -1008,7 +1060,9 @@
       },
       "targets": {
         "esr": 1.0,
-        "mrstft": 1.1
+        "mrstft": 1.1,
+        "harmonicsDb": 13.5,
+        "responseDb": 4.0
       },
       "notes": "Knobs not stated: Pre Gain, Post Gain, Bass and Treble fitted, the bias within tolerance."
     },
@@ -1044,7 +1098,9 @@
       },
       "targets": {
         "esr": 1.0,
-        "mrstft": 1.25
+        "mrstft": 1.25,
+        "harmonicsDb": 9.5,
+        "responseDb": 3.0
       },
       "notes": "Knobs not stated: Pre Gain, Post Gain, Bass and Treble fitted, the bias within tolerance. The 6505+ adds a few changes to the 5150 circuit modelled here."
     },
@@ -1080,7 +1136,9 @@
       },
       "targets": {
         "esr": 0.95,
-        "mrstft": 1.65
+        "mrstft": 1.65,
+        "harmonicsDb": 30.0,
+        "responseDb": 8.5
       },
       "notes": "Knobs not stated: Lead Gain, Lead Drive, Lead Master, Master, Bass and Treble fitted (several at the fit bounds 3 and 8); the channel is assumed to be the lead."
     },
@@ -1719,7 +1777,9 @@
       },
       "targets": {
         "esr": 1.0,
-        "mrstft": 2.2
+        "mrstft": 2.2,
+        "harmonicsDb": 8.0,
+        "responseDb": 3.5
       },
       "notes": "Knob settings not stated: all eight knobs fitted to the capture (docs/07); several end at a bound, so the residual is structural. The Prometheus circuit is inferred, not from a schematic."
     },
@@ -1762,7 +1822,9 @@
       },
       "targets": {
         "esr": 1.0,
-        "mrstft": 2.2
+        "mrstft": 2.2,
+        "harmonicsDb": 7.5,
+        "responseDb": 3.5
       },
       "notes": "Knob settings not stated: all eight knobs fitted to the capture (docs/07); several end at a bound, so the residual is structural. The Prometheus circuit is inferred, not from a schematic."
     },
@@ -1804,7 +1866,9 @@
       },
       "targets": {
         "esr": 1.0,
-        "mrstft": 2.2
+        "mrstft": 2.2,
+        "harmonicsDb": 9.0,
+        "responseDb": 2.5
       },
       "notes": "Knob settings not stated: all eight knobs fitted to the capture (docs/07); several end at a bound, so the residual is structural. The Prometheus circuit is inferred, not from a schematic."
     },
@@ -1846,7 +1910,9 @@
       },
       "targets": {
         "esr": 1.0,
-        "mrstft": 2.2
+        "mrstft": 2.2,
+        "harmonicsDb": 8.5,
+        "responseDb": 4.0
       },
       "notes": "Knob settings not stated: all eight knobs fitted to the capture (docs/07); several end at a bound, so the residual is structural. The Prometheus circuit is inferred, not from a schematic."
     },
@@ -1889,7 +1955,9 @@
       },
       "targets": {
         "esr": 0.2,
-        "mrstft": 1.0
+        "mrstft": 1.0,
+        "harmonicsDb": 12.0,
+        "responseDb": 1.5
       },
       "notes": "Knob settings not stated: Volume/EQ/Presence/Depth/Master fitted to the capture, then power-tube bias, Preamp Bias and Presence Freq within tolerance (docs/07). The Prometheus circuit is inferred, not from a schematic."
     }

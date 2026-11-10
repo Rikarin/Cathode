@@ -30,8 +30,65 @@ public sealed record MatchReport(
     MatchTargets? Targets,
     IReadOnlyList<string> Warnings
 ) {
-    /// <summary>True when there are targets and both ESR and MRSTFT meet them.</summary>
-    public bool? Pass => Targets is null ? null : EsrPreEmphasis <= Targets.Esr && Mrstft <= Targets.Mrstft;
+    /// <summary>
+    ///     Whether the match is within the entry's drift guard (<see cref="MatchTargets" />): ESR and MRSTFT, and the
+    ///     harmonic and response distances where the entry guards them. Null without targets. True says the model has
+    ///     not moved away from the capture, not that it matches it (<see cref="ShipTarget" />).
+    /// </summary>
+    public bool? Pass => Targets is null ? null : Drifted().Count == 0;
+
+    /// <summary>The measures outside the drift guard, each with its target; empty when within it.</summary>
+    public IReadOnlyList<string> Drifted() {
+        var drifted = new List<string>();
+        if (Targets is null) {
+            return drifted;
+        }
+
+        // A measure that is not a number is outside its guard.
+        void Check(string name, double value, double? target, string format) {
+            if (target is { } limit && !(value <= limit)) {
+                drifted.Add(
+                    $"{name} {value.ToString(format, CultureInfo.InvariantCulture)} "
+                    + $"(target {limit.ToString(CultureInfo.InvariantCulture)})"
+                );
+            }
+        }
+
+        Check("ESR", EsrPreEmphasis, Targets.Esr, "0.000");
+        Check("MRSTFT", Mrstft, Targets.Mrstft, "0.000");
+        Check("harmonics", HarmonicDistanceDb, Targets.HarmonicsDb, "0.0 dB");
+        Check("response", ResponseRmsDb, Targets.ResponseDb, "0.0 dB");
+        return drifted;
+    }
+}
+
+/// <summary>
+///     The bar docs/06 §5.4 proposes for a model to ship, by pre-emphasised ESR: <see cref="Esr" /> on clean and crunch
+///     settings, <see cref="HighGainEsr" /> on high gain. The manifest's targets are drift guards far above it; this
+///     counts how many matches reach it, so a green capture-match run is not read as "the amps match the captures".
+/// </summary>
+public static class ShipTarget {
+    public const double Esr = 0.05;
+
+    public const double HighGainEsr = 0.15;
+
+    /// <summary>
+    ///     How many of <paramref name="matches" /> (each a match's pre-emphasised ESR and whether it is within its
+    ///     drift guard) reach the bar, in one line. The manifest does not say which captures are high gain, so both
+    ///     counts are of all of them.
+    /// </summary>
+    public static string Summary(IReadOnlyCollection<(double EsrPreEmphasis, bool WithinGuard)> matches) =>
+        string.Create(
+            CultureInfo.InvariantCulture,
+            $"docs/06 §5.4 ship target: {matches.Count(static m => m.EsrPreEmphasis <= Esr)} of {matches.Count} "
+            + $"matched captures at ESR ≤ {Esr} (the clean and crunch bar), "
+            + $"{matches.Count(static m => m.EsrPreEmphasis <= HighGainEsr)} at ESR ≤ {HighGainEsr} (the high-gain "
+            + $"bar); {matches.Count(static m => m.WithinGuard)} within their drift guard."
+        );
+
+    /// <summary><see cref="Summary(IReadOnlyCollection{ValueTuple{double, bool}})" /> of match reports.</summary>
+    public static string Summary(IEnumerable<MatchReport> reports) =>
+        Summary([..reports.Select(static r => (r.EsrPreEmphasis, r.Pass == true))]);
 }
 
 /// <summary>

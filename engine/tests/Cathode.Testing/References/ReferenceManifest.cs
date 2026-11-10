@@ -74,7 +74,9 @@ public sealed record ReferenceManifest(int Version, IReadOnlyList<ReferenceEntry
 /// <param name="Sha256">Hex SHA-256 of the file; null for local-only files not yet seen.</param>
 /// <param name="Size">File size in bytes, when known.</param>
 /// <param name="Circuit">The circuit amp type and settings to compare with; null if no type matches yet.</param>
-/// <param name="Targets">Pass thresholds for the reference test; the family streams tighten them.</param>
+/// <param name="Targets">
+///     The drift guard the reference test holds the circuit amp to; the family streams tighten it.
+/// </param>
 /// <param name="Notes">Caveats: what the capture is not, how the circuit settings were chosen.</param>
 public sealed record ReferenceEntry(
     string Id,
@@ -125,9 +127,28 @@ public sealed record ReferenceRig(string Output, string? Load, double? InputDbu,
 /// </param>
 public sealed record CircuitSettings(string Type, IReadOnlyDictionary<string, double>? Params);
 
-/// <param name="Esr">Largest passing pre-emphasised ESR.</param>
+/// <summary>
+///     A reference's drift guard: the largest distances its circuit amp may show. They are what the match measured when
+///     the entry was added plus a margin, so they catch a model that moves away from its capture; they do not say the
+///     model matches it (that is <see cref="ShipTarget" />).
+/// </summary>
+/// <param name="Esr">
+///     Largest passing pre-emphasised ESR. Silence scores 1.0, so a value near or above 1 guards nothing on its own.
+/// </param>
 /// <param name="Mrstft">Largest passing multi-resolution STFT distance.</param>
-public sealed record MatchTargets(double Esr, double Mrstft);
+/// <param name="HarmonicsDb">
+///     Largest passing harmonic distance (<see cref="MatchMetrics.HarmonicDistance" />), dB; null: not guarded.
+/// </param>
+/// <param name="ResponseDb">
+///     Largest passing small-signal response distance (<see cref="MatchMetrics.ResponseDistance" />), dB RMS; null: not
+///     guarded.
+/// </param>
+/// <remarks>
+///     The harmonic and response distances stay meaningful where a capture includes a cab or its settings are not
+///     known and the ESR is as large as the signal: a silent or linear model is far from the capture's harmonics, and a
+///     model with the wrong tone from its response.
+/// </remarks>
+public sealed record MatchTargets(double Esr, double Mrstft, double? HarmonicsDb = null, double? ResponseDb = null);
 
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,

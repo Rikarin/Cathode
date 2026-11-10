@@ -1,14 +1,28 @@
+using System.Globalization;
 using Cathode.Testing.References;
 
 namespace Cathode.References.Tests;
 
 /// <summary>
-///     Matches every reference that has circuit settings against the circuit amp, and holds it to the manifest's
-///     targets. References not in the local cache are skipped, since tests never download. The nightly workflow fetches
-///     the redistributable ones and sets <c>CATHODE_REFERENCES_REQUIRED=1</c>: then a redistributable reference that is
-///     missing (or a NAM one without <c>cth_nam</c>) fails instead of skipping; only the local-only (T3K) ones skip.
+///     A drift guard: matches every reference that has circuit settings against the circuit amp, and fails when a
+///     distance grows past the manifest's targets. The targets are what each match measured when its entry was added,
+///     plus a margin; most admit an ESR as large as the signal (silence scores 1.0), so passing here says the model has
+///     not moved away from the capture, not that it matches it. The bar for a match is docs/06 §5.4's
+///     (<see cref="ShipTarget" />), which <see cref="ReportVariable" /> lets a run count.
 /// </summary>
+/// <remarks>
+///     References not in the local cache are skipped, since tests never download. The nightly workflow fetches the
+///     redistributable ones and sets <c>CATHODE_REFERENCES_REQUIRED=1</c>: then a redistributable reference that is
+///     missing (or a NAM one without <c>cth_nam</c>) fails instead of skipping; only the local-only (T3K) ones skip.
+/// </remarks>
 public class ReferenceMatchTests(ITestOutputHelper output) {
+    /// <summary>
+    ///     A file each match appends a line to, when set: the id, the pre-emphasised ESR, MRSTFT, harmonic and response
+    ///     distances and whether the match is within its drift guard, separated by tabs. The nightly job counts from
+    ///     it how many captures reach the ship target (<c>cathode-references ship-target</c>).
+    /// </summary>
+    public const string ReportVariable = "CATHODE_REFERENCES_REPORT";
+
     public static TheoryData<string> Comparable =>
         new(Manifest.References.Where(static r => r.Circuit is not null).Select(static r => r.Id));
 
@@ -16,7 +30,7 @@ public class ReferenceMatchTests(ITestOutputHelper output) {
 
     [Theory]
     [MemberData(nameof(Comparable))]
-    public void Circuit_amp_meets_its_target_against_the_reference(string id) {
+    public void Circuit_amp_stays_within_its_drift_guard_against_the_reference(string id) {
         var entry = Manifest.Find(id);
         var cache = ReferenceCache.Default;
         var missing = cache.StateOf(entry) == ReferenceState.Missing;
@@ -41,10 +55,77 @@ public class ReferenceMatchTests(ITestOutputHelper output) {
             + $"{report.Mrstft:0.000}, "
             + $"harmonics {report.HarmonicDistanceDb:0.0} dB, response {report.ResponseRmsDb:0.0} dB"
         );
-        Assert.True(
-            report.Pass,
-            $"{id}: ESR {report.EsrPreEmphasis:0.000} (target {entry.Targets!.Esr}), MRSTFT {report.Mrstft:0.000} "
-            + $"(target {entry.Targets.Mrstft})"
+        if (Environment.GetEnvironmentVariable(ReportVariable) is { Length: > 0 } file) {
+            File.AppendAllText(
+                file,
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{id}\t{report.EsrPreEmphasis:0.000}\t{report.Mrstft:0.000}\t{report.HarmonicDistanceDb:0.0}\t"
+                    + $"{report.ResponseRmsDb:0.0}\t{(report.Pass == true ? "within" : "drifted")}\n"
+                )
+            );
+        }
+
+        Assert.True(report.Pass, $"{id} has drifted from its reference: {string.Join(", ", report.Drifted())}");
+    }
+
+    [Fact]
+    public void The_drift_guard_holds_every_measure_the_entry_guards() {
+        var targets = new MatchTargets(1.2, 2.0, 12, 3);
+
+        Assert.True(Report(1.1, 1.9, 11, 2.9, targets).Pass);
+        Assert.False(Report(1.3, 1.9, 11, 2.9, targets).Pass);
+        Assert.False(Report(1.1, 2.1, 11, 2.9, targets).Pass);
+        Assert.Equal(["harmonics 40.0 dB (target 12)"], Report(1.0, 1.9, 40, 2.9, targets).Drifted());
+        Assert.Equal(["response 6.0 dB (target 3)"], Report(1.0, 1.9, 11, 6, targets).Drifted());
+        Assert.False(Report(double.NaN, 1.9, 11, 2.9, targets).Pass);
+
+        // Without the harmonic and response guards, ESR and MRSTFT alone decide; without targets, nothing does.
+        Assert.True(Report(1.0, 1.9, 40, 6, new(1.2, 2.0)).Pass);
+        Assert.Null(Report(1.0, 1.9, 40, 6, null).Pass);
+    }
+
+    [Fact]
+    public void The_ship_target_counts_matches_by_their_esr() {
+        var guard = new MatchTargets(1.2, 2.0);
+        MatchReport[] reports = [
+            Report(0.04, 0.5, 3, 1, guard), Report(0.12, 0.8, 5, 1, guard), Report(0.9, 1.5, 9, 2, guard),
+            Report(1.3, 1.5, 9, 2, guard)
+        ];
+
+        Assert.Equal(
+            "docs/06 §5.4 ship target: 1 of 4 matched captures at ESR ≤ 0.05 (the clean and crunch bar), 2 at ESR ≤ "
+            + "0.15 (the high-gain bar); 3 within their drift guard.",
+            ShipTarget.Summary(reports)
         );
     }
+
+    static MatchReport Report(double esr, double mrstft, double harmonics, double response, MatchTargets? targets) =>
+        new(
+            "id",
+            "amp",
+            "GPL-3.0",
+            "test",
+            null,
+            "circuit",
+            48_000,
+            0,
+            false,
+            0,
+            0,
+            false,
+            esr,
+            esr,
+            mrstft,
+            [],
+            [],
+            [],
+            harmonics,
+            [],
+            [],
+            [],
+            response,
+            targets,
+            []
+        );
 }
