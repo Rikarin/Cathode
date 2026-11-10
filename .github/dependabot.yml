@@ -1,0 +1,9 @@
+# Keeps engine/global.json on the current .NET SDK. CI installs exactly the SDK it names, and a release carries that
+# SDK's runtime and ASP.NET Core (docs/10-releases.md, "The .NET runtime in a release"), so a servicing release
+# reaches users only once this version moves. release.yml refuses a tag that is behind.
+version: 2
+updates:
+  - package-ecosystem: dotnet-sdk
+    directory: /engine
+    schedule:
+      interval: weekly

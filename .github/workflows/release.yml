@@ -56,6 +56,11 @@ jobs:
             echo "::error::$TAG points at $GITHUB_SHA, which is not on master; tag a commit on master"
             exit 1
           fi
+      # CI installs exactly the SDK engine/global.json names, and the server and the host carry that SDK's .NET
+      # runtime and ASP.NET Core. A release does not ship last month's: servicing releases are mostly security fixes,
+      # and the server listens on the network (docs/10-releases.md, "The .NET runtime in a release").
+      - name: The .NET SDK is the current servicing release
+        run: .github/actions/setup-dotnet/sdk-is-current.sh
 
   desktop:
     strategy:

@@ -63,6 +63,21 @@ Without a tag, builds use the defaults in `editor/package.json` and `engine/Dire
 
 Before tagging, add the release's section to [`CHANGELOG.md`](../CHANGELOG.md).
 
+### The .NET runtime in a release
+
+CI installs exactly the SDK that [`engine/global.json`](../engine/global.json) names: `dotnet-install --jsonfile`
+reads `sdk.version` and ignores `rollForward`, which only chooses among the SDKs on a developer's machine.
+cathode-server is published self-contained and cathode-host as NativeAOT, so both carry the .NET runtime and ASP.NET
+Core that SDK came with. Microsoft's monthly servicing releases are mostly security fixes, many of them in Kestrel,
+and cathode-server listens on the network, so a release is built with the current one:
+
+- Before tagging, set `sdk.version` in `engine/global.json` to the latest SDK of its .NET version
+  (<https://dotnet.microsoft.com/download/dotnet/10.0>). Dependabot opens a pull request when one is out
+  ([`.github/dependabot.yml`](../.github/dependabot.yml), the `dotnet-sdk` ecosystem).
+- `release.yml` checks it on a tag
+  ([`sdk-is-current.sh`](../.github/actions/setup-dotnet/sdk-is-current.sh)): a tag whose `global.json` is behind
+  the latest SDK is not published, and the message names the version to set.
+
 ### The preset format
 
 Presets carry `schemaVersion` (`Preset.CurrentSchemaVersion`, 1 since 1.0). Every place that reads a stored preset
