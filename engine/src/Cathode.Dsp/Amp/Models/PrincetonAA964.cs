@@ -23,9 +23,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///         The feedback returns to V1B's cathode, so its gain from cathode to plate (about 55 over the 47 Ω, as
 ///         measured on the Princeton Reverb's identical V3B) is folded into the feedback's tap gain (see
 ///         <see cref="PrincetonReverb" />).
-///         Unverified: the output transformer (125A10B, taken as the Deluxe's 6.6k : 8 Ω as for the Princeton Reverb),
-///         the 6V6 idle current (22 mA), the supply's source resistance; the 10" speaker is the 1 × 12 preset, as on
-///         the Princeton Reverb.
+///         The output transformer (125A10B) is 8.5k : 8 Ω, Hammond's figure for its replacement, as on the Princeton
+///         Reverb. Unverified: the 6V6 idle current (22 mA), the supply's source resistance; the 10" speaker is the
+///         1 × 12 preset, as on the Princeton Reverb.
 ///     </para>
 /// </remarks>
 public static class PrincetonAA964 {
@@ -66,7 +66,7 @@ public static class PrincetonAA964 {
             new(1e6, PotTaper.Linear),
             new(CathodeGain, 2.7e3, 47, new(1e3, PotTaper.Linear), 1e-12),
             true,
-            new(6.6e3),
+            new(8.5e3),
             SpeakerDesign.OpenBack1x12,
             new(150, 20e-6, 1e3, 20e-6, 36e3, 20e-6, 3.5e-3, RectifierModel.GZ34)
         ) { BiasTremolo = Tremolo },

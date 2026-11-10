@@ -129,6 +129,18 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
         }
     }
 
+    /// <summary>
+    ///     The push-pull Princetons' 125A10B is 8.5k plate to plate (Hammond's figure for its replacement, the 1750E),
+    ///     not the Deluxe Reverb's 6.6k 125A1A.
+    /// </summary>
+    [Theory]
+    [InlineData("Princeton Reverb")]
+    [InlineData("Princeton AA964")]
+    public void The_princetons_output_transformer_is_the_125A10Bs_8500_ohms(string model) {
+        Assert.Equal(8.5e3, Design(model).Power.Transformer.PlateToPlate);
+        Assert.Equal(6.6e3, Design("Deluxe Reverb").Power.Transformer.PlateToPlate);
+    }
+
     [Theory]
     [InlineData("Hot Rod Deluxe", CircuitAmpBlock.Switch2)]
     [InlineData("Vibro-King", CircuitAmpBlock.Switch1)]
