@@ -42,8 +42,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///         master 5, with room to spare.
 ///     </para>
 ///     <para>
-///         Guesses and simplifications, marked: the preamp rails carry no voltages on the drawing (here 400 V for V5
-///         and V6, 410 V for V7, 420 V for the inverter, from the chain above); Hi mode is taken as the energised
+///         Guesses and simplifications, marked: the preamp rails carry no voltages on the drawing (here the chain's own
+///         rest voltages at its assumed draws: 410 V at CE10 for V7 and the inverter, 396 V at CE3 for V6B, 374 V and
+///         366 V on the two assumed nodes for V5B and V6A, and V5A); Hi mode is taken as the energised
 ///         position of the "Gain" relays RE3 and RE4 (the hotter divider and the Hi Lead volume; one Lead Volume knob
 ///         here for both); the low/high lead bright switches S3/S4 (330k + 680k from the bass pot's top into the
 ///         volume) are off; the parallel loop is empty with its balance fully dry (the 10k series only). Left out: the
@@ -57,11 +58,20 @@ namespace Cathode.Dsp.Amp.Models;
 ///     </para>
 /// </remarks>
 public static class Powerball {
+    // The rails at rest, from the chain at its assumed draws (the drawing prints none below the screens): CE10, the
+    // inverter and V7, 436.5 V at the screens' CE9 less 4.4k × 6 mA; CE3 (V6B) less 4.7k × 3 mA; the first assumed
+    // node (V5B, V6A) less 10k × 2.25 mA; the second (V5A) less 10k × 0.75 mA. They were once taken as 420 V for the
+    // inverter, 410 V for V7 on the same node, and 400 V for V5 and V6 on three different nodes (#296).
+    const double InverterRail = 410;
+    const double V6BRail = 396;
+    const double SecondRail = 374;
+    const double V5ARail = 366;
+
     public static AmpDesign Design { get; } = new(
         "Powerball",
         [
             new NetworkStageDesign("V5A", InputAndGain()) { SupplyNode = 3 },
-            new TriodeStageDesign("V5B", TriodeModel.Ecc83, 400, 100e3, 1.5e3, 22e-6) { SupplyNode = 2 },
+            new TriodeStageDesign("V5B", TriodeModel.Ecc83, SecondRail, 100e3, 1.5e3, 22e-6) { SupplyNode = 2 },
             new NetworkStageDesign("V6A", ThirdStage()) { SupplyNode = 2 },
             new NetworkStageDesign("V6B", FourthStage()) { SupplyNode = 1 },
             new NetworkStageDesign("Stack", LeadStack()) { SupplyNode = 1 },
@@ -79,7 +89,7 @@ public static class Powerball {
             0,
             100,
             // The 22k tail stands on the 4.7k feedback shunt: 26.7k from the bias junction to ground.
-            new LongTailPairDesign(TriodeModel.Ecc83, 420, 82e3, 100e3, 26.7e3, 470),
+            new LongTailPairDesign(TriodeModel.Ecc83, InverterRail, 82e3, 100e3, 26.7e3, 470),
             47e-9,
             330e3,
             2.2e3,
@@ -128,7 +138,7 @@ public static class Powerball {
         var (supply, plate, cathode, coupled, clean, top) =
             (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
         net.Resistor(net.Input, StageNetlist.Ground, 1e6);
-        net.Supply(supply, 400);
+        net.Supply(supply, V5ARail);
         net.Resistor(supply, plate, 100e3);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1e3);
         net.Capacitor(cathode, StageNetlist.Ground, 22e-6);
@@ -160,7 +170,7 @@ public static class Powerball {
         net.Resistor(hi, StageNetlist.Ground, 470e3);
         net.SwitchedResistor(lo, grid, 1, 0, SwitchRole.Switch2);
         net.SwitchedResistor(hi, grid, 0, 1, SwitchRole.Switch2);
-        net.Supply(supply, 400);
+        net.Supply(supply, SecondRail);
         net.Resistor(supply, plate, 330e3);
         net.CathodeResistor(cathode, StageNetlist.Ground, 3.3e3);
         net.Capacitor(cathode, StageNetlist.Ground, 1e-6);
@@ -176,7 +186,7 @@ public static class Powerball {
         net.Capacitor(net.Input, coupled, 47e-9);
         net.Resistor(coupled, grid, 220e3);
         net.Resistor(grid, StageNetlist.Ground, 1e6);
-        net.Supply(supply, 400);
+        net.Supply(supply, V6BRail);
         net.Resistor(supply, plate, 100e3);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
         net.Capacitor(cathode, StageNetlist.Ground, 22e-6);
@@ -231,7 +241,7 @@ public static class Powerball {
             (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
         net.Resistor(net.Input, grid, 220e3);
         net.Resistor(grid, StageNetlist.Ground, 100e3);
-        net.Supply(supply, 410);
+        net.Supply(supply, InverterRail);
         net.Resistor(supply, plate, 100e3);
         net.Capacitor(supply, plate, 10e-9);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1e3);
@@ -247,7 +257,7 @@ public static class Powerball {
     static StageNetlist ReturnAndMaster() {
         var net = new StageNetlist();
         var (supply, plate, cathode, coupled, top) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(supply, 410);
+        net.Supply(supply, InverterRail);
         net.Resistor(supply, plate, 100e3);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
         net.Capacitor(cathode, StageNetlist.Ground, 22e-6);

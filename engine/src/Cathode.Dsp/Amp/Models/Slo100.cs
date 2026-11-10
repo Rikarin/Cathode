@@ -26,7 +26,7 @@ namespace Cathode.Dsp.Amp.Models;
 ///         (the 1996 drawing below has the whole node, and the model follows it); the redraw wires the
 ///         middle pot with its cap on the wiper, here it is the usual Marshall rheostat; the redraw has no grid stopper
 ///         or leak on the cold clipper (docs/06's 220k and 330k are the next stage's). The power amp is not
-///         on the redraw: inverter plates 82k/100k, 220k power-grid leaks, 470 V B+, 40 mA idle, a 4.7k feedback
+///         on the redraw: inverter plates 82k/100k, 220k power-grid leaks, 40 mA idle, a 4.7k feedback
 ///         shunt and 25k presence pot with 0.1 µF, and the 2.2k primary (Robinette, unverified) are typical values,
 ///         not readings. The inverter's grid current (<see cref="InverterInputDesign" />) is left out: it costs 1.7 %
 ///         of a core.
@@ -36,8 +36,10 @@ namespace Cathode.Dsp.Amp.Models;
 ///         screens to B2 (378 V, 40 µF: the stage after the cold clipper, the followers, the return stage and the
 ///         inverter), and from B2 R61 15k to B4 (359 V, 10 µF: the input stage, and the normal channel's first) and R62
 ///         15k to B3 (350 V, 10 µF: the overdrive gain stage and the cold clipper). Each node draws what its drawn
-///         voltage drops across its resistor (B2 11.7 mA in all). That drawing puts the plates at 497 V; the model
-///         keeps 470 V.
+///         voltage drops across its resistor (B2 11.7 mA in all). B+ is that drawing's 497 V at the plates, which
+///         with these draws rests the screens at 495 V and B2, B4 and B3 within a volt of the drawn 378, 359 and 350
+///         V, the rails the stages are built for (380, 360 and 350 V). It was once kept at 470 V, which left B2 near
+///         351 V under stages built for 380 V (#296).
 ///     </para>
 ///     <para>
 ///         The normal channel (Switch 1, with Switch 2 for Crunch and the Bright switch) is read from the
@@ -142,7 +144,7 @@ public static class Slo100 {
             "4 x 6L6GC",
             PentodeModel.SixL6GC,
             2,
-            470,
+            497,
             1e3,
             0.04,
             false,

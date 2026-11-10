@@ -10,7 +10,8 @@ namespace Cathode.Dsp.Tests;
 ///     took their drawings' preamp draws and filter caps; their inverter tables did not move; the Powerball's render
 ///     again when its inverter's grid leak was corrected to the drawing's 100k; the tables and renders of the SLO-100,
 ///     5150, 5150III, Rect-o-Verb, Powerball, Savage 120, Mark IIC+ and Mark IV when their tails took in the feedback
-///     shunt they stand on, #200). The hashes are macOS ARM64 renders, so the test runs there only
+///     shunt they stand on, #200; the SLO-100's render at the drawing's 497 V and the Powerball's table and render with
+///     its inverter on its chain's 410 V, #296). The hashes are macOS ARM64 renders, so the test runs there only
 ///     (<see cref="BaselinePlatform" />).
 /// </summary>
 public class InverterBitIdentityTests(ITestOutputHelper output) {
@@ -36,7 +37,7 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         { "Bassman 5F6-A Jumped", (0x198AF1CECAF0406C, 0xB398A79890A66813) },
         { "Tweed Deluxe 5E3", (0x751704F24D4270C5, 0x838AB22CAAE5B68B) },
         { "Tweed Deluxe 5E3 Jumped", (0x751704F24D4270C5, 0x838AB22CAAE5B68B) },
-        { "SLO-100", (0x9E76F230EA59D180, 0xEF18404635B7A7F8) },
+        { "SLO-100", (0x9E76F230EA59D180, 0x0FFF130FC597AECC) },
         { "Mark IIC+", (0x9F72DE98C1AB2887, 0x1AB5D894D835046E) },
         { "5150", (0x8C9B83B274B605CD, 0x6C3F1D47FD770F99) },
         { "Dual Rectifier", (0x626AC8FABA73BCDB, 0xFC58CA1C580ED32A) },
@@ -51,7 +52,7 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         { "Mark V", (0x3DA801BA1355FEFD, 0x78933BBAB444EB1F) },
         { "Rect-o-Verb", (0xB778F3CB9BA94445, 0xC13EFBAA3265359F) },
         { "Triple Rectifier", (0xA743C4E16D9DAC79, 0x5B11C2A97AF5269A) },
-        { "Powerball", (0xD0DE5DA892FC10DB, 0x0247AC35402D9F00) },
+        { "Powerball", (0xD08441B5791E9BF4, 0x908463D95637B05E) },
         { "Savage 120", (0x56D6501E365C1725, 0xE60E3DD7553D7DC2) },
         { "SVT", (0xD1764C0CC01C37B0, 0x1D8F66AC6688D267) },
         { "Portaflex B-15N", (0x76788BF6655480E6, 0x375A6E0DDFCC5DBB) },
