@@ -174,7 +174,7 @@ public sealed partial class LiveRig {
         Locked(() => {
                 PushUndo(null);
                 var scene = preset.Scenes[activeScene];
-                scene.Level = Math.Clamp(scene.Level + deltaDb, -60f, 12f);
+                scene.Level = ClampSceneLevel(scene.Level + deltaDb);
                 engine.SetParams(generation, SceneValues());
                 Changed("sceneUpdated", scene: activeScene);
                 return Task.FromResult(SaveWorkingCopy());

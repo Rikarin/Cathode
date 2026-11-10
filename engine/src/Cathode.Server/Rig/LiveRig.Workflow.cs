@@ -405,13 +405,16 @@ public sealed partial class LiveRig {
     ///     Replaces the working copy's content with <paramref name="next" />, keeping its identity, as one undoable
     ///     edit. Editors use it to switch between A/B compare snapshots. The content is everything a preset stores
     ///     but its identity and library metadata (id, schema, factory flag, colour, favourite): grid, scenes, tempo,
-    ///     modifiers, controller settings, performance page, footswitch overrides and saved scene, each validated as
-    ///     its own endpoint validates it.
+    ///     modifiers, controller settings, performance page, footswitch overrides and saved scene. Each part is held
+    ///     to what its own endpoint takes: modifiers, controller settings, the performance page, footswitch overrides,
+    ///     scene MIDI and scene channels are refused (400) when invalid; tempo, scene levels, scene controllers and
+    ///     the blocks' parameter values are brought into range (<see cref="SanitizeContent" />).
     /// </summary>
     public Task<LiveState> PutAsync(Preset next, long? expected) =>
         Locked(async () => {
                 Check(expected);
                 CheckShape(next);
+                SanitizeContent(next);
                 var modifierErrors = ModifierErrors(next, next.Modifiers);
                 if (modifierErrors.Count > 0) {
                     throw new RigException(400, "Some modifiers are invalid.", modifierErrors);

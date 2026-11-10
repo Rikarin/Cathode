@@ -198,7 +198,7 @@ public sealed partial class LiveRig {
     public Task<LiveState> SetTempoAsync(double bpm, long? expected) =>
         Locked(() => {
                 Check(expected);
-                var tempo = Math.Clamp(bpm, 30, 300);
+                var tempo = ClampTempo(bpm);
                 var global = globals.Get();
                 if (global.TempoMode == "global") {
                     globals.Update(g => g.Tempo = tempo);
