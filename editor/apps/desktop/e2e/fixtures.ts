@@ -7,10 +7,10 @@ import {
   expect
 } from '@playwright/test';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
-
-const main = resolve(__dirname, '../../../dist/apps/desktop/main.js');
+import { join } from 'node:path';
+import { launchTarget } from './target';
 
 /** The editor as a user sees it: the grid, the block picker and the selected block's page. */
 export class Editor {
@@ -67,7 +67,8 @@ export class Editor {
 /**
  * Each test gets a fresh app: throwaway settings and data, its own sidecars (null audio). `desktopSettings` starts it
  * with that settings.json instead of the defaults (a remote Server, say), and `launchArguments` with more on its
- * command line (a preset file, as the OS passes one).
+ * command line (a preset file, as the OS passes one). The app is the build under dist/, or the packaged one when
+ * CATHODE_PACKAGED is set (target.ts).
  */
 export const test = base.extend<{
   desktopSettings: object | null;
@@ -85,8 +86,10 @@ export const test = base.extend<{
       writeFileSync(join(scratch, 'user-data', 'settings.json'), JSON.stringify(desktopSettings));
     }
 
+    const target = launchTarget();
     const app = await electron.launch({
-      args: [main, ...launchArguments],
+      ...target,
+      args: [...target.args, ...launchArguments],
       env: {
         ...process.env,
         CATHODE_USER_DATA: join(scratch, 'user-data'),
@@ -103,7 +106,8 @@ export const test = base.extend<{
     rmSync(scratch, { recursive: true, force: true });
   },
   window: async ({ app }, use) => {
-    const window = await app.firstWindow();
+    // A packaged app's first start can take longer than Playwright's 30 s to show its window (packaged.spec.ts).
+    const window = await app.firstWindow({ timeout: 90_000 });
     // First start: the sidecars have to come up and the editor has to connect.
     await expect(window.getByRole('gridcell', { name: /^Input in1/ })).toBeVisible({ timeout: 90_000 });
     await use(window);
@@ -114,6 +118,18 @@ export const test = base.extend<{
 });
 
 export { expect };
+
+/** A TCP port nothing listens on, for a Server on the network. */
+export function freePort(): Promise<number> {
+  return new Promise((done, fail) => {
+    const probe = createServer();
+    probe.once('error', fail);
+    probe.listen(0, '0.0.0.0', () => {
+      const address = probe.address();
+      probe.close(() => (typeof address === 'object' && address ? done(address.port) : fail(new Error('No port'))));
+    });
+  });
+}
 
 function escape(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

@@ -10,17 +10,19 @@ Cathode ships two ways:
 ## Releasing
 
 Push a version tag: `git tag v1.2.3 && git push origin v1.2.3`. A tag with a suffix (`v1.2.3-rc.1`) is published as a
-prerelease. [`release.yml`](../.github/workflows/release.yml) then:
+prerelease. [`release.yml`](../.github/workflows/release.yml) first checks that the tag points at a commit on master,
+and builds nothing if it does not. Then it:
 
 1. Builds the desktop app on macOS, Windows and Linux (`pnpm dist`), each on its own OS since NativeAOT cannot
-   cross-compile.
+   cross-compile, and starts the packaged app on its runner (`CATHODE_PACKAGED=1`, `packaged.spec.ts` and
+   `sidecars.spec.ts`): it runs the engine in its `resources/engine`, the server reports the engine connected and
+   serves the editor, and quitting leaves no engine process behind.
 2. Builds the headless package on Linux x64 and Linux ARM64 runners (`packaging/headless/build.sh`), installs it on the
    runner with `install.sh` and checks it: the host passes `--self-test`, the services start, the server reports the
    engine connected, the web editor loads and the API refuses a request without the token. Then it uninstalls it.
 3. Runs the tagged commit's tests: [`engine.yml`](../.github/workflows/engine.yml) (the engine tests on three OSes and
    the NativeAOT host's self-test) and [`editor.yml`](../.github/workflows/editor.yml) (the generated API client,
-   type-check, lint, unit tests, Storybook and the desktop app's Playwright tests), called as reusable workflows, and
-   checks that the tag points at a commit on master.
+   type-check, lint, unit tests, Storybook and the desktop app's Playwright tests), called as reusable workflows.
 4. Only when all of that passes, publishes a GitHub release with every file, a `SHA256SUMS` and its attestation bundle
    `SHA256SUMS.sigstore.json`, with notes generated from the commits.
 
@@ -43,7 +45,12 @@ Either proves the file was built by this repository's `release.yml` from the tag
 (`--bundle` checks against the published bundle; without it `gh` fetches the attestation from GitHub.)
 
 Running the workflow by hand (Actions, release, Run workflow) builds everything as workflow artifacts without
-publishing. [`desktop.yml`](../.github/workflows/desktop.yml) still builds the desktop app on every push to master.
+publishing. Such a run can be started on any branch, so its builds get no signing secrets and no attestation. [`desktop.yml`](../.github/workflows/desktop.yml) still builds the desktop app on every push to master,
+and on a pull request that changes the desktop app's main process, its packaging scripts or the native build.
+A pull request that changes the engine's sources runs `editor.yml` too, for its Playwright tests of the desktop app
+against the real engine.
+
+### Signing
 
 Both packages carry Cathode's `LICENSE` and a `licenses` folder with
 [`THIRD-PARTY-NOTICES.md`](../THIRD-PARTY-NOTICES.md) and the licence texts of the third-party code in the binaries
@@ -51,6 +58,27 @@ Both packages carry Cathode's `LICENSE` and a `licenses` folder with
 
 Signing is optional (see the top of `release.yml`): without certificates, macOS builds are signed ad hoc and Windows
 builds are unsigned.
+
+The certificate and the Apple credentials are worth protecting from code that nobody reviewed, so the workflows hand
+them out narrowly:
+
+- `release.yml` builds nothing for a tag that is not on master, and passes the secrets to the desktop build only on a
+  release run (a `v*` tag on master). A manual run gets none.
+- `desktop.yml` passes them only when it builds master. A pull request or a manual run on another branch gets none.
+
+Those rules live in the workflow files, and a branch can carry its own copy of a workflow file. What a branch cannot
+change is a GitHub environment, so when you add the signing secrets, put them there and not in the repository's
+secrets:
+
+1. Settings, Environments, `release` (the first release run creates it; `release.yml`'s desktop jobs run in it on a
+   release run).
+2. Deployment branches and tags: selected, with the tag rule `v*`. Add required reviewers if a release should wait for
+   an approval.
+3. Add `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` as environment
+   secrets, and do not keep them as repository secrets.
+
+With the secrets in the environment only, `desktop.yml`'s builds of master are unsigned, which is all a workflow
+artifact needs.
 
 ### Versions
 

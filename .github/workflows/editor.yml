@@ -3,8 +3,16 @@ name: editor
 on:
   push:
     branches: [master]
+  # The e2e job drives the real engine host and Server, so a pull request that changes the engine's sources or how
+  # it builds runs it too, not only one that changes the editor.
   pull_request:
-    paths: ["editor/**", "engine/src/Cathode.Server/openapi.json", ".github/workflows/editor.yml"]
+    paths:
+      - "editor/**"
+      - "engine/src/**"
+      - "engine/Directory.*"
+      - "engine/global.json"
+      - ".github/actions/**"
+      - ".github/workflows/editor.yml"
   # release.yml runs these jobs on the tagged commit and publishes only when they pass. It passes no secrets, so
   # Chromatic is skipped there.
   workflow_call:
@@ -16,9 +24,16 @@ defaults:
   run:
     working-directory: editor
 
+# A new push to a pull request cancels the run it supersedes. Every other run (master, a tag, a manual run) has
+# a group of its own, so it is never cancelled or left waiting.
+concurrency:
+  group: editor-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
@@ -53,6 +68,7 @@ jobs:
   e2e:
     needs: test
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-dotnet

@@ -55,6 +55,14 @@ pnpm exec nx run-many -t typecheck
 pnpm exec nx e2e desktop
 ```
 
+The same tests against the packaged app (after `pnpm dist`, see Package below): `CATHODE_PACKAGED=1` launches the app
+left unpacked in `dist/release`, with the engine it carries, and un-skips `packaged.spec.ts`. CI runs that spec and
+`sidecars.spec.ts` this way on macOS, Windows and Linux after packaging:
+
+```bash
+CATHODE_PACKAGED=1 pnpm exec playwright test --config apps/desktop/e2e/playwright.config.ts packaged.spec.ts sidecars.spec.ts
+```
+
 ```bash
 pnpm exec nx test-storybook audio-ui
 ```

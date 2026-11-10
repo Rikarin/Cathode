@@ -187,6 +187,7 @@ Reference measurements must be **ours**, made on amps we have access to.
 | Component library | **Storybook** stories for `cth-knob`, `cth-meter`, `cth-grid` and others; interaction tests through `play`; **Chromatic** visual diffs in light and dark (the same setup xUI already uses) | visual regressions, states |
 | Accessibility | Storybook a11y addon + `@axe-core/playwright` | knobs need `role="slider"`, `aria-valuenow`, `aria-valuetext` ("−6.0 dB") and arrow, PageUp/Down and Home/End keys |
 | E2E | **Playwright `_electron.launch`**: real Electron + real Host/Server sidecars on the NullBackend; `xvfb-run` on Linux | build a preset from scratch, scenes and channels, modifier assignment, save, reload, undo/redo, IR upload, a remote-server connection |
+| Packaged app | The same Playwright suite with `CATHODE_PACKAGED=1`, which launches the app `pnpm dist` left unpacked in `dist/release` (`e2e/target.ts`); `desktop.yml` and `release.yml` run `packaged.spec.ts` and `sidecars.spec.ts` on macOS, Windows and Linux after packaging | the packaged app runs the engine in `resources/engine`, the Server serves the editor from `app.asar.unpacked`, quitting leaves no sidecar; the sidecar tests on each OS |
 | Perf | Playwright trace + a custom FPS probe | the grid at 6×14 full with meters at 60 Hz stays ≥ 55 fps; no CD cycles triggered by telemetry |
 
 *(verify)* that the Storybook Vitest addon supports Angular. If it does not, use the Storybook test-runner (Playwright).

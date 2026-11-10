@@ -4,7 +4,7 @@ on:
   push:
     branches: [master]
   pull_request:
-    paths: ["engine/**", ".github/workflows/engine.yml"]
+    paths: ["engine/**", ".github/actions/**", ".github/workflows/engine.yml"]
   # release.yml runs these jobs on the tagged commit and publishes only when they pass.
   workflow_call:
 
@@ -15,6 +15,12 @@ defaults:
   run:
     working-directory: engine
 
+# A new push to a pull request cancels the run it supersedes. Every other run (master, a tag, a manual run) has
+# a group of its own, so it is never cancelled or left waiting.
+concurrency:
+  group: engine-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   test:
     strategy:
@@ -22,6 +28,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 150 # the tests take 15 to 90 minutes, by runner
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-dotnet
@@ -58,6 +65,7 @@ jobs:
           - { os: macos-latest, rid: osx-arm64 }
           - { os: windows-latest, rid: win-x64 }
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup-dotnet
