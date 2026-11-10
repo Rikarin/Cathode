@@ -80,6 +80,9 @@ public sealed class AmpChannel {
     double sampleRate;
     PreampSettings preampSettings = PreampSettings.Stock;
     ChannelSettings channelSettings = ChannelSettings.Stock;
+    PowerSettings powerSettings = PowerSettings.Stock;
+    PowerControls powerControls;
+    bool powerMoved; // the Power Amp switch, a power setting or a power knob moved since the supply was last put at rest
 
     public AmpDesign Design { get; }
     public IReadOnlyList<AmpStage> Stages => stages;
@@ -238,6 +241,25 @@ public sealed class AmpChannel {
         Power.Configure(power);
         Power.ConfigureLoop(preamp);
         SolidState?.Configure(power);
+        powerMoved |= power.Bias != powerControls.Bias || power.Sag != powerControls.Sag; // the knobs the supply follows
+        powerControls = power;
+        if (powerMoved && !channelSettings.PowerAmp) {
+            RestPowerAmp();
+        }
+
+        powerMoved = false;
+    }
+
+    /// <summary>
+    ///     The power amp and its supply put at their operating point for the knobs and settings as they are, while the
+    ///     Power Amp switch is off: when it is thrown, and when Bias, Sag, Variac or another power setting moves after
+    ///     that. With the power amp off nothing steps the supply, which the preamp still reads: left where the playing
+    ///     had sagged it, the preamp would run on that voltage for as long as the switch stayed off.
+    /// </summary>
+    void RestPowerAmp() {
+        Power.Reset();
+        SolidState?.Reset();
+        UpdateSupplies();
     }
 
     /// <summary>
@@ -266,9 +288,12 @@ public sealed class AmpChannel {
 
         reset |= Power.Apply(power);
         SolidState?.Apply(power);
+        powerMoved |= power != powerSettings;
+        powerSettings = power;
         if (channel != channelSettings) {
             var cut = channel.LowCut != channelSettings.LowCut;
             var moved = channel.StackLocation != channelSettings.StackLocation;
+            powerMoved |= channel.PowerAmp != channelSettings.PowerAmp;
             channelSettings = channel;
             if (cut) {
                 DesignLowCut();

@@ -240,6 +240,48 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         Assert.Equal(idle, block.Channel.Power.PlateCurrents);
     }
 
+    /// <summary>
+    ///     With the power amp off nothing steps its supply, which the preamp still reads. Switched off while playing,
+    ///     the supply must not stay where the playing had sagged it: the preamp runs on the voltage at rest, as it
+    ///     does when the switch is thrown in silence, and the power amp comes back from rest too.
+    /// </summary>
+    [Fact]
+    public void Power_amp_switched_off_while_playing_leaves_the_preamp_on_the_supply_at_rest() {
+        using var block = new CircuitAmpBlock();
+        block.Params.SetTarget(CircuitAmpBlock.Type, AmpDesign.All.ToList().IndexOf(Plexi.Design));
+        block.Params.SetTarget(CircuitAmpBlock.Gain, 10);
+        block.Params.SetTarget(CircuitAmpBlock.Master, 10);
+        block.Params.SetTarget(CircuitAmpBlock.Sag, 10);
+        block.Prepare(new(Rate, 64));
+        var rest = (Node: block.Channel.Supplies[0], block.Channel.Power.Supply);
+        var sine = Signals.Sine(110, Rate, 96_000, 0.5f);
+        BlockRender.Mono(block, sine, 64);
+        var sagged = (Node: block.Channel.Supplies[0], block.Channel.Power.Supply);
+        Assert.True(sagged.Node < rest.Node - 0.02, $"the supply did not sag: {sagged.Node:0.0000}");
+
+        block.Params.SetTarget(CircuitAmpBlock.PowerAmpModel, 0);
+        BlockRender.Mono(block, sine.AsSpan(0, 24_000).ToArray(), 64);
+        var off = (Node: block.Channel.Supplies[0], block.Channel.Power.Supply);
+        output.WriteLine(
+            $"preamp node at rest {rest.Node:0.0000} (B+ {rest.Supply:0.0} V), playing {sagged.Node:0.0000} "
+            + $"({sagged.Supply:0.0} V), power amp off {off.Node:0.0000} ({off.Supply:0.0} V)"
+        );
+        Assert.Equal(rest.Node, off.Node, 1e-9);
+        Assert.Equal(rest.Supply, off.Supply, 1e-6);
+
+        // And a setting the supply follows still reaches the preamp while the power amp is off.
+        block.Params.SetTarget(CircuitAmpBlock.Variac, 70);
+        BlockRender.Mono(block, sine.AsSpan(0, 24_000).ToArray(), 64);
+        using var brown = new CircuitAmpBlock();
+        brown.Params.SetTarget(CircuitAmpBlock.Type, AmpDesign.All.ToList().IndexOf(Plexi.Design));
+        brown.Params.SetTarget(CircuitAmpBlock.Sag, 10);
+        brown.Params.SetTarget(CircuitAmpBlock.Variac, 70);
+        brown.Prepare(new(Rate, 64));
+        output.WriteLine($"Variac 70 % with the power amp off: B+ {block.Channel.Power.Supply:0.0} V");
+        Assert.Equal(brown.Channel.Power.Supply, block.Channel.Power.Supply, 1e-6);
+        Assert.True(block.Channel.Supplies[0] < 0.8 * rest.Node, "the preamp does not follow the Variac");
+    }
+
     [Fact]
     public void Input_select_takes_the_chosen_input() {
         static float[] Render(int select, bool silentLeft) {
