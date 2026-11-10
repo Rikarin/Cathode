@@ -35,7 +35,7 @@
     "@angular/cli": "~22.2.6",
     "@angular/compiler-cli": "~22.2.0",
     "@tailwindcss/postcss": "^4.3.3",
-    "@types/node": "^24.0.0",
+    "@types/node": "^26.6.6",
     "postcss": "^8.5.31",
     "prettier": "^3.9.10",
     "prettier-plugin-organize-imports": "^4.3.0",
