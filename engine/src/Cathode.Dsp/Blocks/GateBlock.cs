@@ -9,13 +9,16 @@ namespace Cathode.Dsp.Blocks;
 ///     gain computer: below the threshold, gain falls by (ratio - 1) dB per dB. Gain is smoothed in decibels, so the
 ///     release time means the same at any depth (in the linear domain, reaching -60 dB would take 7 time constants).
 ///     Gain opens with the attack time, is
-///     held for the hold time once the signal drops, then closes with the release time. It starts open, inside a hold
-///     window, so the first note is never touched while the detector catches up.
+///     held for the hold time once the signal drops, then closes with the release time. The hold starts when the
+///     signal falls under the threshold (the closing threshold on a Modern type); above it the gain follows the soft
+///     knee without waiting. It starts open, inside a hold window, so the first note is never touched while the
+///     detector catches up.
 ///     <para>
 ///         Types: the classic Expander and Gate, and their Modern versions, which add <see cref="HysteresisDb" /> of
 ///         hysteresis: once open, they stay open until the level falls that far below the threshold, so a note decaying
 ///         across the threshold never chatters. <b>Knee</b> (expanders) rounds the corner over 6 or 12 dB around the
-///         threshold.
+///         threshold; on the Modern Expander the hysteresis replaces the knee's lower half, and the gain stays at
+///         its value at the threshold until the gate closes.
 ///     </para>
 ///     Sidechain picks what the detector hears: the block's input, the grid input, another grid row
 ///     (a tap, <see cref="SideInputs.Taps" />) or one of the interface's inputs (<see cref="HardwareInputs" />), so a
@@ -205,8 +208,10 @@ public sealed class GateBlock() : DspBlock(Info), IDynamicsBlock {
             float targetDb;
             if (envelope >= threshold || (open && envelope >= closeThreshold)) {
                 open = true;
-                targetDb = knee > 0 && envelope >= threshold
-                    ? ExpanderGainDb(20f * MathF.Log10(envelope) - thresholdDb, slope, knee)
+                // The knee's upper half. A Modern type inside its hysteresis keeps the gain it has at the threshold,
+                // so a note decaying through the knee never gets louder on the way down.
+                targetDb = knee > 0
+                    ? ExpanderGainDb(Math.Max(0f, 20f * MathF.Log10(envelope) - thresholdDb), slope, knee)
                     : 0f;
                 holdRemaining = holdSamples;
             } else if (gate) {
@@ -224,8 +229,8 @@ public sealed class GateBlock() : DspBlock(Info), IDynamicsBlock {
 
             if (targetDb > gainDb) {
                 gainDb = targetDb + (gainDb - targetDb) * attack;
-            } else if (holdRemaining > 0) {
-                holdRemaining--;
+            } else if (!open && holdRemaining > 0) {
+                holdRemaining--; // the hold delays closing only: while open, the gain follows the knee
             } else {
                 gainDb = targetDb + (gainDb - targetDb) * release;
             }
