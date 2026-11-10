@@ -72,6 +72,26 @@ public class NamAmpBlockTests {
     }
 
     [Fact]
+    public void The_file_reader_and_the_core_agree_on_which_example_models_have_sizes() {
+        // The Server tells the editor whether a capture has sizes from the file alone (NamFile); the core is the
+        // authority. Upstream's examples hold both slimmable kinds (a container, a WaveNet) and five that are neither.
+        RequireNative();
+        var models = Directory.GetFiles(NamAssets.ModelsDirectory, "*.nam");
+        var slimmable = 0;
+
+        foreach (var path in models) {
+            using var model = NamModel.Load(path);
+            Assert.True(
+                model.Info.Slimmable == Cathode.Dsp.Capture.NamFile.IsSlimmable(path),
+                Path.GetFileName(path)
+            );
+            slimmable += model.Info.Slimmable ? 1 : 0;
+        }
+
+        Assert.InRange(slimmable, 3, models.Length - 1); // A2 and upstream's two slimmable examples at least
+    }
+
+    [Fact]
     public void Golden_comparison_detects_a_tenth_of_a_decibel() {
         // Guards against a golden test that passes vacuously (an earlier stimulus was digital silence).
         RequireNative();

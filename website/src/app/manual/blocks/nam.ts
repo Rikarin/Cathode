@@ -47,8 +47,8 @@ Files without the level, and AIDA-X models, are not changed. Turn it off to driv
 
     size: `Which size of the capture runs. A NAM A2 capture holds a full model and smaller ones in the same file:
 *Full* is the most accurate, *Lite* is the smallest and costs about a seventh of Full's CPU with a slightly less exact
-sound. Captures with one size (NAM A1 files, LSTM files, AIDA-X models) sound the same on either setting. Changing it
-rebuilds the rig, as changing a block does.`,
+sound. The editor shows Size only for a capture that has more than one: on the others (NAM A1 files, LSTM files,
+AIDA-X models) it does nothing. Changing it rebuilds the rig, as changing a block does.`,
 
     location: `Where the four tone knobs sit. *Post* equalises the capture's output: the tone changes, the distortion
 does not. *Pre* equalises your guitar before the capture, as a tone stack ahead of an amp's gain stages does: a boost

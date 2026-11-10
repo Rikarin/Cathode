@@ -42,6 +42,7 @@ import { EventStream, blockCpuText } from '../core/events';
 import { BlockPresetsStore } from '../state/block-presets.store';
 import { CatalogStore } from '../state/catalog.store';
 import { GlobalStore } from '../state/global.store';
+import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
 import { PreferencesStore } from '../state/preferences.store';
 import { UiStore } from '../state/ui.store';
@@ -49,6 +50,7 @@ import { AmpPanel } from './panels/amp-panel';
 import { isCabSlotParam } from './panels/cab';
 import { CabPanel } from './panels/cab-panel';
 import { CabResonanceHelper } from './panels/cab-resonance-helper';
+import { isHiddenCaptureParam } from './panels/capture';
 import { CompressorCurveTile } from './panels/compressor-curve-tile';
 import { isCustomTableParam } from './panels/custom-shifter';
 import { DynamicsPanel } from './panels/dynamics-panel';
@@ -534,6 +536,7 @@ export class BlockEditor {
   private readonly catalog = inject(CatalogStore);
 
   private readonly globals = inject(GlobalStore);
+  private readonly library = inject(LibraryStore);
 
   protected readonly channels = ChannelNames.map(c => ({ label: c, value: c }));
   /**
@@ -665,12 +668,15 @@ export class BlockEditor {
     const block = this.block();
     const params = this.info()?.params ?? [];
     const valueOf = (id: string) => (block ? this.live.valueOf(block, this.live.channelOf(block.id), id) : undefined);
+    const capture =
+      block?.type === 'nam' ? this.library.models().find(m => m.ref === block.assets['model']) : undefined;
     return labelledParams(
       params.filter(
         p =>
           p.id !== 'type' &&
           !(block?.type === 'pitch' && isCustomTableParam(p.id)) &&
           !(block?.type === 'cab' && isCabSlotParam(p.id)) &&
+          !(block?.type === 'nam' && isHiddenCaptureParam(p.id, capture)) &&
           isShown(params, p, valueOf)
       ),
       this.typeValue(),

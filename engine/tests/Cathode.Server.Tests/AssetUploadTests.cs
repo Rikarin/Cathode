@@ -118,6 +118,59 @@ public sealed class AssetUploadTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task A_nam_capture_says_whether_it_holds_more_than_one_size() {
+        var a2 = """{"architecture":"SlimmableContainer","config":{"submodels":[]}}"""u8.ToArray();
+        var a1 = """{"architecture":"WaveNet","config":{"layers":[{"channels":16}]}}"""u8.ToArray();
+
+        async Task<AssetInfo> Upload(string name, byte[] content) {
+            using var response = await client.PostAsync(
+                $"/api/v1/assets?name={name}",
+                new ByteArrayContent(content),
+                Token
+            );
+            return (await response.Content.ReadFromJsonAsync<AssetInfo>(Token))!;
+        }
+
+        Assert.True((await Upload("a2.nam", a2)).Slimmable);
+        Assert.False((await Upload("a1.nam", a1)).Slimmable);
+        Assert.Null(
+            (await Upload("model.aidax", [..a2, (byte)' '])).Slimmable
+        ); // other bytes: the store keeps one file per content
+        Assert.Null((await Upload("ir.wav", Wav(1, 1, 8, 4, [255, 200, 128, 128]))).Slimmable);
+    }
+
+    [Fact]
+    public async Task An_index_written_before_captures_recorded_their_sizes_gets_them_from_the_files() {
+        await using var old = new ServerFixture();
+        var folder = Directory.CreateDirectory(Path.Combine(old.DataDirectory, "assets")).FullName;
+        var content = """{"architecture":"SlimmableContainer","config":{"submodels":[]}}"""u8.ToArray();
+        var reference = "sha256:" + Convert.ToHexStringLower(SHA256.HashData(content));
+        await File.WriteAllBytesAsync(Path.Combine(folder, reference[7..] + ".nam"), content, Token);
+        await File.WriteAllTextAsync(
+            Path.Combine(folder, "index.json"),
+            $$"""
+              [{"ref":"{{reference}}","name":"Mine.nam","kind":"nam","size":{{content.Length}},
+                "added":"2026-01-02T03:04:05+00:00","favorite":true}]
+              """,
+            Token
+        );
+
+        using var http = await old.ConnectedClientAsync();
+        var asset = Assert.Single((await http.GetFromJsonAsync<AssetInfo[]>("/api/v1/assets", Token))!);
+
+        Assert.Equal(("Mine.nam", true, true), (asset.Name, asset.Favorite, asset.Slimmable));
+        Assert.Contains(
+            "\"slimmable\":true",
+            (await File.ReadAllTextAsync(Path.Combine(folder, "index.json"), Token)).Replace(
+                " ",
+                "",
+                StringComparison.Ordinal
+            ),
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
     public async Task An_upload_that_fails_while_it_is_read_leaves_no_temporary_file() {
         var store = server.Services.GetRequiredService<AssetStore>();
         var folder = Path.Combine(server.DataDirectory, "assets");

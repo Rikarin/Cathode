@@ -53,6 +53,10 @@ public sealed record PresetSummary(
     bool? Factory = null
 );
 
+/// <summary>
+///     A stored asset. <c>Slimmable</c> is set on NAM captures only: true when the file holds more than one size of
+///     its model (NAM A2), so the Amp NAM block's Size does something on it.
+/// </summary>
 public sealed record AssetInfo(
     string Ref,
     string Name,
@@ -60,7 +64,8 @@ public sealed record AssetInfo(
     long Size,
     DateTimeOffset Added,
     string? Color = null,
-    bool Favorite = false
+    bool Favorite = false,
+    bool? Slimmable = null
 );
 
 /// <summary>
