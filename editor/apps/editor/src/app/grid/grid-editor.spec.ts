@@ -642,6 +642,46 @@ describe('GridEditor drop, paste and wire', () => {
       expect(host.querySelector('[data-wire]')).toBeNull();
     });
 
+    it.each(['pointercancel', 'lostpointercapture'])(
+      'drops the cable on %s: the next move draws no wire and the next release connects nothing',
+      type => {
+        const { host, grid, fixture, calls } = render();
+        host.querySelector('[data-testid=outlet-cab1]')?.dispatchEvent(pointer('pointerdown', 0, 0));
+        fixture.detectChanges();
+        grid.dispatchEvent(pointer('pointermove', ...inletOf(1, 1)));
+        fixture.detectChanges();
+        expect(host.querySelector('[data-wire]')).not.toBeNull();
+
+        grid.dispatchEvent(pointer(type, ...inletOf(1, 1))); // the browser took the touch for a scroll
+        fixture.detectChanges();
+        expect(host.querySelector('[data-wire]')).toBeNull();
+
+        grid.dispatchEvent(pointer('pointermove', ...inletOf(1, 1)));
+        grid.dispatchEvent(pointer('pointerup', ...inletOf(1, 1)));
+        fixture.detectChanges();
+        expect(host.querySelector('[data-wire]')).toBeNull();
+        expect(calls).toEqual([]);
+      }
+    );
+
+    it('drops the cable when the mouse moves with no button down: it was released outside the window', () => {
+      const { host, grid, fixture, calls } = render();
+      const mouse = (type: string, buttons: number) => {
+        const [clientX, clientY] = inletOf(1, 1);
+        return new PointerEvent(type, { bubbles: true, clientX, clientY, pointerId: 1, pointerType: 'mouse', buttons });
+      };
+      host.querySelector('[data-testid=outlet-cab1]')?.dispatchEvent(pointer('pointerdown', 0, 0));
+      grid.dispatchEvent(mouse('pointermove', 1));
+      fixture.detectChanges();
+      expect(host.querySelector('[data-testid=cell-1-1]')?.getAttribute('data-wire')).toBe('target');
+
+      grid.dispatchEvent(mouse('pointermove', 0));
+      fixture.detectChanges();
+      expect(host.querySelector('[data-wire]')).toBeNull();
+      grid.dispatchEvent(mouse('pointerup', 0));
+      expect(calls).toEqual([]);
+    });
+
     it('lands nothing when released where it cannot connect: its own column, an existing cable, empty space', () => {
       const rendered = render();
       const attempt = drawFrom(rendered);
