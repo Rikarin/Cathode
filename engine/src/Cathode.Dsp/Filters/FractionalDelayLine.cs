@@ -32,9 +32,19 @@ public sealed class FractionalDelayLine : IDisposable {
     }
 
     public float Read(float delay) {
-        var position = write - Math.Max(MinDelay, delay);
-        var index = (int)MathF.Floor(position);
-        var frac = position - index;
+        // Split the delay into whole samples and a fraction before subtracting it from the write index. Subtracting
+        // in single precision first would round the fraction to 1/16 sample once the index passes 2^19, which a long
+        // line (the Delay block's 16 s) does for a third of every trip round the buffer.
+        delay = Math.Max(MinDelay, delay);
+        var whole = (int)delay;
+        var back = delay - whole;
+        var index = write - whole;
+        var frac = 0f;
+        if (back > 0f) {
+            index--;
+            frac = 1f - back;
+        }
+
         var y0 = At(index - 1);
         var y1 = At(index);
         var y2 = At(index + 1);
