@@ -285,6 +285,53 @@ public class MarshallModelTests(ITestOutputHelper output) {
         Assert.True(peak < 6, $"peak {peak:0.0} dBFS");
     }
 
+    /// <summary>
+    ///     JTM45.DGM feeds both screens through one 1k 2 W above the two 470 Ω: it leaves the idle point alone (a
+    ///     few volts of screen drop at idle) and, carrying both tubes' screen current, holds the screens down at
+    ///     full power, where 470 Ω alone lets them draw more.
+    /// </summary>
+    [Fact]
+    public void The_jtm45s_shared_screen_dropper_limits_the_screen_current_at_full_power() {
+        var drawn = JTM45.Design.Power;
+        Assert.Equal(1e3, drawn.SharedScreenResistor);
+        Assert.Equal(470, drawn.ScreenResistor);
+        Assert.Equal(0, Bluesbreaker.Design.Power.SharedScreenResistor);
+
+        (double Idle, double IdleScreen, double Driven) Run(PowerAmpDesign design) {
+            var power = new PowerAmp(design, 96_000);
+            power.SetSourceResistance(30e3);
+            power.Reset();
+            var idle = power.PlateCurrents.A;
+            var idleScreen = power.ScreenCurrents.A;
+            var driven = 0.0;
+            const int Length = 19_200;
+            for (var n = 0; n < 2 * Length; n++) {
+                power.Tick(40 * Math.Sin(2 * Math.PI * 200 * n / 96_000.0));
+                Assert.True(double.IsFinite(power.Supply));
+                if (n >= Length) {
+                    var (a, b) = power.ScreenCurrents;
+                    driven += (a + b) / Length;
+                }
+            }
+
+            return (idle, idleScreen, driven);
+        }
+
+        var shared = Run(drawn);
+        var direct = Run(drawn with { SharedScreenResistor = 0 });
+        output.WriteLine(
+            $"idle {shared.Idle * 1e3:0.0} / {direct.Idle * 1e3:0.0} mA plate, {shared.IdleScreen * 1e3:0.00} / "
+            + $"{direct.IdleScreen * 1e3:0.00} mA screen; driven {shared.Driven * 1e3:0.0} / "
+            + $"{direct.Driven * 1e3:0.0} mA of screen current (1k shared / none)"
+        );
+        // The bias is set for the design's idle current with the dropper in place (the supply rests a little under
+        // the design's B+, so the idle current does too).
+        Assert.Equal(drawn.IdleCurrent, shared.Idle, 0.05 * drawn.IdleCurrent);
+        Assert.Equal(direct.Idle, shared.Idle, 0.01 * direct.Idle);
+        Assert.True(shared.Driven > 2 * 2 * shared.IdleScreen, "the drive must raise the screen current");
+        Assert.True(shared.Driven < 0.95 * direct.Driven, "the shared 1k must hold the screen current down");
+    }
+
     static int TypeOf(string model) => AmpDesign.All.ToList().FindIndex(a => a.Name == model);
 
     static float[] Render(int type, float[] input, params (int Index, float Value)[] settings) {

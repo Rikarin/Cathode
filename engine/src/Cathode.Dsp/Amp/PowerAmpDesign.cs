@@ -457,7 +457,9 @@ public enum PowerTopology {
 /// <param name="Tube">The output tube.</param>
 /// <param name="TubesPerSide">1 for a pair, 2 for a quad (paralleled).</param>
 /// <param name="Supply">B+ at the transformer centre tap at idle, in volts.</param>
-/// <param name="ScreenResistor">Per tube, from the screen node.</param>
+/// <param name="ScreenResistor">
+///     Per tube, from the screen node (or from <see cref="PowerAmpDesign.SharedScreenResistor" />'s foot).
+/// </param>
 /// <param name="IdleCurrent">Plate current per tube at idle with the bias knob at noon, in amperes.</param>
 /// <param name="CathodeBias">Cathode-biased (a bypassed cathode resistor) rather than fixed bias.</param>
 /// <param name="CathodeBypass">
@@ -580,4 +582,12 @@ public sealed record PowerAmpDesign(
     ///     run by <see cref="PowerAmp" />; null for none.
     /// </summary>
     public BiasTremoloDesign? BiasTremolo { get; init; }
+
+    /// <summary>
+    ///     A dropping resistor that all the screens share, from the screen node to the junction of the tubes' own
+    ///     <see cref="ScreenResistor" />s (the JTM45's 1k 2 W): it carries every tube's screen current, so one side's
+    ///     screen current pulls the other side's screens down too. 0 for none (each screen resistor on the screen
+    ///     node). Pentode operation only: it is not in the path of ultralinear or triode-strapped screens.
+    /// </summary>
+    public double SharedScreenResistor { get; init; }
 }

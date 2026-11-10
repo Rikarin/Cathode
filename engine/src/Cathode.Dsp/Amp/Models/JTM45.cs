@@ -7,8 +7,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///     channel's 0.02 µF into a 1M-A volume and a 270k mixing resistor, the high-treble channel with 500 pF across its
 ///     volume and its mixing resistor; V2A (100k, 820 unbypassed), the V2B cathode follower (100k) on the JTM45 stack
 ///     (270 pF, 56k, 0.02 µF, 0.02 µF; 250k-B/1M-A/25k-B), no master; a 12AX7 long-tail pair (0.02 µF in, 1M, 470,
-///     10k, 82k/100k, 0.1 µF out to 220k), two KT66 without grid stoppers, 470 screen resistors, a GZ34 with 32 µF, a
-///     20 H choke and 32 µF; 27k feedback from the 16 Ω tap with the 5k presence.
+///     10k, 82k/100k, 0.1 µF out to 220k), two KT66 without grid stoppers, 470 screen resistors on a shared 1k 2 W
+///     from the screen node, a GZ34 with 32 µF, a 20 H choke and 32 µF; 27k feedback from the 16 Ω tap with the 5k
+///     presence.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -23,6 +24,12 @@ namespace Cathode.Dsp.Amp.Models;
 ///         Ω, the later Drake 784-103 is quoted at 8k, and owners measure 5.7k to 8k on originals (about 6.5k on one;
 ///         ampgarage.com forum, "Primary impedance of original jtm 45 ot?"). The 3.4k this model had (a 1987's load,
 ///         stiffer and harder clipping) has no source.
+///     </para>
+///     <para>
+///         The screens: the drawing feeds both 470 Ω 1 W screen resistors through one 1k 2 W from the screen node
+///         (<see cref="PowerAmpDesign.SharedScreenResistor" />), which carries both tubes' screen current: more
+///         screen sag at full power than 470 Ω alone. The 1962 reissue drawing has no such resistor, so the
+///         <see cref="Bluesbreaker" /> does without.
 ///     </para>
 ///     <para>
 ///         The presence is a 5k pot from the tail's foot to ground with 0.1 µF on its wiper, as drawn
@@ -69,7 +76,7 @@ public static class JTM45 {
             SpeakerDesign.Closed4x12,
             new(60, 32e-6, 200, 32e-6, 18.2e3, 16e-6, Rectifier: RectifierModel.GZ34),
             InverterInput: null
-        ),
+        ) { SharedScreenResistor = 1e3 },
         -5
     ) { Panel = MarshallParts.TwoChannelPanel };
 }
