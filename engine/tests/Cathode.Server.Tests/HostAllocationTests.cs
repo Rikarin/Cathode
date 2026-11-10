@@ -128,7 +128,8 @@ public sealed class HostAllocationTests : IDisposable {
             AllocationProbe.Measure(() => {
                     for (var i = 0; i < 1_000; i++) {
                         midi.Translate(poll);
-                        _ = Cathode.Audio.Native.NativeMidi.PortCount(); // the port scan's check
+                        _ = Cathode.Audio.Native.NativeMidi.PortCount(); // the port scan's two checks
+                        _ = Cathode.Audio.Native.NativeMidi.Generation();
                     }
                 }
             )

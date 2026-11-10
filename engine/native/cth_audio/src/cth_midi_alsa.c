@@ -5,7 +5,11 @@
  * queued in the same lock-free ring as the CoreMIDI version.
  *
  * Port uids are "<client name>:<port number>" ("FBV Express Mk II:0"): sequencer client numbers depend on the order
- * devices were plugged in, names and port numbers do not. A second identical device gets "#2" appended. */
+ * devices were plugged in, names and port numbers do not. A second identical device gets "#2" appended.
+ *
+ * The sequencer drops a subscription when its source port goes away, so a device that is unplugged and plugged back
+ * in has to be subscribed again. The client therefore also listens to the system announce port: a port that starts,
+ * exits or changes bumps cth_midi_generation, and the host calls cth_midi_open again. */
 #define _GNU_SOURCE
 #include <alsa/asoundlib.h>
 #include <errno.h>
@@ -46,6 +50,7 @@ static port_entry destinations[MAX_PORTS]; /* rescanned for each send */
 static cth_midi_event ring[RING_SIZE];
 static _Atomic uint32_t ring_head; /* written by the reader thread */
 static _Atomic uint32_t ring_tail; /* written by cth_midi_read */
+static _Atomic uint32_t generation; /* bumped by the reader thread on a port announcement */
 
 uint64_t cth_midi_now_ns(void) { return cth_linux_now_ns(); }
 
@@ -107,7 +112,17 @@ static void *read_midi(void *arg)
         snd_seq_event_t *event = NULL;
         int r;
         while ((r = snd_seq_event_input(seq, &event)) >= 0 || r == -ENOSPC) {
-            if (r >= 0 && event) receive(event, time);
+            if (r < 0 || !event) {
+                /* -ENOSPC: events were lost; keep reading */
+            } else if (event->source.client == SND_SEQ_CLIENT_SYSTEM) {
+                /* The announce port: only ports coming, going or changing matter here. */
+                if (event->type == SND_SEQ_EVENT_PORT_START || event->type == SND_SEQ_EVENT_PORT_EXIT
+                    || event->type == SND_SEQ_EVENT_PORT_CHANGE) {
+                    atomic_fetch_add(&generation, 1);
+                }
+            } else {
+                receive(event, time);
+            }
             event = NULL;
         }
     }
@@ -235,6 +250,8 @@ static int32_t create_client(void)
     if (output_port < 0) return -3;
     if (snd_midi_event_new(256, &decoder) < 0 || snd_midi_event_new(16, &encoder) < 0) return -4;
     snd_midi_event_no_status(decoder, 1); /* every decoded message carries its status byte */
+    /* Best effort: without the announcements a replugged device is still found when the port count changes. */
+    snd_seq_connect_from(seq, input_port, SND_SEQ_CLIENT_SYSTEM, SND_SEQ_PORT_SYSTEM_ANNOUNCE);
     if (pipe2(wake, O_NONBLOCK | O_CLOEXEC) < 0) return -5;
     if (pthread_create(&reader, NULL, read_midi, NULL) != 0) return -6;
     pthread_setname_np(reader, "cth-midi");
@@ -261,6 +278,8 @@ int32_t cth_midi_open(void)
     pthread_mutex_unlock(&lock);
     return 0;
 }
+
+uint32_t cth_midi_generation(void) { return atomic_load(&generation); }
 
 int32_t cth_midi_read(cth_midi_event *events, int32_t max)
 {

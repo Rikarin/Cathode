@@ -9,7 +9,8 @@ namespace Cathode.EngineHost;
 ///     it arrived at (from the OS timestamp), and batches go to the Server, which owns the mappings. MIDI clock is
 ///     handled here, when following it is on: the tempo comes from the average tick interval, sample-accurately. Notes
 ///     are also posted to the engine, which keeps the held chord for the blocks
-///     (<see cref="CathodeEngine.HeldNotes" />). Devices plugged in later are picked up within a couple of seconds.
+///     (<see cref="CathodeEngine.HeldNotes" />). Devices plugged in later, or unplugged and plugged back in, are
+///     picked up within a couple of seconds.
 /// </summary>
 public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage>> forward) : IDisposable {
     const int TicksPerBeat = 24;
@@ -34,6 +35,7 @@ public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage
     volatile bool followClock;
     ulong lastTick;
     int knownPorts = -1;
+    uint knownGeneration;
 
     public void SetFollowClock(bool enabled) {
         followClock = enabled;
@@ -64,9 +66,14 @@ public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage
         while (running) {
             if (DateTime.UtcNow - lastScan > TimeSpan.FromSeconds(2)) {
                 lastScan = DateTime.UtcNow;
-                var count = NativeMidi.PortCount(); // only the count: listing the ports allocates
-                if (count != knownPorts) {
+                // Only two numbers: listing the ports allocates. The count alone misses a device that was unplugged
+                // and back between two scans, or swapped for another; the shim's generation does not. Both are read
+                // before the sources are connected, so a change during that is seen by the next scan.
+                var generation = NativeMidi.Generation();
+                var count = NativeMidi.PortCount();
+                if (count != knownPorts || generation != knownGeneration) {
                     knownPorts = count;
+                    knownGeneration = generation;
                     NativeMidi.Open();
                 }
             }
