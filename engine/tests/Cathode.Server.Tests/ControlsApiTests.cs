@@ -566,6 +566,26 @@ public sealed class ControlsApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task A_channel_copied_on_a_linked_block_goes_to_its_global_block_and_survives_a_reload() {
+        await Patch("/api/v1/live/blocks/delay1/params", new Dictionary<string, float> { ["time"] = 444 });
+        await Post("/api/v1/live/blocks/delay1/global", new LinkGlobalRequest("House delay"));
+        var shared = (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!.Blocks.Single();
+        await Post("/api/v1/live/blocks", new AddBlockRequest("delay", 1, 2));
+        await Put($"/api/v1/live/blocks/delay2/global/{shared.Id}", new { });
+
+        var copied = await Post("/api/v1/live/blocks/delay1/channels/copy", new CopyChannelRequest("A", "C"));
+
+        // The preset's other block linked to the same global block has the copy at once, and so has the global block.
+        Assert.Equal(444f, copied.Preset.Blocks.Single(static b => b.Id == "delay2").Channels["C"]["time"]);
+        shared = (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!.Blocks.Single();
+        Assert.Equal(444f, shared.Channels["C"]["time"]);
+
+        var saved = await Post("/api/v1/live/save", new SaveRequest("Linked delays", true));
+        var loaded = await Put($"/api/v1/live/preset/{saved.Preset.Id}", new { });
+        Assert.Equal(444f, loaded.Preset.Blocks.Single(static b => b.Id == "delay1").Channels["C"]["time"]);
+    }
+
+    [Fact]
     public async Task A_global_block_is_made_once_and_deleting_it_leaves_the_linked_blocks_their_settings() {
         await Patch("/api/v1/live/blocks/delay1/params", new Dictionary<string, float> { ["time"] = 444 });
         await Post("/api/v1/live/blocks/delay1/global", new LinkGlobalRequest("House delay"));

@@ -247,16 +247,10 @@ public sealed partial class LiveRig {
                 CheckChannel(request.From, descriptor.Channels);
                 CheckChannel(request.To, descriptor.Channels);
                 PushUndo(null);
-                var recompile = NeedsRecompile(block, request.From, request.To);
-                block.Channels[request.To] = new(block.Channels.GetValueOrDefault(request.From) ?? []);
-                if (Live(id).Channel == request.To) {
-                    if (recompile) {
-                        await SyncGraphAsync();
-                    } else {
-                        engine.SetParams(generation, ChannelValues(block, request.To));
-                    }
-                }
-
+                var before = Channels(block);
+                // Through Put, so a linked global block and the preset's other blocks linked to it get the copy too.
+                Put(block, request.To, new(block.Channels.GetValueOrDefault(request.From) ?? []));
+                await RefreshChannelAsync(block, before, request.To);
                 return Changed("channelCopied", id, request.To);
             }
         );

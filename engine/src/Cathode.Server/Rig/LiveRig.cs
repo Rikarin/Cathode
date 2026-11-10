@@ -380,7 +380,23 @@ public sealed partial class LiveRig(
                     throw new RigException(400, $"Slot '{slot}' cannot take a {asset.Kind} asset.");
                 }
 
-                await StructuralAsync(p => p.Blocks.Single(b => b.Id == id).Assets[slot] = request.Asset);
+                // A linked block's assets belong to its global block: the preset's other blocks linked to it take the
+                // asset in the same rebuild, and the global block once the engine has accepted it.
+                await StructuralAsync(p => {
+                        var edited = p.Blocks.Single(b => b.Id == id);
+                        edited.Assets[slot] = request.Asset;
+                        MirrorLinked(edited);
+                    }
+                );
+                if (block.Global is { } link) {
+                    globals.Update(g => {
+                            if (g.Blocks.Find(b => b.Id == link) is { } shared) {
+                                shared.Assets[slot] = request.Asset;
+                            }
+                        }
+                    );
+                }
+
                 return Changed("assetChanged", id);
             }
         );

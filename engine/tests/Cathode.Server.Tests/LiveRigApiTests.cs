@@ -262,6 +262,35 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task An_asset_set_on_a_linked_block_goes_to_its_global_block_and_survives_a_reload() {
+        var ir = new MemoryStream();
+        WavFile.Write(
+            ir,
+            new(48_000, [Signals.Noise(256, 1).Select(static (v, i) => v * MathF.Exp(-i / 40f)).ToArray()])
+        );
+        var irAsset = await Upload("cab.wav", ir.ToArray());
+        await Post("/api/v1/live/blocks", new AddBlockRequest("cab", 2, 4));
+        await Post("/api/v1/live/blocks/cab1/global", new LinkGlobalRequest("House cab"));
+        var shared = (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!.Blocks.Single();
+        await Post("/api/v1/live/blocks", new AddBlockRequest("cab", 3, 4));
+        await Put($"/api/v1/live/blocks/cab2/global/{shared.Id}", new { });
+
+        var set = await Put("/api/v1/live/blocks/cab1/assets/slot1", new AssetRequest(irAsset.Ref));
+
+        // The preset's other block linked to the same global block has it at once, and so has the global block.
+        Assert.Equal(irAsset.Ref, set.Preset.Blocks.Single(static b => b.Id == "cab2").Assets["slot1"]);
+        shared = (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!.Blocks.Single();
+        Assert.Equal(irAsset.Ref, shared.Assets["slot1"]);
+
+        var saved = await Post("/api/v1/live/save", new SaveRequest("Linked cabs", true));
+        var loaded = await Put($"/api/v1/live/preset/{saved.Preset.Id}", new { });
+        Assert.All(
+            loaded.Preset.Blocks.Where(static b => b.Type == "cab"),
+            b => Assert.Equal(irAsset.Ref, b.Assets["slot1"])
+        );
+    }
+
+    [Fact]
     public async Task A_pasted_block_is_placed_with_its_channels_and_assets_as_one_undo_step() {
         var ir = new MemoryStream();
         WavFile.Write(
