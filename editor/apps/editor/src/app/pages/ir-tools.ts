@@ -350,6 +350,21 @@ export class IrMixerDialog {
   }
 }
 
+/** The ranges of the capture dialog's fields: the sweep's length and level, and the length of the IR kept. */
+export const CaptureRanges = {
+  seconds: { min: 1, max: 30 },
+  levelDb: { min: -60, max: 0 },
+  lengthMs: { min: 20, max: 2000 }
+} as const;
+
+/**
+ * The number typed in a capture field, limited to the field's range (the `min` and `max` attributes do not limit a
+ * typed number); `current` when the field holds no number.
+ */
+export function captureValue(typed: number, range: { min: number; max: number }, current: number): number {
+  return Number.isFinite(typed) ? Math.min(range.max, Math.max(range.min, typed)) : current;
+}
+
 /**
  * Measures an IR with a sine sweep (desktop app, real interface): plays it on outputs 1 and 2, records input 1, and
  * adds the result to the library.
@@ -373,12 +388,12 @@ export class IrMixerDialog {
               xuiInput
               type="number"
               cthSteppers
-              min="1"
-              max="30"
+              [min]="ranges.seconds.min"
+              [max]="ranges.seconds.max"
               class="w-20"
               aria-label="Sweep length"
               [value]="sweepSeconds()"
-              (change)="sweepSeconds.set(+sweepSecondsField.value || 5)"
+              (change)="sweepSeconds.set(typed(sweepSecondsField, ranges.seconds, sweepSeconds()))"
             />
           </label>
           <label class="flex flex-col gap-1">
@@ -388,12 +403,12 @@ export class IrMixerDialog {
               xuiInput
               type="number"
               cthSteppers
-              min="-60"
-              max="0"
+              [min]="ranges.levelDb.min"
+              [max]="ranges.levelDb.max"
               class="w-20"
               aria-label="Sweep level"
               [value]="sweepLevel()"
-              (change)="sweepLevel.set(+sweepLevelField.value || -18)"
+              (change)="sweepLevel.set(typed(sweepLevelField, ranges.levelDb, sweepLevel()))"
             />
           </label>
           <label class="flex flex-col gap-1">
@@ -403,12 +418,12 @@ export class IrMixerDialog {
               xuiInput
               type="number"
               cthSteppers
-              min="20"
-              max="2000"
+              [min]="ranges.lengthMs.min"
+              [max]="ranges.lengthMs.max"
               class="w-24"
               aria-label="Captured IR length"
               [value]="captureLength()"
-              (change)="captureLength.set(+captureLengthField.value || 500)"
+              (change)="captureLength.set(typed(captureLengthField, ranges.lengthMs, captureLength()))"
             />
           </label>
         </div>
@@ -437,6 +452,14 @@ export class IrCaptureDialog {
   protected readonly capturing = signal(false);
   protected readonly output = signal<string | null>(null);
   protected readonly ok = signal(false);
+  protected readonly ranges = CaptureRanges;
+
+  /** The value typed in `field`, within `range`; the field shows what is kept. */
+  protected typed(field: HTMLInputElement, range: { min: number; max: number }, current: number): number {
+    const value = captureValue(field.valueAsNumber, range, current);
+    field.value = String(value);
+    return value;
+  }
 
   protected async capture(): Promise<void> {
     const desktop = this.connection.desktop;
