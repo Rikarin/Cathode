@@ -94,7 +94,7 @@ The left column holds the block's identity and state:
 - **Block Library** (when the Library holds entries for this block type): recall a saved setting, with **Into all channels** to fill every channel at once.
 - **Bypass mode:** what the block does when bypassed (see [Bypass modes](/manual/the-grid#bypass-modes)).
 
-The right side holds the controls. Some blocks have a panel of their own on top (the Cab's microphones, the Amp NAM's capture, the IR Player, Tone Match, Pitch). Below it, the block's knobs, switches and choices are grouped into pages, listed as tabs down the panel's left edge (**Basic**, **Tone**, **Advanced**…); the page you last opened is remembered for each block type. The **Output** group on the right holds the block's level, mix, balance and pan.
+The right side holds the controls. Some blocks have a panel of their own on top (the Cab's microphones, the Amp NAM's capture, the IR Player, Tone Match, Pitch). Below it, the block's knobs, switches and choices are grouped into pages, listed as tabs down the panel's left edge (**Basic**, **Tone**, **Advanced**…); the page you last opened is remembered for each block type. With the keyboard, **Tab** to the tab of the page showing, then **↑** and **↓** (or **Home** and **End**) change page. The **Output** group on the right holds the block's level, mix, balance and pan.
 
 Some pages also draw a chart at their right, among the knobs:
 

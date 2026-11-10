@@ -82,7 +82,7 @@ export function presetBank(
   providers: [provideIcons({ matExpandMoreRound, matKeyboardArrowDownRound, matKeyboardArrowUpRound })],
   host: { class: 'flex min-w-0 flex-col gap-1' },
   template: `
-    <div class="flex h-6 min-w-0 items-stretch gap-1" aria-label="Preset">
+    <div class="flex h-6 min-w-0 items-stretch gap-1" role="group" aria-label="Preset">
       <div class="flex flex-col">
         <button
           type="button"
@@ -152,7 +152,7 @@ export function presetBank(
         }
       </xui-menu>
     </ng-template>
-    <div class="flex h-6 min-w-0 items-stretch gap-1" aria-label="Scene name">
+    <div class="flex h-6 min-w-0 items-stretch gap-1" role="group" aria-label="Scene">
       <div class="flex flex-col">
         <button type="button" class="cth-stepper rounded-t" aria-label="Next scene" (click)="stepScene(1)">
           <ng-icon xui name="matKeyboardArrowUpRound" size="xs" />

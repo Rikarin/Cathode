@@ -37,6 +37,7 @@ import { XuiTagImports } from '@xui/tag';
 import { XuiTextImports } from '@xui/text';
 import { LongPressMenu } from '../controls/long-press-menu';
 import { ModifierDialog, engagedWhen } from '../controls/modifier-dialog';
+import { RovingKeys } from '../controls/roving-keys';
 import { BlockPresetsStore } from '../state/block-presets.store';
 import { CatalogStore } from '../state/catalog.store';
 import { GlobalStore } from '../state/global.store';
@@ -87,6 +88,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
     ParamControl,
     PeqPanel,
     PitchPanel,
+    RovingKeys,
     ToneMatchPanel,
     XuiNonIdealStateImports,
     XuiSegmentedControlImports,
@@ -401,6 +403,7 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
             >
               @if (pages().length > 1) {
                 <nav
+                  cthRovingKeys
                   role="tablist"
                   aria-label="Block pages"
                   aria-orientation="vertical"
@@ -409,11 +412,15 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
                   [style.--panel-height.px]="tabPaint()?.height"
                   [style.--tab-top.px]="tabPaint()?.top"
                 >
-                  <!-- Tabs down the panel's edge: the page shown opens into the panel, with an LED in the block's colour. -->
-                  @for (name of pages(); track name) {
+                  <!-- Tabs down the panel's edge: the page shown opens into the panel, with an LED in the block's colour.
+                       One tab stop, at the page shown; the arrow keys move between pages (cthRovingKeys). -->
+                  @for (name of pages(); track name; let index = $index) {
                     <button
                       type="button"
                       role="tab"
+                      aria-controls="block-page-panel"
+                      [id]="'block-page-tab-' + index"
+                      [attr.tabindex]="name === page() ? 0 : -1"
                       class="focus-visible:outline-focus flex items-center gap-2 rounded-s-md border border-e-0 px-2.5 py-1.5 text-start text-[13px] outline-offset-1 transition-colors focus-visible:outline-2"
                       [class.cth-page-key]="name === page()"
                       [class.border-transparent]="name !== page()"
@@ -435,10 +442,12 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
                 </nav>
               }
               @if (mainParams().length > 0) {
+                <!-- The shown page's panel, named by its tab; a block with one page has no tabs, and so no tab panel. -->
                 <div
-                  role="tabpanel"
+                  id="block-page-panel"
                   class="grid min-w-[5.125rem] flex-1 grid-flow-row-dense grid-cols-[repeat(auto-fill,minmax(5.125rem,1fr))] content-start justify-items-center gap-x-3 gap-y-5"
-                  [attr.aria-label]="page()"
+                  [attr.role]="pages().length > 1 ? 'tabpanel' : null"
+                  [attr.aria-labelledby]="pages().length > 1 ? 'block-page-tab-' + pages().indexOf(page() ?? '') : null"
                 >
                   @for (param of pageParams(); track param.id) {
                     <cth-param-control [block]="block" [param]="param" [accent]="accent()" />
