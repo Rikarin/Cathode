@@ -64,9 +64,10 @@ Before tagging, add the release's section to [`CHANGELOG.md`](../CHANGELOG.md).
 
 ### The preset format
 
-Presets carry `schemaVersion` (`Preset.CurrentSchemaVersion`, 1 since 1.0). Every place that reads a stored preset
-passes its JSON through `PresetMigrations` first: the library files, snapshots, templates and `.cthpreset` imports.
-So a preset saved by an earlier release keeps loading.
+Presets carry `schemaVersion` (`Preset.CurrentSchemaVersion`). It is 2 since 1.0.0-rc.4; schema 1 is the format of
+1.0.0-rc.1 to rc.3, and a preset without the field is schema 1. Every place that reads a stored preset passes its JSON
+through `PresetMigrations` first: the library files, snapshots, templates and `.cthpreset` imports. So a preset saved
+by an earlier release keeps loading.
 
 Parameter values are stored sparsely, so new parameters, block types and amp models need no new schema. Only a change
 that would make an older file read wrongly does. That covers a renamed, re-ranged or re-meant parameter, or a moved
