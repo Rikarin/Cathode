@@ -14,12 +14,12 @@ namespace Cathode.Dsp.Amp.Models;
 ///     schematicheaven.net/fenderamps/twin_reverb_ab763_schem.pdf): 460 V at the plates, a choke to 458 V (the screens
 ///     and the vibrato), 1k to 450 V (the inverter), 4.7k to 410 V (the preamp). The 270 V of Robinette's model
 ///     differences is the drawing's voltage at the 7025 plates, not a supply node. The supply here has one dropper
-///     below the screen node: the 1k and 4.7k in series, at the current that puts the preamp node on 410 V. The mid pot is taken as 10k audio
-///     (unverified); the idle current (30 mA per tube), the reservoir (50 µF) and the supply's source resistance are
-///     typical values, not factory figures. The 125A29A's parasitics are not published: the transformer is the
-///     library's default with its inductances, resistances and capacitance scaled to the 2k primary (the same bandwidth
-///     and losses relative to the load); with the default's 1 nF across a 2k primary, the four tubes cutting off under
-///     the Twin's heavy feedback rang hard enough to stall the power amp's Newton solve.
+///     below the screen node: the 1k and 4.7k in series, at the current that puts the preamp node on 410 V. The mid
+///     pot is the drawing's 10K-A; the idle current (30 mA per tube), the reservoir (50 µF) and the supply's source
+///     resistance are typical values, not factory figures. The 125A29A's parasitics are not published: the
+///     transformer is the library's default with its inductances, resistances and capacitance scaled to the 2k primary
+///     (the same bandwidth and losses relative to the load); with the default's 1 nF across a 2k primary, the four
+///     tubes cutting off under the Twin's heavy feedback rang hard enough to stall the power amp's Newton solve.
 /// </remarks>
 public static class TwinReverb {
     static readonly ToneStackDesign Stack = new(

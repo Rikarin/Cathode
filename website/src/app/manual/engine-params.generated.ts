@@ -15409,7 +15409,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         unit: '%',
         page: 'Advanced',
         typeLabels: [
-          '',
+          'PI Bias Excursion',
           '',
           'PI Bias Excursion',
           'PI Bias Excursion',

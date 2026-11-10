@@ -12,13 +12,13 @@ namespace Cathode.Dsp.Tests;
 ///     the drawing's 5k and 22k droppers and the preamp node that follows from them; the Bassman 5F6-A's renders
 ///     when it took its inverter's input network; the Blackface's, Twin Reverb's and Super Reverb's entries when
 ///     their inverters moved to the drawings' 450 V node, with the JC-120's and Valvestate 8080's, whose unused tube
-///     power amp is the Blackface's). The hashes are macOS ARM64 renders, so the test runs there only
-///     (<see cref="BaselinePlatform" />).
+///     power amp is the Blackface's; the three again when the Blackface took the AB763 inverter and its input
+///     network). The hashes are macOS ARM64 renders, so the test runs there only (<see cref="BaselinePlatform" />).
 /// </summary>
 public class InverterBitIdentityTests(ITestOutputHelper output) {
     /// <summary>(inverter table, power amp render) per model, from 49fe687.</summary>
     static readonly Dictionary<string, (ulong Table, ulong Render)> Expected = new() {
-        { "Blackface", (0xABF541BBAF8D8E06, 0xADF679AC24DFE362) },
+        { "Blackface", (0x6F3DB50BEBC24351, 0xFB54F60EB4404698) },
         { "Plexi", (0x198AF1CECAF0406C, 0x1B2E221578D35E40) },
         { "AC30", (0x4D72675F6BB65764, 0xD5BAE76FDC8CC32D) },
         { "AC15", (0xF9848A7503B3F8AB, 0x98B9B8CADFA484D0) },
@@ -57,7 +57,7 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         { "Savage 120", (0x96BE26A30C20DFDD, 0xFE6DD5C86DB23352) },
         { "SVT", (0xD1764C0CC01C37B0, 0x1D8F66AC6688D267) },
         { "Portaflex B-15N", (0x76788BF6655480E6, 0x375A6E0DDFCC5DBB) },
-        { "JC-120", (0xABF541BBAF8D8E06, 0xADF679AC24DFE362) },
+        { "JC-120", (0x6F3DB50BEBC24351, 0xFB54F60EB4404698) },
         { "Hot Rod Deluxe", (0xBE549F7E7E20226C, 0xC934A025D888CB23) },
         { "Champ 5F1", (0x751704F24D4270C5, 0xA36EB5EA922A9E6A) },
         { "Vibroverb AB763", (0x6F3DB50BEBC24351, 0xEECFD6ABF6A76C80) },
@@ -91,7 +91,7 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         { "TriAxis Lead 2", (0x626AC8FABA73BCDB, 0xFC58CA1C580ED32A) },
         { "JCM900 4502", (0x55F038EDD3B16567, 0xC81F78F553E1B12E) },
         { "JCM900 4100", (0x55F038EDD3B16567, 0x6FF6AEF8FDB12BD9) },
-        { "Valvestate 8080", (0xABF541BBAF8D8E06, 0xADF679AC24DFE362) },
+        { "Valvestate 8080", (0x6F3DB50BEBC24351, 0xFB54F60EB4404698) },
         { "JVM410H OD", (0xD2F7D6AB3160DAFF, 0xCD00DD5E9BC7EAC7) },
         { "Concert 6G12", (0x8BB74C86362290BE, 0x062DB96DD486477B) },
         { "Super 6G4", (0x8BB74C86362290BE, 0xF43ACD6B126E92C7) },

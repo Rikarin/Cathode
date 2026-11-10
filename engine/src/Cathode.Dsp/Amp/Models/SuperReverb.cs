@@ -17,9 +17,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///     7025 plates. The supply here has one dropper below the screen node: the 1k and 4.7k in series, at the current
 ///     that puts the preamp node on 410 V.
 ///     The first stage is a network stage, so that the channel switch can swap the fixed mid resistor for the mid pot.
-///     The mid pot (10k audio) and the Normal channel's mid cap (taken as the Vibrato channel's 0.022 µF) are
-///     unverified; the idle current (35 mA) and the supply's source resistance are typical values. The existing
-///     "Blackface" type is a Super-style channel without the mixing stage; this is the whole amp.
+///     The mid pot (10K-A) and both channels' 0.022 µF mid caps are the drawing's; the idle current (35 mA) and the
+///     supply's source resistance are typical values. The "Blackface" type is a Super-style channel without the
+///     mixing stage; this is the whole amp.
 /// </remarks>
 public static class SuperReverb {
     public static AmpDesign Design { get; } = new(

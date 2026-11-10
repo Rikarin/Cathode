@@ -123,6 +123,24 @@ public class FenderAmpTests(ITestOutputHelper output) {
         );
     }
 
+    [Fact]
+    public void Blackface_is_built_from_the_ab763_parts() {
+        // The AB763 drawings: 34k at the input (68k ‖ 68k), a 10K-A mid pot, 0.047 µF into the 220k mixing resistors,
+        // 1 nF into a 12AT7 pair with 470 Ω between the cathodes and the tail.
+        var design = Amp.Models.Blackface.Design;
+        var twin = Amp.Models.TwinReverb.Design;
+        var first = (ToneStackStageDesign)design.Preamp[0];
+        var twinFirst = (ToneStackStageDesign)twin.Preamp[0];
+        Assert.Equal(twinFirst.InputResistance, first.InputResistance);
+        Assert.Equal(34e3, first.InputResistance);
+        Assert.Equal(twinFirst.Stack with { Name = first.Stack.Name }, first.Stack);
+        Assert.Equal(new Pot(10e3, PotTaper.Audio), first.Stack.Middle);
+        Assert.Equal(47e-9, design.Preamp.OfType<CouplingStageDesign>().Single().CouplingCap);
+        Assert.Equal(twin.Power.PhaseInverter, design.Power.PhaseInverter);
+        Assert.Equal(470, ((LongTailPairDesign)design.Power.PhaseInverter).BiasResistor);
+        Assert.Equal(twin.Power.InverterInput, design.Power.InverterInput);
+    }
+
     [Theory]
     [InlineData("Blackface", 270)] // a Super Reverb-style channel
     [InlineData("Deluxe Reverb", 180)]
