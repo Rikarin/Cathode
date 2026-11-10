@@ -22,7 +22,7 @@ public static class AmpFeatures {
                 }
             ),
             "pibiasx" => design.Power.InverterInput is not null,
-            "mvloc" => HasMaster(design)
+            "mvloc" => MasterPaths(design) != 0
                 && design.Power.ShuntMaster is null
                 && design.Power.Topology == PowerTopology.PushPull,
             "fatsw" => !panel.HasSwitch("Fat"),
@@ -57,13 +57,43 @@ public static class AmpFeatures {
             _ => false
         };
 
-    static bool HasMaster(AmpDesign design) =>
-        design.Preamp.Any(static s => s switch {
+    /// <summary>
+    ///     Under which settings of Switch 1 to 3 the playing preamp path of <paramref name="design" /> holds its
+    ///     master: bit n is set where it does with the switches at n (Switch 1 is bit 0, Switch 2 bit 1, Switch 3
+    ///     bit 2). A master inside a channel switch (<see cref="ChannelSwitchStageDesign" />) is there only while
+    ///     its channel plays: the Bassman 135 has one in both channels, the Hot Rod Deluxe in its drive channel only.
+    /// </summary>
+    public static int MasterPaths(AmpDesign design) {
+        var paths = 0;
+        for (var switches = 0; switches < 8; switches++) {
+            if (HasMaster(design.Preamp, switches)) {
+                paths |= 1 << switches;
+            }
+        }
+
+        return paths;
+    }
+
+    /// <summary>Whether <paramref name="role" /> is on with Switch 1 to 3 at <paramref name="switches" />.</summary>
+    static bool IsOn(SwitchRole role, int switches) =>
+        role switch {
+            SwitchRole.Switch1 => (switches & 1) != 0,
+            SwitchRole.Switch2 => (switches & 2) != 0,
+            SwitchRole.Switch3 => (switches & 4) != 0,
+            _ => false
+        };
+
+    static bool HasMaster(IReadOnlyList<AmpStageDesign> stages, int switches) =>
+        stages.Any(s => s switch {
                 TriodeStageDesign t => t.Volume is not null && t.VolumeRole == PotRole.Master,
                 ToneStackStageDesign t => t.LoadRole == PotRole.Master,
                 CouplingStageDesign c => c.Role == PotRole.Master,
                 NetworkStageDesign n => n.Netlist.Elements.Any(static e =>
                     e.Part != PotPart.None && e.Role == PotRole.Master
+                ),
+                ChannelSwitchStageDesign channels => HasMaster(
+                    IsOn(channels.Switch, switches) ? channels.On : channels.Off,
+                    switches
                 ),
                 _ => false
             }

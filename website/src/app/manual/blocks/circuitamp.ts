@@ -470,7 +470,8 @@ its hardest distortion.`,
 
     mvloc: `Moves the master volume. *Stock* is where the circuit has it; *Post PI* makes it a divider after the phase
 inverter, so the inverter is driven fully whatever the Master, and turning the master down keeps the inverter's own
-distortion. Shown on push-pull amps that have a master.`,
+distortion. Shown on push-pull amps that have a master; where the master belongs to one channel, it acts while that
+channel plays.`,
 
     outmode: `What the amp's output feeds. *FRFR* is for headphones, studio monitors and full-range speakers through a
 Cab block. *SS Power Amp + Cab* is for a solid-state power amp into a real guitar cabinet: it turns off Speaker Drive,

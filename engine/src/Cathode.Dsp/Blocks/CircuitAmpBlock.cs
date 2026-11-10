@@ -199,7 +199,8 @@ namespace Cathode.Dsp.Blocks;
 ///             over all three, and <b>Plate Suppressor Diodes</b>.
 ///         </item>
 ///         <item>
-///             <b>Master Location</b> (Stock, or Post PI: the master as a divider after the phase inverter).
+///             <b>Master Location</b> (Stock, or Post PI: the master as a divider after the phase inverter; where
+///             the master belongs to one channel, while that channel plays).
 ///         </item>
 ///         <item>
 ///             <b>Output Mode</b> (FRFR; SS Power Amp + Cab leaves the speaker stages to the real cab), Speaker load
@@ -692,12 +693,14 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
         static double Hardness(float value) => Math.Pow(2, (value - 5) / 2.5);
 
         var design = Channel.Design;
-        var postInverter = (int)Params.Current(MasterLocation) == MasterPostInverter && features.PostMaster;
-        var masterRotation =
-            Math.Min(Knob(Params.Advance(Master, frames)) * Percent(Params.Advance(MasterTrim, frames)), 1);
         var switch1 = Params.Current(Switch1) >= 0.5f;
         var switch2 = Params.Current(Switch2) >= 0.5f;
         var switch3 = Params.Current(Switch3) >= 0.5f;
+        // The master moves after the inverter only while the playing channel has one to move.
+        var postInverter = (int)Params.Current(MasterLocation) == MasterPostInverter
+            && features.HasPostMaster(switch1, switch2, switch3);
+        var masterRotation =
+            Math.Min(Knob(Params.Advance(Master, frames)) * Percent(Params.Advance(MasterTrim, frames)), 1);
         var preamp = new AmpControls(
             Knob(Params.Advance(Gain, frames)),
             Knob(Params.Advance(Bass, frames)),
@@ -910,9 +913,11 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
 
 /// <summary>
 ///     Which of the Circuit Amp's generic advanced controls a model takes (<see cref="AmpFeatures.Has" />).
+///     <c>PostMaster</c> says under which settings of Switch 1 to 3 Master Location acts
+///     (<see cref="AmpFeatures.MasterPaths" />), 0 where the model does not take it.
 /// </summary>
 readonly record struct AdvancedFeatures(
-    bool PostMaster,
+    int PostMaster,
     bool Fat,
     bool PresenceShift,
     bool InputCut,
@@ -921,11 +926,15 @@ readonly record struct AdvancedFeatures(
 ) {
     public static AdvancedFeatures Of(AmpDesign design) =>
         new(
-            AmpFeatures.Has(design, "mvloc"),
+            AmpFeatures.Has(design, "mvloc") ? AmpFeatures.MasterPaths(design) : 0,
             AmpFeatures.Has(design, "fatsw"),
             AmpFeatures.Has(design, "presshift"),
             AmpFeatures.Has(design, "cutsw"),
             AmpFeatures.Has(design, "overdrive"),
             AmpFeatures.Has(design, "hitreble")
         );
+
+    /// <summary>Whether Master Location acts with the switches as given: the playing channel has a master.</summary>
+    public bool HasPostMaster(bool switch1, bool switch2, bool switch3) =>
+        (PostMaster >> ((switch1 ? 1 : 0) | (switch2 ? 2 : 0) | (switch3 ? 4 : 0)) & 1) != 0;
 }

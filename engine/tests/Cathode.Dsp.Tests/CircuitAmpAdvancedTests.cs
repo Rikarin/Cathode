@@ -321,6 +321,36 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
         Assert.True(Analysis.AllFinite(post));
     }
 
+    [Theory]
+    [InlineData("Bassman 135")] // both channels end on the Master
+    [InlineData("Hot Rod Deluxe")] // the drive channel's
+    [InlineData("ODS 97")]
+    [InlineData("Hot Cat 30")]
+    public void Post_inverter_master_follows_a_master_inside_a_channel_switch(string model) {
+        var design = AmpDesign.All.Single(a => a.Name == model);
+        var type = Index(design);
+        Assert.True(AmpFeatures.Has(design, "mvloc"));
+        Assert.NotEqual(string.Empty, CircuitAmpBlock.Info.Params[CircuitAmpBlock.MasterLocation].TypeLabels![type]);
+        var paths = AmpFeatures.MasterPaths(design);
+        var input = CircuitAmpBlockTests.Chord(9_600, 0.5f);
+        // Post PI acts in a channel that has the master and leaves one without it alone.
+        for (var channel = 0; channel < 2; channel++) {
+            (int, float)[] quietMaster = [
+                (CircuitAmpBlock.Gain, 8f), (CircuitAmpBlock.Master, 3f), (CircuitAmpBlock.Switch1, channel)
+            ];
+            var pre = Render(type, input, quietMaster);
+            var post = Render(type, input, [..quietMaster, (CircuitAmpBlock.MasterLocation, 1f)]);
+            Assert.True(Analysis.AllFinite(post));
+            var has = (paths >> channel & 1) != 0;
+            output.WriteLine($"{model}, Switch 1 at {channel}: master {has}, {Residual(pre, post):0.0} dB");
+            if (has) {
+                Assert.True(Residual(pre, post) > -40, $"Switch 1 at {channel}: {Residual(pre, post):0.0}");
+            } else {
+                Assert.Equal(pre, post);
+            }
+        }
+    }
+
     [Fact]
     public void Solid_state_output_mode_leaves_the_speaker_stages_to_the_cab() {
         var type = Index(Blackface.Design);
