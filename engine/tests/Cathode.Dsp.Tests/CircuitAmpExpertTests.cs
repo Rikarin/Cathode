@@ -109,8 +109,9 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                         // (about −69 dB, against −50 dB with the old scooped default).
                         && !(index == CircuitAmpBlock.SupplyTime
                             && (design == TriAxis.Lead1 || design == TriAxis.Lead2))
-                        // A 400 W bass amp at this level is far below the core's knee (−65 dB at drive 10).
-                        && !(index == CircuitAmpBlock.TransformerDrive && design.Power.RatedPower >= 400);
+                        // The Bass 400's core at this level is far below its knee (−65 dB at drive 10 when it
+                        // was sized for 400 W; about as far at its 300 W).
+                        && !(index == CircuitAmpBlock.TransformerDrive && design == MesaBass400.Design);
                     data.Add(type, index, value, audible);
                 }
             }
@@ -582,6 +583,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     [Fact]
     public void Expert_controls_hide_on_models_without_the_part_they_act_on() {
         var parameters = CircuitAmpBlock.Info.Params;
+
         string[] Hidden(string id) {
             var labels = parameters.Single(p => p.Id == id).TypeLabels!;
             return [..AmpDesign.All.Where((_, type) => labels[type] == string.Empty).Select(static a => a.Name)];
@@ -637,6 +639,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     public void Preamp_tube_reaches_a_stage_of_paralleled_twelve_ax7s(string model) {
         var type = AmpDesign.All.ToList().FindIndex(a => a.Name == model);
         Assert.True(type >= 0, model);
+
         float[] Render(float tube) {
             using var block = TestBlocks.Create<CircuitAmpBlock>(
                 (CircuitAmpBlock.Type, type),

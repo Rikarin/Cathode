@@ -919,6 +919,8 @@ additions (new types; every existing inverter and power amp renders bit-identica
   Control 2 for 4 kHz; ±19–21 dB at the extremes); V3 33k / 33k tail to −68 V, 62k and 470k / 220k into V4 (47k guessed,
   plates 279 V against the marked 276 V), shared 470 Ω; six 6550 at 45 mA (the
   library's 6550 then wants −67 V where the sheet marks −63 V; matching the mark would be 35 W a tube); no feedback.
+  Rated 300 W, not the 400 of the name (#300): Mesa's figure was not found, owners give 180 to 300 W, and the model's own
+  tubes reach 5 % distortion at about 275 W on the 1.2k primary (less on 1.5k or 1.8k, so the guessed 1.2k stays).
 - **Validation**: the driver tables against exact DC sweeps (`Cathodyne_driver_table_matches_the_reference_dc_sweep`,
   `Differential_driver_table_matches_the_reference_dc_sweep`: < 0.05 V wherever no grid draws current); whole power amps
   in the time domain with a stiff supply (`Driver_power_amps_match_the_reference_in_the_time_domain`: Major −32 dB with the

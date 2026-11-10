@@ -246,4 +246,71 @@ public partial class AmpStageTests {
         var errorDb = CompareInTime(name, power.Tick, power.Newton, circuit, speaker, amplitude, 8);
         Assert.True(errorDb < -30, $"{name}: {errorDb:0.0} dB from the reference");
     }
+
+    /// <summary>
+    ///     The Bass 400's rating against its own tubes (#300): six 6550 on 540 V with their screens at 535 V reach 5 %
+    ///     distortion (the amp has no feedback to hold it lower) at about 275 W into 8 Ω, so the rating is the 300 W
+    ///     owners give, not the 400 of the name; and the 1.2k primary is the one that gets the most out of them (1.5k
+    ///     and 1.8k clip earlier), so it stays.
+    /// </summary>
+    [Fact]
+    public void Bass_400_clips_near_its_rated_power_and_its_primary_suits_its_tubes() {
+        var design = MesaBass400.Design.Power;
+        var stock = PowerAtClipping(design);
+        var higher = new[] { 1.5e3, 1.8e3 }.Select(ohms => PowerAtClipping(design with { Transformer = new(ohms) }))
+            .ToArray();
+        output.WriteLine(
+            $"Bass 400 at 5 % THD: {stock:0} W on {design.Transformer.PlateToPlate:0} Ω, {higher[0]:0} W on 1.5k, "
+            + $"{higher[1]:0} W on 1.8k; rated {design.RatedPower:0} W"
+        );
+        Assert.InRange(stock / design.RatedPower, 0.8, 1.15);
+        Assert.True(stock > higher[0] && higher[0] > higher[1], "a higher primary gives less");
+    }
+
+    /// <summary>
+    ///     The power <paramref name="design" /> gives into 8 Ω where a 200 Hz sine reaches 5 % distortion, in watts:
+    ///     the input raised in steps and the crossing interpolated.
+    /// </summary>
+    static double PowerAtClipping(PowerAmpDesign design) {
+        const double Limit = 0.05;
+        var (previousPower, previousThd) = (0.0, 0.0);
+        for (var amplitude = 0.05; amplitude < 2; amplitude += 0.025) {
+            var (watts, thd) = PowerAndDistortion(design, amplitude);
+            if (thd >= Limit) {
+                return previousPower + (watts - previousPower) * (Limit - previousThd) / (thd - previousThd);
+            }
+
+            (previousPower, previousThd) = (watts, thd);
+        }
+
+        return previousPower;
+    }
+
+    /// <summary>
+    ///     The power into 8 Ω and the distortion (everything but the fundamental, over it) of a 200 Hz sine of
+    ///     <paramref name="amplitude" /> volts at the driver's grid, over the second half of a half-second render.
+    /// </summary>
+    static (double Watts, double Thd) PowerAndDistortion(PowerAmpDesign design, double amplitude) {
+        const int Samples = 48_000;
+        var power = new PowerAmp(design, Rate);
+        power.Configure(new(0.5, 0, 0, 0.5, 0.5, 0.5));
+        power.Reset();
+        var (cosine, sine, squares) = (0.0, 0.0, 0.0);
+        for (var n = 0; n < Samples; n++) {
+            var phase = 2 * Math.PI * 200 * n / Rate;
+            var y = power.Tick(amplitude * Math.Sin(phase));
+            if (n < Samples / 2) {
+                continue;
+            }
+
+            squares += y * y;
+            cosine += y * Math.Cos(phase);
+            sine += y * Math.Sin(phase);
+        }
+
+        const double Count = Samples / 2.0;
+        var total = squares / Count;
+        var fundamental = 2 * (cosine * cosine + sine * sine) / (Count * Count);
+        return (total / 8, Math.Sqrt(Math.Max(total - fundamental, 0) / fundamental));
+    }
 }

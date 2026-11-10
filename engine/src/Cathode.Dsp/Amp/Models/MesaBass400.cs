@@ -22,7 +22,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         pot's foot (the bass cap) and 0.1 µF to the bass pot's foot (the middle cap), 250k bass, 10k middle: the two
 ///         caps are the other way round from the Mark IIC+, IV and V and the TriAxis, whose bass cap is the 0.1 µF
 ///         (re-read for #299: the sheet draws ".047" between the 100k and the junction of the treble and bass pots,
-///         and ".1" between the 100k and the junction of the bass and mid pots); 47 nF into V2B with 3.3M from the 370 V node, 33k cathode, 0.1 µF into 15k; the equaliser:
+///         and ".1" between the 100k and the junction of the bass and mid pots); 47 nF into V2B with 3.3M from the
+///         370 V node, 33k cathode, 0.1 µF into 15k; the equaliser:
 ///         a PNP follower (470k / 1M bias), the six 50k sliders between the op-amp's inputs, each wiper through 470 Ω
 ///         (680 Ω on the top band), an inductor and a cap to ground (1 H / 22 µF, 1 H / 2.2 µF, 0.35 H / 1 µF, 0.22 H /
 ///         0.22 µF, 0.068 H / 0.15 µF, 0.033 H / 47 nF: 34, 107, 269, 723, 1,570 and 4,040 Hz), 3.3k on the output, 0.1
@@ -40,12 +41,25 @@ namespace Cathode.Dsp.Amp.Models;
 ///         marks -63 V, and 65 mA would match the mark at 35 W a tube), the equaliser's input and feedback resistors
 ///         (10k each, as in the TriAxis Dynamic Voice; unlabelled), the tapers (volumes and master audio, sliders and
 ///         treble linear; treble 250k), the reservoir (ten 220 µF in series pairs: 550 µF), the output transformer
-///         (1.2k plate to plate, about 400 W at 540 V), the supply's source resistance, the choke's resistance and the
-///         rated power. Simplified: the equaliser's discrete op-amp is linear (it swings about ±10 V around its -20.7 V
+///         (1.2k plate to plate), the supply's source resistance, the choke's resistance and the rated power (see
+///         below). Simplified: the equaliser's discrete op-amp is linear (it swings about ±10 V around its -20.7 V
 ///         bias; the levels here stay below that except with the volumes and the sliders all up), its PNP follower an
 ///         ideal buffer; the first grid leaks taken to the grids (drawn on the jacks' side of the 47 nF); the effects
 ///         loop and its blend a wire, the equaliser's in/out switch in; the coupling caps inside the driver shorts (the
 ///         driver's table). With the read values V3's plates rest at 335 V, where the sheet marks 350 V.
+///     </para>
+///     <para>
+///         The rating and the transformer (#300). Mesa printed no output power or primary impedance on the drawing,
+///         and no Mesa specification for this six-tube amp was found: web searches turn up the twelve-6L6 Bass
+///         400+'s manual and owners' threads (TalkBass, Basschat), whose figures run from 180 to 300 W. "400" is the
+///         model's name, not a measured figure. The rating here is 300 W, the top of the owners' range and what the
+///         tubes support: Tung-Sol's 6550 sheet (March 1963, frank.pocnet.net/sheets/127/6/6550.pdf) gives a pair in
+///         class AB1 with fixed bias 77 W at 450 V on 3.5k and 100 W at 600 V on 5k, with the screens near 300 V: about
+///         270 W for three pairs at 540 V. This amp runs its screens at 535 V, above the sheet's conditions, so the
+///         tubes pull more current and want a lower load than the sheet's: in this model the stage reaches 5 %
+///         distortion at about 275 W on 1.2k, 250 W on 1.5k and 220 W on 1.8k
+///         (<c>Bass_400_clips_near_its_rated_power_and_its_primary_suits_its_tubes</c>). So the 1.2k primary stays: it
+///         is still a guess, but one the tubes at these voltages agree with.
 ///     </para>
 ///     <para>
 ///         Panel: Volume 1 on Gain, Volume 2 on Control 1, Input 2 (Switch 1: the guitar in input 2 instead), Bass
@@ -74,7 +88,7 @@ public static class MesaBass400 {
             0.045,
             false,
             0,
-            400,
+            300,
             new DifferentialDriverDesign(
                 TriodeModel.Ecc83,
                 Rail,
