@@ -31,6 +31,38 @@ public class TunerTests(ITestOutputHelper output) {
         Assert.Equal(expectedCents, reading.Value.Cents, 0.5);
     }
 
+    /// <summary>
+    ///     The window must hold enough periods of the low strings at every device rate: the decimation follows the
+    ///     rate, so the analysis runs near 24 kHz.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(RatesAndLowNotes))]
+    public void Low_strings_read_within_half_a_cent_at_every_device_rate(double rate, double frequency, string note) {
+        var tuner = new Tuner(rate);
+        var signal = Signals.Sine(frequency, rate, (int)(rate / 2), 0.3f);
+        for (var offset = 0; offset < signal.Length; offset += 64) {
+            tuner.Push(signal.AsSpan(offset, Math.Min(64, signal.Length - offset)));
+        }
+
+        var reading = tuner.Detect();
+
+        Assert.InRange(tuner.SampleRate, 22_050, 24_000);
+        Assert.NotNull(reading);
+        Assert.Equal(note, reading.Value.Note);
+        Assert.Equal(0, 1_200 * Math.Log2(reading.Value.Frequency / frequency), 0.5);
+    }
+
+    public static TheoryData<double, double, string> RatesAndLowNotes() {
+        var data = new TheoryData<double, double, string>();
+        foreach (var rate in new[] { 44_100.0, 48_000, 88_200, 96_000, 176_400, 192_000 }) {
+            data.Add(rate, 30.87, "B"); // 5-string bass low B
+            data.Add(rate, 41.20, "E"); // bass low E
+            data.Add(rate, 82.41, "E"); // guitar low E
+        }
+
+        return data;
+    }
+
     [Theory]
     [InlineData(82.41)]
     [InlineData(110.0)]

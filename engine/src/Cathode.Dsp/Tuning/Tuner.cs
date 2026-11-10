@@ -13,7 +13,9 @@ public readonly record struct TunerReading(double Frequency, string Note, int Oc
 
 /// <summary>
 ///     Guitar and bass tuner using the McLeod Pitch Method (McLeod and Wyvill, "A Smarter Way to Find Pitch", ICMC
-///     2005). Input is decimated 2x, then the normalised square difference function (NSDF) of a 2048-sample window is
+///     2005). Input is decimated to an analysis rate near 24 kHz (2x at 44.1 and 48 kHz, 4x at 88.2 and 96 kHz, 8x at
+///     176.4 and 192 kHz, by cascaded half-band stages), so the 2048-sample window is about 85 ms and reaches
+///     <see cref="MinFrequency" /> at every rate. The normalised square difference function (NSDF) of the window is
 ///     computed from an FFT autocorrelation. The first "key maximum" above 93 % of the highest is the period, refined
 ///     by parabolic interpolation. Runs on an analysis thread, never the audio thread: it is fed from
 ///     <c>CathodeEngine.InputTap</c>.
@@ -23,6 +25,9 @@ public sealed class Tuner {
     public const double MinFrequency = 25;
     public const double MaxFrequency = 1_600;
 
+    /// <summary>The analysis rate the decimation aims for, in Hz.</summary>
+    const double TargetAnalysisRate = 24_000;
+
     const int FftSize = 2 * Window;
     const double KeyMaximumThreshold = 0.93;
     const double MinClarity = 0.8;
@@ -30,15 +35,15 @@ public sealed class Tuner {
 
     static readonly string[] Notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-    readonly HalfBandStage decimator = new(HalfBand.Design(80, 0.1));
+    readonly HalfBandStage[] decimators; // each halves the rate; the first takes the input
+    readonly float[][] pending; // per stage: the first sample of the pair it is waiting to halve
+    readonly bool[] waiting;
     readonly Fft fft = new(FftSize);
     readonly float[] history = new float[2 * Window]; // every sample written twice, so the window is contiguous
-    readonly float[] pending = new float[2];
     readonly float[] re = new float[FftSize];
     readonly float[] im = new float[FftSize];
     readonly double[] nsdf = new double[Window];
     readonly float[] decimated = new float[1];
-    int pendingCount;
     int filled;
     int write;
 
@@ -48,21 +53,47 @@ public sealed class Tuner {
     /// <summary>Rate of the decimated analysis signal.</summary>
     public double SampleRate { get; }
 
+    /// <summary>How many input samples make one analysis sample: 2, 4 or 8.</summary>
+    public int Decimation => 1 << decimators.Length;
+
     public Tuner(double sampleRate) {
-        SampleRate = sampleRate / 2;
+        var stages = Math.Clamp((int)Math.Round(Math.Log2(sampleRate / TargetAnalysisRate)), 1, 3);
+        var coefficients = HalfBandStage.Split(HalfBand.Design(80, 0.1));
+        decimators = new HalfBandStage[stages];
+        pending = new float[stages][];
+        waiting = new bool[stages];
+        for (var i = 0; i < stages; i++) {
+            decimators[i] = new(coefficients);
+            pending[i] = new float[2];
+        }
+
+        SampleRate = sampleRate / Decimation;
     }
 
     /// <summary>Feeds input samples at the full rate.</summary>
     public void Push(ReadOnlySpan<float> samples) {
         foreach (var sample in samples) {
-            pending[pendingCount++] = sample;
-            if (pendingCount < 2) {
-                continue;
+            var value = sample;
+            var stage = 0;
+            for (; stage < decimators.Length; stage++) {
+                var pair = pending[stage];
+                if (!waiting[stage]) {
+                    pair[0] = value;
+                    waiting[stage] = true;
+                    break;
+                }
+
+                pair[1] = value;
+                waiting[stage] = false;
+                decimators[stage].Down(pair, decimated);
+                value = decimated[0];
             }
 
-            pendingCount = 0;
-            decimator.Down(pending, decimated);
-            history[write] = history[write + Window] = decimated[0];
+            if (stage < decimators.Length) {
+                continue; // a stage is still waiting for the second sample of its pair
+            }
+
+            history[write] = history[write + Window] = value;
             write = write == Window - 1 ? 0 : write + 1;
             filled = Math.Min(Window, filled + 1);
         }
