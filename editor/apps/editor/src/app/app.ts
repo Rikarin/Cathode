@@ -1,5 +1,14 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal, viewChild } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  signal,
+  viewChild
+} from '@angular/core';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { resetClipLights } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
 import {
@@ -28,6 +37,7 @@ import { XuiSegmentedControlImports } from '@xui/segmented-control';
 import { XuiSpinnerImports } from '@xui/spinner';
 import { XuiTextImports } from '@xui/text';
 import { XuiTooltipImports } from '@xui/tooltip';
+import type { OpenedPreset } from './core/desktop';
 import { Notify } from './core/notify';
 import { Startup } from './core/startup';
 import { BatchSetDialog } from './shell/batch-set-dialog';
@@ -471,6 +481,7 @@ export class App {
   private readonly library = inject(LibraryStore);
   private readonly setlists = inject(SetlistPlayer);
   private readonly notify = inject(Notify);
+  private readonly router = inject(Router);
   protected readonly abOptions = [
     { label: 'A', value: 'A' as const },
     { label: 'B', value: 'B' as const }
@@ -485,6 +496,14 @@ export class App {
     // Quitting the desktop app takes its Server, and the unsaved edits with it: ask first, as loading a preset does.
     window.cathode?.onQuit?.(() => this.switcher.mayDiscard('quit'));
     void this.startup.start();
+    // Preset files opened from the OS (a double-clicked .cthpreset) are imported once the editor has connected; the
+    // desktop app keeps them until then.
+    const connected = effect(() => {
+      if (this.startup.state() === 'ready') {
+        connected.destroy();
+        window.cathode?.onOpenPreset?.(preset => void this.importOpened(preset));
+      }
+    });
     // Started with the shell, so an armed MIDI learn shows (with Cancel) on any page, after a reload too.
     inject(MidiLearnStore);
     inject(DestroyRef).onDestroy(this.registerShortcuts());
@@ -506,6 +525,17 @@ export class App {
     if (desktop) {
       await this.notify.run(() => desktop.setTarget({ mode: 'local' }));
     }
+  }
+
+  /** Imports a preset file the OS handed to the desktop app, as the Library's Import… does, and shows the Library. */
+  private async importOpened(preset: OpenedPreset): Promise<void> {
+    if (!preset.data) {
+      this.notify.error(preset.error ?? `Could not read ${preset.name}.`);
+      return;
+    }
+
+    await this.library.import(new File([preset.data as BlobPart], preset.name, { type: 'application/zip' }));
+    await this.router.navigate(['/library']);
   }
 
   protected newPreset(): void {

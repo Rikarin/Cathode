@@ -66,16 +66,19 @@ export class Editor {
 
 /**
  * Each test gets a fresh app: throwaway settings and data, its own sidecars (null audio). `desktopSettings` starts it
- * with that settings.json instead of the defaults (a remote Server, say).
+ * with that settings.json instead of the defaults (a remote Server, say), and `launchArguments` with more on its
+ * command line (a preset file, as the OS passes one).
  */
 export const test = base.extend<{
   desktopSettings: object | null;
+  launchArguments: string[];
   app: ElectronApplication;
   window: Page;
   editor: Editor;
 }>({
   desktopSettings: [null, { option: true }],
-  app: async ({ desktopSettings }, use) => {
+  launchArguments: [[], { option: true }],
+  app: async ({ desktopSettings, launchArguments }, use) => {
     const scratch = mkdtempSync(join(tmpdir(), 'cathode-e2e-'));
     if (desktopSettings) {
       mkdirSync(join(scratch, 'user-data'), { recursive: true });
@@ -83,7 +86,7 @@ export const test = base.extend<{
     }
 
     const app = await electron.launch({
-      args: [main],
+      args: [main, ...launchArguments],
       env: {
         ...process.env,
         CATHODE_USER_DATA: join(scratch, 'user-data'),

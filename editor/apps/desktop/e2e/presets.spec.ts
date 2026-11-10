@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { expect, test } from './fixtures';
 
 // Presets as a whole: saving and reloading them, A/B compare, and the editor's keyboard behaviour around them.
@@ -190,3 +191,22 @@ test('a preset a bank holds is not deleted: the Library says which bank, then de
 interface CathodeWindow {
   cathode: { connection(): Promise<{ baseUrl: string; token: string | null }> };
 }
+
+test.describe('a preset file opened from the OS', () => {
+  // As Windows and Linux pass a double-clicked file: on the command line (macOS sends the same path as an event).
+  const file = resolve(__dirname, '../../../../engine/src/Cathode.Server/Factory/presets/apache.cthpreset');
+  test.use({ launchArguments: [file] });
+
+  // Not the `window` fixture: it waits for the grid, and this start ends on the Library.
+  test('is imported into the library once the editor has connected', async ({ app }) => {
+    const window = await app.firstWindow();
+    await expect(window.getByText(/^Imported "Apache/)).toBeVisible({ timeout: 90_000 });
+    await expect(window).toHaveURL(/\/library/);
+    await expect(
+      window
+        .getByTestId('preset-list')
+        .getByText(/^Apache/)
+        .first()
+    ).toBeVisible();
+  });
+});

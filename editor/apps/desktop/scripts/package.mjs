@@ -128,6 +128,10 @@ await build({
     },
     npmRebuild: false,
     icon: join(workspace, 'apps/desktop/assets/icon.png'),
+    // Double-clicking a preset opens it in Cathode, which imports it into the library (main.ts, open-files.ts).
+    fileAssociations: [
+      { ext: 'cthpreset', name: 'Cathode Preset', role: 'Editor', mimeType: 'application/x-cathode-preset' }
+    ],
     artifactName: '${productName}-${version}-${os}-${arch}.${ext}',
     mac: {
       category: 'public.app-category.music',

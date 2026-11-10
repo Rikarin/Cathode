@@ -13,6 +13,7 @@ import { existsSync, statSync } from 'node:fs';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { networkStatus, newToken, portFree } from './network';
+import { FileInbox, isPresetFile, presetArguments, readPreset } from './open-files';
 import {
   type AudioSettings,
   type NetworkSettings,
@@ -76,6 +77,43 @@ let quitGuard = false;
 let askingToQuit: Promise<boolean> | null = null;
 let quitQuestions = 0;
 const quitAnswers = new Map<number, (ok: boolean) => void>();
+/**
+ * Preset files (.cthpreset) the OS asked the app to open: double-clicked, dropped on the Dock icon or given on the
+ * command line. They wait here until the editor has connected, and it imports them into the library.
+ */
+const presetFiles = new FileInbox();
+/** Whether startup has opened the window (the editor is served, the settings are read): before that nothing else may. */
+let started = false;
+
+/** Shows the window, or opens one when macOS kept the app running without any. */
+function showWindow(): void {
+  if (window) {
+    if (window.isMinimized()) {
+      window.restore();
+    }
+
+    window.show();
+    window.focus();
+  } else if (started) {
+    createWindow();
+  }
+}
+
+function openPresets(paths: readonly string[]): void {
+  for (const path of paths.filter(isPresetFile)) {
+    presetFiles.add(path);
+  }
+
+  if (paths.length > 0) {
+    showWindow();
+  }
+}
+
+// macOS sends the file as an event, at any time from before the app is ready.
+app.on('open-file', (event, path) => {
+  event.preventDefault();
+  openPresets([path]);
+});
 
 /**
  * Asks the editor whether the app may quit: with unsaved edits it asks the person, as loading a preset does, since the
@@ -211,7 +249,10 @@ function createWindow(): void {
       }
     });
   });
-  window.webContents.on('did-navigate', () => (quitGuard = false));
+  window.webContents.on('did-navigate', () => {
+    quitGuard = false;
+    presetFiles.closed();
+  });
   // Full screen hides the traffic lights, so the navbar can give their space back.
   window.on('enter-full-screen', () => window?.webContents.send('cathode:fullScreen', true));
   window.on('leave-full-screen', () => window?.webContents.send('cathode:fullScreen', false));
@@ -228,7 +269,10 @@ function createWindow(): void {
 
     return { action: 'deny' };
   });
-  window.on('closed', () => (window = null));
+  window.on('closed', () => {
+    window = null;
+    presetFiles.closed();
+  });
   window
     .loadURL(devServer ?? `${Scheme}://editor/index.html`)
     .catch((error: unknown) => console.error('Cathode: the editor did not load', error));
@@ -243,6 +287,20 @@ function handleIpc(): void {
   ipcMain.on('cathode:mayQuit:reply', (_event, id: unknown, ok: unknown) => {
     if (typeof id === 'number') {
       quitAnswers.get(id)?.(ok === true);
+    }
+  });
+  // The editor has connected and takes preset files now: each is read here (the sandboxed window cannot) and sent.
+  ipcMain.on('cathode:openPreset:ready', event => {
+    const contents = event.sender;
+    if (contents === window?.webContents) {
+      presetFiles.ready(
+        path =>
+          void readPreset(path).then(preset => {
+            if (!contents.isDestroyed()) {
+              contents.send('cathode:openPreset', preset);
+            }
+          })
+      );
     }
   });
   ipcMain.handle('cathode:connection', () => connection());
@@ -438,15 +496,10 @@ function buildMenu(): void {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-app.on('second-instance', () => {
-  if (window) {
-    if (window.isMinimized()) {
-      window.restore();
-    }
-
-    window.show();
-    window.focus();
-  }
+// Opening a preset file on Windows or Linux starts the app again with the file as an argument: this one takes it.
+app.on('second-instance', (_event, argv, workingDirectory) => {
+  showWindow();
+  openPresets(presetArguments(argv, workingDirectory));
 });
 
 app
@@ -472,6 +525,8 @@ app
     handleIpc();
     buildMenu();
     createWindow();
+    started = true;
+    openPresets(presetArguments(process.argv, process.cwd()));
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();

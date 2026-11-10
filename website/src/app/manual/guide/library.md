@@ -39,7 +39,7 @@ A **`.cthpreset`** file is one preset, packaged with every IR and NAM capture it
 
 **To export:** in **Library ▸ Presets**, select the preset and click **Export**. Your browser or the app saves the file.
 
-**To import:** click **Import…** and choose a `.cthpreset` file. The preset is added to your presets, and any IRs and captures it carries are added to the NAM amps and IR cabs sections (files you already have are not duplicated). An import never overwrites a preset you have: if the same preset already exists, the imported one is added as a new preset beside it. An exported factory preset comes back as your own.
+**To import:** click **Import…** and choose a `.cthpreset` file. With the desktop app installed you can also double-click the file (or drop it on Cathode's Dock icon on a Mac): Cathode opens, imports it and shows the Library. The preset is added to your presets, and any IRs and captures it carries are added to the NAM amps and IR cabs sections (files you already have are not duplicated). An import never overwrites a preset you have: if the same preset already exists, the imported one is added as a new preset beside it. An exported factory preset comes back as your own.
 
 > **Note:** A preset saved by a newer version of Cathode than yours is refused, with a message that says so. Update Cathode to load it. Presets from older versions always load.
 

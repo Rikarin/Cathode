@@ -440,6 +440,7 @@ Live state outside the preset has events of its own, which carry the current `re
   - gives each sidecar its standard input as a pipe, its lifeline: the OS closes it however the app ends, and the sidecar then stops cleanly (`--watch-stdin`, `Cathode:WatchStdin`), so none outlives a crash or a force quit
   - can instead connect to a remote server (headless rig) by URL and token
   - provides native file dialogs, auto-update and crash reporting
+  - is the app for `.cthpreset` files (a file association in the installers): a file opened from the OS (macOS `open-file`, elsewhere the command line, also a second start's) is read in main and handed to the editor, which imports it once it has connected (`open-files.ts`)
   - has contextIsolation on and nodeIntegration off; a minimal preload exposes `window.cathode.{pickFile, revealPath, version}`
 - **Renderer:** an Angular 22 standalone, zoneless, signals-based app in an Nx workspace (the same tooling as xUI, so the libs can be consumed as source during development).
 

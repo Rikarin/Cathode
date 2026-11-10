@@ -24,6 +24,10 @@ contextBridge.exposeInMainWorld('cathode', {
     ipcRenderer.on('cathode:mayQuit', (_event, id: number) => void answer(id));
     ipcRenderer.send('cathode:mayQuit:ready');
   },
+  onOpenPreset: (listener: (preset: unknown) => void) => {
+    ipcRenderer.on('cathode:openPreset', (_event, preset: unknown) => listener(preset));
+    ipcRenderer.send('cathode:openPreset:ready');
+  },
   connection: () => ipcRenderer.invoke('cathode:connection'),
   target: () => ipcRenderer.invoke('cathode:target'),
   setTarget: (target: unknown) => ipcRenderer.invoke('cathode:setTarget', target),

@@ -69,6 +69,13 @@ export interface SidecarStatus {
   pid?: number | null;
 }
 
+/** A .cthpreset file the OS asked the desktop app to open: its bytes, or why the app could not read it. */
+export interface OpenedPreset {
+  name: string;
+  data: Uint8Array | null;
+  error: string | null;
+}
+
 /**
  * What the Electron preload exposes as `window.cathode` (apps/desktop/src/preload.ts). Absent when the editor runs in
  * a plain browser, where audio setup is not available.
@@ -85,6 +92,11 @@ export interface CathodeDesktop {
    * copy: false keeps the app open.
    */
   onQuit?(mayQuit: () => boolean | Promise<boolean>): void;
+  /**
+   * Called with each preset file opened from the OS (double-clicked, dropped on the Dock icon, or given on the command
+   * line), those from before the call included. Call it once, when the editor can import.
+   */
+  onOpenPreset?(listener: (preset: OpenedPreset) => void): void;
   /** The Server to use; in local mode it resolves once the sidecars answer. */
   connection(): Promise<Connection>;
   target(): Promise<ServerTarget>;
