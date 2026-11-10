@@ -231,9 +231,9 @@ Chosen from the amps Fractal models (the Axe-Fx III list is built on the same re
 
 | Real amp | Family | Note |
 |---|---|---|
-| Fender Hot Rod Deluxe | Fender modern | Popular, but the schematic is a scan only; tone stack unknown |
+| Fender Hot Rod Deluxe | Fender modern | Built (the III) from Fender drawing 0079604000 rev B, read by eye (§3.1) |
 | Marshall JCM900 4100 | Marshall | Op-amp and diode front end (hybrid); good GPL capture set |
-| Marshall JVM410H (OD) | Marshall | Factory PDF exists but values are unreadable |
+| Marshall JVM410H (OD) | Marshall | Built, all four channels, from the vector factory sheets JVM410-60-02, -61-02 and -67-02 (§3.2) |
 | Mesa Mark IV (lead) | Mesa | Shares the IIC+ front end |
 | Mesa Lone Star | Mesa | Clean/edge Mesa |
 | Bogner Uberschall | EU/US high gain | No schematic found |
