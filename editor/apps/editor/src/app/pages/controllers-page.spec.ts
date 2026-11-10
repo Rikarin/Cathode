@@ -86,3 +86,65 @@ describe('ControllersPage externals', () => {
     expect(page.externals()).toEqual([0.5, 0, 0, 0, 0, 0, 0, 1]);
   });
 });
+
+describe('ControllersPage controller settings', () => {
+  function render() {
+    const setControllers = vi.fn((_values: Record<string, number>, _gesture?: string) => Promise.resolve());
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: LiveStore, useValue: { preset: signal(undefined), activeScene: signal(0), setControllers } },
+        { provide: GlobalStore, useValue: { settings: signal(undefined) } },
+        { provide: ConnectionService, useValue: { client: {} } },
+        { provide: Notify, useValue: { run: (action: () => Promise<unknown>) => action() } }
+      ]
+    });
+    TestBed.overrideComponent(ControllersPage, { set: { template: '', imports: [] } });
+    const fixture = TestBed.createComponent(ControllersPage);
+    fixture.detectChanges();
+    const page = fixture.componentInstance as unknown as {
+      set: (id: string, value: number, control?: string) => Promise<void>;
+      gesture: (control: string) => { end: () => void };
+    };
+    const gestures = () => setControllers.mock.calls.map(call => call[1]);
+    return { page, setControllers, gestures };
+  }
+
+  it('sends one gesture id for a drag of a knob and another for the next drag', async () => {
+    const { page, setControllers, gestures } = render();
+    await page.set('lfo1Rate', 2);
+    await page.set('lfo1Rate', 3);
+    page.gesture('lfo1Rate').end();
+    await page.set('lfo1Rate', 4);
+
+    expect(setControllers.mock.calls.map(call => call[0])).toEqual([{ lfo1Rate: 2 }, { lfo1Rate: 3 }, { lfo1Rate: 4 }]);
+    const [first, second, third] = gestures();
+    expect(first).toEqual(expect.any(String));
+    expect(second).toBe(first);
+    expect(third).toEqual(expect.any(String));
+    expect(third).not.toBe(first);
+  });
+
+  it('keeps the gestures of two knobs apart', async () => {
+    const { page, gestures } = render();
+    await page.set('lfo1Rate', 2);
+    await page.set('lfo2Rate', 2);
+    page.gesture('lfo1Rate').end();
+    await page.set('lfo2Rate', 3);
+
+    const [rate1, rate2, rate2Again] = gestures();
+    expect(rate2).not.toBe(rate1);
+    expect(rate2Again).toBe(rate2);
+  });
+
+  it('sends the stages one stroke of the step bars sets under one gesture', async () => {
+    const { page, gestures } = render();
+    await page.set('seq1', 0.5, 'seqBars');
+    await page.set('seq2', 0.5, 'seqBars');
+    page.gesture('seqBars').end();
+    await page.set('seq2', 0.75, 'seqBars');
+
+    const [first, second, next] = gestures();
+    expect(second).toBe(first);
+    expect(next).not.toBe(first);
+  });
+});

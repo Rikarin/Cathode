@@ -8,6 +8,7 @@ import {
   matCameraAltRound,
   matDeleteRound,
   matDeleteSweepRound,
+  matDownloadRound,
   matExpandMoreRound,
   matHistoryRound,
   matInfoRound,
@@ -26,12 +27,13 @@ import { ConnectionService } from '../core/connection';
 import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
 import { CompareStore } from '../state/compare.store';
+import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
 import { PresetSwitcher } from '../state/preset-switcher';
 import { ShortcutHint } from './shortcuts';
 
 /**
- * The preset commands beyond save: revert, clear, snapshots (stored on the Server, so every editor shares them) and
+ * The preset commands beyond save: export, revert, clear, snapshots (stored on the Server, so every editor shares them) and
  * templates.
  */
 @Component({
@@ -53,6 +55,7 @@ import { ShortcutHint } from './shortcuts';
       matCameraAltRound,
       matDeleteRound,
       matDeleteSweepRound,
+      matDownloadRound,
       matExpandMoreRound,
       matHistoryRound,
       matInfoRound,
@@ -73,6 +76,9 @@ import { ShortcutHint } from './shortcuts';
         </button>
         <button type="button" xuiMenuItem icon="matSaveAsRound" (click)="saveAs.emit()">
           Save as…<span menuItemLabel>{{ 'saveAs' | cthShortcut }}</span>
+        </button>
+        <button type="button" xuiMenuItem icon="matDownloadRound" data-testid="export-preset" (click)="export()">
+          Export
         </button>
         <xui-menu-divider />
         <button type="button" xuiMenuItem icon="matViewQuiltRound" (click)="openTemplates()">New from template…</button>
@@ -101,6 +107,23 @@ import { ShortcutHint } from './shortcuts';
       confirmText="Clear"
       [(open)]="confirmClear"
       (confirmed)="live.clear()"
+    />
+    <!-- Above the Snapshots and New from template dialogs: a stored snapshot or template is not in the undo history. -->
+    <xui-alert-dialog
+      destructive
+      title="Delete snapshot?"
+      [description]="'“' + (snapshotToDelete()?.name ?? '') + '” will be deleted. This cannot be undone.'"
+      confirmText="Delete"
+      [(open)]="confirmDeleteSnapshot"
+      (confirmed)="deleteSnapshot()"
+    />
+    <xui-alert-dialog
+      destructive
+      title="Delete template?"
+      [description]="'“' + (templateToDelete()?.name ?? '') + '” will be deleted. This cannot be undone.'"
+      confirmText="Delete"
+      [(open)]="confirmDeleteTemplate"
+      (confirmed)="deleteTemplate()"
     />
 
     @if (snapshotsOpen()) {
@@ -133,7 +156,7 @@ import { ShortcutHint } from './shortcuts';
                   color="error"
                   class="shrink-0"
                   [attr.aria-label]="'Delete snapshot ' + s.name"
-                  (click)="deleteSnapshot(s)"
+                  (click)="askDeleteSnapshot(s)"
                 >
                   <ng-icon xui name="matDeleteRound" size="sm" />
                 </button>
@@ -179,7 +202,7 @@ import { ShortcutHint } from './shortcuts';
                   color="error"
                   class="shrink-0"
                   [attr.aria-label]="'Delete template ' + t.name"
-                  (click)="deleteTemplate(t)"
+                  (click)="askDeleteTemplate(t)"
                 >
                   <ng-icon xui name="matDeleteRound" size="sm" />
                 </button>
@@ -282,6 +305,7 @@ export class PresetMenu {
   private readonly switcher = inject(PresetSwitcher);
   private readonly connection = inject(ConnectionService);
   private readonly notify = inject(Notify);
+  private readonly library = inject(LibraryStore);
 
   protected readonly confirmClear = signal(false);
   protected readonly infoOpen = signal(false);
@@ -295,6 +319,11 @@ export class PresetMenu {
   protected readonly templateName = signal('');
   protected readonly snapshots = signal<readonly SnapshotSummary[]>([]);
   protected readonly templates = signal<readonly PresetSummary[]>([]);
+  /** The snapshot and the template the delete confirmations ask about. */
+  protected readonly snapshotToDelete = signal<SnapshotSummary | null>(null);
+  protected readonly confirmDeleteSnapshot = signal(false);
+  protected readonly templateToDelete = signal<PresetSummary | null>(null);
+  protected readonly confirmDeleteTemplate = signal(false);
 
   constructor() {
     // Another editor took or deleted a snapshot or a template while its list is open here.
@@ -330,6 +359,11 @@ export class PresetMenu {
     }
   }
 
+  /** Downloads the working copy as it is now, unsaved edits included, as a preset package. */
+  protected export(): void {
+    void this.library.download('/api/v1/live/export', `${this.live.preset()?.name.trim() || 'preset'}.cthpreset`);
+  }
+
   protected async revert(): Promise<void> {
     if (await this.live.revert()) {
       this.compare.reset();
@@ -359,7 +393,19 @@ export class PresetMenu {
     }
   }
 
-  protected async deleteSnapshot(snapshot: SnapshotSummary): Promise<void> {
+  /** Asks before deleting a snapshot: the Server deletes it for good, outside the working copy's undo. */
+  protected askDeleteSnapshot(snapshot: SnapshotSummary): void {
+    this.snapshotToDelete.set(snapshot);
+    this.confirmDeleteSnapshot.set(true);
+  }
+
+  /** Deletes the snapshot the confirmation asked about. */
+  protected async deleteSnapshot(): Promise<void> {
+    const snapshot = this.snapshotToDelete();
+    if (!snapshot) {
+      return;
+    }
+
     await this.notify.run(async () => {
       await this.connection.client.DELETE('/api/v1/snapshots/{id}', { params: { path: { id: snapshot.id } } });
     });
@@ -401,7 +447,19 @@ export class PresetMenu {
     }
   }
 
-  protected async deleteTemplate(template: PresetSummary): Promise<void> {
+  /** Asks before deleting a template, as for a snapshot. */
+  protected askDeleteTemplate(template: PresetSummary): void {
+    this.templateToDelete.set(template);
+    this.confirmDeleteTemplate.set(true);
+  }
+
+  /** Deletes the template the confirmation asked about. */
+  protected async deleteTemplate(): Promise<void> {
+    const template = this.templateToDelete();
+    if (!template) {
+      return;
+    }
+
     await this.notify.run(async () => {
       await this.connection.client.DELETE('/api/v1/templates/{id}', { params: { path: { id: template.id } } });
     });

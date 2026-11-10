@@ -54,10 +54,11 @@ All in the **Preset** menu, except where noted:
 | **Revert to saved**    | Throws away unsaved changes and goes back to the stored preset. Only available when there are changes.         |
 | Reload (**F5**)        | Loads the stored preset again, as a fresh load. This also clears the undo history.                             |
 | **Clear preset…**      | Empties the grid and the name, after a confirmation. Undo brings it back.                                      |
+| **Export**             | Saves the working copy as a `.cthpreset` file, unsaved changes included.                                       |
 | **Save as template…**  | Stores the working copy as a template under a name.                                                            |
-| **New from template…** | Starts a new preset from a template. The dialog also deletes templates.                                        |
+| **New from template…** | Starts a new preset from a template. The dialog also deletes templates, after a confirmation.                  |
 | **Take a snapshot**    | Stores the working copy as it is now, unsaved changes included, with a time stamp. One click, nothing to name. |
-| **Snapshots…**         | Lists this preset's snapshots, to **Load** one into the working copy or delete it.                             |
+| **Snapshots…**         | Lists this preset's snapshots, to **Load** one into the working copy or delete it, after a confirmation.       |
 | **Manage presets…**    | Opens the page for organising banks. See [Banks](/manual/library#banks-and-manage-presets).                    |
 
 **Templates** are starting points: a favourite routing with your usual gate, amp, cab and delay, ready to build on. **Snapshots** are save points while you experiment: take one before trying something drastic, and load it if you change your mind. Both are stored with your other data and shared by every editor connected to the same engine.

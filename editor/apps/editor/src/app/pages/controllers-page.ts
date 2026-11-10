@@ -106,7 +106,7 @@ export function scopeName(channel: string | null | undefined): string {
             [defaultValue]="0"
             [value]="sceneLevel()"
             (valueChange)="setSceneLevel($event)"
-            (committed)="gesture('level').end()"
+            (committed)="gesture('sceneLevel').end()"
           />
           @for (value of sceneControllers(); track $index) {
             <cth-knob
@@ -116,7 +116,7 @@ export function scopeName(channel: string | null | undefined): string {
               [max]="100"
               [value]="value * 100"
               (valueChange)="setSceneController($index, $event / 100)"
-              (committed)="gesture('controller' + $index).end()"
+              (committed)="gesture('sceneController' + $index).end()"
             />
           }
         </div>
@@ -291,6 +291,7 @@ export function scopeName(channel: string | null | undefined): string {
                   [label]="group.labels[$index]"
                   [stored]="stored(id)"
                   (changed)="set(id, $event)"
+                  (committed)="gesture(id).end()"
                 />
               }
             </div>
@@ -306,20 +307,29 @@ export function scopeName(channel: string | null | undefined): string {
             label="Stages"
             [stored]="stored('seqStages')"
             (changed)="set('seqStages', $event)"
+            (committed)="gesture('seqStages').end()"
           />
-          <cth-rig-control id="seqRate" label="Rate" [stored]="stored('seqRate')" (changed)="set('seqRate', $event)" />
+          <cth-rig-control
+            id="seqRate"
+            label="Rate"
+            [stored]="stored('seqRate')"
+            (changed)="set('seqRate', $event)"
+            (committed)="gesture('seqRate').end()"
+          />
           <cth-rig-control
             id="seqTempo"
             label="Tempo"
             [stored]="stored('seqTempo')"
             (changed)="set('seqTempo', $event)"
+            (committed)="gesture('seqTempo').end()"
           />
         </div>
         <cth-step-bars
           label="Sequencer stages"
           [values]="stageValues()"
           [active]="playingStage()"
-          (changed)="set('seq' + ($event.index + 1), $event.value)"
+          (changed)="set('seq' + ($event.index + 1), $event.value, 'seqBars')"
+          (committed)="gesture('seqBars').end()"
         />
       </section>
 
@@ -372,9 +382,12 @@ export class ControllersPage {
    * values sent but not yet confirmed shown meanwhile, so a dragged knob neither floods the rig nor jumps back.
    */
   private readonly sending = new Coalescer<number | number[]>((key, value) => this.send(key, value));
-  /** The scene knobs' gestures, by knob: one drag is one undo step, the next drag another. */
+  /**
+   * The gestures of the scene knobs and the controller settings, by control: one drag is one undo step, the next drag
+   * another.
+   */
   private readonly gestures = new Map<string, KnobGesture>();
-  /** The gesture of the value waiting in {@link sending} for a scene key, sent with it. */
+  /** The gesture of the value waiting in {@link sending} for a scene or controller key, sent with it. */
   private readonly gestureOf = new Map<string, string>();
 
   protected readonly manualNames = ['A', 'B', 'C', 'D'];
@@ -454,13 +467,19 @@ export class ControllersPage {
     return (this.sending.pending(`controller:${id}`) as number | undefined) ?? this.live.preset()?.controllers[id];
   }
 
-  protected set(id: string, value: number): Promise<void> {
-    return this.sending.set(`controller:${id}`, value);
+  /**
+   * Sets controller setting `id` as part of the gesture of `control`: the setting's own knob, or the step bars, whose
+   * one stroke sets several stages.
+   */
+  protected set(id: string, value: number, control = id): Promise<void> {
+    const key = `controller:${id}`;
+    this.gestureOf.set(key, this.gesture(control).current());
+    return this.sending.set(key, value);
   }
 
   protected setSceneLevel(level: number): Promise<void> {
     const key = `scene:${this.live.activeScene()}:level`;
-    this.gestureOf.set(key, this.gesture('level').current());
+    this.gestureOf.set(key, this.gesture('sceneLevel').current());
     return this.sending.set(key, level);
   }
 
@@ -468,11 +487,11 @@ export class ControllersPage {
     const controllers = [...this.sceneControllers()];
     controllers[index] = value;
     const key = `scene:${this.live.activeScene()}:controllers`;
-    this.gestureOf.set(key, this.gesture(`controller${index}`).current());
+    this.gestureOf.set(key, this.gesture(`sceneController${index}`).current());
     return this.sending.set(key, controllers);
   }
 
-  /** A scene knob's gesture. */
+  /** The gesture of a scene knob (`sceneLevel`, `sceneController<n>`), a controller setting (its id) or `seqBars`. */
   protected gesture(knob: string): KnobGesture {
     let gesture = this.gestures.get(knob);
     if (!gesture) {
@@ -518,7 +537,7 @@ export class ControllersPage {
   private async send(key: string, value: number | number[]): Promise<void> {
     const [kind, id = '', field] = key.split(':');
     if (kind === 'controller') {
-      await this.live.setControllers({ [id]: value as number });
+      await this.live.setControllers({ [id]: value as number }, this.gestureOf.get(key));
     } else if (kind === 'scene') {
       await this.live.updateScene(
         Number(id),
