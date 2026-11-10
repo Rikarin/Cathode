@@ -64,11 +64,19 @@ public sealed class GlobalSettings {
     public List<MidiMapping> MidiMappings { get; set; } = [];
 
     /// <summary>
-    ///     Where scene MIDI and footswitch LEDs go: a MIDI output's uid (<see cref="MidiOutputInfo.Uid" />, from
+    ///     Where scene MIDI, footswitch LEDs and MIDI clock go: a MIDI output's uid (<see cref="MidiOutputInfo.Uid" />, from
     ///     <c>GET /api/v1/midi/outputs</c>), or null for every output. One port keeps them from looping back into a
     ///     controller that echoes what it receives; while that port is not connected, nothing is sent.
     /// </summary>
     public string? MidiOutPort { get; set; }
+
+    /// <summary>
+    ///     Sends MIDI clock (24 ticks per quarter note, no Start or Stop) at the rig's tempo to
+    ///     <see cref="MidiOutPort" /> while audio runs, so external delays, loopers and drum machines follow the
+    ///     tempo and its taps. Nothing is sent while <see cref="TempoMode" /> is <c>midiClock</c>: Cathode then
+    ///     follows a clock and does not echo it.
+    /// </summary>
+    public bool SendMidiClock { get; set; }
 
     public List<FootswitchLayout> Footswitches { get; set; } = [];
 

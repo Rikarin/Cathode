@@ -387,6 +387,7 @@ Still to come: RMS, per-block CPU, scene state, and binary frames.
 ### 5.10 MIDI and controllers
 
 - MIDI is read in the native shim (RtMidi, or JACK MIDI on Linux). Events are timestamped, then converted to **sample offsets** and pushed into the command ring. That gives sample-accurate tap tempo and CC ramps.
+- **MIDI clock** goes both ways, never at once. In: with `tempoMode` `midiClock` the host's MIDI thread sets the tempo from the average of the last 24 tick intervals. Out: with `sendMidiClock` the same thread sends 24 ticks per quarter note at the rig's tempo to the global MIDI output (`MidiClockOut`). The ticks are counted on the engine's sample clock, carried between audio callbacks by the OS clock, so they stay with the synced LFOs and delays and stop when the audio does; a tick leaves within about a poll (1 ms, as far as the OS timer allows) of when it is due. Only ticks are sent: there is no transport, so no Start, Stop or Continue.
 - Mappings cover preset and scene change, block bypass and channel, modifier sources, tap tempo, tuner and looper. They live in global settings, and presets can override them.
 - Foot-controller support (generic MIDI controllers in v1) uses an Axe-Fx-like **layout/view model**: layouts, per-switch tap/hold functions, LED colours sent via MIDI where the controller supports it.
 

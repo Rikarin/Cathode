@@ -80,12 +80,12 @@ public sealed partial class LiveRig(
 
     /// <summary>
     ///     Sends the whole rig to the engine again (after the host (re)connects): the graph and its parameters, mute,
-    ///     the tuner and whether to follow MIDI clock.
+    ///     the tuner and whether to follow or send MIDI clock.
     /// </summary>
     public Task ResyncAsync() =>
         Locked(async () => {
                 await SyncGraphAsync();
-                engine.SetMidi(globals.Get().TempoMode == "midiClock");
+                SyncMidi(globals.Get());
                 engine.SetTuner(TunerOn);
                 return State();
             }

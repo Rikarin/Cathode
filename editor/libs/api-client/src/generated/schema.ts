@@ -2132,11 +2132,18 @@ export interface components {
       midiChannel: number;
       midiMappings: components['schemas']['MidiMapping'][];
       /**
-       * @description Where scene MIDI and footswitch LEDs go: a MIDI output's uid (string MidiOutputInfo.Uid, from
+       * @description Where scene MIDI, footswitch LEDs and MIDI clock go: a MIDI output's uid (string MidiOutputInfo.Uid, from
        *     `GET /api/v1/midi/outputs`), or null for every output. One port keeps them from looping back into a
        *     controller that echoes what it receives; while that port is not connected, nothing is sent.
        */
       midiOutPort?: null | string;
+      /**
+       * @description Sends MIDI clock (24 ticks per quarter note, no Start or Stop) at the rig's tempo to
+       *     string? GlobalSettings.MidiOutPort while audio runs, so external delays, loopers and drum machines follow the
+       *     tempo and its taps. Nothing is sent while string GlobalSettings.TempoMode is `midiClock`: Cathode then
+       *     follows a clock and does not echo it.
+       */
+      sendMidiClock: boolean;
       footswitches: components['schemas']['FootswitchLayout'][];
       /** @description The layout in use, by id. */
       activeLayout?: null | string;

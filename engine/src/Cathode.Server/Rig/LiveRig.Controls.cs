@@ -431,6 +431,15 @@ public sealed partial class LiveRig {
         engine.SetParams(generation, [new(IpcBlocks.Rig, $"ext{index + 1}", Math.Clamp(value, 0f, 1f))]);
 
     /// <summary>
+    ///     Tells the host whether to follow MIDI clock and whether to send it. While the tempo follows incoming clock,
+    ///     none is sent: the device that sends the clock is the master, and echoing it back would loop.
+    /// </summary>
+    void SyncMidi(GlobalSettings global) {
+        var follow = global.TempoMode == "midiClock";
+        engine.SetMidi(follow, global.SendMidiClock && !follow, global.MidiOutPort);
+    }
+
+    /// <summary>
     ///     Global settings changed (EQ, metronome, tempo mode, Manual A-E, the footswitch layout or view), from the
     ///     editor, MIDI or a footswitch: put them into the engine and tell clients with <c>globalChanged</c>, which
     ///     carries the current revision without raising it (the working copy did not change).
@@ -446,7 +455,7 @@ public sealed partial class LiveRig {
         }
 
         engine.SetParams(generation, values);
-        engine.SetMidi(global.TempoMode == "midiClock");
+        SyncMidi(global);
         if (global.Oversampling != Volatile.Read(ref compiledOversampling)) {
             // The filters change the blocks' latency, so the graph is compiled again (gaplessly).
             _ = ResyncAsync()

@@ -400,7 +400,27 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
                 (valueChange)="save(g => (g.midiOutPort = !$event || $event === allMidiOutputs ? null : $event))"
               />
             </label>
+            <label class="flex flex-col items-center gap-2">
+              <span class="text-foreground-muted text-xs">Send MIDI clock</span>
+              <xui-switch
+                aria-label="Send MIDI clock"
+                data-testid="send-midi-clock"
+                [checked]="s.sendMidiClock"
+                (checkedChange)="save(g => (g.sendMidiClock = $event))"
+              />
+            </label>
           </div>
+          @if (s.sendMidiClock) {
+            <xui-callout minimal compact color="primary" data-testid="send-midi-clock-note">
+              @if (s.tempoMode === 'midiClock') {
+                No clock is sent while the tempo follows MIDI clock (Tempo from, above): Cathode follows that clock and
+                does not send it back.
+              } @else {
+                Cathode sends MIDI clock at its tempo to the output chosen under Send to while audio runs, so delays,
+                loopers and drum machines can follow it. It sends the clock only, no Start or Stop.
+              }
+            </xui-callout>
+          }
 
           <xui-table>
             <xui-tr>

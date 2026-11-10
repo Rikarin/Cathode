@@ -4647,6 +4647,7 @@
           "manual",
           "midiChannel",
           "midiMappings",
+          "sendMidiClock",
           "footswitches",
           "activeView",
           "activeSong",
@@ -4746,7 +4747,11 @@
               "null",
               "string"
             ],
-            "description": "Where scene MIDI and footswitch LEDs go: a MIDI output\u0027s uid (string MidiOutputInfo.Uid, from\n\u0060GET /api/v1/midi/outputs\u0060), or null for every output. One port keeps them from looping back into a\ncontroller that echoes what it receives; while that port is not connected, nothing is sent."
+            "description": "Where scene MIDI, footswitch LEDs and MIDI clock go: a MIDI output\u0027s uid (string MidiOutputInfo.Uid, from\n\u0060GET /api/v1/midi/outputs\u0060), or null for every output. One port keeps them from looping back into a\ncontroller that echoes what it receives; while that port is not connected, nothing is sent."
+          },
+          "sendMidiClock": {
+            "type": "boolean",
+            "description": "Sends MIDI clock (24 ticks per quarter note, no Start or Stop) at the rig\u0027s tempo to\nstring? GlobalSettings.MidiOutPort while audio runs, so external delays, loopers and drum machines follow the\ntempo and its taps. Nothing is sent while string GlobalSettings.TempoMode is \u0060midiClock\u0060: Cathode then\nfollows a clock and does not echo it."
           },
           "footswitches": {
             "type": "array",

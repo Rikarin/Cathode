@@ -197,3 +197,9 @@ The messages go to the output chosen in **Global ▸ MIDI ▸ Send to** (every M
 ## MIDI clock
 
 To follow the tempo of a drum machine, sequencer or DAW, set **Global ▸ Tempo and metronome ▸ Tempo from** to **MIDI clock** and send MIDI clock to Cathode.
+
+To make other gear follow Cathode instead, turn on **Global ▸ MIDI ▸ Send MIDI clock**. While audio runs, Cathode sends MIDI clock at its tempo (the preset's or the global one, and whatever you tap) to the output chosen under **Send to**, so a delay pedal, a looper or a drum machine stays in time with Cathode's synced delays, LFOs and metronome.
+
+- Cathode sends the clock only, 24 ticks to the quarter note. It has no transport, so it sends no Start or Stop: start a drum machine or sequencer from its own controls.
+- No clock is sent while **Tempo from** is **MIDI clock**. Cathode then follows another device's clock and does not send it back.
+- The clock stops when the audio stops.

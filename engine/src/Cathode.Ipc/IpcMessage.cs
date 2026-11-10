@@ -122,12 +122,19 @@ public sealed class IpcMessage {
     /// <summary>setMidi: whether the tempo follows incoming MIDI clock.</summary>
     public bool? FollowClock { get; set; }
 
+    /// <summary>
+    ///     setMidi: whether the host sends MIDI clock (24 ticks per quarter note at the rig's tempo) to
+    ///     <see cref="Destination" />.
+    /// </summary>
+    public bool? SendClock { get; set; }
+
     /// <summary>midiOut: the message bytes; midi: the received messages.</summary>
     public List<int>? Bytes { get; set; }
 
     /// <summary>
-    ///     midiOut: the destination port's uid (<see cref="MidiPortInfo.Uid" />), or null for every output. The Server
-    ///     sends the global MIDI output setting (Cathode.Contracts.GlobalSettings.MidiOutPort).
+    ///     midiOut, and setMidi for the clock it sends: the destination port's uid (<see cref="MidiPortInfo.Uid" />),
+    ///     or null for every output. The Server sends the global MIDI output setting
+    ///     (Cathode.Contracts.GlobalSettings.MidiOutPort).
     /// </summary>
     public string? Destination { get; set; }
 

@@ -250,6 +250,7 @@ static class ControlsApi {
         g.MidiChannel = settings.MidiChannel;
         g.MidiMappings = settings.MidiMappings;
         g.MidiOutPort = NullIfBlank(settings.MidiOutPort);
+        g.SendMidiClock = settings.SendMidiClock;
         g.Footswitches = settings.Footswitches;
         g.ActiveLayout = settings.ActiveLayout;
         g.ActiveView = Math.Max(0, settings.ActiveView);

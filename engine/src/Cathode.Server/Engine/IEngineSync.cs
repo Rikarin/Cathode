@@ -37,7 +37,11 @@ public interface IEngineSync {
     /// <summary>Writes the current loop to <paramref name="path" /> as a WAV file.</summary>
     Task ExportLooperAsync(string path);
 
-    void SetMidi(bool followClock);
+    /// <summary>
+    ///     Whether the tempo follows incoming MIDI clock, and whether the host sends MIDI clock at the rig's tempo to
+    ///     <paramref name="clockDestination" /> (a MIDI output's uid, or null for every output).
+    /// </summary>
+    void SetMidi(bool followClock, bool sendClock = false, string? clockDestination = null);
 
     void MidiOut(string? destination, IReadOnlyList<byte> bytes);
 }

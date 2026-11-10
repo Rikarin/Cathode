@@ -140,7 +140,7 @@ The words used in this manual and in amp and effects talk, in alphabetical order
 
 **MIDI.** The standard for musical devices to send control messages to each other: program changes, control changes, notes, clock.
 
-**MIDI clock.** A stream of MIDI timing messages that lets one device follow another's tempo.
+**MIDI clock.** A stream of MIDI timing messages that lets one device follow another's tempo. Cathode can follow one or send its own.
 
 **MIDI learn.** Creating a mapping by choosing an action and then moving the control you want to use.
 
