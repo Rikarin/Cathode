@@ -22,6 +22,7 @@ public sealed record NamModelInfo(
 /// </summary>
 public sealed unsafe class NamModel : ICaptureModel {
     nint handle;
+    double? size; // the last size set; null = the size the core loads the model at
 
     public NamModelInfo Info { get; }
 
@@ -102,12 +103,19 @@ public sealed unsafe class NamModel : ICaptureModel {
     }
 
     /// <summary>
-    ///     Control thread, slimmable models only: 0 = smallest (Lite), 1 = full size. Re-warms the model.
+    ///     Control thread, slimmable models only: 0 = smallest (Lite), 1 = full size. Re-warms the model; a size it
+    ///     already has costs nothing.
     /// </summary>
     public void SetSize(double size) {
+        if (this.size == size) {
+            return;
+        }
+
         if (NamNative.SetSize(Handle, size) != 0) {
             throw new InvalidOperationException($"NAM resize failed: {NamNative.LastErrorMessage()}");
         }
+
+        this.size = size;
     }
 
     /// <inheritdoc />

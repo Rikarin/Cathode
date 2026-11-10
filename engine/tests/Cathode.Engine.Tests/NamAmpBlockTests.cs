@@ -17,28 +17,58 @@ public class NamAmpBlockTests {
     const int Block = 64;
     static readonly ProcessSpec Spec = new(48_000, Block);
 
-    /// <summary>Model file, reference render, slimmable size (null = model default).</summary>
-    public static TheoryData<string, string, double?> GoldenModels =>
+    /// <summary>Model file, reference render, the Size parameter on Lite.</summary>
+    public static TheoryData<string, string, bool> GoldenModels =>
         new() {
-            { "wavenet_a1_standard", "wavenet_a1_standard", null },
-            { "A2", "A2", null },
-            { "A2", "A2-lite", 0.0 },
-            { "lstm", "lstm", null }
+            { "wavenet_a1_standard", "wavenet_a1_standard", false },
+            { "A2", "A2", false },
+            { "A2", "A2-lite", true },
+            { "lstm", "lstm", false }
         };
 
     [Theory]
     [MemberData(nameof(GoldenModels))]
-    public void Matches_the_upstream_reference_render(string model, string referenceName, double? size) {
+    public void Matches_the_upstream_reference_render(string model, string referenceName, bool lite) {
         RequireNative();
         using var exact = new ExactTanh(); // upstream render uses exact tanh
         var input = WavFile.Read(NamAssets.Golden("input.wav")).Channels[0];
         var reference = WavFile.Read(NamAssets.Golden($"{referenceName}.ref.wav")).Channels[0];
 
-        using var block = CreateBlock(model, false, size);
+        using var block = CreateBlock(model, false, lite);
         var output = Render(block, input, static _ => Block);
 
         var relativeDb = Analysis.NullResidualDb(output, reference) - Analysis.ToDb(Analysis.Rms(reference));
         Assert.True(relativeDb < -80, $"{referenceName}: residual {relativeDb:0.0} dB relative to the reference");
+    }
+
+    [Fact]
+    public void Size_survives_a_second_prepare_and_goes_back_to_full() {
+        RequireNative();
+        using var exact = new ExactTanh();
+        var input = WavFile.Read(NamAssets.Golden("input.wav")).Channels[0];
+        var full = WavFile.Read(NamAssets.Golden("A2.ref.wav")).Channels[0];
+        var liteReference = WavFile.Read(NamAssets.Golden("A2-lite.ref.wav")).Channels[0];
+        using var block = CreateBlock("A2", false, true);
+
+        block.Prepare(new(48_000, 128)); // the engine prepares a block again when the device's buffer changes
+        var lite = Render(block, input, static _ => Block);
+        block.Params.SetTarget(Cathode.Dsp.Blocks.CaptureAmpBlock.Size, Cathode.Dsp.Blocks.CaptureAmpBlock.SizeFull);
+        block.Prepare(Spec);
+        var back = Render(block, input, static _ => Block);
+
+        Assert.True(Analysis.NullResidualDb(lite, liteReference) - Analysis.ToDb(Analysis.Rms(liteReference)) < -80);
+        Assert.True(Analysis.NullResidualDb(back, full) - Analysis.ToDb(Analysis.Rms(full)) < -80);
+    }
+
+    [Fact]
+    public void Size_does_nothing_to_a_model_that_has_one_size() {
+        RequireNative();
+        var input = Signals.Noise(4_800, 5, 0.2f);
+        using var full = CreateBlock("wavenet_a1_standard", false);
+        using var lite = CreateBlock("wavenet_a1_standard", false, true);
+
+        Assert.False(lite.Model!.Slimmable);
+        Assert.Equal(Render(full, input, static _ => Block), Render(lite, input, static _ => Block));
     }
 
     [Fact]
@@ -297,16 +327,16 @@ public class NamAmpBlockTests {
             "cth_nam not built (run native/build.sh)"
         );
 
-    static NamAmpBlock CreateBlock(string model, bool normalize, double? size = null) {
+    static NamAmpBlock CreateBlock(string model, bool normalize, bool lite = false) {
         var block = new NamAmpBlock();
         block.LoadAsset(
             Cathode.Dsp.Blocks.CaptureAmpBlock.ModelSlot,
             Path.Combine(NamAssets.ModelsDirectory, model + ".nam")
         );
-        if (size is double s) {
-            block.SetModelSize(s);
-        }
-
+        block.Params.SetTarget(
+            Cathode.Dsp.Blocks.CaptureAmpBlock.Size,
+            lite ? Cathode.Dsp.Blocks.CaptureAmpBlock.SizeLite : Cathode.Dsp.Blocks.CaptureAmpBlock.SizeFull
+        );
         block.Params.SetTarget(Cathode.Dsp.Blocks.CaptureAmpBlock.Normalize, normalize ? 1 : 0);
         block.Params.SetTarget(Cathode.Dsp.Blocks.CaptureAmpBlock.Calibrate, 0); // the references know no calibration
         block.Prepare(Spec);

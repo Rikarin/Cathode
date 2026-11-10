@@ -42,7 +42,12 @@ off to hear the capture's raw output level.`,
 level, in dBu, that reached full scale on the interface they were made with; with this on, the block adds the
 difference between that and Input 1's calibration (Settings ▸ Audio setup) before the *Input* knob, as the NAM plugin's
 Calibrate Input does. A file made at +12 dBu played through an input calibrated to 1 V (-0.8 dBu) gets 12.8 dB less.
-Files without the level, and AIDA-X models, are not changed. Turn it off to drive the capture at the level it gets.`
+Files without the level, and AIDA-X models, are not changed. Turn it off to drive the capture at the level it gets.`,
+
+    size: `Which size of the capture runs. A NAM A2 capture holds a full model and smaller ones in the same file:
+*Full* is the most accurate, *Lite* is the smallest and costs about a seventh of Full's CPU with a slightly less exact
+sound. Captures with one size (NAM A1 files, LSTM files, AIDA-X models) sound the same on either setting. Changing it
+rebuilds the rig, as changing a block does.`
   },
 
   tips: `**The EQ is after the capture.** The four tone knobs are a plain EQ on the capture's output: they do not change
@@ -52,6 +57,6 @@ how the capture distorts, as an amp's tone stack would. For that, put an EQ bloc
 block matches it for you once Input 1 is calibrated. If yours does not record it, start at 0 dB and adjust *Input* until
 a hard strum gives the amount of break-up you expect from that amp at that setting.
 
-**CPU.** Large NAM models are heavy. If you hear dropouts with two captures in a preset, try smaller ("lite" or
-"feather") versions of the files. See [troubleshooting](/manual/troubleshooting).`
+**CPU.** Large NAM models are heavy. If you hear dropouts with two captures in a preset, set *Size* to Lite on an A2
+capture, or try smaller ("lite" or "feather") versions of the files. See [troubleshooting](/manual/troubleshooting).`
 };

@@ -9,7 +9,9 @@ namespace Cathode.Dsp.Blocks;
 ///     trim, loudness normalisation, a post-EQ (bass, middle, treble, presence) and output level. Mono in (left), mono
 ///     out copied to both channels. Without a model the gains are skipped and only the EQ runs. A model trained at
 ///     another rate than the engine's runs at its own rate inside a <see cref="CaptureResampler" />, whose delay the
-///     block reports as its latency.
+///     block reports as its latency. A slimmable model (NAM A2) runs at the size the Size parameter names: Lite costs a
+///     fraction of Full's CPU. Resizing is not real-time safe, so the size is applied when the block is prepared and
+///     the parameter rebuilds the graph (<see cref="ParamDescriptor.Recompile" />).
 /// </summary>
 /// <remarks>
 ///     This base only reads AIDA-X models, which run in managed code. <c>NamAmpBlock</c> in Cathode.Dsp.Native replaces
@@ -24,6 +26,10 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
     public const int Treble = 5;
     public const int Presence = 6;
     public const int Calibrate = 7;
+    public const int Size = 8;
+
+    public const int SizeFull = 0;
+    public const int SizeLite = 1;
 
     /// <summary>Loudness that normalised models are brought to, matching the NAM plugin.</summary>
     public const double TargetLoudnessDb = -18;
@@ -72,7 +78,8 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
             ParamDescriptor.Float("middle", "Middle", -12f, 12f, 0f, "dB"),
             ParamDescriptor.Float("treble", "Treble", -12f, 12f, 0f, "dB"),
             ParamDescriptor.Float("presence", "Presence", -12f, 12f, 0f, "dB"),
-            ParamDescriptor.Switch("calibrate", "Calibrated Input", true)
+            ParamDescriptor.Switch("calibrate", "Calibrated Input", true),
+            ParamDescriptor.Choice("size", "Size", ["Full", "Lite"]) with { Recompile = true }
         ],
         maxInstances: 2
     );
@@ -117,10 +124,20 @@ public class CaptureAmpBlock(Func<string, ICaptureModel> load) : DspBlock(Info),
     }
 
     /// <summary>
-    ///     Resets <paramref name="model" /> for <paramref name="spec" />: at its training rate behind a resampler when
-    ///     that differs from the engine rate (returned), else at the engine rate (null).
+    ///     Control thread, before <paramref name="model" /> is reset: bring a model that comes in several sizes to
+    ///     Lite or Full. Nothing here: AIDA-X models have one size.
     /// </summary>
-    static CaptureResampler? PrepareModel(ICaptureModel model, in ProcessSpec spec) {
+    protected virtual void ApplySize(ICaptureModel model, bool lite) { }
+
+    /// <summary>
+    ///     Sizes <paramref name="model" /> as the Size parameter says and resets it for <paramref name="spec" />: at
+    ///     its training rate behind a resampler when that differs from the engine rate (returned), else at the engine
+    ///     rate (null).
+    /// </summary>
+    CaptureResampler? PrepareModel(ICaptureModel model, in ProcessSpec spec) {
+        // The target, not the current value: Prepare runs before the parameters snap to the values the graph was
+        // compiled with.
+        ApplySize(model, (int)Params.GetTarget(Size) == SizeLite);
         var trained = model.ExpectedSampleRate > 0 ? model.ExpectedSampleRate : DefaultModelRate;
         if (!CaptureResampler.IsNeeded(spec.SampleRate, trained)) {
             model.Reset(spec.SampleRate, spec.MaxBlockSize);
