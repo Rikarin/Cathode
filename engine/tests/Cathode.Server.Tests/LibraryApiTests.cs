@@ -1,10 +1,15 @@
 using Cathode.Contracts;
+using Cathode.Dsp.IO;
 using Cathode.Server.Midi;
 using Cathode.Server.Rig;
 using Cathode.Server.Stores;
+using Cathode.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
+using System.Net.WebSockets;
+using System.Text;
+using System.Text.Json.Nodes;
 
 namespace Cathode.Server.Tests;
 
@@ -220,6 +225,79 @@ public sealed class LibraryApiTests : IAsyncLifetime {
         Assert.Equal(HttpStatusCode.Conflict, inUse.StatusCode);
         Assert.Contains("Saturday", await inUse.Content.ReadAsStringAsync(Token), StringComparison.Ordinal);
         Assert.Equal(HttpStatusCode.NoContent, nowFree.StatusCode);
+    }
+
+    [Fact]
+    public async Task Every_change_to_the_library_tells_the_other_clients_what_to_read_again() {
+        using var socket = await server.Server.CreateWebSocketClient()
+            .ConnectAsync(new(server.Server.BaseAddress, "ws"), Token);
+        await NextLibraryChange(socket, null); // "connected": registered, so it sees every change from here on
+
+        var setlist = new Setlist { Name = "Friday", Entries = [new(verse)] };
+        await Ok(client.PutAsJsonAsync($"/api/v1/setlists/{setlist.Id}", setlist, Token));
+        Assert.Equal("setlists", await NextLibraryChange(socket, "libraryChanged"));
+        await Ok(client.DeleteAsync($"/api/v1/setlists/{setlist.Id}", Token));
+        Assert.Equal("setlists", await NextLibraryChange(socket, "libraryChanged"));
+
+        var bank = new Bank { Name = "Gig", Slots = [verse] };
+        await Ok(client.PutAsJsonAsync($"/api/v1/banks/{bank.Id}", bank, Token));
+        Assert.Equal("banks", await NextLibraryChange(socket, "libraryChanged"));
+        await Ok(client.DeleteAsync($"/api/v1/banks/{bank.Id}", Token));
+        Assert.Equal("banks", await NextLibraryChange(socket, "libraryChanged"));
+
+        // Presets change without the working copy: a duplicate, a batch tool, a delete.
+        await Ok(client.PostAsJsonAsync($"/api/v1/presets/{verse}/duplicate", new DuplicatePresetRequest("v2"), Token));
+        Assert.Equal("presets", await NextLibraryChange(socket, "libraryChanged"));
+        await Ok(client.DeleteAsync("/api/v1/presets/v2", Token));
+        Assert.Equal("presets", await NextLibraryChange(socket, "libraryChanged"));
+
+        await Ok(
+            client.PutAsJsonAsync(
+                "/api/v1/block-presets/my-chorus",
+                new BlockPreset { Type = "chorus", Name = "My Chorus", Values = { ["rate"] = 2 } },
+                Token
+            )
+        );
+        Assert.Equal("blockPresets", await NextLibraryChange(socket, "libraryChanged"));
+
+        await Ok(client.PostAsJsonAsync("/api/v1/live/snapshots", new SnapshotRequest(), Token));
+        Assert.Equal("snapshots", await NextLibraryChange(socket, "libraryChanged"));
+
+        await using var ir = new MemoryStream();
+        WavFile.Write(ir, new(48_000, [Signals.Noise(400, 3)]));
+        using var upload = await client.PostAsync(
+            "/api/v1/assets?name=room.wav",
+            new ByteArrayContent(ir.ToArray()),
+            Token
+        );
+        var asset = (await upload.Content.ReadFromJsonAsync<AssetInfo>(Token))!;
+        Assert.Equal("assets", await NextLibraryChange(socket, "libraryChanged"));
+        await Ok(client.DeleteAsync($"/api/v1/assets/{asset.Ref}", Token));
+        Assert.Equal("assets", await NextLibraryChange(socket, "libraryChanged"));
+
+        // A delete that finds nothing changed nothing: the next message is the save's, not a second one.
+        using var missing = await client.DeleteAsync("/api/v1/setlists/nothing", Token);
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+        await Ok(client.PutAsJsonAsync($"/api/v1/banks/{bank.Id}", bank, Token));
+        Assert.Equal("banks", await NextLibraryChange(socket, "libraryChanged"));
+        await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", Token);
+    }
+
+    /// <summary>
+    ///     Reads WebSocket messages until the next <c>libraryChanged</c> and returns its kind; with a null
+    ///     <paramref name="type" />, until the first message of any kind.
+    /// </summary>
+    async Task<string?> NextLibraryChange(WebSocket socket, string? type) {
+        var buffer = new byte[256 * 1024];
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(Token);
+        deadline.CancelAfter(TimeSpan.FromSeconds(30)); // generous: a busy machine
+        while (true) {
+            var result = await socket.ReceiveAsync(buffer, deadline.Token);
+            var message = JsonNode.Parse(Encoding.UTF8.GetString(buffer, 0, result.Count));
+            if (type is null || message?["type"]?.GetValue<string>() == type) {
+                return message?["kind"]?.GetValue<string>();
+            }
+        }
     }
 
     [Fact]

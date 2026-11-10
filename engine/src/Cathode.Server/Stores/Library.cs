@@ -1,4 +1,5 @@
 using Cathode.Contracts;
+using Cathode.Server.Realtime;
 using Cathode.Server.Rig;
 using Microsoft.Extensions.Options;
 
@@ -17,7 +18,8 @@ public sealed class Library(
     IOptions<ServerOptions> options,
     PresetStore presets,
     GlobalStore globals,
-    ILogger<Library>? logger = null
+    ILogger<Library>? logger = null,
+    LibraryChanges? changes = null
 ) {
     readonly Lock gate = new();
 
@@ -26,7 +28,8 @@ public sealed class Library(
         "setlist",
         ContractsJsonContext.Default.Setlist,
         static s => s.Id,
-        logger: logger
+        logger: logger,
+        changed: LibraryChanges.For(changes, LibraryChanges.Setlists)
     );
 
     readonly JsonFileStore<Bank> banks = new(
@@ -34,7 +37,8 @@ public sealed class Library(
         "bank",
         ContractsJsonContext.Default.Bank,
         static b => b.Id,
-        logger: logger
+        logger: logger,
+        changed: LibraryChanges.For(changes, LibraryChanges.Banks)
     );
 
     public Setlist[] Setlists() =>

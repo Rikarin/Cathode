@@ -67,8 +67,13 @@ export class BlockPresetsStore {
   constructor() {
     // Entries may have changed while the event stream was down (or the Server restarted): read them again, once the
     // Library has been read at all.
-    const subscription = inject(EventStream).connected$.subscribe(() => this.loaded && void this.refresh());
-    inject(DestroyRef).onDestroy(() => subscription.unsubscribe());
+    const events = inject(EventStream);
+    const subscriptions = [
+      events.connected$.subscribe(() => this.loaded && void this.refresh()),
+      // Another editor saved, moved or deleted an entry.
+      events.library$.subscribe(change => change.kind === 'blockPresets' && this.loaded && void this.refresh())
+    ];
+    inject(DestroyRef).onDestroy(() => subscriptions.forEach(s => s.unsubscribe()));
   }
 
   /** Presets for one block type, factory first. */

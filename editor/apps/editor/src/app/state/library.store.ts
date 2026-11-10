@@ -5,6 +5,7 @@ import {
   type AssetUsage,
   type Bank,
   type Connection,
+  type LibraryKind,
   type PresetSummary,
   type Setlist,
   unwrap
@@ -12,9 +13,6 @@ import {
 import { ConnectionService } from '../core/connection';
 import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
-
-/** Rig events that change the stored presets' list (names, colours, favourites, a new one). */
-const LibraryEvents = new Set(['presetSaved', 'presetMetadataChanged']);
 
 /** How an IR file is processed on import, as the Server's upload takes it (all optional: as-is by default). */
 export interface IrImportOptions {
@@ -76,8 +74,8 @@ export class LibraryStore {
   constructor() {
     const events = inject(EventStream);
     const subscriptions = [
-      // Another editor, a footswitch or this one saved, renamed or tagged a preset.
-      events.events$.subscribe(event => LibraryEvents.has(event.type) && void this.refreshPresets()),
+      // Another editor, a footswitch or this one changed what is stored: show it without a reload.
+      events.library$.subscribe(change => void this.changed(change.kind)),
       // Presets, assets and banks may have changed while the stream was down (or the Server restarted): resync.
       events.connected$.subscribe(() => void this.resync())
     ];
@@ -97,6 +95,30 @@ export class LibraryStore {
 
   async refresh(): Promise<void> {
     await Promise.all([this.refreshPresets(), this.refreshAssets()]);
+  }
+
+  /**
+   * Reads again the list the Server says has changed. Which presets use an asset depends on both the presets and the
+   * assets, and is read again only if something has read it.
+   */
+  private async changed(kind: LibraryKind): Promise<void> {
+    const usage = () => (this.usage().size > 0 ? this.refreshUsage() : undefined);
+    switch (kind) {
+      case 'presets':
+        await Promise.all([this.refreshPresets(), usage()]);
+        break;
+      case 'assets':
+        await Promise.all([this.refreshAssets(), usage()]);
+        break;
+      case 'banks':
+        await this.refreshBanks();
+        break;
+      case 'setlists':
+        await this.refreshSetlists();
+        break;
+      default:
+        break; // block presets, snapshots and templates have their own readers
+    }
   }
 
   async refreshPresets(): Promise<void> {

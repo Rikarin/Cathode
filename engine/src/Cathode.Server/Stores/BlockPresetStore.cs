@@ -1,5 +1,6 @@
 using Cathode.Contracts;
 using Cathode.Dsp.Parameters;
+using Cathode.Server.Realtime;
 using Cathode.Server.Rig;
 using Microsoft.Extensions.Options;
 using System.Text.Json.Nodes;
@@ -13,7 +14,8 @@ namespace Cathode.Server.Stores;
 public sealed class BlockPresetStore(
     IOptions<ServerOptions> options,
     BlockCatalog catalog,
-    ILogger<BlockPresetStore>? logger = null
+    ILogger<BlockPresetStore>? logger = null,
+    LibraryChanges? changes = null
 ) {
     readonly JsonFileStore<BlockPreset> files = new(
         Path.Combine(options.Value.DataDirectory, "block-presets"),
@@ -21,7 +23,8 @@ public sealed class BlockPresetStore(
         ContractsJsonContext.Default.BlockPreset,
         static p => p.Id,
         Upgrade,
-        logger
+        logger,
+        LibraryChanges.For(changes, LibraryChanges.BlockPresets)
     );
 
     /// <summary>

@@ -252,9 +252,28 @@ export interface RtaFrame {
   source: 'output' | 'block';
 }
 
+/** What the library holds, as a {@link LibraryChanged} names it. */
+export type LibraryKind = 'presets' | 'setlists' | 'banks' | 'assets' | 'blockPresets' | 'snapshots' | 'templates';
+
+/**
+ * Something stored changed outside the working copy (a preset deleted or imported, a setlist or bank saved, an asset
+ * uploaded), from this editor or another: read that list again. Mirrors LibraryChanged in Cathode.Contracts.
+ */
+export interface LibraryChanged {
+  type: 'libraryChanged';
+  kind: LibraryKind;
+}
+
 /**
  * `connected` opens every socket; `resync` replaces the events a client fell too far behind to receive: either way the
  * client reads its state again.
  */
 export type ServerMessage =
-  { type: 'connected' } | { type: 'resync' } | Telemetry | ScopeFrame | RtaFrame | MidiActivity | RigEvent;
+  | { type: 'connected' }
+  | { type: 'resync' }
+  | Telemetry
+  | ScopeFrame
+  | RtaFrame
+  | MidiActivity
+  | LibraryChanged
+  | RigEvent;

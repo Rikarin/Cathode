@@ -1,4 +1,5 @@
 using Cathode.Contracts;
+using Cathode.Server.Realtime;
 using Cathode.Server.Rig;
 using Microsoft.Extensions.Options;
 
@@ -8,14 +9,19 @@ namespace Cathode.Server.Stores;
 ///     Snapshots of working copies (<c>&lt;data&gt;/snapshots</c>, one JSON file each), so the desktop app and a
 ///     browser share them.
 /// </summary>
-public sealed class SnapshotStore(IOptions<ServerOptions> options, ILogger<SnapshotStore>? logger = null) {
+public sealed class SnapshotStore(
+    IOptions<ServerOptions> options,
+    ILogger<SnapshotStore>? logger = null,
+    LibraryChanges? changes = null
+) {
     readonly JsonFileStore<PresetSnapshot> files = new(
         Path.Combine(options.Value.DataDirectory, "snapshots"),
         "snapshot",
         ContractsJsonContext.Default.PresetSnapshot,
         static s => s.Id,
         PresetMigrations.UpgradeSnapshot,
-        logger
+        logger,
+        LibraryChanges.For(changes, LibraryChanges.Snapshots)
     );
 
     /// <summary>Newest first; only <paramref name="presetId" />'s when given.</summary>
@@ -50,14 +56,19 @@ public sealed class SnapshotStore(IOptions<ServerOptions> options, ILogger<Snaps
 }
 
 /// <summary>Preset templates (<c>&lt;data&gt;/templates</c>): starting points for New from template.</summary>
-public sealed class TemplateStore(IOptions<ServerOptions> options, ILogger<TemplateStore>? logger = null) {
+public sealed class TemplateStore(
+    IOptions<ServerOptions> options,
+    ILogger<TemplateStore>? logger = null,
+    LibraryChanges? changes = null
+) {
     readonly JsonFileStore<Preset> files = new(
         Path.Combine(options.Value.DataDirectory, "templates"),
         "template",
         ContractsJsonContext.Default.Preset,
         static p => p.Id,
         PresetMigrations.Upgrade,
-        logger
+        logger,
+        LibraryChanges.For(changes, LibraryChanges.Templates)
     );
 
     public PresetSummary[] List() => [

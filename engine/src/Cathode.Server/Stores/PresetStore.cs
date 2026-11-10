@@ -1,4 +1,5 @@
 using Cathode.Contracts;
+using Cathode.Server.Realtime;
 using Cathode.Server.Rig;
 using Microsoft.Extensions.Options;
 
@@ -12,7 +13,8 @@ namespace Cathode.Server.Stores;
 public sealed class PresetStore(
     IOptions<ServerOptions> options,
     FactoryPresets factory,
-    ILogger<PresetStore>? logger = null
+    ILogger<PresetStore>? logger = null,
+    LibraryChanges? changes = null
 ) {
     readonly JsonFileStore<Preset> files = new(
         Path.Combine(options.Value.DataDirectory, "presets"),
@@ -20,7 +22,8 @@ public sealed class PresetStore(
         ContractsJsonContext.Default.Preset,
         static p => p.Id,
         PresetMigrations.Upgrade,
-        logger
+        logger,
+        LibraryChanges.For(changes, LibraryChanges.Presets)
     );
 
     readonly JsonFileStore<FactoryPresetMark> marks = new(
@@ -28,7 +31,8 @@ public sealed class PresetStore(
         "factory preset mark",
         ContractsJsonContext.Default.FactoryPresetMark,
         static m => m.Id,
-        logger: logger
+        logger: logger,
+        changed: LibraryChanges.For(changes, LibraryChanges.Presets)
     );
 
     public FactoryPresets Factory => factory;
