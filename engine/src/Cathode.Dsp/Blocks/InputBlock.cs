@@ -55,6 +55,7 @@ public sealed class InputBlock() : DspBlock(Info), ISideInputBlock {
     public const int Classic = 1;
     public const int Intelligent = 2;
     public const int NoiseReducer = 3;
+    const int GateTypes = 4;
 
     /// <summary>Where the Noise Reducer splits off the band it gates.</summary>
     public const float NoiseSplitHz = 2_000f;
@@ -99,11 +100,13 @@ public sealed class InputBlock() : DspBlock(Info), ISideInputBlock {
         [
             ParamDescriptor.Choice("source", "Source", HardwareInputs.Names),
             ParamDescriptor.Choice("type", "Gate Type", ["Off", "Classic", "Intelligent", "Noise Reducer"]),
-            ParamDescriptor.Float("threshold", "Threshold", -100f, 0f, -60f, "dB"),
-            ParamDescriptor.Float("ratio", "Ratio", 1f, 20f, 2f, ":1", ParamTaper.Log),
-            ParamDescriptor.Float("attack", "Attack", 0.1f, 50f, 1f, "ms", ParamTaper.Log),
-            ParamDescriptor.Float("release", "Release", 5f, 2_000f, 100f, "ms", ParamTaper.Log),
-            ParamDescriptor.Choice("mains", "Mains Frequency", ["50 Hz", "60 Hz"]),
+            // The gate's controls show with a gate (not on Off), the mains frequency where its notches are.
+            ParamDescriptor.Float("threshold", "Threshold", -100f, 0f, -60f, "dB").HiddenOn(GateTypes, Off),
+            ParamDescriptor.Float("ratio", "Ratio", 1f, 20f, 2f, ":1", ParamTaper.Log).HiddenOn(GateTypes, Off),
+            ParamDescriptor.Float("attack", "Attack", 0.1f, 50f, 1f, "ms", ParamTaper.Log).HiddenOn(GateTypes, Off),
+            ParamDescriptor.Float("release", "Release", 5f, 2_000f, 100f, "ms", ParamTaper.Log)
+                .HiddenOn(GateTypes, Off),
+            ParamDescriptor.Choice("mains", "Mains Frequency", ["50 Hz", "60 Hz"]).ShownOn(GateTypes, Intelligent),
             ParamDescriptor.Float("level", "Input Level", Decibels.SilenceDb, 20f, 0f, "dB"),
             ParamDescriptor.Choice("impedance", "Input Impedance", [..PickupLoad.LoadNames]),
             ParamDescriptor.Choice("pickup", "Pickup", ["Off", "Single Coil", "Humbucker", "P90", "Custom"]),

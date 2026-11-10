@@ -26,7 +26,8 @@ load a pickup down, which darkens it. Leave **Pickup** Off unless you want that.
 another switches over with a 10 ms crossfade. **USB 5/6** and **USB 7/8** are channels coming back from your computer,
 for re-amping a recorded DI.`,
 
-    type: `The noise gate's type. See the options below. **Off** (the default) means no gate.`,
+    type: `The noise gate's type. See the options below. **Off** (the default) means no gate, and hides the gate's
+knobs.`,
 
     threshold: `Gate page: the level below which the gate starts turning the signal down. Raise it until the noise between
 notes goes away; if it starts eating the ends of notes, back it off. The global [Gate offset](/manual/live-performance#adjusting-to-the-room) (Global page, 0 unless

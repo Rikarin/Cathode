@@ -194,7 +194,8 @@ public sealed class CompressorBlock() : DspBlock(Info), IDynamicsBlock {
             BlockParams.Mix(100f),
             BlockParams.Level,
             BlockParams.Balance,
-            ParamDescriptor.Switch("autoMakeup", "Auto Makeup"),
+            // The Sustainer only raises quiet signals, so it has nothing to make up (AutoMakeupDb).
+            ParamDescriptor.Switch("autoMakeup", "Auto Makeup").HiddenOn(TypeCount, Sustainer),
             WetCuts.LowCutParam("scLowCut", "Sidechain Low Cut"),
             WetCuts.HighCutParam("scHighCut", "Sidechain High Cut"),
             ParamDescriptor.Choice("detector", "Detector", ["Type Default", "Peak", "RMS", "RMS+Peak"]),

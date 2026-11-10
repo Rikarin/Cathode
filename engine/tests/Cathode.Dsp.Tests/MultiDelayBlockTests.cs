@@ -318,6 +318,35 @@ public class MultiDelayBlockTests {
         Assert.Equal(energy, total, 1e-6);
     }
 
+    /// <summary>
+    ///     A voice's filter is inside its feedback loop. At the defaults voice 4 feeds back at 20 %, so a low-pass at
+    ///     Q 10 (a peak of ten) or a Peak at +12 dB (a peak of four) on it was a loop gain over one: the voice rang
+    ///     against the limiter for ever, 11 dB over full scale with the low-pass.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(MultiDelayTypes))]
+    public void A_resonant_or_boosting_voice_filter_still_decays_to_silence(int type) {
+        foreach (var (filter, q, gain, feedback) in new[] {
+                     (MultiDelayBlock.FilterLowPass, 10f, 0f, 20f), (MultiDelayBlock.FilterHighPass, 10f, 0f, 20f),
+                     (MultiDelayBlock.FilterPeak, 0.7071f, 12f, 50f)
+                 }) {
+            using var delay = Create(
+                (MultiDelayBlock.Type, type),
+                (MultiDelayBlock.Time, 100f),
+                (MultiDelayBlock.Tap1Feedback + 3, feedback),
+                (MultiDelayBlock.Filter1Type + 3, filter),
+                (MultiDelayBlock.Filter1Q + 3, q),
+                (MultiDelayBlock.Filter1Gain + 3, gain)
+            );
+            var input = Signals.Concat(Signals.Noise(4_800, 5, 0.5f), new float[(int)(Rate * 10)]);
+
+            var output = BlockRender.Mono(delay, input, 64);
+
+            var tail = Analysis.ToDb(Analysis.Peak(output.AsSpan(output.Length - 24_000)));
+            Assert.True(tail < -100, $"filter type {filter}: the tail is at {tail:0.0} dB");
+        }
+    }
+
     static MultiDelayBlock Create(params (int Index, float Value)[] settings) =>
         TestBlocks.Create<MultiDelayBlock>(settings);
 }

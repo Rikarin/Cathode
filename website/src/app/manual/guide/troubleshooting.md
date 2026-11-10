@@ -81,7 +81,7 @@ What you feel is the round trip: interface converters, two buffers, and any late
 
 ## Hum, buzz and noise
 
-- **Noise when you stop playing with a high-gain sound:** add or tighten a gate. The [Input block](/manual/blocks/input) has a noise gate, and there is a separate [Gate/Expander](/manual/blocks/gate) block. Set the Input block's [Mains Frequency](/manual/blocks/input#knob-mains) to your country's mains (50 Hz in Europe and most of the world, 60 Hz in North America).
+- **Noise when you stop playing with a high-gain sound:** add or tighten a gate. The [Input block](/manual/blocks/input) has a noise gate, and there is a separate [Gate/Expander](/manual/blocks/gate) block. With its Intelligent gate, set the Input block's [Mains Frequency](/manual/blocks/input#knob-mains) to your country's mains (50 Hz in Europe and most of the world, 60 Hz in North America).
 - **A low hum that is there even with the guitar's volume down:** often a ground loop. Plug the computer, the interface and any amplification into the same power outlet or strip, try a different USB port, and use balanced cables to powered speakers and the PA.
 - **Buzz that changes when you turn:** single-coil pickups pick up interference from screens and power supplies. Face away from the computer, or move away from it.
 

@@ -12,6 +12,9 @@ name: nightly
 #   is armed. Pull requests that touch the native code run this job too.
 # - Multi-rate (§3): every Circuit Amp model at 88.2, 96 and 192 kHz against its own sound at 48 kHz (level and octave
 #   bands; CATHODE_MULTIRATE_FULL=1). Every build already runs every block at every rate and the models at 44.1 kHz.
+# - Parameter sweeps (§3, items 10 and 11): no dead knob and decay with one parameter at an extreme, on every Circuit
+#   Amp and Drive model (CATHODE_SWEEPS_FULL=1). Every build runs both sweeps on every other block's types and on a
+#   sample of the models (every eighth, and every sixteenth for the decay), as a model takes a while to prepare.
 # - Capture matches (docs/06 §4.3): `cathode-references fetch` downloads the redistributable (GPL) amp captures named
 #   in engine/tests/assets/references/manifest.json into a cache kept between runs (keyed on the manifest, which holds
 #   every URL and SHA-256), and Cathode.References.Tests holds each circuit amp to the manifest's targets. Those are
@@ -83,6 +86,31 @@ jobs:
         run: >-
           dotnet test --project tests/Cathode.Dsp.Tests -c Release --no-build
           --filter-class Cathode.Dsp.Tests.MultiRateTests
+
+  sweeps:
+    name: parameter sweeps on every amp and drive model
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup-dotnet
+      - run: dotnet build tests/Cathode.Dsp.Tests -c Release
+      # Every build sweeps every parameter of every type of every block, but of the Circuit Amp's and the Drive's
+      # models only a sample; this sweeps them all.
+      - name: No dead knobs, every model
+        env:
+          CATHODE_SWEEPS_FULL: "1"
+        run: >-
+          dotnet test --project tests/Cathode.Dsp.Tests -c Release --no-build
+          --filter-method "*BlockConformanceTests.A_parameter_shown_on_a_type_changes_what_it_plays"
+      - name: Decay with one parameter at an extreme, every model
+        if: ${{ !cancelled() }}
+        env:
+          CATHODE_SWEEPS_FULL: "1"
+        run: >-
+          dotnet test --project tests/Cathode.Dsp.Tests -c Release --no-build
+          --filter-method "*BlockConformanceTests.Silence_after_a_burst_decays_with_any_one_parameter_at_an_extreme"
 
   references:
     name: capture matches (references)

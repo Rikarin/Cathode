@@ -364,7 +364,7 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
                     "Custom Shifter"
                 ]
             ),
-            BlockParams.Mix(50f),
+            WithDry(BlockParams.Mix(50f)),
             BlockParams.Level,
             Only(ParamDescriptor.Float("voice1Shift", "Voice 1 Shift", -24f, 24f, 12f, "st"), PitchType.Chromatic),
             Only(ParamDescriptor.Float("voice2Shift", "Voice 2 Shift", -24f, 24f, -12f, "st"), PitchType.Chromatic),
@@ -477,7 +477,14 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
                 TypeLabels = For("Master Delay", VoiceTypes)
             },
             ParamDescriptor.Choice("inputMode", "Input Mode", ["Mono", "Stereo"]),
-            ParamDescriptor.Choice("tracking", "Pitch Tracking", ["Smooth", "Fast", "Off"]),
+            // The Octave Divider and Crystals do not use the pitch tracker.
+            Only(
+                ParamDescriptor.Choice("tracking", "Pitch Tracking", ["Smooth", "Fast", "Off"]),
+                [
+                    ..Enum.GetValues<PitchType>()
+                        .Where(static t => t is not (PitchType.OctaveDivider or PitchType.Crystals))
+                ]
+            ),
             ParamDescriptor.Float(
                 "splice",
                 "Splice Length",
@@ -577,7 +584,7 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
                     ..HardwareInputs.Names
                 ]
             ),
-            EffectsMix.Param,
+            WithDry(EffectsMix.Param),
             ParamDescriptor.Choice("inputSelect", "Input Select", Stereo.InputSelectOptions),
             ParamDescriptor.Switch("learn", "Learn") with { TypeLabels = For("Learn", PitchType.Diatonic) },
             ParamDescriptor.Choice("customNotes", "Number of Notes", ["4", "5", "6", "7", "8"], 3) with {
@@ -596,7 +603,7 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
                         TypeLabels = For($"Note {n + 1}", PitchType.Diatonic)
                     }
                 ),
-            MixLaws.KillDryParam,
+            WithDry(MixLaws.KillDryParam),
             ParamDescriptor.Switch("formant", "Formant Correction") with {
                 TypeLabels = For("Formant Correction", FormantTypes)
             },
@@ -758,6 +765,16 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
     /// </summary>
     static string[] For(string name, params PitchType[] types) =>
         [..Enum.GetValues<PitchType>().Select(t => types.Contains(t) ? name : string.Empty)];
+
+    /// <summary>
+    ///     <paramref name="p" />, hidden on the Whammy and the Virtual Capo: they play the shifted signal alone
+    ///     (<see cref="MixFor" />), so Mix, Global Mix and Kill Dry have no dry signal to act on.
+    /// </summary>
+    static ParamDescriptor WithDry(ParamDescriptor p) =>
+        Only(
+            p,
+            [..Enum.GetValues<PitchType>().Where(static t => t is not (PitchType.Whammy or PitchType.VirtualCapo))]
+        );
 
     /// <summary><paramref name="p" />, shown on <paramref name="types" /> only: the types that read it.</summary>
     static ParamDescriptor Only(ParamDescriptor p, params PitchType[] types) =>

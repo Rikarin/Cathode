@@ -337,13 +337,13 @@ public sealed class DelayBlock() : DspBlock(Info) {
             TimeLfo(ParamDescriptor.Choice("depthRange", "LFO Depth Range", ["Low (×0.1)", "Normal", "High (×10)"], 1)),
             TimeLfo(ParamDescriptor.Choice("lfo1Type", "LFO 1 Type", Lfo.ShapeNames)),
             TimeLfo(ParamDescriptor.Choice("lfo1Tempo", "LFO 1 Tempo", TempoDivisions.Names)),
-            TimeLfo(ParamDescriptor.Float("lfo1Phase", "LFO 1 Phase", 0f, 180f, 0f, "°")),
+            StereoLfo(ParamDescriptor.Float("lfo1Phase", "LFO 1 Phase", 0f, 180f, 0f, "°")),
             TimeLfo(ParamDescriptor.Choice("lfo1Target", "LFO 1 Target", ["Both", "Left", "Right"])),
             TimeLfo(ParamDescriptor.Choice("lfo2Type", "LFO 2 Type", Lfo.ShapeNames)),
             TimeLfo(ParamDescriptor.Float("lfo2Rate", "LFO 2 Rate", 0.05f, 10f, 2f, "Hz", ParamTaper.Log)),
             TimeLfo(ParamDescriptor.Choice("lfo2Tempo", "LFO 2 Tempo", TempoDivisions.Names)),
             TimeLfo(ParamDescriptor.Float("lfo2Depth", "LFO 2 Depth", 0f, MaxDepthMs, 0f, "ms")),
-            TimeLfo(ParamDescriptor.Float("lfo2Phase", "LFO 2 Phase", 0f, 180f, 90f, "°")),
+            StereoLfo(ParamDescriptor.Float("lfo2Phase", "LFO 2 Phase", 0f, 180f, 90f, "°")),
             TimeLfo(ParamDescriptor.Choice("lfo2Target", "LFO 2 Target", ["Both", "Left", "Right"])),
             ParamDescriptor.Choice("lfo3Target", "LFO 3 Target", ["Level", "Pan", "Spread"]),
             ParamDescriptor.Choice("lfo3Type", "LFO 3 Type", Lfo.ShapeNames),
@@ -406,6 +406,11 @@ public sealed class DelayBlock() : DspBlock(Info) {
 
     /// <summary>A control of the time LFOs (1 and 2), hidden on Reverse, whose heads read whole chunks.</summary>
     static ParamDescriptor TimeLfo(ParamDescriptor p) => p.HiddenOn(TypeCount, Reverse);
+
+    /// <summary>
+    ///     A time LFO's phase is the offset of its right line from its left: the Mono Tape has one line, so none.
+    /// </summary>
+    static ParamDescriptor StereoLfo(ParamDescriptor p) => p.HiddenOn(TypeCount, Reverse, MonoTape);
 
     /// <summary>
     ///     The loop limiter: transparent up to full scale, then a tanh knee that never passes 2, so feedback above
