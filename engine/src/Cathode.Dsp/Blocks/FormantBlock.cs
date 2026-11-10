@@ -5,7 +5,8 @@ namespace Cathode.Dsp.Blocks;
 
 /// <summary>
 ///     Vowel formant filter ("talk box" without the tube): three parallel resonant band-passes placed on the first
-///     three formants of a vowel (adult male averages after Peterson and Barney, JASA 1952). <b>Control</b> morphs from
+///     three formants of a vowel (the ten vowels of Peterson and Barney, JASA 1952, adult male averages).
+///     <b>Control</b> morphs from
 ///     the start vowel (0 %) through the mid vowel (50 %) to the end vowel (100 %), interpolating formant frequencies
 ///     geometrically, so a modifier or expression pedal can make the guitar "talk". <b>Shift</b> scales every formant
 ///     (smaller or larger "throat"). The band-passes are state-variable filters, so fast sweeps stay smooth.
@@ -25,13 +26,22 @@ public sealed class FormantBlock() : DspBlock(Info) {
 
     const int SubBlock = 16;
 
-    /// <summary>F1–F3 in Hz for A ("father"), E ("bed"), I ("heed"), O ("ought"), U ("food").</summary>
+    /// <summary>
+    ///     F1–F3 in Hz for A ("father"), E ("bed"), I ("heed"), O ("ought"), U ("food"), then IH ("hid"), AE ("had"),
+    ///     OO ("hood"), UH ("hud") and ER ("heard"). The second five follow the first so a stored preset keeps its
+    ///     vowels.
+    /// </summary>
     static readonly float[][] VowelFormants = [
         [730f, 1_090f, 2_440f],
         [530f, 1_840f, 2_480f],
         [270f, 2_290f, 3_010f],
         [570f, 840f, 2_410f],
-        [300f, 870f, 2_240f]
+        [300f, 870f, 2_240f],
+        [390f, 1_990f, 2_550f],
+        [660f, 1_720f, 2_410f],
+        [440f, 1_020f, 2_240f],
+        [640f, 1_190f, 2_390f],
+        [490f, 1_350f, 1_690f]
     ];
 
     /// <summary>
@@ -63,7 +73,7 @@ public sealed class FormantBlock() : DspBlock(Info) {
         maxInstances: 2
     );
 
-    static IReadOnlyList<string> Vowels => ["A", "E", "I", "O", "U"];
+    static IReadOnlyList<string> Vowels => ["A", "E", "I", "O", "U", "IH", "AE", "OO", "UH", "ER"];
 
     /// <summary>
     ///     Formant <paramref name="formant" /> (0-based) in Hz for a morph position <paramref name="control" /> in [0,

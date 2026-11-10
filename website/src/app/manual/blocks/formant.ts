@@ -2,7 +2,7 @@ import type { BlockDoc } from '../types';
 
 export const doc: BlockDoc = {
   summary: `A vowel filter that makes your guitar "talk", like a talk box without the tube. Three resonant peaks sit on the
-first three formants of a spoken vowel (A, E, I, O or U), the frequencies that let your ear tell vowels apart. The
+first three formants of a spoken vowel (one of ten), the frequencies that let your ear tell vowels apart. The
 **Control** knob morphs from a start vowel through a mid vowel to an end vowel, so sweeping it with an expression pedal or
 a modifier says things like "yah-oo" or "wow".`,
 
@@ -44,21 +44,36 @@ more body while the vowels still read.`,
       E: `As in "bed".`,
       I: `As in "heed".`,
       O: `As in "ought".`,
-      U: `As in "food".`
+      U: `As in "food".`,
+      IH: `As in "hid".`,
+      AE: `As in "had".`,
+      OO: `As in "hood".`,
+      UH: `As in "hud".`,
+      ER: `As in "heard": the lowest third formant of the ten, which gives it its "r" colour.`
     },
     mid: {
       A: `As in "father".`,
       E: `As in "bed".`,
       I: `As in "heed".`,
       O: `As in "ought".`,
-      U: `As in "food".`
+      U: `As in "food".`,
+      IH: `As in "hid".`,
+      AE: `As in "had".`,
+      OO: `As in "hood".`,
+      UH: `As in "hud".`,
+      ER: `As in "heard": the lowest third formant of the ten, which gives it its "r" colour.`
     },
     end: {
       A: `As in "father".`,
       E: `As in "bed".`,
       I: `As in "heed".`,
       O: `As in "ought".`,
-      U: `As in "food".`
+      U: `As in "food".`,
+      IH: `As in "hid".`,
+      AE: `As in "had".`,
+      OO: `As in "hood".`,
+      UH: `As in "hud".`,
+      ER: `As in "heard": the lowest third formant of the ten, which gives it its "r" colour.`
     }
   },
 

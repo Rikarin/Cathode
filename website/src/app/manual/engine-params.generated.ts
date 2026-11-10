@@ -20274,27 +20274,27 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         name: 'Start Vowel',
         kind: 'choice',
         min: 0,
-        max: 4,
+        max: 9,
         default: 0,
-        options: ['A', 'E', 'I', 'O', 'U']
+        options: ['A', 'E', 'I', 'O', 'U', 'IH', 'AE', 'OO', 'UH', 'ER']
       },
       {
         id: 'mid',
         name: 'Mid Vowel',
         kind: 'choice',
         min: 0,
-        max: 4,
+        max: 9,
         default: 1,
-        options: ['A', 'E', 'I', 'O', 'U']
+        options: ['A', 'E', 'I', 'O', 'U', 'IH', 'AE', 'OO', 'UH', 'ER']
       },
       {
         id: 'end',
         name: 'End Vowel',
         kind: 'choice',
         min: 0,
-        max: 4,
+        max: 9,
         default: 2,
-        options: ['A', 'E', 'I', 'O', 'U']
+        options: ['A', 'E', 'I', 'O', 'U', 'IH', 'AE', 'OO', 'UH', 'ER']
       },
       {
         id: 'control',

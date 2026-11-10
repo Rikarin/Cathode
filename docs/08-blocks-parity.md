@@ -42,7 +42,7 @@ The guide's comparison table (p. 3) lists 42 block types. Cathode covers 37 of t
 | Enhancer (ENH) | `enhancer` | 3 → 🆕 4 | 🆕 10 / 0 / 0 | Done (🆕 Stereoizer, Depth) |
 | Filter (FLT) | `filter` | 15 → 🆕 15 | 🆕 21 / 0 / 0 | 🆕 Done: Shelf 2, Peaking 2, all-pass feedback, first-order cuts, LFO duty and quantise |
 | Flanger (FLG) | `flanger` | 31 → 1 | 🆕 24 / 0 / 0 | 🆕 Done: thru-zero, drive, bass focus, VCO response, min/max time, LFO reset on engage, Global Mix |
-| Formant (FOR) | `formant` | 1 → 1 | 8 / 0 / 0 | Partial (5 of 10 vowels; Cathode adds Shift) |
+| Formant (FOR) | `formant` | 1 → 1 | 8 / 0 / 0 | Full (Cathode adds Shift) |
 | Gate/Expander (GTE) | `gate` | 4 → 🆕 4 | 🆕 15 / 0 / 0 | Done (🆕 Modern types, knee, sidechain from a row or the input) |
 | Graphic EQ (GEQ) | `geq` | 16 → 🆕 10 layouts × constant/variable Q | 🆕 7 / 0 / 0 | 🆕 Band layouts, outer shelves; 🆕 the passive types as component-level networks |
 | IR Player (IRP) | `irplayer` | 1 → 1 | 🆕 11 / 0 / 0 | Done (🆕 two slots, modes, length, per-IR level and pan, slopes, input select) |
@@ -471,13 +471,13 @@ Types: guide 31 named presets → Cathode 1 algorithm, now with 🆕 thru-zero a
 
 | Parameter | Cathode | Note |
 |---|---|---|
-| Start, Middle, End Vowel (10 vowels) | ◐ | Five vowels: A, E, I, O, U (Peterson-Barney adult male F1–F3); the guide's other five are not modelled |
+| Start, Middle, End Vowel (10 vowels) | ✅ | Ten vowels, the Peterson-Barney set (adult male F1–F3): A, E, I, O, U, then IH ("hid"), AE ("had"), OO ("hood"), UH ("hud"), ER ("heard"). The names are Cathode's own |
 | Resonance | ✅ |  |
 | Control | ✅ |  |
 | Mix, Level, Balance | ✅ / 🆕 |  |
 | — Shift | ✅ | Cathode extra |
 
-Verdict: **partial**: the vowel set is half the guide's.
+Verdict: **full**.
 
 ### 6.11 Gate/Expander (p. 47) → `gate`
 
