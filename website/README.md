@@ -56,11 +56,13 @@ every route it prerendered (`tools/postbuild.mjs`), so a new prerendered page is
   unit, page, choices, and its name on each Amp model) is read from the engine into `engine-params.generated.ts` by
   `pnpm manual` (needs the .NET 10 SDK); run it when a block gains or changes a parameter, and commit the result.
   The `website` workflow fails when either generated file differs from what the engine writes, when a knob has no
-  description (`manual:check --strict`), when a file is not formatted, or when the prerendered build fails.
+  description or an editor keyboard shortcut is missing from the keyboard-shortcuts chapter (`manual:check --strict`),
+  when a file is not formatted, or when the prerendered build fails.
   `pnpm build` and `pnpm start` first write `content.generated.ts` (not committed), an import of every chapter and
   block page that exists, so one that is not written yet only leaves a gap; after adding a file while `pnpm start` is
   running, run `node tools/manual-index.mjs`. `pnpm manual:check` lists what is missing (blocks with no page, knobs with
-  no description, chapters with no Markdown, text for knobs the engine no longer has); `--strict` makes it fail, and
+  no description, chapters with no Markdown, text for knobs the engine no longer has, shortcuts in the editor's
+  `shell/shortcuts.ts` with no row in `guide/keyboard-shortcuts.md`); `--strict` makes it fail, and
   `--verbose` adds undescribed choices. In Markdown, link pages as `/manual/<slug>`, `/manual/blocks/<typeId>` and
   `/manual/blocks/<typeId>#knob-<id>`, put screenshots in as `![…](screenshots/<file>.webp)`, and start a quote with
   `**Tip:**`, `**Note:**` or `**Warning:**` for a callout.
