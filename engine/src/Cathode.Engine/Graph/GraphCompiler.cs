@@ -37,11 +37,30 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         }
 
         var set = CreateBlocks(nodes, spec, oversampling, errors);
+        try {
+            return Assemble(definition, spec, generation, set, inputs, consumers, errors);
+        } catch {
+            // Nothing owns the blocks until the graph exists: whatever stopped it, they must not leak native memory.
+            set.Blocks.ForEach(static b => b.Dispose());
+            throw;
+        }
+    }
+
+    /// <summary>Builds the graph around its prepared blocks; the caller disposes them when this throws.</summary>
+    CompiledGraph Assemble(
+        GraphDefinition definition,
+        ProcessSpec spec,
+        int generation,
+        BlockSet set,
+        List<int>[] inputs,
+        List<int>[] consumers,
+        List<string> errors
+    ) {
+        var nodes = definition.Nodes;
         var feedbackPairs = PairFeedback(nodes, set.SlotOfNode, set.Blocks, spec, errors);
         var modifiers = BindModifiers(definition.Modifiers, set, errors);
         CheckTelemetryRoom(set.Blocks, modifiers.Count, errors);
         if (errors.Count > 0) {
-            set.Blocks.ForEach(static b => b.Dispose());
             throw new GraphValidationException(errors);
         }
 
@@ -126,14 +145,22 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
             }
 
             var block = registry.Create(node.Type);
-            ApplyParameters(node, block, errors);
-            if (!BypassModes.IsValid(node.BypassMode)) {
-                errors.Add($"Node '{node.Id}': unknown bypass mode '{node.BypassMode}'.");
+            try {
+                ApplyParameters(node, block, errors);
+                if (!BypassModes.IsValid(node.BypassMode)) {
+                    errors.Add($"Node '{node.Id}': unknown bypass mode '{node.BypassMode}'.");
+                }
+
+                LoadAssets(node, block, errors);
+                ConnectToEngine(block, n, set, spec, oversampling);
+                block.Prepare(spec);
+            } catch {
+                // A block that cannot be set up takes the ones before it with it: no graph will own them.
+                block.Dispose();
+                set.Blocks.ForEach(static b => b.Dispose());
+                throw;
             }
 
-            LoadAssets(node, block, errors);
-            ConnectToEngine(block, n, set, spec, oversampling);
-            block.Prepare(spec);
             set.Add(
                 n,
                 node.Id,

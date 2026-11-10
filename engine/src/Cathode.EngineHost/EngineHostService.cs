@@ -121,7 +121,20 @@ public sealed class EngineHostService : IDisposable {
         midi.Start();
     }
 
+    /// <summary>
+    ///     Answers one request. A handler that throws (an export path that cannot be written, a block that fails to
+    ///     prepare) is answered with an error and logged: one bad request must not stop the audio.
+    /// </summary>
     public IpcMessage Handle(IpcMessage request) {
+        try {
+            return Dispatch(request);
+        } catch (Exception e) when (e is not OutOfMemoryException) {
+            Log?.Invoke($"error: request '{request.Type}' failed: {e}");
+            return IpcMessage.Fail(request.Id, $"{request.Type} failed: {e.Message}");
+        }
+    }
+
+    IpcMessage Dispatch(IpcMessage request) {
         lock (gate) {
             return request.Type switch {
                 IpcTypes.Hello => new() { Type = IpcTypes.Ok, Id = request.Id, Host = Info },
