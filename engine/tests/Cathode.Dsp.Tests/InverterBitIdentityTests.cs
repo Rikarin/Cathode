@@ -9,8 +9,9 @@ namespace Cathode.Dsp.Tests;
 ///     test's output (the power-amp renders of the Mesa, Soldano and Engl models were regenerated when their supplies
 ///     took their drawings' preamp draws and filter caps; their inverter tables did not move; the Powerball's render
 ///     again when its inverter's grid leak was corrected to the drawing's 100k; the 5E3's entries when its supply took
-///     the drawing's 5k and 22k droppers and the preamp node that follows from them). The hashes are macOS ARM64
-///     renders, so the test runs there only (<see cref="BaselinePlatform" />).
+///     the drawing's 5k and 22k droppers and the preamp node that follows from them; the Bassman 5F6-A's renders
+///     when it took its inverter's input network). The hashes are macOS ARM64 renders, so the test runs there only
+///     (<see cref="BaselinePlatform" />).
 /// </summary>
 public class InverterBitIdentityTests(ITestOutputHelper output) {
     /// <summary>(inverter table, power amp render) per model, from 49fe687.</summary>
@@ -31,8 +32,8 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         { "Twin Reverb", (0x2BD2DBD0FCB651D7, 0xAF1A2D8E9FD1E59F) },
         { "Super Reverb", (0x2BD2DBD0FCB651D7, 0x4D6D0818CA15640F) },
         { "Princeton Reverb", (0xD45935F647FBF6E8, 0xE1E7DA20CF247239) },
-        { "Bassman 5F6-A", (0x198AF1CECAF0406C, 0xB398A79890A66813) },
-        { "Bassman 5F6-A Jumped", (0x198AF1CECAF0406C, 0xB398A79890A66813) },
+        { "Bassman 5F6-A", (0x198AF1CECAF0406C, 0xB4E97E7F4259CCB2) },
+        { "Bassman 5F6-A Jumped", (0x198AF1CECAF0406C, 0xB4E97E7F4259CCB2) },
         { "Tweed Deluxe 5E3", (0x97438764B590D2D0, 0x8011E0CB34687A9E) },
         { "Tweed Deluxe 5E3 Jumped", (0x97438764B590D2D0, 0x8011E0CB34687A9E) },
         { "SLO-100", (0x5295DF82E6C0BE75, 0x3EF7F59DF1E7CD0D) },

@@ -123,6 +123,58 @@ public class FenderAmpTests(ITestOutputHelper output) {
         );
     }
 
+    [Theory]
+    [InlineData("Bassman 5F6-A")]
+    [InlineData("Bassman 5F6-A Jumped")]
+    public void Bassman_inverter_takes_the_stack_through_its_input_cap_and_draws_grid_current(string model) {
+        // The 5F6-A drawing: 0.02 µF from the treble wiper to the inverter's grid, 1M from the grid to the junction of
+        // the 470 Ω and the tail. The Tweed Twin 5F8-A's drawing has the same.
+        var design = AmpDesign.All.Single(a => a.Name == model);
+        Assert.Equal(new InverterInputDesign(20e-9, 1e6), design.Power.InverterInput);
+        Assert.Equal(Amp.Models.TweedTwin.Design.Power.InverterInput, design.Power.InverterInput);
+
+        // Overdriven, the grid conducts on the peaks and charges the cap: the grid's mean falls below its rest.
+        var power = new PowerAmp(design.Power, 96_000);
+        power.SetSourceResistance(40e3);
+        power.Configure(new(0.5, 0, 0, 0.5, 0.5, 0.5));
+        power.Reset();
+        var rest = power.InverterGrid;
+        var mean = 0.0;
+        for (var n = 0; n < 19_200; n++) {
+            power.Tick(60 * Math.Sin(2 * Math.PI * 220 * n / 96_000.0));
+            if (n >= 9_600) {
+                mean += power.InverterGrid / 9_600;
+            }
+        }
+
+        output.WriteLine($"{model}: driven grid rests at {rest:0.00} V, mean {mean:0.00} V under a 60 V sine");
+        Assert.True(mean < rest - 1, $"mean {mean:0.00} V against {rest:0.00} V at rest");
+
+        // And the whole amp still converges at full gain, hot bias and full sag under a full-scale square wave.
+        using var block = new CircuitAmpBlock();
+        block.Params.SetTarget(CircuitAmpBlock.Type, AmpDesign.All.ToList().FindIndex(a => a.Name == model));
+        block.Params.SetTarget(CircuitAmpBlock.Gain, 10);
+        block.Params.SetTarget(CircuitAmpBlock.Control1, 10);
+        block.Params.SetTarget(CircuitAmpBlock.Bias, 100);
+        block.Params.SetTarget(CircuitAmpBlock.Sag, 10);
+        block.Prepare(new(Rate, 64));
+        var square = Signals.Sine(110, Rate, 48_000).Select(static s => s >= 0 ? 1f : -1f).ToArray();
+        var rendered = BlockRender.Mono(block, Signals.Concat(square, Signals.Noise(48_000, 4)), 64);
+        Assert.True(Analysis.AllFinite(rendered));
+        var channel = block.Channel;
+        var solvers = channel.Stages
+            .Where(static s => s.Newton is not null)
+            .Select(static s => s.Newton!)
+            .Append(channel.Power.Newton);
+        foreach (var newton in solvers) {
+            Assert.Equal(0, newton.NonFinite);
+            Assert.True(
+                newton.Unconverged <= newton.Samples / 10_000,
+                $"{model}: {newton.Unconverged} unconverged of {newton.Samples}"
+            );
+        }
+    }
+
     [Fact]
     public void Tweed_deluxe_power_tubes_idle_on_the_drawings_250_ohm_cathode_resistor() {
         // The 5E3's two 6V6s share 250 Ω (Robinette: about 38 mA a tube); the resistor sets the idle current, not a
