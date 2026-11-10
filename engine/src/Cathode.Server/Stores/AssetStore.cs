@@ -13,7 +13,9 @@ namespace Cathode.Server.Stores;
 ///     Content-addressed store for impulse responses (.wav), multi-position cab IR packs (.cabgrid: a zip with a
 ///     manifest) and amp captures (NAM .nam, AIDA-X .aidax/.json) in <c>&lt;data&gt;/assets</c>. Presets reference
 ///     assets as <c>sha256:&lt;hex&gt;</c>, so the same file uploaded twice is stored once and a preset always gets
-///     exactly the file it was made with.
+///     exactly the file it was made with. The factory assets (<see cref="FactoryAssets" />) are put into the store
+///     at start-up, marked <see cref="AssetInfo.Factory" />: they list and play like the others, but cannot be renamed
+///     or deleted.
 /// </summary>
 public sealed partial class AssetStore {
     public const long MaxBytes = 64 * 1024 * 1024;
@@ -26,6 +28,9 @@ public sealed partial class AssetStore {
     readonly Lock gate = new();
     readonly Dictionary<string, AssetInfo> index;
 
+    /// <summary>The references of this Cathode's factory assets.</summary>
+    readonly HashSet<string> factoryRefs = new(StringComparer.Ordinal);
+
     /// <summary>Called after an asset was added, renamed, tagged or deleted.</summary>
     readonly Action? changed;
 
@@ -36,6 +41,11 @@ public sealed partial class AssetStore {
         indexPath = Path.Combine(folder, "index.json");
         index = new(StringComparer.Ordinal);
         DeleteStaleUploads(logger);
+        ReadIndex(logger);
+        InstallFactory();
+    }
+
+    void ReadIndex(ILogger logger) {
         if (!File.Exists(indexPath)) {
             return;
         }
@@ -57,6 +67,47 @@ public sealed partial class AssetStore {
             IndexDamaged(logger, indexPath, e.Message);
             File.Copy(indexPath, indexPath + ".damaged", true);
             Rebuild();
+            SaveIndex();
+        }
+    }
+
+    /// <summary>
+    ///     Puts the factory assets into the store: each file under its reference when it is not there (a new library,
+    ///     a new version's asset, a file removed by hand) and an index entry marked <see cref="AssetInfo.Factory" />
+    ///     under the factory name, keeping a colour tag and favourite flag the user gave it. An asset an earlier
+    ///     version shipped and this one does not stays in the store as an ordinary asset, so presets that use it keep
+    ///     playing and it can be renamed or deleted.
+    /// </summary>
+    void InstallFactory() {
+        var before = index.Count;
+        var changedEntries = 0;
+        foreach (var asset in FactoryAssets.All) {
+            factoryRefs.Add(asset.Ref);
+            var path = FilePath(asset.Ref, asset.Kind);
+            if (!File.Exists(path)) {
+                var temporary = Path.Combine(folder, $"{TemporaryPrefix}{Guid.NewGuid():n}{TemporarySuffix}");
+                File.WriteAllBytes(temporary, asset.Content);
+                File.Move(temporary, path, true);
+            }
+
+            var known = index.GetValueOrDefault(asset.Ref);
+            var entry = (known ?? new(asset.Ref, asset.Name, asset.Kind, asset.Content.Length, DateTimeOffset.UtcNow))
+                with {
+                Name = asset.Name, Factory = true
+            };
+            if (entry != known) {
+                index[asset.Ref] = entry;
+                changedEntries++;
+            }
+        }
+
+        foreach (var (reference, info) in index.Where(e => e.Value.Factory == true && !factoryRefs.Contains(e.Key))
+                     .ToList()) {
+            index[reference] = info with { Factory = null };
+            changedEntries++;
+        }
+
+        if (changedEntries > 0 || index.Count != before) {
             SaveIndex();
         }
     }
@@ -244,6 +295,10 @@ public sealed partial class AssetStore {
                 throw new RigException(400, "An asset needs a name.");
             }
 
+            if (factoryRefs.Contains(reference) && change.Name is { } renamed && renamed.Trim() != info.Name) {
+                throw RigException.Conflict("A factory asset cannot be renamed.");
+            }
+
             info = info with {
                 Name = change.Name?.Trim() ?? info.Name,
                 Color = change.Color is { } color ? NullIfEmpty(color) : info.Color,
@@ -266,9 +321,11 @@ public sealed partial class AssetStore {
             }
 
             index[recorded.Ref] = info with {
-                Name = Path.GetFileName(recorded.Name) is { } name && !string.IsNullOrWhiteSpace(name)
-                    ? name.Trim()
-                    : info.Name,
+                Name = !factoryRefs.Contains(recorded.Ref)
+                    && Path.GetFileName(recorded.Name) is { } name
+                    && !string.IsNullOrWhiteSpace(name)
+                        ? name.Trim()
+                        : info.Name,
                 Color = recorded.Color is { Length: > 0 } ? recorded.Color : null,
                 Favorite = recorded.Favorite,
                 Added = recorded.Added
@@ -281,7 +338,12 @@ public sealed partial class AssetStore {
     /// <summary>A colour tag as stored: an empty one clears it.</summary>
     static string? NullIfEmpty(string color) => color.Length == 0 ? null : color;
 
+    /// <summary>Deletes an asset; false when the store has none under the reference. A factory asset is a 409.</summary>
     public bool Delete(string reference) {
+        if (factoryRefs.Contains(reference)) {
+            throw RigException.Conflict("A factory asset cannot be deleted.");
+        }
+
         lock (gate) {
             if (!index.Remove(reference, out var info)) {
                 return false;

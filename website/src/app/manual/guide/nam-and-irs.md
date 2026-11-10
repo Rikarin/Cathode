@@ -2,7 +2,7 @@ Cathode's own amps and cabs are modelled from circuits and data sheets. You can 
 
 This chapter covers loading and levelling captures, finding them, loading and mixing IRs, and capturing an IR.
 
-> **Note:** Cathode comes with no captures and no IR files, so the Amp NAM block, the IR Player and the Cab's IR and IR Pack sources have nothing to play until you upload a file; each says so while your Library has none. The factory presets need none: they use the Circuit Amp and the Cab's DynaCab speakers.
+> **Note:** Cathode comes with eight impulse responses and no captures. The IRs are in **Library ▸ Cab IRs**, marked **Factory**, with names that start with "Cathode": 1x12, 2x12, 4x10 and 4x12 cabinets under a dynamic or a ribbon microphone. They are rendered from Cathode's own cab model, the one behind the Cab block's DynaCab source, so they are not recordings of real cabinets; they give the IR Player and the Cab's IR source something to play before you have files of your own. You can tag and favourite them, but not rename or delete them, and a backup leaves them out, since every Cathode has them. The Amp NAM block has nothing to play until you upload a capture, and says so while your Library has none. The factory presets need no files: they use the Circuit Amp and the Cab's DynaCab speakers.
 
 ## Neural captures: NAM and AIDA-X
 

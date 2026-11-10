@@ -15,6 +15,8 @@
   <ItemGroup>
     <EmbeddedResource Include="Factory/bank.json" LogicalName="factory/bank.json"/>
     <EmbeddedResource Include="Factory/presets/*.cthpreset" LogicalName="factory/presets/%(Filename)%(Extension)"/>
+    <!-- The factory assets (Stores/FactoryAssets.cs): impulse responses rendered from Cathode's own cab model. -->
+    <EmbeddedResource Include="Factory/assets/*.wav;Factory/assets/*.cabgrid;Factory/assets/*.nam;Factory/assets/*.aidax" LogicalName="factory/assets/%(Filename)%(Extension)"/>
     <Content Remove="Factory/**"/>
   </ItemGroup>
   <!-- No engine host, audio or native code: the Server talks to cathode-host over IPC (docs/02-architecture.md §3).

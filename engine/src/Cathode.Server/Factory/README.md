@@ -31,3 +31,28 @@ the desktop app and the headless package with no files of their own.
 
 Add or remove its file, and its entry in `bank.json` (with as many lifts as it has planned scenes), then level and
 test as above. The bank holds at most one bank's slots.
+
+## The factory assets
+
+`assets/` holds the files every library starts with (`Stores/FactoryAssets.cs`), embedded in the Server like the
+presets. At start-up the asset store writes each one into `<data>/assets` under its SHA-256 and lists it marked
+Factory: it plays like an uploaded file, keeps the user's colour tag and favourite flag, and cannot be renamed or
+deleted. A backup leaves the factory assets out.
+
+- A file's name is the asset's name in the Library. Presets refer to an asset by the hash of its bytes, so a file that
+  is changed is another asset: the old one stays in the libraries that have it, as an ordinary asset the user can
+  delete, and presets that used it keep playing.
+- The `.wav` files are impulse responses rendered from the cab model (`Cathode.Dsp.Cabinets.CabIrSynthesizer`), not
+  recordings. `tests/Cathode.Server.Tests/FactoryAssetTests.cs` lists each one's speaker, cabinet, microphone and
+  placement. To add or change one, edit that list and write the files:
+
+  ```sh
+  cd engine
+  CATHODE_UPDATE_FACTORY_ASSETS=1 dotnet test --project tests/Cathode.Server.Tests --filter-class "*FactoryAssetTests"
+  ```
+
+  then build and run the class again without the variable. Without the variable the test only checks that the files
+  are still close to what the model renders; it never rewrites them.
+- The folder also takes `.cabgrid` packs and `.nam` / `.aidax` captures. None ships. A capture or a recorded IR must be
+  the project's own or one it may redistribute under the GPL, with its author and licence added to
+  `THIRD-PARTY-NOTICES.md`.

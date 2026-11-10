@@ -39,7 +39,7 @@ public sealed class AssetUploadTests : IAsyncLifetime {
             Wav(2, 1, 4, 4, [0, 0, 0, 0]), // ADPCM
             [.."RIFF\0\0\0\0WAVEfmt "u8] // cut short
         ];
-        var stored = (await client.GetFromJsonAsync<AssetInfo[]>("/api/v1/assets", Token))!.Length;
+        var stored = (await client.UserAssetsAsync(Token)).Length;
 
         foreach (var wav in hostile) {
             using var response = await client.PostAsync(
@@ -53,7 +53,7 @@ public sealed class AssetUploadTests : IAsyncLifetime {
             Assert.StartsWith("bad.wav", problem!.Detail, StringComparison.Ordinal);
         }
 
-        Assert.Equal(stored, (await client.GetFromJsonAsync<AssetInfo[]>("/api/v1/assets", Token))!.Length);
+        Assert.Equal(stored, (await client.UserAssetsAsync(Token)).Length);
     }
 
     [Theory]
@@ -99,13 +99,13 @@ public sealed class AssetUploadTests : IAsyncLifetime {
         await File.WriteAllTextAsync(Path.Combine(folder, "index.json"), """[{ "ref": "sha256:""", Token);
 
         using var http = await damaged.ConnectedClientAsync();
-        var listed = (await http.GetFromJsonAsync<AssetInfo[]>("/api/v1/assets", Token))!;
+        var listed = (await http.UserAssetsAsync(Token));
         using var upload = await http.PostAsync("/api/v1/assets?name=more.nam", new ByteArrayContent([5, 6]), Token);
 
         var asset = Assert.Single(listed);
         Assert.Equal(("sha256:" + hash, "nam", 4L), (asset.Ref, asset.Kind, asset.Size));
         Assert.Equal(HttpStatusCode.OK, upload.StatusCode);
-        Assert.Equal(2, (await http.GetFromJsonAsync<AssetInfo[]>("/api/v1/assets", Token))!.Length);
+        Assert.Equal(2, (await http.UserAssetsAsync(Token)).Length);
         Assert.True(File.Exists(Path.Combine(folder, "index.json.damaged")));
         Assert.Equal(
             2,
@@ -113,7 +113,7 @@ public sealed class AssetUploadTests : IAsyncLifetime {
                 await File.ReadAllTextAsync(Path.Combine(folder, "index.json"), Token),
                 JsonSerializerOptions.Web
             )!
-                .Length
+                .Count(static a => a.Factory != true) // the factory assets are in every index
         );
     }
 
@@ -140,7 +140,7 @@ public sealed class AssetUploadTests : IAsyncLifetime {
         await Assert.ThrowsAsync<RigException>(() => store.AddAsync(new MemoryStream([1, 2, 3]), "bad.wav", Token));
 
         Assert.Empty(Directory.EnumerateFiles(folder, "upload-*"));
-        Assert.Empty(store.List());
+        Assert.DoesNotContain(store.List(), static a => a.Factory != true);
     }
 
     [Fact]

@@ -77,6 +77,14 @@ export function isStale(error: unknown): boolean {
   return error instanceof ApiError && error.status === 412;
 }
 
+/**
+ * Whether an asset came with Cathode (the factory impulse responses): the Server keeps those read-only, so they are
+ * not renamed or deleted. Their colour tag and favourite flag are the user's.
+ */
+export function isFactoryAsset(asset: { ref: string; factory?: boolean | null }): boolean {
+  return asset.factory === true;
+}
+
 /** The file a library backup is saved as and restored from. */
 export const BackupFileExtension = '.cthbackup';
 

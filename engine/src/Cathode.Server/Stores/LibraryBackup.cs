@@ -109,7 +109,8 @@ public sealed partial class LibraryBackup(
             await AddAsync(zip, Banks, bank.Id, bank, context.Bank, cancellationToken);
         }
 
-        var stored = assets.List();
+        // The user's assets: every Cathode has the factory ones itself.
+        var stored = assets.List().Where(static a => a.Factory != true).ToList();
         await AddAsync(zip, AssetIndexName, [..stored], context.AssetInfoArray, cancellationToken);
         foreach (var asset in stored) {
             await AddAssetAsync(zip, asset, cancellationToken);

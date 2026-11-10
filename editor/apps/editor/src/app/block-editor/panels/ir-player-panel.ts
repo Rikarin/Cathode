@@ -26,7 +26,7 @@ import { AssetPicker } from './asset-picker';
 })
 export class IrPlayerPanel {
   protected readonly noImpulseResponses =
-    'Cathode comes with no impulse responses, and an empty IR Player passes its input through. Upload a .wav IR, ' +
+    'The library has no impulse responses, and an empty IR Player passes its input through. Upload a .wav IR, ' +
     'or use a Cab block: its DynaCab speakers need no file.';
   protected readonly live = inject(LiveStore);
   protected readonly library = inject(LibraryStore);

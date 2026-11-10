@@ -18,11 +18,12 @@ import { XuiInputImports } from '@xui/input';
 import { XuiMenuImports } from '@xui/menu';
 import { XuiNonIdealStateImports } from '@xui/non-ideal-state';
 import { XuiTableImports } from '@xui/table';
+import { XuiTagImports } from '@xui/tag';
 import { XuiTooltipImports } from '@xui/tooltip';
 import { ConnectionService } from '../core/connection';
 import { Notify } from '../core/notify';
 import { TagColors, tagColorName } from '../shell/picker-list';
-import { LibraryStore } from '../state/library.store';
+import { LibraryStore, isFactoryAsset } from '../state/library.store';
 import { IrCaptureDialog, IrImportDialog, IrImportSettings, IrMixerDialog } from './ir-tools';
 import { nextSelection } from './manage';
 
@@ -255,6 +256,7 @@ export class AssetToolbar {
     XuiMenuImports,
     XuiNonIdealStateImports,
     XuiTableImports,
+    XuiTagImports,
     XuiTooltipImports
   ],
   providers: [provideIcons({ matStarOutlineRound, matStarRound })],
@@ -314,8 +316,8 @@ export class AssetToolbar {
               (click)="assets.select(i, $event)"
               (dblclick)="openRename(asset)"
               (keydown.enter)="openRename(asset)"
-              (keydown.delete)="confirmDelete.set(true)"
-              (keydown.backspace)="confirmDelete.set(true)"
+              (keydown.delete)="askDelete()"
+              (keydown.backspace)="askDelete()"
             >
               <xui-td class="w-10">
                 <button
@@ -338,6 +340,11 @@ export class AssetToolbar {
                     <span class="size-2.5 shrink-0 rounded-full" [style.background]="asset.color"></span>
                   }
                   <span class="truncate font-medium">{{ asset.name }}</span>
+                  @if (isFactory(asset)) {
+                    <xui-tag minimal round color="primary" class="shrink-0" data-testid="factory-asset-tag"
+                      >Factory</xui-tag
+                    >
+                  }
                 </span>
               </xui-td>
               <xui-td class="text-foreground-muted w-24">{{ kind(asset) }}</xui-td>
@@ -382,7 +389,8 @@ export class AssetToolbar {
           type="button"
           variant="outline"
           size="sm"
-          [disabled]="!assets.onlySelected()"
+          [disabled]="!assets.onlySelected() || factorySelected()"
+          [attr.title]="factorySelected() ? readOnly : null"
           (click)="renameSelected()"
         >
           Rename…
@@ -404,8 +412,9 @@ export class AssetToolbar {
           size="sm"
           color="error"
           data-testid="delete-assets"
-          [disabled]="assets.selectedAssets().length === 0"
-          (click)="confirmDelete.set(true)"
+          [disabled]="assets.selectedAssets().length === 0 || factorySelected()"
+          [attr.title]="factorySelected() ? readOnly : null"
+          (click)="askDelete()"
         >
           Delete
         </button>
@@ -503,6 +512,18 @@ export class AssetList {
     return new Date(asset.added).toLocaleDateString(undefined, { dateStyle: 'medium' });
   }
 
+  protected readonly isFactory = isFactoryAsset;
+  protected readonly readOnly = 'The files that come with Cathode cannot be renamed or deleted';
+  /** Whether the selection holds a file that came with Cathode. */
+  protected readonly factorySelected = computed(() => this.assets.selectedAssets().some(isFactoryAsset));
+
+  /** Asks before deleting the selection; not at all when it holds a factory file, which stays. */
+  protected askDelete(): void {
+    if (this.assets.selectedAssets().length > 0 && !this.factorySelected()) {
+      this.confirmDelete.set(true);
+    }
+  }
+
   protected renameSelected(): void {
     const only = this.assets.onlySelected();
     if (only) {
@@ -511,6 +532,10 @@ export class AssetList {
   }
 
   protected openRename(asset: AssetInfo): void {
+    if (isFactoryAsset(asset)) {
+      return;
+    }
+
     this.newName.set(asset.name);
     this.renaming.set(asset);
   }
