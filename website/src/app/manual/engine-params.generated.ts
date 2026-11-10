@@ -2918,7 +2918,18 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 20,
         default: 0,
         unit: 'bits',
-        page: 'Advanced'
+        page: 'Advanced',
+        typeLabels: [
+          'Bit Reduction',
+          'Bit Reduction',
+          'Bit Reduction',
+          'Bit Reduction',
+          '',
+          'Bit Reduction',
+          'Bit Reduction',
+          'Bit Reduction',
+          'Bit Reduction'
+        ]
       },
       {
         id: 'spread',
@@ -8860,7 +8871,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 180,
         default: 0,
         unit: '°',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['LFO Phase', '', 'LFO Phase', 'LFO Phase', 'LFO Phase']
       },
       {
         id: 'panCenter',
@@ -8870,7 +8882,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 100,
         default: 0,
         unit: '%',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', 'Pan Center', '', '', '']
       },
       {
         id: 'crossover',
@@ -20478,7 +20491,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 30,
         default: 8,
         unit: 'ms',
-        taper: 'log'
+        taper: 'log',
+        typeLabels: ['', 'Time', 'Time', '']
       },
       {
         id: 'lowCut',
@@ -20488,7 +20502,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 2000,
         default: 150,
         unit: 'Hz',
-        taper: 'log'
+        taper: 'log',
+        typeLabels: ['Low Cut', 'Low Cut', '', 'Low Cut']
       },
       {
         id: 'highCut',
@@ -20498,7 +20513,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 20000,
         default: 12000,
         unit: 'Hz',
-        taper: 'log'
+        taper: 'log',
+        typeLabels: ['High Cut', 'High Cut', '', 'High Cut']
       },
       {
         id: 'level',
@@ -22698,7 +22714,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 12,
         unit: 'st',
-        page: 'Voices'
+        page: 'Voices',
+        typeLabels: ['', 'Voice 1 Shift', '', '', '', '', '', '', '']
       },
       {
         id: 'voice2Shift',
@@ -22708,7 +22725,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: -12,
         unit: 'st',
-        page: 'Voices'
+        page: 'Voices',
+        typeLabels: ['', 'Voice 2 Shift', '', '', '', '', '', '', '']
       },
       {
         id: 'voice1Harmony',
@@ -22748,7 +22766,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '+13th',
           '+14th',
           '+2 Oct'
-        ]
+        ],
+        typeLabels: ['', '', 'Voice 1 Harmony', '', '', '', '', '', '']
       },
       {
         id: 'voice2Harmony',
@@ -22788,7 +22807,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '+13th',
           '+14th',
           '+2 Oct'
-        ]
+        ],
+        typeLabels: ['', '', 'Voice 2 Harmony', '', '', '', '', '', '']
       },
       {
         id: 'key',
@@ -22798,7 +22818,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 11,
         default: 0,
         page: 'Basic',
-        options: ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+        options: ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'],
+        typeLabels: ['', '', 'Key', '', '', '', '', '', 'Key']
       },
       {
         id: 'scale',
@@ -22822,7 +22843,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Minor Pentatonic',
           'Blues',
           'Custom'
-        ]
+        ],
+        typeLabels: ['', '', 'Scale', '', '', '', '', '', '']
       },
       {
         id: 'voice1Level',
@@ -22832,7 +22854,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 6,
         default: 0,
         unit: 'dB',
-        page: 'Voices'
+        page: 'Voices',
+        typeLabels: ['Voice 1 Level', 'Voice 1 Level', 'Voice 1 Level', '', '', '', '', '', 'Voice 1 Level']
       },
       {
         id: 'voice2Level',
@@ -22842,7 +22865,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 6,
         default: 0,
         unit: 'dB',
-        page: 'Voices'
+        page: 'Voices',
+        typeLabels: ['Voice 2 Level', 'Voice 2 Level', 'Voice 2 Level', '', '', '', '', '', 'Voice 2 Level']
       },
       {
         id: 'voice1Pan',
@@ -22852,7 +22876,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 100,
         default: -50,
         unit: '%',
-        page: 'Voices'
+        page: 'Voices',
+        typeLabels: ['Voice 1 Pan', 'Voice 1 Pan', 'Voice 1 Pan', '', '', '', '', '', 'Voice 1 Pan']
       },
       {
         id: 'voice2Pan',
@@ -22862,7 +22887,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 100,
         default: 50,
         unit: '%',
-        page: 'Voices'
+        page: 'Voices',
+        typeLabels: ['Voice 2 Pan', 'Voice 2 Pan', 'Voice 2 Pan', '', '', '', '', '', 'Voice 2 Pan']
       },
       {
         id: 'voice1Delay',
@@ -22873,7 +22899,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         default: 0,
         unit: 'ms',
         taper: 'log',
-        page: 'Voices'
+        page: 'Voices',
+        typeLabels: ['Voice 1 Delay', 'Voice 1 Delay', 'Voice 1 Delay', '', '', '', '', '', 'Voice 1 Delay']
       },
       {
         id: 'voice2Delay',
@@ -22884,7 +22911,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         default: 0,
         unit: 'ms',
         taper: 'log',
-        page: 'Voices'
+        page: 'Voices',
+        typeLabels: ['Voice 2 Delay', 'Voice 2 Delay', 'Voice 2 Delay', '', '', '', '', '', 'Voice 2 Delay']
       },
       {
         id: 'detune1',
@@ -22905,7 +22933,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 0,
         unit: 'st',
-        page: 'Whammy'
+        page: 'Whammy',
+        typeLabels: ['', '', '', 'Whammy Start', '', '', '', '', '']
       },
       {
         id: 'whammyEnd',
@@ -22915,7 +22944,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 12,
         unit: 'st',
-        page: 'Whammy'
+        page: 'Whammy',
+        typeLabels: ['', '', '', 'Whammy End', '', '', '', '', '']
       },
       {
         id: 'pedal',
@@ -22925,7 +22955,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 100,
         default: 0,
         unit: '%',
-        page: 'Whammy'
+        page: 'Whammy',
+        typeLabels: ['', '', '', 'Pedal', '', '', '', '', '']
       },
       {
         id: 'octave1Level',
@@ -22935,7 +22966,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 100,
         default: 100,
         unit: '%',
-        page: 'Whammy'
+        page: 'Whammy',
+        typeLabels: ['', '', '', '', 'Octave 1 Level', '', '', '', '']
       },
       {
         id: 'octave2Level',
@@ -22945,7 +22977,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 100,
         default: 0,
         unit: '%',
-        page: 'Whammy'
+        page: 'Whammy',
+        typeLabels: ['', '', '', '', 'Octave 2 Level', '', '', '', '']
       },
       {
         id: 'crystalsShift',
@@ -22955,7 +22988,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 12,
         unit: 'st',
-        page: 'Crystals'
+        page: 'Crystals',
+        typeLabels: ['', '', '', '', '', 'Crystals Shift', '', '', '']
       },
       {
         id: 'crystalsTime',
@@ -22966,7 +23000,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         default: 300,
         unit: 'ms',
         taper: 'log',
-        page: 'Crystals'
+        page: 'Crystals',
+        typeLabels: ['', '', '', '', '', 'Crystals Time', '', '', '']
       },
       {
         id: 'crystalsFeedback',
@@ -22976,7 +23011,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 90,
         default: 30,
         unit: '%',
-        page: 'Crystals'
+        page: 'Crystals',
+        typeLabels: ['', '', '', '', '', 'Crystals Feedback', '', '', '']
       },
       {
         id: 'arpTempo',
@@ -22986,7 +23022,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 5,
         default: 3,
         page: 'Arpeggiator',
-        options: ['1/4', '1/8', '1/8T', '1/16', '1/16T', '1/32']
+        options: ['1/4', '1/8', '1/8T', '1/16', '1/16T', '1/32'],
+        typeLabels: ['', '', '', '', '', '', 'Arp Tempo', '', '']
       },
       {
         id: 'arpSteps',
@@ -22996,7 +23033,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 15,
         default: 3,
         page: 'Arpeggiator',
-        options: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16']
+        options: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16'],
+        typeLabels: ['', '', '', '', '', '', 'Arp Steps', '', '']
       },
       {
         id: 'arpStep1',
@@ -23006,7 +23044,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 0,
         unit: 'st',
-        page: 'Arpeggiator'
+        page: 'Arpeggiator',
+        typeLabels: ['', '', '', '', '', '', 'Arp Step 1', '', '']
       },
       {
         id: 'arpStep2',
@@ -23016,7 +23055,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 7,
         unit: 'st',
-        page: 'Arpeggiator'
+        page: 'Arpeggiator',
+        typeLabels: ['', '', '', '', '', '', 'Arp Step 2', '', '']
       },
       {
         id: 'arpStep3',
@@ -23026,7 +23066,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 12,
         unit: 'st',
-        page: 'Arpeggiator'
+        page: 'Arpeggiator',
+        typeLabels: ['', '', '', '', '', '', 'Arp Step 3', '', '']
       },
       {
         id: 'arpStep4',
@@ -23036,7 +23077,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 7,
         unit: 'st',
-        page: 'Arpeggiator'
+        page: 'Arpeggiator',
+        typeLabels: ['', '', '', '', '', '', 'Arp Step 4', '', '']
       },
       {
         id: 'arpStep5',
@@ -23046,7 +23088,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 0,
         unit: 'st',
-        page: 'Arpeggiator'
+        page: 'Arpeggiator',
+        typeLabels: ['', '', '', '', '', '', 'Arp Step 5', '', '']
       },
       {
         id: 'arpStep6',
@@ -23056,7 +23099,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 5,
         unit: 'st',
-        page: 'Arpeggiator'
+        page: 'Arpeggiator',
+        typeLabels: ['', '', '', '', '', '', 'Arp Step 6', '', '']
       },
       {
         id: 'arpStep7',
@@ -23066,7 +23110,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 12,
         unit: 'st',
-        page: 'Arpeggiator'
+        page: 'Arpeggiator',
+        typeLabels: ['', '', '', '', '', '', 'Arp Step 7', '', '']
       },
       {
         id: 'arpStep8',
@@ -23076,7 +23121,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 5,
         unit: 'st',
-        page: 'Arpeggiator'
+        page: 'Arpeggiator',
+        typeLabels: ['', '', '', '', '', '', 'Arp Step 8', '', '']
       },
       {
         id: 'arpStep9',
@@ -23086,7 +23132,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 0,
         unit: 'st',
-        page: 'Arpeggiator'
+        page: 'Arpeggiator',
+        typeLabels: ['', '', '', '', '', '', 'Arp Step 9', '', '']
       },
       {
         id: 'arpStep10',
@@ -23096,7 +23143,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 7,
         unit: 'st',
-        page: 'Arpeggiator'
+        page: 'Arpeggiator',
+        typeLabels: ['', '', '', '', '', '', 'Arp Step 10', '', '']
       },
       {
         id: 'arpStep11',
@@ -23106,7 +23154,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 12,
         unit: 'st',
-        page: 'Arpeggiator'
+        page: 'Arpeggiator',
+        typeLabels: ['', '', '', '', '', '', 'Arp Step 11', '', '']
       },
       {
         id: 'arpStep12',
@@ -23116,7 +23165,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 19,
         unit: 'st',
-        page: 'Arpeggiator'
+        page: 'Arpeggiator',
+        typeLabels: ['', '', '', '', '', '', 'Arp Step 12', '', '']
       },
       {
         id: 'arpStep13',
@@ -23126,7 +23176,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 12,
         unit: 'st',
-        page: 'Arpeggiator'
+        page: 'Arpeggiator',
+        typeLabels: ['', '', '', '', '', '', 'Arp Step 13', '', '']
       },
       {
         id: 'arpStep14',
@@ -23136,7 +23187,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 7,
         unit: 'st',
-        page: 'Arpeggiator'
+        page: 'Arpeggiator',
+        typeLabels: ['', '', '', '', '', '', 'Arp Step 14', '', '']
       },
       {
         id: 'arpStep15',
@@ -23146,7 +23198,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 5,
         unit: 'st',
-        page: 'Arpeggiator'
+        page: 'Arpeggiator',
+        typeLabels: ['', '', '', '', '', '', 'Arp Step 15', '', '']
       },
       {
         id: 'arpStep16',
@@ -23156,7 +23209,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 7,
         unit: 'st',
-        page: 'Arpeggiator'
+        page: 'Arpeggiator',
+        typeLabels: ['', '', '', '', '', '', 'Arp Step 16', '', '']
       },
       {
         id: 'capo',
@@ -23192,7 +23246,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '+10',
           '+11',
           '+12'
-        ]
+        ],
+        typeLabels: ['', '', '', '', '', '', '', 'Capo', '']
       },
       {
         id: 'voice3Shift',
@@ -23202,7 +23257,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 7,
         unit: 'st',
-        page: 'Voices'
+        page: 'Voices',
+        typeLabels: ['', 'Voice 3 Shift', '', '', '', '', '', '', '']
       },
       {
         id: 'voice4Shift',
@@ -23212,7 +23268,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: -5,
         unit: 'st',
-        page: 'Voices'
+        page: 'Voices',
+        typeLabels: ['', 'Voice 4 Shift', '', '', '', '', '', '', '']
       },
       {
         id: 'voice3Harmony',
@@ -23252,7 +23309,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '+13th',
           '+14th',
           '+2 Oct'
-        ]
+        ],
+        typeLabels: ['', '', 'Voice 3 Harmony', '', '', '', '', '', '']
       },
       {
         id: 'voice4Harmony',
@@ -23292,7 +23350,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '+13th',
           '+14th',
           '+2 Oct'
-        ]
+        ],
+        typeLabels: ['', '', 'Voice 4 Harmony', '', '', '', '', '', '']
       },
       {
         id: 'voice3Level',
@@ -23302,7 +23361,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 6,
         default: -80,
         unit: 'dB',
-        page: 'Voices'
+        page: 'Voices',
+        typeLabels: ['Voice 3 Level', 'Voice 3 Level', 'Voice 3 Level', '', '', '', '', '', 'Voice 3 Level']
       },
       {
         id: 'voice4Level',
@@ -23312,7 +23372,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 6,
         default: -80,
         unit: 'dB',
-        page: 'Voices'
+        page: 'Voices',
+        typeLabels: ['Voice 4 Level', 'Voice 4 Level', 'Voice 4 Level', '', '', '', '', '', 'Voice 4 Level']
       },
       {
         id: 'voice3Pan',
@@ -23322,7 +23383,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 100,
         default: -25,
         unit: '%',
-        page: 'Voices'
+        page: 'Voices',
+        typeLabels: ['Voice 3 Pan', 'Voice 3 Pan', 'Voice 3 Pan', '', '', '', '', '', 'Voice 3 Pan']
       },
       {
         id: 'voice4Pan',
@@ -23332,7 +23394,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 100,
         default: 25,
         unit: '%',
-        page: 'Voices'
+        page: 'Voices',
+        typeLabels: ['Voice 4 Pan', 'Voice 4 Pan', 'Voice 4 Pan', '', '', '', '', '', 'Voice 4 Pan']
       },
       {
         id: 'voice3Delay',
@@ -23343,7 +23406,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         default: 0,
         unit: 'ms',
         taper: 'log',
-        page: 'Voices'
+        page: 'Voices',
+        typeLabels: ['Voice 3 Delay', 'Voice 3 Delay', 'Voice 3 Delay', '', '', '', '', '', 'Voice 3 Delay']
       },
       {
         id: 'voice4Delay',
@@ -23354,7 +23418,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         default: 0,
         unit: 'ms',
         taper: 'log',
-        page: 'Voices'
+        page: 'Voices',
+        typeLabels: ['Voice 4 Delay', 'Voice 4 Delay', 'Voice 4 Delay', '', '', '', '', '', 'Voice 4 Delay']
       },
       {
         id: 'keySource',
@@ -23364,7 +23429,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 2,
         default: 0,
         page: 'Basic',
-        options: ['Fixed', 'MIDI', 'Auto']
+        options: ['Fixed', 'MIDI', 'Auto'],
+        typeLabels: ['', '', 'Key Source', '', '', '', '', '', 'Key Source']
       },
       {
         id: 'custom1C',
@@ -23374,7 +23440,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 4,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V1 C']
       },
       {
         id: 'custom1Cs',
@@ -23384,7 +23451,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 4,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V1 C#']
       },
       {
         id: 'custom1D',
@@ -23394,7 +23462,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 3,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V1 D']
       },
       {
         id: 'custom1Ds',
@@ -23404,7 +23473,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 3,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V1 D#']
       },
       {
         id: 'custom1E',
@@ -23414,7 +23484,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 3,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V1 E']
       },
       {
         id: 'custom1F',
@@ -23424,7 +23495,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 4,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V1 F']
       },
       {
         id: 'custom1Fs',
@@ -23434,7 +23506,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 4,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V1 F#']
       },
       {
         id: 'custom1G',
@@ -23444,7 +23517,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 4,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V1 G']
       },
       {
         id: 'custom1Gs',
@@ -23454,7 +23528,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 4,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V1 G#']
       },
       {
         id: 'custom1A',
@@ -23464,7 +23539,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 3,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V1 A']
       },
       {
         id: 'custom1As',
@@ -23474,7 +23550,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 3,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V1 A#']
       },
       {
         id: 'custom1B',
@@ -23484,7 +23561,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 3,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V1 B']
       },
       {
         id: 'custom2C',
@@ -23494,7 +23572,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 7,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V2 C']
       },
       {
         id: 'custom2Cs',
@@ -23504,7 +23583,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 7,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V2 C#']
       },
       {
         id: 'custom2D',
@@ -23514,7 +23594,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 7,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V2 D']
       },
       {
         id: 'custom2Ds',
@@ -23524,7 +23605,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 7,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V2 D#']
       },
       {
         id: 'custom2E',
@@ -23534,7 +23616,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 7,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V2 E']
       },
       {
         id: 'custom2F',
@@ -23544,7 +23627,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 7,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V2 F']
       },
       {
         id: 'custom2Fs',
@@ -23554,7 +23638,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 7,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V2 F#']
       },
       {
         id: 'custom2G',
@@ -23564,7 +23649,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 7,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V2 G']
       },
       {
         id: 'custom2Gs',
@@ -23574,7 +23660,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 7,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V2 G#']
       },
       {
         id: 'custom2A',
@@ -23584,7 +23671,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 7,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V2 A']
       },
       {
         id: 'custom2As',
@@ -23594,7 +23682,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 7,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V2 A#']
       },
       {
         id: 'custom2B',
@@ -23604,7 +23693,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 6,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V2 B']
       },
       {
         id: 'custom3C',
@@ -23614,7 +23704,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V3 C']
       },
       {
         id: 'custom3Cs',
@@ -23624,7 +23715,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V3 C#']
       },
       {
         id: 'custom3D',
@@ -23634,7 +23726,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V3 D']
       },
       {
         id: 'custom3Ds',
@@ -23644,7 +23737,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V3 D#']
       },
       {
         id: 'custom3E',
@@ -23654,7 +23748,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V3 E']
       },
       {
         id: 'custom3F',
@@ -23664,7 +23759,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V3 F']
       },
       {
         id: 'custom3Fs',
@@ -23674,7 +23770,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V3 F#']
       },
       {
         id: 'custom3G',
@@ -23684,7 +23781,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V3 G']
       },
       {
         id: 'custom3Gs',
@@ -23694,7 +23792,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V3 G#']
       },
       {
         id: 'custom3A',
@@ -23704,7 +23803,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V3 A']
       },
       {
         id: 'custom3As',
@@ -23714,7 +23814,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V3 A#']
       },
       {
         id: 'custom3B',
@@ -23724,7 +23825,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: 12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V3 B']
       },
       {
         id: 'custom4C',
@@ -23734,7 +23836,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: -12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V4 C']
       },
       {
         id: 'custom4Cs',
@@ -23744,7 +23847,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: -12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V4 C#']
       },
       {
         id: 'custom4D',
@@ -23754,7 +23858,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: -12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V4 D']
       },
       {
         id: 'custom4Ds',
@@ -23764,7 +23869,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: -12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V4 D#']
       },
       {
         id: 'custom4E',
@@ -23774,7 +23880,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: -12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V4 E']
       },
       {
         id: 'custom4F',
@@ -23784,7 +23891,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: -12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V4 F']
       },
       {
         id: 'custom4Fs',
@@ -23794,7 +23902,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: -12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V4 F#']
       },
       {
         id: 'custom4G',
@@ -23804,7 +23913,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: -12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V4 G']
       },
       {
         id: 'custom4Gs',
@@ -23814,7 +23924,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: -12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V4 G#']
       },
       {
         id: 'custom4A',
@@ -23824,7 +23935,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: -12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V4 A']
       },
       {
         id: 'custom4As',
@@ -23834,7 +23946,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: -12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V4 A#']
       },
       {
         id: 'custom4B',
@@ -23844,7 +23957,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         max: 24,
         default: -12,
         unit: 'st',
-        page: 'Basic'
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', 'V4 B']
       },
       {
         id: 'balance',

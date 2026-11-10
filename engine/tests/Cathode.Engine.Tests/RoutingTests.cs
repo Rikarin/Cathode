@@ -208,6 +208,28 @@ public class RoutingTests {
         Assert.Equal(0f, output[0], 1e-6f);
     }
 
+    [Fact]
+    public void A_mono_send_carries_both_sides_of_the_send_bus() {
+        using var loop = new Dsp.Routing.HardwareLoop();
+        float[] left = [1f, 0f, 0.5f, 0.25f];
+        float[] right = [0f, 1f, 0.5f, -0.25f];
+
+        // One device channel for both sides: the fold-down, a mono signal at the level it was sent.
+        var mono = new float[4];
+        loop.BeginCallback([], [], 4);
+        loop.Send(left, right, 1f);
+        loop.EndCallback(mono, mono);
+        Assert.Equal([0.5f, 0.5f, 0.5f, 0f], mono);
+
+        // Two channels: each side on its own.
+        var (sendLeft, sendRight) = (new float[4], new float[4]);
+        loop.BeginCallback([], [], 4);
+        loop.Send(left, right, 1f);
+        loop.EndCallback(sendLeft, sendRight);
+        Assert.Equal(left, sendLeft);
+        Assert.Equal(right, sendRight);
+    }
+
     static GraphDefinition Mux(float input) =>
         Graph(
             [

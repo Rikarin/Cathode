@@ -77,7 +77,7 @@ Then open the editor and check **Settings ▸ Audio setup**: **Backend** should 
 | ------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--input-map`             | `"1;2"`   | Device channels for Input 1, Input 2, Input 3, Input 4, USB 5/6 and USB 7/8, separated by `;`. `3,4` is a stereo pair. Default: Input 1 on channel 1. |
 | `--outputs`               | `1,3,0,0` | The first device channel of Outputs 1 to 4; 0 leaves one unused. Default: Output 1 on channels 1 and 2.                                               |
-| `--loop-in`, `--loop-out` | `3,4`     | Device channels for the FX Loop block's return and send.                                                                                              |
+| `--loop-in`, `--loop-out` | `3,4`     | Device channels for the FX Loop block's return and send; one channel makes that side mono.                                                            |
 | `--di-out`                | `5,6`     | Device channels for the dry DI out.                                                                                                                   |
 
 For example: `CATHODE_HOST_ARGS=--input-map "1;2" --outputs 1,3,0,0`. See [Routing inputs and outputs](/manual/audio-setup#routing-inputs-and-outputs) for what each does.

@@ -39,6 +39,13 @@ namespace Cathode.Engine;
 public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     public const double SwapFadeMs = 20;
     public const double TailCapSeconds = 12;
+
+    /// <summary>
+    ///     The control rate: the most frames the engine renders between two evaluations of the controllers and
+    ///     modifiers. A device buffer larger than this is rendered in sub-blocks of this size, so modulation does not
+    ///     get coarser or later as the buffer grows; a smaller buffer is one sub-block.
+    /// </summary>
+    public const int ControlBlockSize = 64;
     const float TailSilence = 3.2e-5f; // -90 dBFS
 
     /// <summary>
@@ -335,7 +342,9 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
             io.OutputLeft.Clear();
             io.OutputRight.Clear();
         } else {
-            var maxBlock = Spec.MaxBlockSize;
+            // Control rate: the device's buffer is cut into sub-blocks of at most ControlBlockSize frames, so the
+            // controllers and modifiers move as often at a 1,024-frame buffer as at 64.
+            var maxBlock = Math.Min(Spec.MaxBlockSize, ControlBlockSize);
             for (var offset = 0; offset < io.Frames; offset += maxBlock) {
                 var length = Math.Min(maxBlock, io.Frames - offset);
                 RenderSubBlock(graph, Gained(io.Slice(offset, length)), bus, offset, length);
@@ -400,8 +409,9 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
     }
 
     /// <summary>
-    ///     One sub-block (at most <see cref="ProcessSpec.MaxBlockSize" /> frames at <paramref name="offset" />): the
-    ///     graph, the spilling graphs, then the rig's level, looper, outputs and metronome.
+    ///     One sub-block (at most <see cref="ControlBlockSize" /> frames at <paramref name="offset" />): the
+    ///     controllers and modifiers, the graph, the spilling graphs, then the rig's level, looper, outputs and
+    ///     metronome.
     /// </summary>
     void RenderSubBlock(CompiledGraph graph, in AudioIO slice, OutputBus? bus, int offset, int length) {
         HardwareLoop.Offset = offset;

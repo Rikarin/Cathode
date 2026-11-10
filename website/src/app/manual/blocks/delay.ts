@@ -94,8 +94,8 @@ feedback from getting harsh; higher settings make the repeats grittier the more 
 while Hold or Stack is on.`,
 
     bitReduction: `Lowers the word length of the repeats from 24 bits down to as few as 4, for a grainy, lo-fi edge.
-Because it acts on what's read from the line, the first repeat is affected too. Vintage Digital always runs at 12 bits
-and ignores this knob.`,
+Because it acts on what's read from the line, the first repeat is affected too. Vintage Digital always runs at 12 bits,
+so the knob is hidden there.`,
 
     spread: `The stereo width of the repeats. 100 % leaves them as they are, 0 % folds them to mono, negative values swap
 the sides, and up to ±200 % widens them past the speakers by raising their side signal. It only has an effect when the

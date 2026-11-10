@@ -5,9 +5,10 @@ namespace Cathode.Engine.Rig;
 
 /// <summary>
 ///     The controllers (docs/02-architecture.md §5.4), evaluated at control rate: once per sub-block of at most
-///     <c>MaxBlockSize</c> frames, on the audio thread, from the <see cref="RigControls" /> parameters. Every source
-///     reads 0..1. Synced LFOs and the sequencer lock their phase to the sample clock, so they stay in time with the
-///     metronome and tempo-synced delays across preset changes.
+///     <see cref="CathodeEngine.ControlBlockSize" /> frames, whatever the device's buffer, on the audio thread, from
+///     the <see cref="RigControls" /> parameters. Every source reads 0..1. Synced LFOs and the sequencer lock their
+///     phase to the sample clock, so they stay in time with the metronome and tempo-synced delays across preset
+///     changes.
 /// </summary>
 public sealed class Modulation(ParamBank rig, double sampleRate) {
     const double HysteresisDb = 3;

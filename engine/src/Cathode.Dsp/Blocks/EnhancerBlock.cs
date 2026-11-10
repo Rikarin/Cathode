@@ -47,6 +47,7 @@ public sealed class EnhancerBlock() : DspBlock(Info) {
     public const int Classic = 1;
     public const int Haas = 2;
     public const int Stereoizer = 3;
+    public const int TypeCount = 4;
 
     /// <summary>Allpass stages of the Stereoizer.</summary>
     public const int StereoizerStages = 24;
@@ -79,9 +80,12 @@ public sealed class EnhancerBlock() : DspBlock(Info) {
         [
             ParamDescriptor.Choice("type", "Type", ["Modern", "Classic", "Haas", "Stereoizer"]),
             ParamDescriptor.Float("width", "Width", 0f, 100f, 50f, "%"),
-            ParamDescriptor.Float("time", "Time", 1f, (float)MaxTimeMs, 8f, "ms", ParamTaper.Log),
-            ParamDescriptor.Float("lowCut", "Low Cut", 20f, 2_000f, 150f, "Hz", ParamTaper.Log),
-            ParamDescriptor.Float("highCut", "High Cut", 1_000f, 20_000f, 12_000f, "Hz", ParamTaper.Log),
+            ParamDescriptor.Float("time", "Time", 1f, (float)MaxTimeMs, 8f, "ms", ParamTaper.Log)
+                .ShownOn(TypeCount, Classic, Haas),
+            ParamDescriptor.Float("lowCut", "Low Cut", 20f, 2_000f, 150f, "Hz", ParamTaper.Log)
+                .HiddenOn(TypeCount, Haas),
+            ParamDescriptor.Float("highCut", "High Cut", 1_000f, 20_000f, 12_000f, "Hz", ParamTaper.Log)
+                .HiddenOn(TypeCount, Haas),
             BlockParams.Level,
             BlockParams.Balance,
             ParamDescriptor.Choice("invert", "Invert", ChorusBlock.PhaseOptions),

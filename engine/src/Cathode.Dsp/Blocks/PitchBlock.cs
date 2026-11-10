@@ -366,53 +366,89 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
             ),
             BlockParams.Mix(50f),
             BlockParams.Level,
-            ParamDescriptor.Float("voice1Shift", "Voice 1 Shift", -24f, 24f, 12f, "st"),
-            ParamDescriptor.Float("voice2Shift", "Voice 2 Shift", -24f, 24f, -12f, "st"),
-            ParamDescriptor.Choice("voice1Harmony", "Voice 1 Harmony", HarmonyNames(), MaxHarmonySteps + 2),
-            ParamDescriptor.Choice("voice2Harmony", "Voice 2 Harmony", HarmonyNames(), MaxHarmonySteps + 4),
-            ParamDescriptor.Choice("key", "Key", Scales.Keys),
-            ParamDescriptor.Choice("scale", "Scale", Scales.Names),
-            ParamDescriptor.Float("voice1Level", "Voice 1 Level", Decibels.SilenceDb, 6f, 0f, "dB"),
-            ParamDescriptor.Float("voice2Level", "Voice 2 Level", Decibels.SilenceDb, 6f, 0f, "dB"),
-            ParamDescriptor.Float("voice1Pan", "Voice 1 Pan", -100f, 100f, -50f, "%"),
-            ParamDescriptor.Float("voice2Pan", "Voice 2 Pan", -100f, 100f, 50f, "%"),
+            Only(ParamDescriptor.Float("voice1Shift", "Voice 1 Shift", -24f, 24f, 12f, "st"), PitchType.Chromatic),
+            Only(ParamDescriptor.Float("voice2Shift", "Voice 2 Shift", -24f, 24f, -12f, "st"), PitchType.Chromatic),
+            Only(
+                ParamDescriptor.Choice("voice1Harmony", "Voice 1 Harmony", HarmonyNames(), MaxHarmonySteps + 2),
+                PitchType.Diatonic
+            ),
+            Only(
+                ParamDescriptor.Choice("voice2Harmony", "Voice 2 Harmony", HarmonyNames(), MaxHarmonySteps + 4),
+                PitchType.Diatonic
+            ),
+            Only(ParamDescriptor.Choice("key", "Key", Scales.Keys), PitchType.Diatonic, PitchType.CustomShifter),
+            Only(ParamDescriptor.Choice("scale", "Scale", Scales.Names), PitchType.Diatonic),
+            Only(ParamDescriptor.Float("voice1Level", "Voice 1 Level", Decibels.SilenceDb, 6f, 0f, "dB"), VoiceTypes),
+            Only(ParamDescriptor.Float("voice2Level", "Voice 2 Level", Decibels.SilenceDb, 6f, 0f, "dB"), VoiceTypes),
+            Only(ParamDescriptor.Float("voice1Pan", "Voice 1 Pan", -100f, 100f, -50f, "%"), VoiceTypes),
+            Only(ParamDescriptor.Float("voice2Pan", "Voice 2 Pan", -100f, 100f, 50f, "%"), VoiceTypes),
             VoiceDelay(1),
             VoiceDelay(2),
             DetuneParam(1),
-            ParamDescriptor.Float("whammyStart", "Whammy Start", -24f, 24f, 0f, "st"),
-            ParamDescriptor.Float("whammyEnd", "Whammy End", -24f, 24f, 12f, "st"),
-            ParamDescriptor.Float("pedal", "Pedal", 0f, 100f, 0f, "%", smoothingMs: 10f),
-            ParamDescriptor.Float("octave1Level", "Octave 1 Level", 0f, 100f, 100f, "%"),
-            ParamDescriptor.Float("octave2Level", "Octave 2 Level", 0f, 100f, 0f, "%"),
-            ParamDescriptor.Float("crystalsShift", "Crystals Shift", -24f, 24f, 12f, "st"),
-            new(
-                "crystalsTime",
-                "Crystals Time",
-                ParamKind.Float,
-                20f,
-                MaxCrystalsTimeMs,
-                300f,
-                "ms",
-                ParamTaper.Log,
-                ParamSmoothing.Linear,
-                60f
+            Only(ParamDescriptor.Float("whammyStart", "Whammy Start", -24f, 24f, 0f, "st"), PitchType.Whammy),
+            Only(ParamDescriptor.Float("whammyEnd", "Whammy End", -24f, 24f, 12f, "st"), PitchType.Whammy),
+            Only(ParamDescriptor.Float("pedal", "Pedal", 0f, 100f, 0f, "%", smoothingMs: 10f), PitchType.Whammy),
+            Only(ParamDescriptor.Float("octave1Level", "Octave 1 Level", 0f, 100f, 100f, "%"), PitchType.OctaveDivider),
+            Only(ParamDescriptor.Float("octave2Level", "Octave 2 Level", 0f, 100f, 0f, "%"), PitchType.OctaveDivider),
+            Only(ParamDescriptor.Float("crystalsShift", "Crystals Shift", -24f, 24f, 12f, "st"), PitchType.Crystals),
+            Only(
+                new(
+                    "crystalsTime",
+                    "Crystals Time",
+                    ParamKind.Float,
+                    20f,
+                    MaxCrystalsTimeMs,
+                    300f,
+                    "ms",
+                    ParamTaper.Log,
+                    ParamSmoothing.Linear,
+                    60f
+                ),
+                PitchType.Crystals
             ),
-            ParamDescriptor.Float("crystalsFeedback", "Crystals Feedback", 0f, 90f, 30f, "%"),
-            ParamDescriptor.Choice("arpTempo", "Arp Tempo", ["1/4", "1/8", "1/8T", "1/16", "1/16T", "1/32"], 3),
-            ParamDescriptor.Choice("arpSteps", "Arp Steps", [..Enumerable.Range(1, MaxArpSteps).Select(Invariant)], 3),
+            Only(ParamDescriptor.Float("crystalsFeedback", "Crystals Feedback", 0f, 90f, 30f, "%"), PitchType.Crystals),
+            Only(
+                ParamDescriptor.Choice("arpTempo", "Arp Tempo", ["1/4", "1/8", "1/8T", "1/16", "1/16T", "1/32"], 3),
+                PitchType.Arpeggiator
+            ),
+            Only(
+                ParamDescriptor.Choice(
+                    "arpSteps",
+                    "Arp Steps",
+                    [..Enumerable.Range(1, MaxArpSteps).Select(Invariant)],
+                    3
+                ),
+                PitchType.Arpeggiator
+            ),
             ..Enumerable.Range(1, MaxArpSteps).Select(ArpStep),
-            ParamDescriptor.Choice("capo", "Capo", CapoNames(), 12),
-            ParamDescriptor.Float("voice3Shift", "Voice 3 Shift", -24f, 24f, 7f, "st"),
-            ParamDescriptor.Float("voice4Shift", "Voice 4 Shift", -24f, 24f, -5f, "st"),
-            ParamDescriptor.Choice("voice3Harmony", "Voice 3 Harmony", HarmonyNames(), MaxHarmonySteps + 7),
-            ParamDescriptor.Choice("voice4Harmony", "Voice 4 Harmony", HarmonyNames(), MaxHarmonySteps - 7),
-            ParamDescriptor.Float("voice3Level", "Voice 3 Level", Decibels.SilenceDb, 6f, Decibels.SilenceDb, "dB"),
-            ParamDescriptor.Float("voice4Level", "Voice 4 Level", Decibels.SilenceDb, 6f, Decibels.SilenceDb, "dB"),
-            ParamDescriptor.Float("voice3Pan", "Voice 3 Pan", -100f, 100f, -25f, "%"),
-            ParamDescriptor.Float("voice4Pan", "Voice 4 Pan", -100f, 100f, 25f, "%"),
+            Only(ParamDescriptor.Choice("capo", "Capo", CapoNames(), 12), PitchType.VirtualCapo),
+            Only(ParamDescriptor.Float("voice3Shift", "Voice 3 Shift", -24f, 24f, 7f, "st"), PitchType.Chromatic),
+            Only(ParamDescriptor.Float("voice4Shift", "Voice 4 Shift", -24f, 24f, -5f, "st"), PitchType.Chromatic),
+            Only(
+                ParamDescriptor.Choice("voice3Harmony", "Voice 3 Harmony", HarmonyNames(), MaxHarmonySteps + 7),
+                PitchType.Diatonic
+            ),
+            Only(
+                ParamDescriptor.Choice("voice4Harmony", "Voice 4 Harmony", HarmonyNames(), MaxHarmonySteps - 7),
+                PitchType.Diatonic
+            ),
+            Only(
+                ParamDescriptor.Float("voice3Level", "Voice 3 Level", Decibels.SilenceDb, 6f, Decibels.SilenceDb, "dB"),
+                VoiceTypes
+            ),
+            Only(
+                ParamDescriptor.Float("voice4Level", "Voice 4 Level", Decibels.SilenceDb, 6f, Decibels.SilenceDb, "dB"),
+                VoiceTypes
+            ),
+            Only(ParamDescriptor.Float("voice3Pan", "Voice 3 Pan", -100f, 100f, -25f, "%"), VoiceTypes),
+            Only(ParamDescriptor.Float("voice4Pan", "Voice 4 Pan", -100f, 100f, 25f, "%"), VoiceTypes),
             VoiceDelay(3),
             VoiceDelay(4),
-            ParamDescriptor.Choice("keySource", "Key Source", ["Fixed", "MIDI", "Auto"]),
+            Only(
+                ParamDescriptor.Choice("keySource", "Key Source", ["Fixed", "MIDI", "Auto"]),
+                PitchType.Diatonic,
+                PitchType.CustomShifter
+            ),
             ..CustomTableParams(),
             BlockParams.Balance,
             DetuneParam(2),
@@ -723,30 +759,40 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
     static string[] For(string name, params PitchType[] types) =>
         [..Enum.GetValues<PitchType>().Select(t => types.Contains(t) ? name : string.Empty)];
 
+    /// <summary><paramref name="p" />, shown on <paramref name="types" /> only: the types that read it.</summary>
+    static ParamDescriptor Only(ParamDescriptor p, params PitchType[] types) =>
+        p with { TypeLabels = For(p.Name, types) };
+
     static ParamDescriptor ArpStep(int step) =>
-        new(
-            $"arpStep{step}",
-            $"Arp Step {step}",
-            ParamKind.Float,
-            -24f,
-            24f,
-            DefaultArpSteps[step - 1],
-            "st",
-            Smoothing: ParamSmoothing.Step
+        Only(
+            new(
+                $"arpStep{step}",
+                $"Arp Step {step}",
+                ParamKind.Float,
+                -24f,
+                24f,
+                DefaultArpSteps[step - 1],
+                "st",
+                Smoothing: ParamSmoothing.Step
+            ),
+            PitchType.Arpeggiator
         );
 
     static ParamDescriptor VoiceDelay(int voice) =>
-        new(
-            $"voice{voice}Delay",
-            $"Voice {voice} Delay",
-            ParamKind.Float,
-            0f,
-            MaxVoiceDelayMs,
-            0f,
-            "ms",
-            ParamTaper.Log,
-            ParamSmoothing.Linear,
-            60f
+        Only(
+            new(
+                $"voice{voice}Delay",
+                $"Voice {voice} Delay",
+                ParamKind.Float,
+                0f,
+                MaxVoiceDelayMs,
+                0f,
+                "ms",
+                ParamTaper.Log,
+                ParamSmoothing.Linear,
+                60f
+            ),
+            VoiceTypes
         );
 
     static ParamDescriptor DetuneParam(int voice) =>
@@ -769,15 +815,18 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
         Enumerable.Range(0, VoiceCount * 12)
             .Select(static i => {
                     var (voice, note) = (i / 12, i % 12);
-                    return new ParamDescriptor(
-                        $"custom{voice + 1}{Scales.Keys[note].Replace('#', 's')}",
-                        $"V{voice + 1} {Scales.Keys[note]}",
-                        ParamKind.Float,
-                        -24f,
-                        24f,
-                        Scales.HarmonySemitones(note, 0, MajorScale, DefaultCustomSteps[voice]),
-                        "st",
-                        Smoothing: ParamSmoothing.Step
+                    return Only(
+                        new(
+                            $"custom{voice + 1}{Scales.Keys[note].Replace('#', 's')}",
+                            $"V{voice + 1} {Scales.Keys[note]}",
+                            ParamKind.Float,
+                            -24f,
+                            24f,
+                            Scales.HarmonySemitones(note, 0, MajorScale, DefaultCustomSteps[voice]),
+                            "st",
+                            Smoothing: ParamSmoothing.Step
+                        ),
+                        PitchType.CustomShifter
                     );
                 }
             );
