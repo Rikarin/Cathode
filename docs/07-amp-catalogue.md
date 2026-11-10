@@ -105,7 +105,7 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 | Soldano SLO-100 | ✅ Done | SLO-100: OD channel; Switch 1 the normal channel (Crunch, Bright) | GPL: Soldano crunch and high (model not stated); T3K: SLO-100 pack | Normal channel clean and crunch captures; OD gain sweep | 4x12 closed, Vintage 30 / G12T-75 |
 | Mesa/Boogie Mark IIC+ | ✅ Done (presence: the rheostat in series with the feedback, as drawn) | Mark IIC+, lead (Switch 1 Treble Shift, Switch 2 Deep, Switch 3 Bass Shift; Bright is Volume 1's and the Lead Master's pull together) | GPL: IIC+ Drive-knob model, IIC+ Drive 8; T3K: IIC+ pack | EQ in and out, Lead Drive sweep | 1x12 / 4x12 closed, EVM12L / Vintage 30 |
 | Peavey 5150 / 6505 | ✅ Done (lead; the supply page unread, its preamp rails derived from the assumed chain); rhythm ⏸ | 5150, lead | GPL: 5150 block letter, 6505+ red (two sources) | Rhythm channel: its network is on the factory "Initial Preamp Stage" page, but the relay states (K1, K2, K4) per channel and crunch setting are on a page the excerpts lack; a full factory set or a trace of the switching logic | 4x12 closed, Sheffield / Vintage 30 |
-| EVH 5150III | ✅ Done | 5150III, red | T3K: 5150III OB1 v2 | Blue and red channels | 4x12 closed, G12EVH / Vintage 30 |
+| EVH 5150III | ✅ Done (drawn from a redraw of the 100S Stealth's channel 3, which stands in for the standard 100 W head's red channel) | 5150III, red | T3K: 5150III OB1 v2 | Blue and red channels; a drawing of the standard 100 W head | 4x12 closed, G12EVH / Vintage 30 |
 | Mesa/Boogie Dual Rectifier | ✅ Done (factory two-channel drawing, 1993, red channel; Modern takes the feedback out) | Dual Rectifier, red | GPL: Mini Rectifier (not the same amp) | Dual/Triple Rec, modern and vintage modes, tube vs SS rectifier | 4x12 closed, Vintage 30 |
 | Bogner Ecstasy | ⏸ Waiting (only a modded "83K" redraw and an OD-channel-only redraw of unknown version; no 100B/101B or 20th Anniversary drawing found) | — | GPL: Ecstasy Blue *pedal* (not the amp) | Blue/red channels; a stock 100B/101B schematic | 4x12 closed, Vintage 30 / Greenback |
 | Diezel VH4 (ch 3) | ⏸ Waiting (a 2005 factory sheet gives the topology but no values; an owner's trace gives the stacks only; the clone redraws disagree) | — | — | Channel 3 and 4 values | 4x12 closed, Vintage 30 |
@@ -364,7 +364,8 @@ exists:
 - **Fender:** a '59 Bassman LTD reissue, a 1971 silverface Twin Reverb, and old and Custom reissue Vibroverbs.
 - **Marshall:** Plexis dated 1967, 1969, 1970 and 1972, a 50 W Plexi with 6CA7 tubes, and JCM800 2203/2204 High and Low inputs.
 - **High gain:**
-  - EVH: the 5150III Stealth (100S).
+  - EVH: the standard 5150III 100 W head. The 5150III type is drawn from the 100S Stealth's channel 3, the only
+    drawing found, so it is the Stealth that is covered and the standard amp that would be the variant.
   - Mesa: Mark IIC+ Bright/Deep, the Mark IV rhythm and mid-gain voicings, the Mark V IIC+/MKIV/XT modes (now the
     Mark V type's mode switches), and JP-2C Shred. The IIC+ and Mark IV rhythm channels are on the factory scans
     (Boogie_mkiic_plus.pdf, Boogie_mkiv.pdf) but not modelled yet.

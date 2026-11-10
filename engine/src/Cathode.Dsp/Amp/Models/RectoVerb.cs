@@ -28,6 +28,11 @@ namespace Cathode.Dsp.Amp.Models;
 ///         plate load draws). Each node's draw is what its voltage drops across its resistor (C 6.4 mA in all).
 ///     </para>
 ///     <para>
+///         The stack is not wired as the Dual Rectifier's: sheet "Preamp pt. 2" draws the middle (25KL) and the bass
+///         (1MA) both as two-terminal variable resistors in series to ground, with the middle's 20 nF on the junction
+///         between them (the middle's top), where the Dual Rectifier's drawing puts it on the middle pot's wiper.
+///     </para>
+///     <para>
 ///         Guesses and simplifications, marked: the presence rheostat's value is not printed (250k linear here); the
 ///         effects-loop stage V4 and the output level control are left out (the lead master feeds the inverter, here
 ///         the Master knob); the reverb is at zero (its send, a 475k from the treble wiper, is left out); in the lead
@@ -47,8 +52,21 @@ public static class RectoVerb {
             new NetworkStageDesign("V1A", InputAndGain()) { SupplyNode = 2 },
             new NetworkStageDesign("V1B", SecondStage()) { SupplyNode = 1 },
             new NetworkStageDesign("V2B", ColdClipper()) { SupplyNode = 1 },
-            new NetworkStageDesign("V3A", FourthStage()),
-            new NetworkStageDesign("V3B", FollowerAndStack())
+            // V3A (20 nF into 330k to ground, 220k to the grid; 220k plate; 1.8k ‖ 1 µF) and the follower with the
+            // stack are the Dual Rectifier's, with this drawing's values: 500 pF treble cap, the middle a rheostat
+            // with its 20 nF at the top, a 250k presence rheostat and 220k ahead of the lead master.
+            new NetworkStageDesign("V3A", DualRectifier.FourthStage(415, 0)),
+            new NetworkStageDesign(
+                "V3B",
+                DualRectifier.FollowerAndStack(
+                    415,
+                    500e-12,
+                    null,
+                    new(250e3, PotTaper.Linear),
+                    middleOnWiper: false,
+                    masterSeries: 220e3
+                )
+            )
         ],
         new(
             "2 x 6L6GC",
@@ -145,49 +163,6 @@ public static class RectoVerb {
         net.CathodeResistor(cathode, StageNetlist.Ground, 39e3);
         net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
         net.Output = plate;
-        return net;
-    }
-
-    /// <summary>V3A: 20 nF into 330k to ground, 220k to the grid; 220k plate; 1.8k ‖ 1 µF.</summary>
-    static StageNetlist FourthStage() {
-        var net = new StageNetlist();
-        var (coupled, grid, supply, plate, cathode) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Capacitor(net.Input, coupled, 20e-9);
-        net.Resistor(coupled, StageNetlist.Ground, 330e3);
-        net.Resistor(coupled, grid, 220e3);
-        net.Supply(supply, 415);
-        net.Resistor(supply, plate, 220e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.8e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 1e-6);
-        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-        net.Output = plate;
-        return net;
-    }
-
-    /// <summary>
-    ///     The cathode follower (100k), DC-coupled to V3A's plate, driving the stack, the presence shunt on the treble
-    ///     wiper (22k, 3 nF and a 250k linear rheostat) and 220k into the 1M audio lead master.
-    /// </summary>
-    static StageNetlist FollowerAndStack() {
-        var net = new StageNetlist();
-        var (supply, follower, slope, trebleTop, trebleBottom, middle, shunt, presence, top) = (
-            net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node()
-        );
-        net.Supply(supply, 415);
-        net.Resistor(follower, StageNetlist.Ground, 100e3);
-        net.Triode(supply, net.Input, follower, TriodeModel.Ecc83);
-        net.Capacitor(follower, trebleTop, 500e-12, CapacitorRole.Stack);
-        net.Resistor(follower, slope, 47e3);
-        var treble = net.Pot(trebleTop, trebleBottom, new(250e3, PotTaper.Linear), PotRole.Treble);
-        net.Capacitor(slope, trebleBottom, 20e-9, CapacitorRole.Stack);
-        net.Rheostat(trebleBottom, middle, new(1e6, PotTaper.Audio), PotRole.Bass);
-        net.Capacitor(slope, middle, 20e-9, CapacitorRole.Stack);
-        net.Rheostat(middle, StageNetlist.Ground, new(25e3, PotTaper.Linear), PotRole.Middle);
-        net.Resistor(treble, shunt, 22e3);
-        net.Capacitor(shunt, presence, 3e-9);
-        net.Rheostat(presence, StageNetlist.Ground, new(250e3, PotTaper.Linear), PotRole.Control2);
-        net.Resistor(treble, top, 220e3);
-        net.Output = net.Pot(top, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Master);
         return net;
     }
 }

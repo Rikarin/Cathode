@@ -149,6 +149,15 @@ public readonly record struct AmpControls(
             SwitchRole.Switch2 => Switch2,
             _ => Switch3
         };
+
+    /// <summary>These controls with the switch <paramref name="role" /> off.</summary>
+    public AmpControls WithOff(SwitchRole role) =>
+        role switch {
+            SwitchRole.Bright => this with { Bright = false },
+            SwitchRole.Switch1 => this with { Switch1 = false },
+            SwitchRole.Switch2 => this with { Switch2 = false },
+            _ => this with { Switch3 = false }
+        };
 }
 
 /// <summary>

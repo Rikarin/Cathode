@@ -111,7 +111,9 @@ public static class Svt {
             Switch1 = "Ultra Hi",
             Switch2 = "Ultra Lo",
             Switch3 = "Bass Cut",
-            Control1 = "Mid Freq"
+            Control1 = "Mid Freq",
+            // One three-position rocker on the amp (Ultra Lo / off / Bass Cut): with both on it is Bass Cut.
+            ThreeWay = [new(SwitchRole.Switch2, SwitchRole.Switch3)]
         }
     };
 
@@ -151,7 +153,8 @@ public static class Svt {
     ///     The follower's 0.1 µF and 100k; Bass Cut (<see cref="SwitchRole.Switch3" />: the 2 nF - 2 nF bridge with
     ///     820k + 68k from its middle, a high-pass) and Ultra Lo (<see cref="SwitchRole.Switch2" />: the 150k - 150k
     ///     arm with 2 nF to ground beside the bridge, its 820k shorted, a twin-T notch near 500 Hz); otherwise a wire.
-    ///     The 1M linear volume with the 500 pF Ultra Hi cap (<see cref="SwitchRole.Switch1" />), and V3A (12AU7 half,
+    ///     The two are one three-position rocker on the amp, so this stage never sees both on
+    ///     (<see cref="AmpPanel.ThreeWay" />: Bass Cut wins). The 1M linear volume with the 500 pF Ultra Hi cap (<see cref="SwitchRole.Switch1" />), and V3A (12AU7 half,
     ///     47k, 1.5k unbypassed); out at its plate.
     /// </summary>
     static NetworkStageDesign VolumeStage() {

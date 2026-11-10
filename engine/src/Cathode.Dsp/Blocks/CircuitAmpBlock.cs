@@ -738,26 +738,29 @@ public sealed partial class CircuitAmpBlock
         var preTriode = masterLocation == MasterPreTriode && Channel.HasGainStage;
         var masterRotation =
             Math.Min(Knob(Params.Advance(Master, frames)) * Percent(Params.Advance(MasterTrim, frames)), 1);
-        var preamp = new AmpControls(
-            Knob(Params.Advance(Gain, frames)),
-            Knob(Params.Advance(Bass, frames)),
-            Knob(Params.Advance(Middle, frames)),
-            Knob(Params.Advance(Treble, frames)),
-            postInverter || preTriode ? 1 : masterRotation,
-            Params.Current(Bright) >= 0.5f,
-            Knob(Params.Advance(Control1, frames)),
-            Knob(Params.Advance(Control2, frames)),
-            switch1,
-            switch2,
-            switch3,
+        // A three-position switch of the amp is two switches here: the panel settles a pair that is on on both sides.
+        var preamp = design.Panel.Settle(
             new(
-                Params.Advance(Eq1, frames),
-                Params.Advance(Eq1 + 1, frames),
-                Params.Advance(Eq1 + 2, frames),
-                Params.Advance(Eq1 + 3, frames),
-                Params.Advance(Eq1 + 4, frames)
-            ),
-            Presence: Knob(Params.Current(Presence))
+                Knob(Params.Advance(Gain, frames)),
+                Knob(Params.Advance(Bass, frames)),
+                Knob(Params.Advance(Middle, frames)),
+                Knob(Params.Advance(Treble, frames)),
+                postInverter || preTriode ? 1 : masterRotation,
+                Params.Current(Bright) >= 0.5f,
+                Knob(Params.Advance(Control1, frames)),
+                Knob(Params.Advance(Control2, frames)),
+                switch1,
+                switch2,
+                switch3,
+                new(
+                    Params.Advance(Eq1, frames),
+                    Params.Advance(Eq1 + 1, frames),
+                    Params.Advance(Eq1 + 2, frames),
+                    Params.Advance(Eq1 + 3, frames),
+                    Params.Advance(Eq1 + 4, frames)
+                ),
+                Presence: Knob(Params.Current(Presence))
+            )
         );
         // The tremolo: the model's own oscillator where it has one (Speed in hertz, Intensity as the knob's rotation),
         // else the generic bias tremolo.

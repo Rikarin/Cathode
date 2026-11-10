@@ -3,7 +3,7 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     EVH 5150III (100 W), red channel: V1A (220k, 1.8k ‖ 1 µF, 10k + 39 pF and 68k at the input, a 68k + 830 pF
+///     EVH 5150III (100 W), red channel, drawn from the 100S (Stealth): V1A (220k, 1.8k ‖ 1 µF, 10k + 39 pF and 68k at the input, a 68k + 830 pF
 ///     treble shunt on the plate), 470 pF into the gain pot (1M audio, 1 nF bright cap), 470k and 10k into V1B (100k,
 ///     1.8k ‖ 1 µF), 1 nF and a 470k/820k divider into the V2A cold clipper (5.1k unbypassed, 100k plate with 1 nF
 ///     across it), 330k and 220k into V2B (220k, 1.8k ‖ 1 µF), 1M into V3A (220k, 2.2k unbypassed, 100k leak), 1M
@@ -15,13 +15,16 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         Source: the MARKTHERENCE LiveSPICE redraws "EVH 5150 III 100S Stealth - Channel 3" and its power amp, which
 ///         are hobbyist redraws of unclear provenance (docs/06 §3.4: "redraw only"). Every value here is unverified
-///         against a factory drawing.
+///         against a factory drawing. The 100S is EVH's revoiced 5150III; no drawing of the standard 100 W head was
+///         found, so the type keeps the family's name and the Stealth's channel 3 stands in for the red channel. How
+///         far the two red channels differ is not known here.
 ///     </para>
 ///     <para>
-///         Further guesses: the redraw draws the presence cap as two 68 nF in parallel on a 10k pot; one 68 nF is used
-///         (docs/06 quotes 6.8 nF). Its resonance network (120k ‖ 6.8 nF with a 1M rheostat in the feedback) is the
-///         depth control's generic shelf here; the feedback tap is taken as 8 Ω, the output transformer as 1.9k, the
-///         idle current as 35 mA; the stack's middle pot is the usual rheostat (the redraw has the cap on its wiper).
+///         The presence is the redraw's: a 10k audio pot in series with two 68 nF in parallel (136 nF) across the
+///         4.7k shunt. Further guesses: its resonance network (120k ‖ 6.8 nF with a 1M rheostat in the feedback) is
+///         the depth control's generic shelf here; the feedback tap is taken as 8 Ω, the output transformer as 1.9k,
+///         the idle current as 35 mA; the stack's middle pot is the usual rheostat (the redraw has the cap on its
+///         wiper).
 ///     </para>
 /// </remarks>
 public static class Evh5150III {
@@ -72,7 +75,7 @@ public static class Evh5150III {
             1.5e3,
             0,
             new(1e6, PotTaper.Linear),
-            new(1, 39e3, 4.7e3, new(10e3, PotTaper.Audio), 68e-9),
+            new(1, 39e3, 4.7e3, new(10e3, PotTaper.Audio), 136e-9),
             true,
             new(1.9e3),
             SpeakerDesign.Closed4x12,

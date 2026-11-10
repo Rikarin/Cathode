@@ -10806,7 +10806,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           'Spongy',
           '',
-          'Mid Boost',
+          'Mid Gain',
           '',
           '',
           '',

@@ -36,7 +36,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///         <item>
 ///             <b>Bite</b>: up (<see cref="SwitchRole.Switch2" />) bypasses V1B's cathode with a small cap, a boost
 ///             from about 1.2 kHz that the later stages' treble losses turn into a high-mid bump; down
-///             (<see cref="SwitchRole.Switch3" />) with a larger one, a low-mid boost from about 400 Hz.
+///             (<see cref="SwitchRole.Switch3" />) with a larger one, a low-mid boost from about 400 Hz. One
+///             three-way switch on the amp: with both on the model takes down alone
+///             (<see cref="AmpPanel.ThreeWay" />).
 ///         </item>
 ///     </list>
 /// </remarks>
@@ -118,7 +120,9 @@ public static class Prometheus {
             Switch1 = "Modern",
             Switch2 = "Bite Up",
             Switch3 = "Bite Down",
-            Control1 = "Cut"
+            Control1 = "Cut",
+            // One three-way Bite switch on the amp (up / off / down): with both on it is down.
+            ThreeWay = [new(SwitchRole.Switch2, SwitchRole.Switch3)]
         }
     };
 

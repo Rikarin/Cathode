@@ -67,6 +67,30 @@ public sealed record AmpPanel {
     public string? Switch3 { get; init; }
 
     /// <summary>
+    ///     The pairs of this panel's switches that are one three-position switch on the amp (its middle position is
+    ///     both off): the Mark V's IIC+ / Mark IV / Extreme, the SVT's Ultra Lo / off / Bass Cut. The block has only
+    ///     on/off switches, so both of a pair can be on, a position the amp does not have; <see cref="Settle" /> then
+    ///     takes the pair's <see cref="ThreeWaySwitch.Wins" /> and counts the other as off.
+    /// </summary>
+    public IReadOnlyList<ThreeWaySwitch> ThreeWay { get; init; } = [];
+
+    /// <summary>
+    ///     <paramref name="controls" /> as the amp's own switches can stand: of each <see cref="ThreeWay" /> pair that
+    ///     is on on both sides, only the winning side stays on. Every stage and the power amp read their switches
+    ///     from the result, so none of them sees both.
+    /// </summary>
+    public AmpControls Settle(AmpControls controls) {
+        for (var i = 0; i < ThreeWay.Count; i++) {
+            var pair = ThreeWay[i];
+            if (controls.IsOn(pair.Yields) && controls.IsOn(pair.Wins)) {
+                controls = controls.WithOff(pair.Yields);
+            }
+        }
+
+        return controls;
+    }
+
+    /// <summary>
     ///     A model-specific pot (<see cref="PotRole.Control1" />), e.g. a lead drive or a second channel's volume.
     /// </summary>
     public string? Control1 { get; init; }
@@ -146,3 +170,9 @@ public sealed record AmpPanel {
         };
     }
 }
+
+/// <summary>
+///     Two of a panel's on/off switches that stand for the outer positions of one three-position switch on the amp:
+///     with both on, <paramref name="Wins" /> applies and <paramref name="Yields" /> counts as off.
+/// </summary>
+public readonly record struct ThreeWaySwitch(SwitchRole Yields, SwitchRole Wins);
