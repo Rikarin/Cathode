@@ -70,6 +70,63 @@ public sealed class EventHubTests {
         );
     }
 
+    [Fact]
+    public async Task A_frame_with_a_number_that_is_not_finite_is_sent_with_0_in_its_place() {
+        var hub = new EventHub();
+        var socket = new StalledSocket();
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(Token);
+        var serving = hub.ServeAsync(socket, stop.Token);
+        socket.Resume();
+        var before = FrameJson.Replaced;
+
+        // What one NaN sample in the audio path makes of a frame: JSON has no such numbers, and the plain
+        // serialiser throws on them.
+        var frame = new Telemetry(
+            "telemetry",
+            float.NaN,
+            float.PositiveInfinity,
+            0.5f,
+            double.NaN,
+            3,
+            new(double.NegativeInfinity, "A", 2, double.NaN),
+            120,
+            null,
+            new() { ["amp1"] = new() { ["peak"] = float.NaN, ["sag"] = 0.25f } },
+            -23f,
+            null,
+            [float.NaN, 0.5f]
+        );
+        Assert.Throws<ArgumentException>(() => hub.PublishFrame(
+                "telemetry",
+                frame,
+                ContractsJsonContext.Default.Telemetry
+            )
+        );
+        hub.PublishFrame("telemetry", frame, FrameJson.Telemetry);
+        hub.PublishFrame("scope", new("scope", 12_000, [0.1f, float.NaN]), FrameJson.ScopeFrame);
+        hub.PublishFrame("rta", new("rta", [100f], [float.NegativeInfinity]), FrameJson.RtaFrame);
+
+        await ServerFixture.Eventually(() => socket.Has("telemetry") && socket.Has("scope") && socket.Has("rta"));
+        await stop.CancelAsync();
+        await serving;
+
+        var sent = socket.Sent.Single(static m => m["type"]!.GetValue<string>() == "telemetry");
+        Assert.Equal(0f, sent["inputPeak"]!.GetValue<float>());
+        Assert.Equal(0f, sent["outputPeakLeft"]!.GetValue<float>());
+        Assert.Equal(0.5f, sent["outputPeakRight"]!.GetValue<float>());
+        Assert.Equal(0, sent["cpuP999"]!.GetValue<double>());
+        Assert.Equal(0, sent["tuner"]!["frequency"]!.GetValue<double>());
+        Assert.Equal(0f, sent["blocks"]!["amp1"]!["peak"]!.GetValue<float>());
+        Assert.Equal(0.25f, sent["blocks"]!["amp1"]!["sag"]!.GetValue<float>());
+        Assert.Equal(-23f, sent["loudnessMomentary"]!.GetValue<float>());
+        Assert.Null(sent["loudnessShortTerm"]); // the frame keeps the contract's shape: nulls stay out
+        Assert.Equal([0f, 0.5f], sent["outputPeaks"]!.AsArray().Select(static v => v!.GetValue<float>()));
+        var scope = socket.Sent.Single(static m => m["type"]!.GetValue<string>() == "scope");
+        Assert.Equal([0.1f, 0f], scope["samples"]!.AsArray().Select(static v => v!.GetValue<float>()));
+        // Counted, so the Server can say so in its log.
+        Assert.True(FrameJson.Replaced >= before + 9);
+    }
+
     static Telemetry Frame(int i) => new("telemetry", 0, 0, 0, i, 0, null, 120, null);
 
     /// <summary>A WebSocket whose sends block until <see cref="Resume" />, and that records what was sent.</summary>

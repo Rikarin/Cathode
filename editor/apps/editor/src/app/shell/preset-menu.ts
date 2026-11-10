@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, output, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { type PresetSummary, type SnapshotSummary, unwrap } from '@cathode/api-client';
 import { provideIcons } from '@ng-icons/core';
@@ -22,6 +23,7 @@ import { XuiIconImports } from '@xui/icon';
 import { XuiInputImports } from '@xui/input';
 import { XuiMenuImports } from '@xui/menu';
 import { ConnectionService } from '../core/connection';
+import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
 import { CompareStore } from '../state/compare.store';
 import { LiveStore } from '../state/live.store';
@@ -291,6 +293,19 @@ export class PresetMenu {
   protected readonly templateName = signal('');
   protected readonly snapshots = signal<readonly SnapshotSummary[]>([]);
   protected readonly templates = signal<readonly PresetSummary[]>([]);
+
+  constructor() {
+    // Another editor took or deleted a snapshot or a template while its list is open here.
+    inject(EventStream)
+      .library$.pipe(takeUntilDestroyed())
+      .subscribe(change => {
+        if (change.kind === 'snapshots' && this.snapshotsOpen()) {
+          void this.refreshSnapshots();
+        } else if (change.kind === 'templates' && this.templatesOpen()) {
+          void this.refreshTemplates();
+        }
+      });
+  }
 
   /** Opens the name, author and tags of the working copy; Apply changes them (undoable, saved with the preset). */
   openInfo(): void {

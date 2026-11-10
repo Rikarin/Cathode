@@ -14,7 +14,7 @@ MIDI controllers send short messages. The three kinds Cathode uses:
 
 Each message travels on one of 16 **MIDI channels**, so several devices can share a cable.
 
-Cathode treats a PC as a press. A CC or note counts as **pressed** at a value or velocity of 64 or more, and released below that.
+Cathode treats a PC as a press. A CC counts as **pressed** at a value of 64 or more, and released below that. A note is pressed by any note-on, however soft, and released by its note-off (or a note-on with velocity 0).
 
 ## Connecting a controller
 

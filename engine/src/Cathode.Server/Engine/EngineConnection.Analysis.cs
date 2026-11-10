@@ -1,6 +1,7 @@
 using Cathode.Contracts;
 using Cathode.Dsp.Spectrum;
 using Cathode.Engine.Telemetry;
+using Cathode.Server.Realtime;
 using Cathode.Server.Rig;
 using System.Collections.Immutable;
 
@@ -105,7 +106,8 @@ public sealed partial class EngineConnection {
         // A full-scale sine: power N/4 in its bin (window-normalised), so shift by 10 log10(N/2) and the sine's 3 dB.
         var offset = (float)(10 * Math.Log10(AnalysisWindow / 2.0) - 10 * Math.Log10(2));
         for (var i = 0; i < levels.Length; i++) {
-            levels[i] = Math.Max(-120f, levels[i] - offset);
+            // A NaN band (a NaN sample in the window) reads as the floor, not as 0 dB.
+            levels[i] = float.IsFinite(levels[i]) ? Math.Max(-120f, levels[i] - offset) : -120f;
         }
 
         // Decay: a level falls by 60 dB per decay time (about 30 frames a second, every other one published).
@@ -120,7 +122,7 @@ public sealed partial class EngineConnection {
         hub.PublishFrame(
             "rta",
             new("rta", settings.Frequencies, levels, fromBlock ? "block" : "output"),
-            ContractsJsonContext.Default.RtaFrame
+            FrameJson.RtaFrame
         );
     }
 

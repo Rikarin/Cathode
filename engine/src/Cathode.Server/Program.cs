@@ -60,6 +60,7 @@ builder.Services.AddSingleton<Library>();
 builder.Services.AddSingleton<PresetPackage>();
 builder.Services.AddSingleton<AssetStore>();
 builder.Services.AddSingleton<EventHub>();
+builder.Services.AddSingleton<LibraryChanges>();
 builder.Services.AddSingleton<IEngineLinks, IpcEngineLinks>();
 builder.Services.AddSingleton<EngineConnection>();
 builder.Services.AddSingleton<IEngineSync>(static s => s.GetRequiredService<EngineConnection>());

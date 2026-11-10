@@ -137,7 +137,7 @@ Ordered by value to a guitarist:
   - Navigation and permissions are blocked, and the preload bridge is narrow and validated.
 - [x] **Server additions for the editor:**
   - Bearer-token auth: required beyond loopback, with `?access_token=` on `/ws`.
-  - CORS: loopback-only without a token, and a WebSocket origin check.
+  - Without a token: CORS for loopback origins only, and every request with a foreign `Origin` or a `Host` that is not a loopback one is refused (the WebSocket included).
   - `PUT /live`, an undoable whole-preset replace for A/B.
   - `GET /assets/{ref}/content`.
   - `cathode-host --devices --json`.

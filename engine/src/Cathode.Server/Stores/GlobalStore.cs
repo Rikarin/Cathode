@@ -185,10 +185,14 @@ public sealed class GlobalStore : IDisposable {
         }
 
         try {
-            return Upgrade(
-                UpgradeJson(JsonNode.Parse(File.ReadAllText(path)))
-                    ?.Deserialize(ContractsJsonContext.Default.GlobalSettings)
-            );
+            var stored = UpgradeJson(JsonNode.Parse(File.ReadAllText(path)))
+                ?.Deserialize(ContractsJsonContext.Default.GlobalSettings);
+            if (stored is not null) {
+                // Valid JSON of the right shape can still hold "eq": null or an id that is no id (a hand edit).
+                GlobalShape.RepairStored(stored);
+            }
+
+            return Upgrade(stored);
         } catch (Exception e) when (StoreLog.IsDamage(e)) {
             // A damaged file falls back to defaults rather than stopping the Server; it is kept beside them.
             if (logger is not null) {

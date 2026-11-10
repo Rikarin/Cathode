@@ -10,7 +10,8 @@ namespace Cathode.Server.Stores;
 ///     One JSON file per item in a folder, written atomically (a temporary file of each save's own, flushed to the
 ///     disk, then renamed: <see cref="AtomicRename.Write" />), so a crash or a power cut never leaves a half-written
 ///     file. Ids become file names and are restricted to safe characters. An <c>upgrade</c> rewrites a file's JSON
-///     before it is read (a stored format's migrations, <see cref="PresetMigrations" />).
+///     before it is read (a stored format's migrations, <see cref="PresetMigrations" />). <c>changed</c> is called
+///     after every save and every delete that removed a file.
 /// </summary>
 /// <remarks>
 ///     Reads share delete, and a save renames with POSIX semantics on Windows (<see cref="AtomicRename" />), so a save
@@ -25,6 +26,7 @@ public sealed class JsonFileStore<T>
     readonly Func<T, string> idOf;
     readonly Func<JsonNode?, JsonNode?>? upgrade;
     readonly ILogger? logger;
+    readonly Action? changed;
 
     public JsonFileStore(
         string folder,
@@ -32,7 +34,8 @@ public sealed class JsonFileStore<T>
         JsonTypeInfo<T> typeInfo,
         Func<T, string> idOf,
         Func<JsonNode?, JsonNode?>? upgrade = null,
-        ILogger? logger = null
+        ILogger? logger = null,
+        Action? changed = null
     ) {
         this.folder = folder;
         this.kind = kind;
@@ -40,6 +43,7 @@ public sealed class JsonFileStore<T>
         this.idOf = idOf;
         this.upgrade = upgrade;
         this.logger = logger;
+        this.changed = changed;
         Directory.CreateDirectory(folder);
     }
 
@@ -61,6 +65,7 @@ public sealed class JsonFileStore<T>
         var path = PathOf(idOf(item));
         AtomicRename.Write(path, JsonSerializer.Serialize(item, typeInfo));
         Changed?.Invoke(path);
+        changed?.Invoke();
     }
 
     public bool Delete(string id) {
@@ -71,6 +76,7 @@ public sealed class JsonFileStore<T>
 
         File.Delete(path);
         Changed?.Invoke(path);
+        changed?.Invoke();
         return true;
     }
 

@@ -74,6 +74,21 @@ describe('EventStream.modulation', () => {
     expect(mix()).toBeUndefined();
     expect(stream.modulation()).toBeNull();
   });
+
+  it('hands a library change to the library readers, not to the rig events (it has no revision)', () => {
+    TestBed.configureTestingModule({ providers: [{ provide: ConnectionService, useValue: {} }] });
+    const stream = TestBed.inject(EventStream);
+    const kinds: string[] = [];
+    const events: string[] = [];
+    stream.library$.subscribe(change => kinds.push(change.kind));
+    stream.events$.subscribe(event => events.push(event.type));
+
+    receive(stream, { type: 'libraryChanged', kind: 'setlists' });
+    receive(stream, { type: 'presetSaved', revision: 3 });
+
+    expect(kinds).toEqual(['setlists']);
+    expect(events).toEqual(['presetSaved']);
+  });
 });
 
 /** A WebSocket the test drives: it never touches the network, and closes only when the test says so. */

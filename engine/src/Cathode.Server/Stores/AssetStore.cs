@@ -1,6 +1,7 @@
 using Cathode.Contracts;
 using Cathode.Dsp.Convolution;
 using Cathode.Dsp.IO;
+using Cathode.Server.Realtime;
 using Cathode.Server.Rig;
 using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
@@ -23,7 +24,11 @@ public sealed partial class AssetStore {
     readonly Lock gate = new();
     readonly Dictionary<string, AssetInfo> index;
 
-    public AssetStore(IOptions<ServerOptions> options, ILogger<AssetStore> logger) {
+    /// <summary>Called after an asset was added, renamed, tagged or deleted.</summary>
+    readonly Action? changed;
+
+    public AssetStore(IOptions<ServerOptions> options, ILogger<AssetStore> logger, LibraryChanges? changes = null) {
+        changed = LibraryChanges.For(changes, LibraryChanges.Assets);
         folder = Path.Combine(options.Value.DataDirectory, "assets");
         Directory.CreateDirectory(folder);
         indexPath = Path.Combine(folder, "index.json");
@@ -330,11 +335,13 @@ public sealed partial class AssetStore {
 
     /// <summary>
     ///     Written atomically (<see cref="AtomicRename.Write" />): rewritten on every upload, rename and
-    ///     delete.
+    ///     delete, each of which clients are then told of.
     /// </summary>
-    void SaveIndex() =>
+    void SaveIndex() {
         AtomicRename.Write(
             indexPath,
             JsonSerializer.Serialize([..index.Values], ContractsJsonContext.Default.AssetInfoArray)
         );
+        changed?.Invoke();
+    }
 }

@@ -1,6 +1,7 @@
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import {
   eventsUrl,
+  type LibraryChanged,
   type MidiActivity,
   type Modulation,
   type RigEvent,
@@ -59,6 +60,8 @@ export class EventStream {
   readonly events$ = new Subject<RigEvent>();
   readonly connected$ = new Subject<void>();
   readonly midi$ = new Subject<MidiActivity>();
+  /** Something stored changed (presets, setlists, banks, assets…), here or from another editor. */
+  readonly library$ = new Subject<LibraryChanged>();
 
   /**
    * Who this editor is to the Server: the tuner, scope and RTA requests carry it (`?client=`), and so does the socket.
@@ -164,6 +167,8 @@ export class EventStream {
       this.connected$.next();
     } else if (message.type === 'midi' || message.type === 'midiLearned' || message.type === 'midiLearnChanged') {
       this.midi$.next(message as MidiActivity);
+    } else if (message.type === 'libraryChanged') {
+      this.library$.next(message as LibraryChanged);
     } else if (message.type === 'scope') {
       this.scope = message as ScopeFrame;
     } else if (message.type === 'rta') {

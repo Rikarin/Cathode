@@ -121,7 +121,7 @@ What you feel is the round trip: interface converters, two buffers, and any late
 1. Open **Global** and watch the **Monitor** in the MIDI section while you press a switch. If no line appears, Cathode receives nothing: check the cable, the controller's power, and that the controller sends on its USB or MIDI port (some send only to one of them).
 2. If lines appear but nothing happens: check **Receive channel**. If it is set to one channel, messages on other channels are ignored.
 3. Check that the message in the Monitor matches a mapping in the table, or a switch's **Sends** column in the active footswitch layout, and that the switch is on the active **view**.
-4. A CC or note counts as pressed only at a value or velocity of 64 or more. Set your controller's switches to send 127 when pressed.
+4. A CC counts as pressed only at a value of 64 or more. Set your controller's switches to send 127 when pressed. A note counts as pressed at any velocity above 0.
 
 ### A footswitch action names a block that is not there
 

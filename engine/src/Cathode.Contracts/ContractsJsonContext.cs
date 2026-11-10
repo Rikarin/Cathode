@@ -66,6 +66,7 @@ namespace Cathode.Contracts;
 [JsonSerializable(typeof(ApplyBlockPresetRequest))]
 [JsonSerializable(typeof(SaveRequest))]
 [JsonSerializable(typeof(RigEvent))]
+[JsonSerializable(typeof(LibraryChanged))]
 [JsonSerializable(typeof(Telemetry))]
 [JsonSerializable(typeof(PerformControl))]
 [JsonSerializable(typeof(List<PerformControl>))]

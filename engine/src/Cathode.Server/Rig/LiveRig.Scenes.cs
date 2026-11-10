@@ -216,12 +216,18 @@ public sealed partial class LiveRig {
     /// <summary>Loads the global startup preset, if one is set and still in the library.</summary>
     /// <returns>Why the startup preset did not load, or null; the rig then stays on the default preset.</returns>
     public async Task<string?> LoadStartupAsync() {
-        if (globals.Get().StartupPreset is { } id && presets.Get(id) is not null) {
-            try {
+        if (globals.Get().StartupPreset is not { } id) {
+            return null;
+        }
+
+        // Whatever goes wrong here, the Server starts: a start that fails on its settings would fail again at every
+        // restart, with no API left to repair them through.
+        try {
+            if (presets.Get(id) is not null) {
                 await LoadAsync(id);
-            } catch (RigException e) {
-                return $"The startup preset '{id}' could not be loaded: {e.Message}";
             }
+        } catch (Exception e) when (e is not OutOfMemoryException) {
+            return $"The startup preset '{id}' could not be loaded: {e.Message}";
         }
 
         return null;

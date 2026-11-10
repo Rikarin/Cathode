@@ -125,6 +125,7 @@ static class ControlsApi {
         global.MapPut(
                 "/",
                 (GlobalSettings settings, GlobalStore store, HttpContext http) => {
+                    GlobalShape.Repair(settings);
                     GlobalValidation.Check(settings);
                     var (saved, revision) = store.UpdateIf(Expected(http), g => Replace(g, settings))
                         ?? throw new RigException(

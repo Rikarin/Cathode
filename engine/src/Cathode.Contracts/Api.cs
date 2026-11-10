@@ -238,6 +238,13 @@ public sealed record RigEvent(
 );
 
 /// <summary>
+///     Pushed over the WebSocket (<c>Type</c> is <c>libraryChanged</c>) after something stored changed outside the
+///     working copy. <c>Kind</c> says what: <c>presets</c>, <c>setlists</c>, <c>banks</c>, <c>assets</c>,
+///     <c>blockPresets</c>, <c>snapshots</c> or <c>templates</c>. A client reads that list again.
+/// </summary>
+public sealed record LibraryChanged(string Type, string Kind);
+
+/// <summary>
 ///     Pushed over the WebSocket about 30 times a second. <c>Blocks</c> holds every block meter since the last frame,
 ///     by block id and then meter id: each grid block's <c>peak</c> (its output peak, linear) and the meters some
 ///     blocks keep of their own, in dB: the Cab's <c>preampIn</c> (the level into the mic preamp, 0 at the onset of

@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { ApiError, type Bank, type RigEvent, type Setlist } from '@cathode/api-client';
+import { ApiError, type Bank, type LibraryChanged, type RigEvent, type Setlist } from '@cathode/api-client';
 import { Subject } from 'rxjs';
 import { ConnectionService } from '../core/connection';
 import { EventStream } from '../core/events';
@@ -14,7 +14,10 @@ describe('LibraryStore.isStored', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: ConnectionService, useValue: { client: { GET: get } } },
-        { provide: EventStream, useValue: { events$: new Subject(), connected$: new Subject() } },
+        {
+          provide: EventStream,
+          useValue: { events$: new Subject(), connected$: new Subject(), library$: new Subject() }
+        },
         { provide: Notify, useValue: { run: (action: () => Promise<unknown>) => action(), error: () => undefined } }
       ]
     });
@@ -53,7 +56,11 @@ describe('stores resync after a reconnection', () => {
       reads.push(path);
       return Promise.resolve({ data: answers[path], response: new Response('{}') });
     };
-    const events = { events$: new Subject<RigEvent>(), connected$: new Subject<void>() };
+    const events = {
+      events$: new Subject<RigEvent>(),
+      connected$: new Subject<void>(),
+      library$: new Subject<LibraryChanged>()
+    };
     TestBed.configureTestingModule({
       providers: [
         { provide: ConnectionService, useValue: { client: { GET } } },
@@ -80,16 +87,34 @@ describe('stores resync after a reconnection', () => {
     expect(library.impulseResponses()).toHaveLength(1);
   });
 
-  it('reads the preset list again when a preset is renamed or tagged, not only saved', async () => {
+  it('reads again the list the Server says has changed, whoever changed it', async () => {
     const { reads, events, settle } = setup();
     TestBed.inject(LibraryStore);
 
-    events.events$.next({ type: 'presetMetadataChanged', revision: 4 });
-    events.events$.next({ type: 'presetSaved', revision: 5 });
+    events.library$.next({ type: 'libraryChanged', kind: 'presets' });
+    events.library$.next({ type: 'libraryChanged', kind: 'setlists' });
+    events.library$.next({ type: 'libraryChanged', kind: 'banks' });
+    events.library$.next({ type: 'libraryChanged', kind: 'assets' });
+    events.library$.next({ type: 'libraryChanged', kind: 'snapshots' });
     events.events$.next({ type: 'paramChanged', revision: 6 });
     await settle();
 
-    expect(reads).toEqual(['/api/v1/presets', '/api/v1/presets']);
+    expect(reads).toEqual(['/api/v1/presets', '/api/v1/setlists', '/api/v1/banks', '/api/v1/assets']);
+  });
+
+  it('reads the Block Library again when another editor changes it, once it has been read', async () => {
+    const { reads, events, settle } = setup();
+    const blockPresets = TestBed.inject(BlockPresetsStore);
+
+    events.library$.next({ type: 'libraryChanged', kind: 'blockPresets' });
+    await settle();
+    expect(reads).toEqual([]);
+
+    await blockPresets.refresh();
+    events.library$.next({ type: 'libraryChanged', kind: 'blockPresets' });
+    events.library$.next({ type: 'libraryChanged', kind: 'presets' });
+    await settle();
+    expect(reads).toEqual(['/api/v1/block-presets', '/api/v1/block-presets']);
   });
 
   it('reads the block catalogue again', async () => {
