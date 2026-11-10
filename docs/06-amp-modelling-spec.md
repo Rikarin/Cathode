@@ -377,7 +377,7 @@ Shared changes: `Pot` takes an audio taper's midpoint (Fender marks it in the pa
 - V2A 100k, 820Ω (1k on some) ‖ 0.68 µ; V2B CF 100k [src].
 - Stack: slope 33k, treble cap 500 pF, bass and mid 0.022 µ; treble 250k on the drawing (220k later *unverified*), bass 1M, mid 25k [src]. Earlier amps: 56k slope.
 - PI: 0.022 µ in, 1M, 10k, 470Ω, 82k/100k, 47 pF, 0.022 µ out, about 220k leaks [src].
-- Presence 5k + 0.1 µ, 4.7k at the tail bottom; NFB "47K (100K)", tap *(unverified)*; AmpBooks gives 47k at 8Ω for the 1987 [src].
+- Presence: the 5k pot is the feedback shunt at the tail bottom, 0.1 µ from its wiper to ground (the sheet has no separate 4.7k there; the Plexi 100W model's fixed 4.7k with a series pot is issue #197); NFB "47K (100K)", tap *(unverified)*; AmpBooks gives 47k at 8Ω for the 1987 [src].
 - 4 × EL34 (6550 on US units), 5.6k stoppers, 1k screens; SS bridge, 100 µ stacked; c.1967 voltages 460 / 375 / 300 / 270 V [src]. OT not shown; the current Plexi model uses 3.4k.
 - Note: the existing Plexi model's values match this drawing except the treble cap and coupling; check them. Its
   inverter has the drawing's 470 Ω bias resistor (it had 820 Ω, no Marshall's); its 470 pF bright cap, switched by Bright,
@@ -420,16 +420,16 @@ Shared changes: `Pot` takes an audio taper's midpoint (Fender marks it in the pa
 
 **Laney GH100L** (tier 2) — https://el34world.com/charts/Schematics/files/Laney/Laney_gh100l.pdf. JCM800-like with a 10k cold clipper (V2A), 33k / 470 pF / 22n / 22n stack (one drawing says 220n: conflict), presence 22k + 100n, NFB 100k switchable, **resonance** 100k + 100n; 4 × EL34 or 5881, 460 V [src].
 
-**As built (stream F2).** Models in `Amp/Models` (Type index in brackets), shared parts in `MarshallParts.cs`; every value in each file's comments with its source, guesses marked:
-- **JCM800 2203** [5] and **2204** [6], from the factory drawings above (read by eye; they agree with the table). V1A with the High/Low jacks as one network stage (Low on switch 1 takes the guitar past V1A into the 470k/470 pF attenuator, as the jack's contact does), V1B cold clipper, V2A, CF on the JCM800 stack (22k mid), master; PI with its input network and grid current. 2203: 4 × EL34, 1.7k OT, 470 V *(unverified)*; 2204: AmpBooks' 460 V, 40 mA, 3.2k. Preamp nodes 290/310 V *(unverified)*.
-- **JTM45** [7]: both channels and the jumper (switch 1) and normal input (switch 2), Control 1 the normal volume. The two V1 triodes share a 250 µF-bypassed cathode, so they are one triode driving whichever volumes are active (an idle channel's cap hangs on the idle plate's rest voltage behind 100k ‖ r_p). KT66, GZ34, B+ 440 V, 6.6k OT *(unverified)*, rated 30 W. Since #95: the rating was 45 W
+**As built (stream F2).** Models in `Amp/Models` (the Circuit Amp's Type index in brackets, as in `AmpDesign.All` and the index table in docs/07), shared parts in `MarshallParts.cs`; every value in each file's comments with its source, guesses marked:
+- **JCM800 2203** [7] and **2204** [8], from the factory drawings above (read by eye; they agree with the table). V1A with the High/Low jacks as one network stage (Low on switch 1 takes the guitar past V1A into the 470k/470 pF attenuator, as the jack's contact does), V1B cold clipper, V2A, CF on the JCM800 stack (22k mid), master; PI with its input network and grid current. 2203: 4 × EL34, 1.7k OT, 470 V *(unverified)*; 2204: AmpBooks' 460 V, 40 mA, 3.2k. Preamp nodes 290/310 V *(unverified)*.
+- **JTM45** [9]: both channels and the jumper (switch 1) and normal input (switch 2), Control 1 the normal volume. The two V1 triodes share a 250 µF-bypassed cathode, so they are one triode driving whichever volumes are active (an idle channel's cap hangs on the idle plate's rest voltage behind 100k ‖ r_p). KT66, GZ34, B+ 440 V, 6.6k OT *(unverified)*, rated 30 W. Since #95: the rating was 45 W
   (the name, not the output; Marshall rates the reissue and the 1962 Bluesbreaker 30 W, and the rating sets the
   block's full-scale swing) and the primary 3.4k (a 1987's, no source); the early amps' Radiospares De Luxe was wired for
   6k6 into 15 Ω and the later Drake 784-103 is quoted at 8k (owners measure 5.7k to 8k: ampgarage.com, "Primary
   impedance of original jtm 45 ot?"). No PI input network: with it, the power amp's Newton missed convergence under full-scale square drive.
-- **Plexi 100W** [8], the 1959 from drawing 70-6-11 (the existing **Plexi** [1] is unchanged): both channels with separate cathodes as one two-triode network stage, jumper and normal input as on the JTM45; 0.0022 µF bright coupling with 5 nF across its volume; no master; 4 × EL34 on the c.1967 nodes. No PI input network either (CPU: the two-triode stage costs as much as two gain stages). Feedback "47K (100K)" taken as 100k at 16 Ω *(unverified)*.
-- **Laney GH100L** [9], drive channel, from the factory CAD drawing 2188 (vector PDF, with DC voltages: the model's V1b, V2a and V2b plates are within 4 % of them; V3b sits at 184 V against 150 V). Its effects loop (two op-amps, ×0.033 overall) is a passive divider with the same ratio, corner and load. Not modelled: the clean channel relay and the Resonance switch.
-- Not built: **Silver Jubilee** (the relay, the V1B/V2A shunt feedback and the LED/diode networks need a closer read of the scan than this pass had), **Friedman BE-100** (the forum trace is a clean CAD drawing and readable; next), **JCM900** (the drawing's op-amp values are unreadable at the scan's resolution), **Hiwatt** and **Orange** (partial data).
+- **Plexi 100W** [10], the 1959 from drawing 70-6-11 (the existing **Plexi** [1] is unchanged): both channels with separate cathodes as one two-triode network stage, jumper and normal input as on the JTM45; 0.0022 µF bright coupling with 5 nF across its volume; no master; 4 × EL34 on the c.1967 nodes. No PI input network either (CPU: the two-triode stage costs as much as two gain stages). Feedback "47K (100K)" taken as 100k at 16 Ω *(unverified)*.
+- **Laney GH100L** [11], drive channel, from the factory CAD drawing 2188 (vector PDF, with DC voltages: the model's V1b, V2a and V2b plates are within 4 % of them; V3b sits at 184 V against 150 V). Its effects loop (two op-amps, ×0.033 overall) is a passive divider with the same ratio, corner and load. Not modelled: the clean channel relay and the Resonance switch.
+- Not built in this pass (superseded: the Silver Jubilee, BE-100 and Hiwatts are built in stream F2b below, the JCM900 in stream A from a legible vector drawing, and of Orange the Tiny Terror): **Silver Jubilee** (the relay, the V1B/V2A shunt feedback and the LED/diode networks need a closer read of the scan than this pass had), **Friedman BE-100** (the forum trace is a clean CAD drawing and readable; next), **JCM900** (the drawing's op-amp values are unreadable at the scan's resolution), **Hiwatt** and **Orange** (partial data).
 - Matching: the three Laney captures now map to the GH100L, with gain, drive and master fitted at +8 dBu (their settings are not stated). The fitted calibrations come out at 6–11 dBu instead of pinned at −20 dBu; pre-emphasised ESR 0.48 / 1.04 / 0.91 and MRSTFT 1.03 / 1.30 / 1.16 (after break-up / crunch / Hi mid; with the Plexi stand-in 0.67 / 1.23 / 0.88 and 1.05 / 1.33 / 1.15); targets tightened to just above these. A tolerance fit (bias, OT match, B+) gains 4 % and ends on its bounds, so it is not applied. The "distorts more at equal input" of the earlier runs was, for these, the stand-in at master 10 against captures at lower settings; the F2 stages' plate loads, cathodes and tapers are as drawn, and the Laney's DC voltages agree. The JCM900 captures stay on the Plexi stand-in (the JCM800 2204 fits channel A only with implausible knob settings, and channel B worse than the Plexi).
 - Library: a network stage now recomputes its Thévenin output resistance when a pot or switch moves (it was fixed at the last reset, so the next stage's grid current saw a stale source after a volume or input switch moved).
 - Library: a `ToneStackStage`'s output resistance is now its whole circuit linearised at the operating point (the triode's Jacobian with grid current, the stack's and bright cap's caps at 1 kHz, a bypassed cathode's cap), solved by nodal analysis as a network stage's is; it agrees with the same stage written as a network stage to 0.1 % (`Tone_stack_stage_output_resistance_is_the_linearised_circuit`). The hand formula it replaces (the load pot's halves plus a²× the slope resistor) left out the treble pot's halves, the caps and the driver. Load pot full up: a Fender V1A drives the next grid through 28–33k at tone noon (the formula said 100k) and about 160k at full treble; a Marshall-stack follower through 90–100k (it said the 33k slope resistor; the SLO-100's 99k against 47k) and 124–134k at full treble; the 5F6-A's 109k at noon (56k). At noon and low volume the values hardly move (about 90k and 17k). Prometheus Clean's trim went from −3 to −3.5 dB: its V2A, now driven from 32k at full volume, peaked 6.1 dBFS on full-scale noise.
@@ -457,8 +457,9 @@ none of the drawings give):
   (a tandem Bass pot, 220 pF / 470 pF / 4.7 nF / 10 nF / 0.1 µF / 2.2 nF; values in the file) and the Output Master.
   High/Low is the power amp's triode switch.
 - **18 W 1974X** (`Marshall18W.cs`), PedalMonkey's rev 5 drawing with its node voltages: the Normal channel's two
-  paralleled triodes into its tone and volume network, or the Tremolo channel with the tremolo off (the footswitch
-  grounds the oscillator's grid, so it idles on the shared cathode and its plate current sets the input triode's supply);
+  paralleled triodes into its tone and volume network, or the Tremolo channel, at first with the tremolo off (the footswitch
+  grounds the oscillator's grid, so it idles on the shared cathode and its plate current sets the input triode's supply;
+  superseded: the oscillator now runs on Speed and Depth, see stream T in §3.1);
   the 47k-tail long-tail pair is the mixer; two EL84 on 125 Ω, no feedback, an EZ81.
 - **Hiwatt DR103** (`HiwattDR103.cs`), Mark Huss's hiwatt.org redraws (mid-70s four-input preamp rev 1.4, 100 W output
   v1.1): V1 with 220k plates on a shared 1k1 ‖ 47 nF (both channels, jumper and normal input as on the Marshalls), V2A
@@ -475,19 +476,19 @@ none of the drawings give):
   series (`FeedbackDesign.BranchTimes`, the denominator's real roots); it falls from about 6 kHz (about 5 dB less at 10
   kHz) toward 2k2 ‖ 470 against the 10k (0.037 against 0.18, 13.7 dB), a treble shelf whatever the knob. A design
   without a branch keeps the single presence section, so every other model renders bit-identically.
-- **JCM900 4100/4500**: not built. The vector reissue of drawing JMP52-02 (issue 11, 1997) is fully legible and was
+- **JCM900 4100/4500**: not built in this pass (superseded: built in stream A below, which also corrects this reading of the clamp). The vector reissue of drawing JMP52-02 (issue 11, 1997) is fully legible and was
   read: input 10k, 100 pF, 0.1 µF, 1M; IC1 (M5201, a dual op-amp whose sections the channel switch mutes) channel A
   non-inverting 1 + 100k ‖ 22 pF over 15k + 0.1 µF, channel B 1 + 100k ‖ 470 pF over 4k7 + 47 nF; channel A: 47 nF, 22k
   to ground, 12k into IC4a, an inverting stage whose feedback is the 220k-B Preamp pot's lower part with 47 pF and two
   LEDs each way (the upper part with 1 nF is its input arm); channel B: 0.22 µF, 10k into IC6b, inverting, the 1M-A Gain
   rheostat with 220 pF as feedback, 0.22 µF and 4k7 onto a W005F bridge with a 1N4007 across its AC terminals (an
-  asymmetric clamp to ground), then a pre-EQ ladder (4k7, 4.7 nF, 0.22 µF, 0.22 µF, 10k, 10k, 100k, 4k7) into IC4b
+  asymmetric clamp to ground; a misreading: the diode is across the DC terminals, a symmetric clamp, as built), then a pre-EQ ladder (4k7, 4.7 nF, 0.22 µF, 0.22 µF, 10k, 10k, 100k, 4k7) into IC4b
   (1 + 10k/22k); both into 2k2 and 68k to V1a (150k, 1k5, 22 pF grid to cathode) with **220k of shunt feedback** from the
   stack's input; the V1b follower (100k) through 0.1 µF onto a 470 pF / 33k / 22 nF / 22 nF stack (220k-B, 1M-A, 22k-B);
   470k into the send buffer; the return op-amp into V2a (100k, 2k2 with the 10k-B Presence and 470 Ω + 0.22 µF across
   it); V2b (100k, 1k2) with 470k shunt feedback mixing the reverb; the two masters are op-amp stages (220k in, 1M-A
-  rheostat feedback). It needs an op-amp element in `StageNetlist` (the `OpAmp` device at a network stage's root) and the
-  return op-amp's input resistor, which is not on the sheet. The pelennor captures stay on the Plexi stand-in.
+  rheostat feedback). It needed an op-amp element in `StageNetlist` (the `OpAmp` device at a network stage's root, since added) and the
+  return op-amp's input resistor, which is not on the sheet (see stream A for what the model uses). The pelennor captures stayed on the Plexi stand-in until then.
 - **Library changes** (small): `FeedbackDesign.LowFeedback`, a fixed low shelf in the global feedback (default 1, no
   change for the other models), for the BE-100's 220k ‖ 4.7 nF; network stages accept two diode clippers beside a triode
   or two triodes ("DD", "TDD", "TTDD"), for the Jubilee.
@@ -527,7 +528,7 @@ drawing and marks its guesses (mostly the rails, idle currents and output transf
   (1959SLP, four EL34) or 100k (1987X, two EL34) of feedback from the 16 Ω tap into the B5K presence pot alone.
 - **1959T Tremolo** (Unicord 70-11-11, 1970): the 1968–70 Super Lead with the tremolo channel's load, 0.1 µF and 93k
   (10k, the 50k Intensity, 33k) from the normal volume's wiper to ground, which the oscillator's transistor chops when the
-  tremolo runs; here the tremolo is off (no library tremolo), so the load is fixed: the normal channel's first stage is
+  tremolo runs; here the tremolo is off (the library has tremolos since stream T, but this transistor oscillator is not built: its transistor and base network are illegible), so the load is fixed: the normal channel's first stage is
   5.5 dB below the Super Lead's at noon. Feedback 47k (the drawing's "47K (100K)") into the 5k presence pot.
 - **Bluesbreaker 1962** (reissue drawing "1962 STD", issues 3 and 4): V1a (Channel II, **150k** plate) and V1b
   (Channel I, 100k) on a shared 820 Ω with 330 µF as one two-triode network (the JTM45's one-triode trick needs equal
