@@ -124,6 +124,27 @@ public class FenderAmpTests(ITestOutputHelper output) {
     }
 
     [Theory]
+    [InlineData("Blackface", 270)] // a Super Reverb-style channel
+    [InlineData("Deluxe Reverb", 180)]
+    [InlineData("Twin Reverb", 270)]
+    [InlineData("Super Reverb", 270)]
+    [InlineData("Vibroverb AB763", 280)]
+    [InlineData("Bandmaster AB763", 275)]
+    public void Ab763_first_stage_plates_rest_near_the_drawings_plate_voltage(string model, double drawn) {
+        // Robinette's "AB763 model differences" lists the voltage the drawings print at the 7025 plates, not the
+        // preamp's supply node: a 270 V plate on 100k and 1.5k needs a node near 410 V.
+        var stage = AmpDesign.All.Single(a => a.Name == model).Preamp[0];
+        var supply = stage switch {
+            ToneStackStageDesign stack => stack.Supply,
+            NetworkStageDesign network => network.Netlist.Elements.First(static e => e.Kind == ElementKind.Supply).Value,
+            _ => throw new InvalidOperationException(stage.Name)
+        };
+        var plate = OperatingPoint.CommonCathode(Wdf.TriodeModel.Ecc83, 0, supply, 100e3, 1.5e3).Plate;
+        output.WriteLine($"{model}: V1 on {supply:0} V rests at {plate:0} V at the plate (drawing {drawn:0} V)");
+        Assert.Equal(drawn, plate, 0.15 * drawn);
+    }
+
+    [Theory]
     [InlineData("Bassman 5F6-A")]
     [InlineData("Bassman 5F6-A Jumped")]
     public void Bassman_inverter_takes_the_stack_through_its_input_cap_and_draws_grid_current(string model) {

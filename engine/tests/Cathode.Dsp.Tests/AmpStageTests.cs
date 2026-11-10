@@ -166,9 +166,16 @@ public partial class AmpStageTests(ITestOutputHelper output) {
 
         // A 12AX7 with 100k and 1.5k at 250-300 V sits at 150-200 V and about 1 mA (RCA's and Merlin Blencowe's
         // load-line examples).
-        if (design.PlateResistor == 100e3 && design.CathodeResistor == 1.5e3) {
+        if (design.PlateResistor == 100e3 && design.CathodeResistor == 1.5e3 && design.Supply is >= 250 and <= 300) {
             Assert.InRange(stage.RestOutput, 150, 210);
             Assert.InRange(stage.RestCurrent, 0.7e-3, 1.3e-3);
+        }
+
+        // On the AB763 drawings' 410 V node it sits where the Twin and Super Reverb drawings mark it: 270 V at the
+        // plate, 2.0 to 2.1 V across the 1.5k (their voltages are within 20 %).
+        if (design.PlateResistor == 100e3 && design.CathodeResistor == 1.5e3 && design.Supply == 410) {
+            Assert.InRange(stage.RestOutput, 250, 290);
+            Assert.InRange(stage.RestCathode, 1.8, 2.4);
         }
 
         // Settled from the reset state with the input at rest, the stage stays at its operating point.

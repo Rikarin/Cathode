@@ -10,7 +10,11 @@ namespace Cathode.Dsp.Amp.Models;
 ///     the 4 Ω tap. No master or presence. Sources: see <see cref="Ab763" />; docs/06 §3.1.
 /// </summary>
 /// <remarks>
-///     Preamp node 270 V, plates 460 V (Robinette's model differences). The mid pot is taken as 10k audio
+///     The supply nodes are the Fender drawing's ("Twin Reverb-Amp AB763",
+///     schematicheaven.net/fenderamps/twin_reverb_ab763_schem.pdf): 460 V at the plates, a choke to 458 V (the screens
+///     and the vibrato), 1k to 450 V (the inverter), 4.7k to 410 V (the preamp). The 270 V of Robinette's model
+///     differences is the drawing's voltage at the 7025 plates, not a supply node. The supply here has one dropper
+///     below the screen node: the 1k and 4.7k in series, at the current that puts the preamp node on 410 V. The mid pot is taken as 10k audio
 ///     (unverified); the idle current (30 mA per tube), the reservoir (50 µF) and the supply's source resistance are
 ///     typical values, not factory figures. The 125A29A's parasitics are not published: the transformer is the
 ///     library's default with its inductances, resistances and capacitance scaled to the 2k primary (the same bandwidth
@@ -36,7 +40,7 @@ public static class TwinReverb {
                 "V1A",
                 TriodeModel.Ecc83,
                 StackDriver.CommonCathode,
-                270,
+                410,
                 1.5e3,
                 Stack,
                 new(1e6, PotTaper.Audio),
@@ -46,8 +50,8 @@ public static class TwinReverb {
                 34e3,
                 BrightCap: 120e-12
             ),
-            Ab763.SecondStage(270),
-            Ab763.Mixer(270) with { Tremolo = Ab763.Vibrato(460) }
+            Ab763.SecondStage(410),
+            Ab763.Mixer(410) with { Tremolo = Ab763.Vibrato(458) }
         ],
         new(
             "4 x 6L6GC",
@@ -59,7 +63,7 @@ public static class TwinReverb {
             false,
             0,
             85,
-            Ab763.PhaseInverter(420),
+            Ab763.PhaseInverter(450),
             0.1e-6,
             220e3,
             1.5e3,
@@ -69,7 +73,7 @@ public static class TwinReverb {
             true,
             new(2e3, 10, 5e-3, 75, 2e-9, 100e3),
             SpeakerDesign.OpenBack2x12,
-            new(40, 50e-6, 100, 20e-6, 10e3, 20e-6, 8e-3, RectifierModel.Silicon),
+            new(40, 50e-6, 100, 20e-6, 5.7e3, 20e-6, 8.4e-3, RectifierModel.Silicon),
             InverterInput: Ab763.InverterInput
         ),
         -3

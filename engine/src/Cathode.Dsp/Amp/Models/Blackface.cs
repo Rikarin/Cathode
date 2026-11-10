@@ -9,6 +9,10 @@ namespace Cathode.Dsp.Amp.Models;
 ///     control. The original's V4B mixer and reverb recovery are left out: the mixing network's loss stands in for the
 ///     mixer's net gain into the inverter.
 /// </summary>
+/// <remarks>
+///     The preamp runs on the AB763 Twin and Super Reverb drawings' 410 V node and the inverter on their 450 V node
+///     (see <see cref="TwinReverb" />); the 270 V of Robinette's model differences is the voltage at the 7025 plates.
+/// </remarks>
 public static class Blackface {
     public static AmpDesign Design { get; } = new(
         "Blackface",
@@ -17,7 +21,7 @@ public static class Blackface {
                 "V1A",
                 TriodeModel.Ecc83,
                 StackDriver.CommonCathode,
-                270,
+                410,
                 1.5e3,
                 ToneStackDesign.Fender,
                 new(1e6, PotTaper.Audio),
@@ -28,7 +32,7 @@ public static class Blackface {
                 1e6,
                 120e-12
             ),
-            new TriodeStageDesign("V2A", TriodeModel.Ecc83, 270, 100e3, 1.5e3, 25e-6),
+            new TriodeStageDesign("V2A", TriodeModel.Ecc83, 410, 100e3, 1.5e3, 25e-6),
             new CouplingStageDesign("Mixer", 4.7e-9, new(1e6, PotTaper.Audio), PotRole.Master, 220e3, 220e3)
         ],
         new(
@@ -41,7 +45,7 @@ public static class Blackface {
             false,
             0,
             40,
-            new LongTailPairDesign(TriodeModel.Ecc81, 420, 82e3, 100e3, 22e3, 1e3),
+            new LongTailPairDesign(TriodeModel.Ecc81, 450, 82e3, 100e3, 22e3, 1e3),
             0.1e-6,
             220e3,
             1.5e3,
