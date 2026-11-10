@@ -24,9 +24,16 @@ namespace Cathode.Dsp.Blocks;
 ///             FF and FB Comb: the signal plus Depth times itself (feed-forward) or its output (feedback) Comb Time
 ///             earlier, giving notches or peaks at multiples of 1 / time.
 ///         </item>
+///         <item>
+///             Ladder LP 12 and 24: a four-pole transistor ladder (<see cref="LadderCoefficients" />) taken after its
+///             second or fourth stage, with Q as its resonance and Drive into its input stage.
+///         </item>
 ///     </list>
 ///     A built-in LFO, with duty and quantise, can sweep the frequency between Frequency and Mod Frequency
-///     (log-spaced). While anything that shapes the filter is moving, coefficients are recomputed every
+///     (log-spaced). The block's own envelope follower (a peak detector on its input, linked across the sides, with a
+///     sensitivity and its own attack and release) then moves the frequency by up to Env Range octaves, so each Filter
+///     can be an envelope filter with its own response; at a range of 0 it does nothing. While anything that shapes
+///     the filter is moving, coefficients are recomputed every
 ///     <see cref="SubBlock" /> samples on a grid counted from the start of the stream, so the result does not depend on
 ///     the callback size. Then come a first-order (6 dB/oct) low and high cut, the pans of each input side, phase
 ///     invert, and level and balance.
@@ -54,6 +61,11 @@ public sealed class FilterBlock() : DspBlock(Info) {
     public const int Feedback = 19;
     public const int LfoDuty = 20;
     public const int LfoQuantize = 21;
+    public const int Drive = 22;
+    public const int EnvRange = 23;
+    public const int EnvSensitivity = 24;
+    public const int EnvAttack = 25;
+    public const int EnvRelease = 26;
 
     /// <summary>Type indices beyond the seven biquad responses (which match <see cref="BiquadType" />).</summary>
     public const int Null = 7;
@@ -65,10 +77,12 @@ public sealed class FilterBlock() : DspBlock(Info) {
     public const int LowShelf2 = 12;
     public const int HighShelf2 = 13;
     public const int Peaking2 = 14;
+    public const int Ladder12 = 15;
+    public const int Ladder24 = 16;
 
     public const double MaxShelf2Q = 4;
 
-    const int TypeCount = 15;
+    const int TypeCount = 17;
 
     /// <summary>The types that filter at Frequency (all but Null and the combs), which Q and the LFO act on.</summary>
     static readonly int[] Filters = [..Enumerable.Range(0, TypeCount).Except([Null, FeedForwardComb, FeedbackComb])];
@@ -96,6 +110,10 @@ public sealed class FilterBlock() : DspBlock(Info) {
     SvfState right;
     SvfState secondLeft;
     SvfState secondRight;
+    LadderCoefficients ladder;
+    LadderState ladderLeft;
+    LadderState ladderRight;
+    float envelope;
     FirstOrderCuts cuts;
     Lfo lfo;
     int phase;
@@ -126,7 +144,9 @@ public sealed class FilterBlock() : DspBlock(Info) {
                     "FB Comb",
                     "Low Shelf 2",
                     "High Shelf 2",
-                    "Peaking 2"
+                    "Peaking 2",
+                    "Ladder LP 12",
+                    "Ladder LP 24"
                 ]
             ),
             ParamDescriptor.Float("freq", "Frequency", 20f, 20_000f, 1_000f, "Hz", ParamTaper.Log)
@@ -155,12 +175,23 @@ public sealed class FilterBlock() : DspBlock(Info) {
                 .ShownOn(TypeCount, Filters),
             ParamDescriptor.Float("feedback", "Feedback", -95f, 95f, 0f, "%").ShownOn(TypeCount, AllPass),
             ParamDescriptor.Float("lfoDuty", "LFO Duty", 0f, 100f, 50f, "%").ShownOn(TypeCount, Filters),
-            LfoConditioner.QuantizeParam().ShownOn(TypeCount, Filters)
+            LfoConditioner.QuantizeParam().ShownOn(TypeCount, Filters),
+            ParamDescriptor.Float("drive", "Drive", 0f, 36f, 0f, "dB").ShownOn(TypeCount, Ladder12, Ladder24),
+            ParamDescriptor.Float("envRange", "Env Range", -8f, 8f, 0f, "oct").ShownOn(TypeCount, Filters),
+            ParamDescriptor.Float("envSens", "Env Sensitivity", -24f, 48f, 12f, "dB").ShownOn(TypeCount, Filters),
+            ParamDescriptor.Float("envAttack", "Env Attack", 0.1f, 100f, 5f, "ms", ParamTaper.Log)
+                .ShownOn(TypeCount, Filters),
+            ParamDescriptor.Float("envRelease", "Env Release", 10f, 1_000f, 150f, "ms", ParamTaper.Log)
+                .ShownOn(TypeCount, Filters)
         ],
         maxInstances: 4,
         pages: [
-            new("Basic", ["freq", "q", "gain", "order", "lowCut", "highCut", "combTime", "depth", "feedback"]),
+            new(
+                "Basic",
+                ["freq", "q", "gain", "order", "drive", "lowCut", "highCut", "combTime", "depth", "feedback"]
+            ),
             new("Modulation", ["lfoOn", "lfoType", "lfoRate", "lfoTempo", "modFreq", "lfoDuty", "lfoQuantize"]),
+            new("Envelope", ["envRange", "envSens", "envAttack", "envRelease"]),
             new("Stereo", ["panLeft", "panRight", "phaseInvert"])
         ]
     );
@@ -181,7 +212,9 @@ public sealed class FilterBlock() : DspBlock(Info) {
         var q = Params.Current(Q);
         var gain = Params.Current(Gain);
         var rate = Spec.SampleRate;
-        if (type == Tilt) {
+        if (type is Ladder12 or Ladder24) {
+            ladder = LadderCoefficients.Design(rate, frequency, q, Params.Current(Drive));
+        } else if (type == Tilt) {
             first = SvfCoefficients.Design(BiquadType.LowShelf, rate, frequency, 0.7071, -0.5 * gain);
             second = SvfCoefficients.Design(BiquadType.HighShelf, rate, frequency, 0.7071, 0.5 * gain);
         } else if (type is LowShelf2 or HighShelf2) {
@@ -223,6 +256,34 @@ public sealed class FilterBlock() : DspBlock(Info) {
         secondLeft.FlushDenormals();
         secondRight.FlushDenormals();
     }
+
+    /// <summary>The ladder, taken after its second (<paramref name="twoPole" />) or fourth stage.</summary>
+    void Ladder(in StereoBuffer chunk, bool twoPole) {
+        for (var i = 0; i < chunk.Length; i++) {
+            chunk.Left[i] = (float)ladderLeft.Tick(ladder, chunk.Left[i], twoPole);
+            chunk.Right[i] = (float)ladderRight.Tick(ladder, chunk.Right[i], twoPole);
+        }
+
+        ladderLeft.FlushDenormals();
+        ladderRight.FlushDenormals();
+    }
+
+    /// <summary>
+    ///     Runs the envelope follower over <paramref name="chunk" />: the peak of the two sides, rising with
+    ///     <paramref name="attack" /> and falling with <paramref name="release" /> (one-pole coefficients).
+    /// </summary>
+    void Follow(in StereoBuffer chunk, float attack, float release) {
+        var envelope = this.envelope;
+        for (var i = 0; i < chunk.Length; i++) {
+            var peak = MathF.Max(MathF.Abs(chunk.Left[i]), MathF.Abs(chunk.Right[i]));
+            envelope = peak + (envelope - peak) * (peak > envelope ? attack : release);
+        }
+
+        this.envelope = envelope < 1e-20f ? 0 : envelope;
+    }
+
+    /// <summary>The one-pole coefficient of a time constant in ms.</summary>
+    static float TimeCoefficient(float ms, double rate) => (float)Math.Exp(-1.0 / (ms * 0.001 * rate));
 
     /// <summary>Feed-forward or feedback comb at Comb Time with gain Depth.</summary>
     void Comb(in StereoBuffer io, bool feedback) {
@@ -286,6 +347,9 @@ public sealed class FilterBlock() : DspBlock(Info) {
         right.Reset();
         secondLeft.Reset();
         secondRight.Reset();
+        ladderLeft.Reset();
+        ladderRight.Reset();
+        envelope = 0;
         combLeft.Reset();
         combRight.Reset();
         combGlide.Reset();
@@ -310,7 +374,20 @@ public sealed class FilterBlock() : DspBlock(Info) {
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var type = (int)Params.Current(Type);
         var lfoOn = Params.Current(LfoOn) >= 0.5f;
+
+        // The follower runs only while it has a range to move the filter over, so it costs nothing left at 0.
+        var following = Params.Current(EnvRange) != 0 || Params.IsRamping(EnvRange);
+        var envRange = Params.Advance(EnvRange, io.Length);
+        var sensitivity = (float)Decibels.ToGain(Params.Advance(EnvSensitivity, io.Length));
+        var attack = TimeCoefficient(Params.Advance(EnvAttack, io.Length), Spec.SampleRate);
+        var release = TimeCoefficient(Params.Advance(EnvRelease, io.Length), Spec.SampleRate);
+        if (!following) {
+            envelope = 0;
+        }
+
         var moving = lfoOn
+            || following
+            || Params.IsRamping(Drive)
             || Params.IsRamping(Type)
             || Params.IsRamping(Frequency)
             || Params.IsRamping(Q)
@@ -332,6 +409,7 @@ public sealed class FilterBlock() : DspBlock(Info) {
             Params.Advance(Frequency, io.Length);
             Params.Advance(Q, io.Length);
             Params.Advance(Gain, io.Length);
+            Params.Advance(Drive, io.Length);
             Comb(io, type == FeedbackComb);
         } else if (type != Null) {
             for (var start = 0; start < io.Length;) {
@@ -339,6 +417,7 @@ public sealed class FilterBlock() : DspBlock(Info) {
                 var frequency = Params.Advance(Frequency, length);
                 Params.Advance(Q, length);
                 Params.Advance(Gain, length);
+                Params.Advance(Drive, length);
                 if (!moving || phase == 0) {
                     if (lfoOn) {
                         // The LFO's 0..1 position moves log-wise from Frequency to Mod Frequency.
@@ -351,6 +430,12 @@ public sealed class FilterBlock() : DspBlock(Info) {
                         frequency *= MathF.Pow(modFrequency / frequency, position);
                     }
 
+                    if (following) {
+                        // The envelope, as a share of full scale after Sensitivity, moves it by up to Env Range.
+                        var share = MathF.Min(1f, envelope * sensitivity);
+                        frequency = Math.Clamp(frequency * MathF.Pow(2f, envRange * share), 20f, 20_000f);
+                    }
+
                     UpdateCoefficients(frequency);
                 }
 
@@ -359,18 +444,21 @@ public sealed class FilterBlock() : DspBlock(Info) {
                 }
 
                 var chunk = io.Slice(start, length);
-                if (feedback) {
-                    AllPassWithFeedback(chunk, cascade, allPassFeedback);
-                    phase = moving ? (phase + length) % SubBlock : 0;
-                    start += length;
-                    continue;
+                if (following) {
+                    Follow(chunk, attack, release);
                 }
 
-                left.Process(first, chunk.Left);
-                right.Process(first, chunk.Right);
-                if (cascade) {
-                    secondLeft.Process(second, chunk.Left);
-                    secondRight.Process(second, chunk.Right);
+                if (type is Ladder12 or Ladder24) {
+                    Ladder(chunk, type == Ladder12);
+                } else if (feedback) {
+                    AllPassWithFeedback(chunk, cascade, allPassFeedback);
+                } else {
+                    left.Process(first, chunk.Left);
+                    right.Process(first, chunk.Right);
+                    if (cascade) {
+                        secondLeft.Process(second, chunk.Left);
+                        secondRight.Process(second, chunk.Right);
+                    }
                 }
 
                 phase = moving ? (phase + length) % SubBlock : 0;
@@ -380,6 +468,7 @@ public sealed class FilterBlock() : DspBlock(Info) {
             Params.Advance(Frequency, io.Length);
             Params.Advance(Q, io.Length);
             Params.Advance(Gain, io.Length);
+            Params.Advance(Drive, io.Length);
         }
 
         Finish(io);

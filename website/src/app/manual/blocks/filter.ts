@@ -1,9 +1,10 @@
 import type { BlockDoc } from '../types';
 
 export const doc: BlockDoc = {
-  summary: `A general-purpose filter: one band of EQ or filtering with a choice of fifteen responses, from plain low- and
-high-pass filters to shelves, a tilt EQ, an all-pass with feedback and two comb filters. A built-in LFO can sweep it
-between two frequencies, which turns it into an auto-wah, a slow filter sweep or a rhythmic, stepped effect.
+  summary: `A general-purpose filter: one band of EQ or filtering with a choice of seventeen responses, from plain low- and
+high-pass filters to shelves, a tilt EQ, an all-pass with feedback, two comb filters and two synth-style ladder
+low-passes. A built-in LFO can sweep it between two frequencies, which turns it into an auto-wah, a slow filter sweep or
+a rhythmic, stepped effect, and a built-in envelope follower can open or close it with how hard you play.
 
 It also has a low and high cut, per-side panning and phase invert, so the Null type makes it a handy utility for
 level, pan and polarity alone.`,
@@ -14,6 +15,9 @@ level, pan and polarity alone.`,
 - **Telephone or radio voice:** Band Pass around 1 to 2 kHz with a Q of 1 to 2.
 - **Auto filter:** Low Pass or Band Pass with Q 3 to 6, LFO Enable on, Frequency at the low end of the sweep and Mod
   Frequency at the top. Sync the rate with LFO Tempo.
+- **Envelope filter:** Low Pass, Band Pass or Ladder LP 24 with Q 3 to 8, Frequency low (200 to 400 Hz) and, on the
+  Envelope page, Env Range at +3 to +4 octaves. Raise Env Sensitivity until a hard pick opens the filter all the way.
+- **Synth filter:** Ladder LP 24 with Q 4 to 10 and some Drive, swept by the LFO, the envelope or a pedal.
 - **Synth-like stepped filter:** the same, with LFO Quantize at 4 to 8 steps and a Saw or Square LFO.
 - **Flange-like combs:** FF Comb or FB Comb with Comb Time 1 to 10 ms.
 
@@ -28,7 +32,8 @@ of a shelf, the hinge of the tilt EQ. With the LFO on, it is one end of the swee
 
     q: `The resonance or width. On a low- or high-pass, Q above 0.707 adds a resonant peak at the cut-off (the classic
 synth-filter "wow"); on a band-pass, notch or peak, higher Q is narrower. On the standard shelves it is limited to 1;
-Low and High Shelf 2 allow up to 4, so they overshoot at the corner. Hidden on Tilt EQ (a fixed gentle slope), Null
+Low and High Shelf 2 allow up to 4, so they overshoot at the corner. On the ladder types it is the resonance: 0.707
+is none, and it rises towards the edge of self-oscillation at the top of the knob. Hidden on Tilt EQ (a fixed gentle slope), Null
 and the comb types.`,
 
     gain: `The boost or cut, in dB, of the Peaking, shelf and Tilt EQ types; the other types hide it (use Level to
@@ -40,7 +45,25 @@ change their volume).`,
 
     order: `**2nd** is one filter section (12 dB/oct for low- and high-pass). **4th** cascades two identical sections for
 a steeper 24 dB/oct cut and a sharper resonance. It shows on Low Pass, High Pass, Band Pass, Notch and All Pass only;
-Tilt EQ is always two sections.`,
+Tilt EQ is always two sections, and the ladder types have their slope in their name.`,
+
+    drive: `Ladder LP 12 and 24 only: gain into the ladder's input stage, which clips softly, taken off again at the
+output. Quiet playing keeps its level; loud playing is compressed and gains harmonics, and a ringing resonance gets
+thicker instead of louder. At 0 dB the ladder is close to clean (it only rounds off peaks above full scale).`,
+
+    envRange: `Envelope page: how far the block's envelope follower moves the filter's frequency, in octaves, when the
+input is loud. Positive opens the filter as you dig in (the usual envelope filter); negative closes it. **0** switches
+the follower off. It adds to the LFO's sweep if that is on too, and the result stays between 20 Hz and 20 kHz.`,
+
+    envSens: `Envelope page: gain into the envelope follower. The filter moves the whole Env Range when the input, after
+this gain, reaches full scale, and proportionally less below that. Raise it for quiet pickups or a light touch, lower
+it if every note opens the filter completely. It does not change what you hear directly.`,
+
+    envAttack: `Envelope page: how fast the follower rises when a note starts. A few milliseconds gives the quick "quack";
+longer times give a slow "wow" that swells into each note.`,
+
+    envRelease: `Envelope page: how fast the follower falls as the note dies away. Short follows every note; long holds
+the filter open through a phrase.`,
 
     lowCut: `A gentle 6 dB/oct high-pass after the filter (20 Hz is off).`,
 
@@ -106,7 +129,12 @@ Gain is brighter, negative darker. One knob for "warmer or brighter".`,
 bump just above the shelf when cutting, a dip when boosting.`,
       'High Shelf 2': `A high shelf whose Q can go up to 4, overshooting at the corner like a passive network.`,
       'Peaking 2': `A peak that narrows as its gain grows (its Q is multiplied by the square root of the linear gain), so big
-boosts and cuts stay focused.`
+boosts and cuts stay focused.`,
+      'Ladder LP 12': `The transistor-ladder low-pass of classic synthesisers, taken after its second stage: a 12 dB/oct
+slope with the ladder's resonance. Q sets the resonance and Drive pushes its input stage. Unlike the hardware, the pass
+band keeps its level as the resonance rises.`,
+      'Ladder LP 24': `The same ladder taken after its fourth stage: the full 24 dB/oct, darker and rounder than the Low
+Pass at 4th order, with a singing resonance.`
     },
     lfoType: {
       Sine: `Smooth and even.`,
@@ -132,7 +160,8 @@ boosts and cuts stay focused.`
 
   tips: `- While the filter moves, its coefficients are updated every 32 samples on a fixed grid, so the sound does not
   depend on your buffer size, and fast sweeps stay smooth.
-- For a classic envelope-controlled auto-wah, leave the LFO off and drive Frequency from an envelope follower
-  [modifier](/manual/modifiers) instead.
+- The Envelope page gives each Filter block its own envelope follower, listening to the block's input. The rig's
+  envelope follower, attached to Frequency as a [modifier](/manual/modifiers), does the same job with one follower
+  shared by the whole preset and a response curve of your choice.
 - A Low Pass at 5 to 6 kHz after a direct-recorded distortion is the quickest way to take off the worst fizz.`
 };

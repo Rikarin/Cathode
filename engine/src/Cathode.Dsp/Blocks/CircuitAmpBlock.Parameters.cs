@@ -15,7 +15,7 @@ public sealed partial class CircuitAmpBlock {
     /// <summary>The choice that leaves a model's own part (tube, speaker, supply, ...) in place.</summary>
     const string Stock = "Stock";
 
-    static readonly string[] KeptOnTypeChange = ["type", "level", "balance", "inputsel", "oversampling"];
+    static readonly string[] KeptOnTypeChange = ["type", "level", "balance", "inputsel", "oversampling", "preamp"];
 
     public static BlockDescriptor Info { get; } = Describe(
         Labelled(
@@ -132,7 +132,8 @@ public sealed partial class CircuitAmpBlock {
                 ParamDescriptor.Choice("outmode", "Output Mode", ["FRFR", "SS Power Amp + Cab"]),
                 Expert(Scale("screenfreq", "Screen Freq")),
                 Expert(ParamDescriptor.Float("screenq", "Screen Q", 0f, 5f, 0f)),
-                ParamDescriptor.Choice("oversampling", "Oversampling", ["Standard", "High"]) with { Recompile = true }
+                ParamDescriptor.Choice("oversampling", "Oversampling", ["Standard", "High"]) with { Recompile = true },
+                ParamDescriptor.Switch("preamp", "Preamp", true)
             ]
         )
     );
@@ -157,8 +158,8 @@ public sealed partial class CircuitAmpBlock {
                 new(
                     "Preamp",
                     [
-                        "intrim", "inputsel", "lowcut", "pretube", "presag", "stacktype", "stackloc", "definition",
-                        "saturation", "satdrive", "boost", "boostdrive", "boosttone", "boostlevel"
+                        "preamp", "intrim", "inputsel", "lowcut", "pretube", "presag", "stacktype", "stackloc",
+                        "definition", "saturation", "satdrive", "boost", "boostdrive", "boosttone", "boostlevel"
                     ]
                 ),
                 new(

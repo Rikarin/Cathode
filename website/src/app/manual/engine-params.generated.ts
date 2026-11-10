@@ -814,14 +814,14 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
     category: 'Filter',
     channels: 4,
     maxInstances: 4,
-    pages: ['Basic', 'Modulation', 'Stereo'],
+    pages: ['Basic', 'Modulation', 'Envelope', 'Stereo'],
     params: [
       {
         id: 'type',
         name: 'Type',
         kind: 'choice',
         min: 0,
-        max: 14,
+        max: 16,
         default: 0,
         page: 'Basic',
         options: [
@@ -839,7 +839,9 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'FB Comb',
           'Low Shelf 2',
           'High Shelf 2',
-          'Peaking 2'
+          'Peaking 2',
+          'Ladder LP 12',
+          'Ladder LP 24'
         ]
       },
       {
@@ -867,6 +869,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           'Frequency',
           'Frequency',
+          'Frequency',
+          'Frequency',
           'Frequency'
         ]
       },
@@ -879,7 +883,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         default: 0.7071,
         taper: 'log',
         page: 'Basic',
-        typeLabels: ['Q', 'Q', 'Q', 'Q', 'Q', 'Q', 'Q', '', 'Q', '', '', '', 'Q', 'Q', 'Q']
+        typeLabels: ['Q', 'Q', 'Q', 'Q', 'Q', 'Q', 'Q', '', 'Q', '', '', '', 'Q', 'Q', 'Q', 'Q', 'Q']
       },
       {
         id: 'gain',
@@ -890,7 +894,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         default: 0,
         unit: 'dB',
         page: 'Basic',
-        typeLabels: ['', '', '', '', 'Gain', 'Gain', 'Gain', '', '', 'Gain', '', '', 'Gain', 'Gain', 'Gain']
+        typeLabels: ['', '', '', '', 'Gain', 'Gain', 'Gain', '', '', 'Gain', '', '', 'Gain', 'Gain', 'Gain', '', '']
       },
       {
         id: 'level',
@@ -921,7 +925,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         default: 0,
         page: 'Basic',
         options: ['2nd', '4th'],
-        typeLabels: ['Order', 'Order', 'Order', 'Order', '', '', '', '', 'Order', '', '', '', '', '', '']
+        typeLabels: ['Order', 'Order', 'Order', 'Order', '', '', '', '', 'Order', '', '', '', '', '', '', '', '']
       },
       {
         id: 'lowCut',
@@ -985,7 +989,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         unit: 'ms',
         taper: 'log',
         page: 'Basic',
-        typeLabels: ['', '', '', '', '', '', '', '', '', '', 'Comb Time', 'Comb Time', '', '', '']
+        typeLabels: ['', '', '', '', '', '', '', '', '', '', 'Comb Time', 'Comb Time', '', '', '', '', '']
       },
       {
         id: 'depth',
@@ -996,7 +1000,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         default: 50,
         unit: '%',
         page: 'Basic',
-        typeLabels: ['', '', '', '', '', '', '', '', '', '', 'Depth', 'Depth', '', '', '']
+        typeLabels: ['', '', '', '', '', '', '', '', '', '', 'Depth', 'Depth', '', '', '', '', '']
       },
       {
         id: 'lfoOn',
@@ -1019,6 +1023,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'LFO Enable',
           '',
           '',
+          'LFO Enable',
+          'LFO Enable',
           'LFO Enable',
           'LFO Enable',
           'LFO Enable'
@@ -1059,6 +1065,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           'LFO Type',
           'LFO Type',
+          'LFO Type',
+          'LFO Type',
           'LFO Type'
         ]
       },
@@ -1085,6 +1093,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'LFO Rate',
           '',
           '',
+          'LFO Rate',
+          'LFO Rate',
           'LFO Rate',
           'LFO Rate',
           'LFO Rate'
@@ -1137,6 +1147,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           'LFO Tempo',
           'LFO Tempo',
+          'LFO Tempo',
+          'LFO Tempo',
           'LFO Tempo'
         ]
       },
@@ -1165,6 +1177,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           'Mod Frequency',
           'Mod Frequency',
+          'Mod Frequency',
+          'Mod Frequency',
           'Mod Frequency'
         ]
       },
@@ -1177,7 +1191,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         default: 0,
         unit: '%',
         page: 'Basic',
-        typeLabels: ['', '', '', '', '', '', '', '', 'Feedback', '', '', '', '', '', '']
+        typeLabels: ['', '', '', '', '', '', '', '', 'Feedback', '', '', '', '', '', '', '', '']
       },
       {
         id: 'lfoDuty',
@@ -1201,6 +1215,8 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'LFO Duty',
           '',
           '',
+          'LFO Duty',
+          'LFO Duty',
           'LFO Duty',
           'LFO Duty',
           'LFO Duty'
@@ -1230,7 +1246,138 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           'LFO Quantize',
           'LFO Quantize',
+          'LFO Quantize',
+          'LFO Quantize',
           'LFO Quantize'
+        ]
+      },
+      {
+        id: 'drive',
+        name: 'Drive',
+        kind: 'float',
+        min: 0,
+        max: 36,
+        default: 0,
+        unit: 'dB',
+        page: 'Basic',
+        typeLabels: ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'Drive', 'Drive']
+      },
+      {
+        id: 'envRange',
+        name: 'Env Range',
+        kind: 'float',
+        min: -8,
+        max: 8,
+        default: 0,
+        unit: 'oct',
+        page: 'Envelope',
+        typeLabels: [
+          'Env Range',
+          'Env Range',
+          'Env Range',
+          'Env Range',
+          'Env Range',
+          'Env Range',
+          'Env Range',
+          '',
+          'Env Range',
+          'Env Range',
+          '',
+          '',
+          'Env Range',
+          'Env Range',
+          'Env Range',
+          'Env Range',
+          'Env Range'
+        ]
+      },
+      {
+        id: 'envSens',
+        name: 'Env Sensitivity',
+        kind: 'float',
+        min: -24,
+        max: 48,
+        default: 12,
+        unit: 'dB',
+        page: 'Envelope',
+        typeLabels: [
+          'Env Sensitivity',
+          'Env Sensitivity',
+          'Env Sensitivity',
+          'Env Sensitivity',
+          'Env Sensitivity',
+          'Env Sensitivity',
+          'Env Sensitivity',
+          '',
+          'Env Sensitivity',
+          'Env Sensitivity',
+          '',
+          '',
+          'Env Sensitivity',
+          'Env Sensitivity',
+          'Env Sensitivity',
+          'Env Sensitivity',
+          'Env Sensitivity'
+        ]
+      },
+      {
+        id: 'envAttack',
+        name: 'Env Attack',
+        kind: 'float',
+        min: 0.1,
+        max: 100,
+        default: 5,
+        unit: 'ms',
+        taper: 'log',
+        page: 'Envelope',
+        typeLabels: [
+          'Env Attack',
+          'Env Attack',
+          'Env Attack',
+          'Env Attack',
+          'Env Attack',
+          'Env Attack',
+          'Env Attack',
+          '',
+          'Env Attack',
+          'Env Attack',
+          '',
+          '',
+          'Env Attack',
+          'Env Attack',
+          'Env Attack',
+          'Env Attack',
+          'Env Attack'
+        ]
+      },
+      {
+        id: 'envRelease',
+        name: 'Env Release',
+        kind: 'float',
+        min: 10,
+        max: 1000,
+        default: 150,
+        unit: 'ms',
+        taper: 'log',
+        page: 'Envelope',
+        typeLabels: [
+          'Env Release',
+          'Env Release',
+          'Env Release',
+          'Env Release',
+          'Env Release',
+          'Env Release',
+          'Env Release',
+          '',
+          'Env Release',
+          'Env Release',
+          '',
+          '',
+          'Env Release',
+          'Env Release',
+          'Env Release',
+          'Env Release',
+          'Env Release'
         ]
       }
     ]
@@ -16814,6 +16961,15 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         default: 0,
         page: 'Advanced',
         options: ['Standard', 'High']
+      },
+      {
+        id: 'preamp',
+        name: 'Preamp',
+        kind: 'switch',
+        min: 0,
+        max: 1,
+        default: 1,
+        page: 'Preamp'
       }
     ]
   },
@@ -20769,27 +20925,27 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         name: 'Start Vowel',
         kind: 'choice',
         min: 0,
-        max: 4,
+        max: 9,
         default: 0,
-        options: ['A', 'E', 'I', 'O', 'U']
+        options: ['A', 'E', 'I', 'O', 'U', 'IH', 'AE', 'OO', 'UH', 'ER']
       },
       {
         id: 'mid',
         name: 'Mid Vowel',
         kind: 'choice',
         min: 0,
-        max: 4,
+        max: 9,
         default: 1,
-        options: ['A', 'E', 'I', 'O', 'U']
+        options: ['A', 'E', 'I', 'O', 'U', 'IH', 'AE', 'OO', 'UH', 'ER']
       },
       {
         id: 'end',
         name: 'End Vowel',
         kind: 'choice',
         min: 0,
-        max: 4,
+        max: 9,
         default: 2,
-        options: ['A', 'E', 'I', 'O', 'U']
+        options: ['A', 'E', 'I', 'O', 'U', 'IH', 'AE', 'OO', 'UH', 'ER']
       },
       {
         id: 'control',

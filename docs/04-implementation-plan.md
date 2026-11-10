@@ -285,6 +285,7 @@ This is the most important differentiator against "just a NAM host" and the hard
    - **Reference harness** (docs/06 §4.3): a manifest of real-amp captures (GPL ones fetched by `cathode-references fetch`, T3K ones by hand), NAM and GuitarML LSTM runners, calibrated input in volts, ESR/MRSTFT/harmonic/response report (`cathode-references match --html`) and a tolerance fit. First numbers against GPL captures of a Twin, JCM900, Laney GH, AC15 and Matchless SC30: ESR (pre-emphasised) 0.5–1.5, MRSTFT 0.8–2.3, before any family work.
 4. **R4 "expert" parameters** (bias, sag, transformer, tube types, negative feedback, presence/depth), mirroring the Axe-Fx III depth the users expect.
 5. **R5 hybrid tier:** neural preamp capture with a parametric power amp, so master, presence and depth respond on captures.
+   - **Done** as a switch: the Amp block's **Preamp** off leaves the model's preamp out, so an Amp NAM block ahead of it drives the phase inverter (docs/02 §5.8).
 6. **R6 scale-out:** additional amp families as configurations of the stage library, about 1 model per 1–2 weeks once the framework is mature.
 
 Gate for each model: ESR/MRSTFT within target across a knob sweep, plus an ABX panel against the reference.

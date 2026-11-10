@@ -98,6 +98,7 @@ The codes K, E, M and D were this section's recommendations before the work. The
 | Parameter | Range | Default | Physical meaning | Cathode |
 |---|---|---|---|---|
 | Power Amp Modeling | off/on | on | Bypass the power amp for use with a real tube power amp | **✓** `poweramp` (off: the output is the phase inverter's input) |
+| — Preamp | off/on | on | Cathode extra: leave the preamp out, so the block is the power amp alone behind another preamp (a capture in an Amp NAM block, or an Amp block with its power amp off). Full scale at the input is the inverter's; a preamp master becomes a volume control ahead of the inverter | ✅ `preamp` (the other half of the hybrid tier, docs/02 §5.8) |
 | Power Tube Type | 6AQ5, 6CA7, 6L6GB, 6L6GC, 6V6, 300B, 5881, 6550, 6973, EL34, EL84, KT66, KT77, KT88, Transistor (fw 32) | model | Tube curves | **✓** `powertube` (Stock, 6L6GC, EL34, EL84, 6V6GT, KT66, KT88, 6550, rebiased to the design's idle current; a 5881 is the 6L6GC). A model's own tubes can be others (`PentodeModel`) |
 | Power Tube Grid Bias | % | model | Bias point, class B to class A | **✓** `bias` |
 | Negative Feedback | 0–10 | model | Global feedback amount | **✓** `feedback` |

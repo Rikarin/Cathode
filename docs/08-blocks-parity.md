@@ -40,9 +40,9 @@ The guide's comparison table (p. 3) lists 42 block types. Cathode covers all 42 
 | Drive (DRV) | `drive` | 60+ → 64 | 🆕 22 / 1 / 0 | Strong circuits; 🆕 EQ pages and the Advanced page, all the guide's clip types, Slew Rate per op-amp; 🆕 round 4: D1 ten overdrives, D2 15 distortions and amp-in-a-box circuits (Metal Zone, Fat Rat, Suhr Riot ×3, DRV, Crunch Box, B7K, Xotic ACB/Bass RCB, FAS LED-Drive, Ruckus, Shimmer Drive, Tube Driver ×2) with a triode stage and an active band EQ, D3 twelve fuzzes, boosts, preamps, Tape Distortion and Bit Crusher; per-pedal extra knobs on the Guv'nor's stack, the Timmy (Bass, Treble), the Zendrive (Voice), the OCD (HP/LP), the active EQs' bass/middle pots, the Metal Zone's Middle Freq, the B7K's Grunt/Attack, 🆕 Hi Mids and Blend, the King of Tone's and Full-Drive 2's modes, the FD2's Boost, the Eternity's Glow, the Precision Drive's Attack and Gate, the Buxom Boost's Bass and Tight, the Bass RC Booster's DIP switches and the Super-Fuzz's tone switch |
 | Dynamic Distortion (DND) | `dyndist` | 7 → 🆕 14 curves + 7 library presets | 🆕 10 / 0 / 0 | Different design (envelope-driven); 🆕 the guide's frequency-shaped filter, bias, mono; 🆕 the types as filter presets |
 | Enhancer (ENH) | `enhancer` | 3 → 🆕 4 | 🆕 10 / 0 / 0 | Done (🆕 Stereoizer, Depth) |
-| Filter (FLT) | `filter` | 15 → 🆕 15 | 🆕 21 / 0 / 0 | 🆕 Done: Shelf 2, Peaking 2, all-pass feedback, first-order cuts, LFO duty and quantise |
+| Filter (FLT) | `filter` | 15 → 🆕 17 | 🆕 21 / 0 / 0 | 🆕 Done: Shelf 2, Peaking 2, all-pass feedback, first-order cuts, LFO duty and quantise; 🆕 two ladder low-passes with drive and an envelope follower of its own |
 | Flanger (FLG) | `flanger` | 31 → 1 | 🆕 24 / 0 / 0 | 🆕 Done: thru-zero, drive, bass focus, VCO response, min/max time, LFO reset on engage, Global Mix |
-| Formant (FOR) | `formant` | 1 → 1 | 8 / 0 / 0 | Partial (5 of 10 vowels; Cathode adds Shift) |
+| Formant (FOR) | `formant` | 1 → 1 | 8 / 0 / 0 | Full (Cathode adds Shift) |
 | Gate/Expander (GTE) | `gate` | 4 → 🆕 4 | 🆕 15 / 0 / 0 | Done (🆕 Modern types, knee, sidechain from a row or the input) |
 | Graphic EQ (GEQ) | `geq` | 16 → 🆕 10 layouts × constant/variable Q | 🆕 7 / 0 / 0 | 🆕 Band layouts, outer shelves; 🆕 the passive types as component-level networks |
 | IR Player (IRP) | `irplayer` | 1 → 1 | 🆕 11 / 0 / 0 | Done (🆕 two slots, modes, length, per-IR level and pan, slopes, input select) |
@@ -428,7 +428,7 @@ Types: Modern, Classic, Stereoizer → Cathode Modern, Classic (a delayed-mid si
 
 ### 6.8 Filter (p. 42) → `filter`
 
-Types: guide 15 → Cathode 🆕 15: Low Pass, High Pass, Band Pass, Notch, Peaking, Low Shelf, High Shelf, Null, All Pass, Tilt EQ, FF Comb, FB Comb and 🆕 Low Shelf 2, High Shelf 2 (Q up to 4, so they overshoot at the corner as passive shelving networks do) and Peaking 2 (proportional Q: the peak narrows as its gain grows, Q × √gain).
+Types: guide 15 → Cathode 🆕 17: 🆕 Ladder LP 12 and Ladder LP 24 (a four-pole transistor ladder with zero-delay feedback, Q as its resonance, Drive into its input stage; `Ladder.cs`, `FilterBlockTests`), Low Pass, High Pass, Band Pass, Notch, Peaking, Low Shelf, High Shelf, Null, All Pass, Tilt EQ, FF Comb, FB Comb and 🆕 Low Shelf 2, High Shelf 2 (Q up to 4, so they overshoot at the corner as passive shelving networks do) and Peaking 2 (proportional Q: the peak narrows as its gain grows, Q × √gain).
 
 | Parameter | Cathode | Note | Effort |
 |---|---|---|---|
@@ -442,6 +442,8 @@ Types: guide 15 → Cathode 🆕 15: Low Pass, High Pass, Band Pass, Notch, Peak
 | LFO enable, type, rate, Mod Frequency | ✅ | Plus tempo |  |
 | LFO duty, quantise | 🆕 ✅ | Duty 0–100 %; Quantize off or 2–16 levels (shared `LfoConditioner`) |  |
 | Level, Balance | ✅ |  |  |
+| — Drive (ladder types) | 🆕 ✅ | Cathode extra: 0–36 dB into the ladder's input stage, taken off again at the output |  |
+| — Env Range, Sensitivity, Attack, Release | 🆕 ✅ | Cathode extra: the block's own envelope follower moves the frequency by up to ±8 octaves, so two envelope filters in one preset can respond differently; range 0 is off |  |
 
 ### 6.9 Flanger (pp. 43–45) → `flanger`
 
@@ -471,13 +473,13 @@ Types: guide 31 named presets → Cathode 1 algorithm, now with 🆕 thru-zero a
 
 | Parameter | Cathode | Note |
 |---|---|---|
-| Start, Middle, End Vowel (10 vowels) | ◐ | Five vowels: A, E, I, O, U (Peterson-Barney adult male F1–F3); the guide's other five are not modelled |
+| Start, Middle, End Vowel (10 vowels) | ✅ | Ten vowels, the Peterson-Barney set (adult male F1–F3): A, E, I, O, U, then IH ("hid"), AE ("had"), OO ("hood"), UH ("hud"), ER ("heard"). The names are Cathode's own |
 | Resonance | ✅ |  |
 | Control | ✅ |  |
 | Mix, Level, Balance | ✅ / 🆕 |  |
 | — Shift | ✅ | Cathode extra |
 
-Verdict: **partial**: the vowel set is half the guide's.
+Verdict: **full**.
 
 ### 6.11 Gate/Expander (p. 47) → `gate`
 

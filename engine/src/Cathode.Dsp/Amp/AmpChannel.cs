@@ -25,6 +25,10 @@ namespace Cathode.Dsp.Amp;
 ///     divider on that stage's input swing, as <paramref name="Overdrive" /> is a gain on it; 1 for none. It does
 ///     nothing on a channel without a gain stage (<see cref="AmpChannel.HasGainStage" />).
 /// </param>
+/// <param name="Preamp">
+///     False to leave the preamp out: the input is then the phase inverter's input volts, as another preamp (a
+///     capture, say) delivers them.
+/// </param>
 public readonly record struct ChannelSettings(
     double LowCut = 0,
     double PreampSag = 1,
@@ -32,7 +36,8 @@ public readonly record struct ChannelSettings(
     StackLocation StackLocation = StackLocation.Stock,
     double Overdrive = 1,
     double Plate = 1,
-    double PreTriodeMaster = 1
+    double PreTriodeMaster = 1,
+    bool Preamp = true
 ) {
     public static ChannelSettings Stock => new(0);
 
@@ -114,6 +119,11 @@ public sealed class AmpChannel {
     ///     Whether the power amp is modelled (the Power Amp Modeling switch); otherwise the output is the preamp's.
     /// </summary>
     public bool PowerAmpEnabled => channelSettings.PowerAmp;
+
+    /// <summary>
+    ///     Whether the preamp is modelled (the Preamp switch); otherwise the input goes to the phase inverter as it is.
+    /// </summary>
+    public bool PreampEnabled => channelSettings.Preamp;
 
     /// <summary>
     ///     Per preamp supply node, the supply its stages run on as a fraction of nominal (the preamp sag applied).
@@ -457,21 +467,12 @@ public sealed class AmpChannel {
 
     /// <summary>
     ///     One sample at the oversampled rate: guitar volts in, 8 Ω speaker volts out (or, with the power amp off, the
-    ///     phase inverter's input volts).
+    ///     phase inverter's input volts). With the preamp off the input is the phase inverter's input volts.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double Tick(double input) {
         UpdateSupplies();
-        var x = channelSettings.LowCut > 0 ? lowCut.Process(input) : input;
-        if (reordered || channelSettings.LastStageDrive != 1) {
-            x = RunStages(x);
-        } else {
-            foreach (var stage in stages) {
-                stage.SetSupplies(supplies);
-                x = stage.Tick(x);
-            }
-        }
-
+        var x = RunPreamp(input);
         Power.SetLoopSupply(supplies[0]);
 
         if (!channelSettings.PowerAmp) {
@@ -489,17 +490,31 @@ public sealed class AmpChannel {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double TickPreamp(double input) {
         UpdateSupplies();
-        var x = channelSettings.LowCut > 0 ? lowCut.Process(input) : input;
-        if (reordered || channelSettings.LastStageDrive != 1) {
-            x = RunStages(x);
-        } else {
-            foreach (var stage in stages) {
-                stage.SetSupplies(supplies);
-                x = stage.Tick(x);
-            }
+        var x = RunPreamp(input);
+        Power.SetLoopSupply(supplies[0]);
+
+        return x;
+    }
+
+    /// <summary>
+    ///     The low cut and the preamp stages; with the preamp off, nothing: the input is already what the phase
+    ///     inverter takes, and the stages rest where they were.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    double RunPreamp(double input) {
+        if (!channelSettings.Preamp) {
+            return input;
         }
 
-        Power.SetLoopSupply(supplies[0]);
+        var x = channelSettings.LowCut > 0 ? lowCut.Process(input) : input;
+        if (reordered || channelSettings.LastStageDrive != 1) {
+            return RunStages(x);
+        }
+
+        foreach (var stage in stages) {
+            stage.SetSupplies(supplies);
+            x = stage.Tick(x);
+        }
 
         return x;
     }
