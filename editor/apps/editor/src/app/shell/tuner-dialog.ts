@@ -55,7 +55,10 @@ export const OffsetRange = 20;
   template: `
     <xui-dialog title="Tuner" icon="cthTuner" [(open)]="open">
       <xui-dialog-body>
-        <cth-tuner class="py-4" [source]="reading" [view]="view()" />
+        <!-- Only while open: projected content is created with this component, and the tuner draws on every frame. -->
+        @if (open()) {
+          <cth-tuner class="py-4" [source]="reading" [view]="view()" />
+        }
         @if (globals.settings(); as s) {
           <div class="grid grid-cols-[auto_minmax(0,1fr)] items-center justify-items-start gap-x-3 gap-y-2">
             <span class="text-foreground-muted text-xs" id="tuner-view-label">View</span>
