@@ -53,6 +53,11 @@ export function pickerEntries<T extends PickerEntry>(entries: readonly T[], quer
 /**
  * A searchable list for the preset and IR pickers: type to filter, ↑/↓ to move, ↵ to choose, ★ to favour, a colour
  * menu per entry, and a pin that keeps the picker open after choosing (to audition one after another).
+ *
+ * It is a combobox: focus stays in the search field and the options follow `aria-activedescendant`. An option may hold
+ * no controls of its own, so the star and the colour dot in each row are for the pointer alone (out of the tab order
+ * and hidden from assistive technology, the row saying "favourite" and its colour in words instead), and the two
+ * buttons under the list do the same for the highlighted entry, for the keyboard and a screen reader.
  */
 @Component({
   selector: 'cth-picker-list',
@@ -143,14 +148,18 @@ export function pickerEntries<T extends PickerEntry>(entries: readonly T[], quer
         >
           <button
             type="button"
+            tabindex="-1"
+            aria-hidden="true"
             class="size-3 shrink-0 rounded-full border border-current/30"
             [style.background]="entry.color ?? 'transparent'"
-            [attr.aria-label]="'Colour tag of ' + entry.name"
             [xuiMenuTriggerFor]="colors"
             [xuiMenuTriggerData]="{ entry }"
             (click)="$event.stopPropagation()"
           ></button>
           <span class="min-w-0 flex-1 truncate">{{ entry.name }}</span>
+          @if (entry.favorite || entry.color) {
+            <span class="sr-only">{{ marks(entry) }}</span>
+          }
           @if (entry.id === current()) {
             <ng-icon
               name="matVolumeUpRound"
@@ -170,11 +179,11 @@ export function pickerEntries<T extends PickerEntry>(entries: readonly T[], quer
           }
           <button
             type="button"
+            tabindex="-1"
+            aria-hidden="true"
             class="text-warning shrink-0"
             [class.opacity-0]="!entry.favorite"
             [class.group-hover:opacity-60]="!entry.favorite"
-            [attr.aria-label]="(entry.favorite ? 'Unfavour ' : 'Favour ') + entry.name"
-            [attr.aria-pressed]="!!entry.favorite"
             (click)="$event.stopPropagation(); favorite.emit({ entry, favorite: !entry.favorite })"
           >
             <ng-icon [name]="entry.favorite ? 'matStarRound' : 'matStarOutlineRound'" size="14" />
@@ -186,9 +195,48 @@ export function pickerEntries<T extends PickerEntry>(entries: readonly T[], quer
         }
       }
     </ul>
-    <div class="text-foreground-subtle flex items-center justify-between px-1 text-[11px]">
-      <span class="readout">{{ shown().length }} {{ noun() }}</span>
-      <span aria-hidden="true">↑↓ move · ↵ choose · esc close</span>
+    <div class="text-foreground-subtle flex items-center gap-1 px-1 text-[11px]">
+      <span class="readout me-auto">{{ shown().length }} {{ noun() }}</span>
+      <!-- The rows' star and colour dot, for the highlighted entry: reachable with Tab from the search field.
+           The native attribute disables them: [disabled] would be the tooltip's own input. -->
+      <button
+        type="button"
+        xuiButton
+        variant="ghost"
+        size="sm"
+        data-testid="picker-favorite"
+        [attr.disabled]="active() ? null : ''"
+        [attr.aria-label]="
+          active() ? (active()?.favorite ? 'Unfavourite ' : 'Favourite ') + active()?.name : 'Favourite'
+        "
+        [active]="!!active()?.favorite"
+        [xuiTooltip]="
+          active()?.favorite
+            ? 'Remove the highlighted entry from the favourites'
+            : 'Make the highlighted entry a favourite'
+        "
+        (click)="toggleFavorite()"
+      >
+        <ng-icon [name]="active()?.favorite ? 'matStarRound' : 'matStarOutlineRound'" />
+      </button>
+      <button
+        type="button"
+        xuiButton
+        variant="ghost"
+        size="sm"
+        data-testid="picker-color"
+        [attr.disabled]="active() ? null : ''"
+        [attr.aria-label]="active() ? 'Colour tag of ' + active()?.name + ': ' + colorOf(active()) : 'Colour tag'"
+        [xuiTooltip]="'Colour tag of the highlighted entry'"
+        [xuiMenuTriggerFor]="colors"
+        [xuiMenuTriggerData]="{ entry: active() }"
+      >
+        <span
+          class="size-3 rounded-full border border-current/30"
+          [style.background]="active()?.color ?? 'transparent'"
+        ></span>
+      </button>
+      <span class="ms-2" aria-hidden="true">↑↓ move · ↵ choose · esc close</span>
     </div>
     <ng-template #colors let-entry="entry">
       <xui-menu>
@@ -248,6 +296,23 @@ export class PickerList {
     this.query.set(query);
     this.index.set(0);
     this.queryChange.emit(query);
+  }
+
+  /** What a row says of its star and colour dot: ", favourite, Green tag". */
+  protected marks(entry: PickerEntry): string {
+    return (entry.favorite ? ', favourite' : '') + (entry.color ? `, ${tagColorName(entry.color)} tag` : '');
+  }
+
+  protected colorOf(entry: PickerEntry | null): string {
+    return entry?.color ? tagColorName(entry.color) : 'none';
+  }
+
+  /** The highlighted entry's star, from the button under the list. */
+  protected toggleFavorite(): void {
+    const entry = this.active();
+    if (entry) {
+      this.favorite.emit({ entry, favorite: !entry.favorite });
+    }
   }
 
   protected choose(entry: PickerEntry): void {
