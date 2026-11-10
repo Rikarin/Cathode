@@ -326,6 +326,15 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
     /// </summary>
     public const int OversamplingSetting = 111;
 
+    /// <summary>
+    ///     Preamp: off leaves the model's preamp out, so the block is its power amp alone and takes another preamp's
+    ///     output (an Amp NAM capture of a preamp, or a Circuit Amp with its power amp off). The input's full scale is
+    ///     then the inverter's, as the output's is with Power Amp off, so two blocks of one model chained that way are
+    ///     the whole amp. A master that sits in the preamp becomes a plain volume control (an audio-taper pot, 10 for
+    ///     unity) ahead of the inverter, so Master stays alive on a captured preamp. Kept on a type change.
+    /// </summary>
+    public const int PreampModel = 112;
+
     // Values of Speaker, Master Location and Output Mode.
     public const int SpeakerAuto = 6;
     public const int MasterPostInverter = 1;
@@ -406,6 +415,7 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
     double tremoloPhase;
     double outputScale = 1;
     double preampScale = 1;
+    double lineMaster = 1; // with the preamp off: the Master as a volume control ahead of the inverter
 
     /// <summary>
     ///     Guitar volts per unit of input: the input calibration (<see cref="BlockContext.InputVolts" />), 1 V at full
@@ -529,6 +539,11 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
         var (volts, jack) = ProcessInput(inner, trim, Params.Advance(InputDynamics, length) / 100f, location);
         var channel = Channel;
         var scale = channel.PowerAmpEnabled ? outputScale : preampScale;
+        if (!channel.PreampEnabled) {
+            // The input is a preamp's output, not a guitar: full scale is the inverter's full-scale input (what Power
+            // Amp off puts out), whatever the interface's calibration. Input Trim still trims it.
+            volts = lineMaster / (preampScale * inputVolts) * volts;
+        }
         if (saturate || location == EqBeforePowerAmp || treble) {
             var eq = location == EqBeforePowerAmp;
             for (var i = 0; i < inner.Length; i++) {
@@ -728,6 +743,7 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
             preamp = preamp with { TremoloRate = tremoloRate, TremoloDepth = tremoloDepth };
         }
 
+        lineMaster = features.PreampMaster && !postInverter ? postMaster.Fraction(masterRotation) : 1;
         var feedback = Knob(Params.Advance(Feedback, frames));
         if (design.Power.FeedbackOffSwitch is { } off && preamp.IsOn(off)) {
             feedback = 0;
@@ -819,7 +835,8 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
             Params.Current(PowerAmpModel) >= 0.5f,
             (StackLocation)Math.Clamp((int)Params.Current(StackPlace), 0, 3),
             overdrive > 0 && features.Overdrive ? Decibels.ToGain(overdrive * OverdriveDb / 10) : 1,
-            Percent(Params.Current(Triode2Plate))
+            Percent(Params.Current(Triode2Plate)),
+            Params.Current(PreampModel) >= 0.5f
         );
 
         Channel.Apply(preampSettings, powerSettings, channelSettings);
@@ -917,7 +934,8 @@ readonly record struct AdvancedFeatures(
     bool PresenceShift,
     bool InputCut,
     bool Overdrive,
-    bool HighTreble
+    bool HighTreble,
+    bool PreampMaster
 ) {
     public static AdvancedFeatures Of(AmpDesign design) =>
         new(
@@ -926,6 +944,7 @@ readonly record struct AdvancedFeatures(
             AmpFeatures.Has(design, "presshift"),
             AmpFeatures.Has(design, "cutsw"),
             AmpFeatures.Has(design, "overdrive"),
-            AmpFeatures.Has(design, "hitreble")
+            AmpFeatures.Has(design, "hitreble"),
+            AmpFeatures.HasMaster(design)
         );
 }

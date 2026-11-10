@@ -52,6 +52,11 @@ how the capture distorts, as an amp's tone stack would. For that, put an EQ bloc
 block matches it for you once Input 1 is calibrated. If yours does not record it, start at 0 dB and adjust *Input* until
 a hard strum gives the amount of break-up you expect from that amp at that setting.
 
+**A capture of a preamp.** A capture of a preamp alone, or of an amp taken before its power amp, has no power amp in
+it. Follow it with an [Amp](/manual/blocks/circuitamp) block with *Preamp* switched off (on its Preamp page): that
+block is then a power amp alone, so its Master, Presence, Depth and Sag work on the capture. Set the level into it with
+this block's *Output* or the Amp's *Master*.
+
 **CPU.** Large NAM models are heavy. If you hear dropouts with two captures in a preset, try smaller ("lite" or
 "feather") versions of the files. See [troubleshooting](/manual/troubleshooting).`
 };

@@ -217,6 +217,15 @@ does on amps that have one. Hidden where the model has its own Fat switch.`,
     cutsw: `A 150 Hz high-pass at the input (if *Low Cut* is set higher, the higher one wins). Tightens a boomy amp or a
 dark guitar and keeps the low end from smearing high-gain sounds. Hidden on the SVT, which has its own *Bass Cut*.`,
 
+    preamp: `Turns the preamp simulation off, so the block is the model's power amp alone: phase inverter, output tubes,
+transformer, negative feedback, supply and speaker load. Use it behind another preamp: an [Amp NAM](/manual/blocks/nam)
+block holding a capture of a preamp, or a second Amp block with its *Power Amp* off. Presence, Depth, Sag, Bias and the
+speaker load then work on that preamp's sound. The input is taken as a preamp's output, not a guitar: full scale drives
+the inverter as hard as the model's own preamp can, which is the level an Amp block with *Power Amp* off puts out.
+*Master* becomes a plain volume control in front of the inverter (10 passes the input unchanged) and *Input Trim* trims
+the level as well; Gain, the tone controls and the rest of this page do nothing. The switch stays as it is when you
+change the type, so you can try one preamp through different power amps.`,
+
     intrim: `Gain at the input jack, in dB, before the first tube, with no change to the tone. It is like using a hotter
 or weaker pickup: +6 dB drives every stage harder, -6 dB cleans the amp up. Use it to match single coils and
 humbuckers on the same preset, or when an amp feels too clean or too hot at the gain you like. It acts before the

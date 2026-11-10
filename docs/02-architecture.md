@@ -324,7 +324,7 @@ On every backend the shim enables flush-to-zero on the callback thread, splits c
 
 ### 5.8 Amp modelling strategy (the hard part)
 
-Three tiers ship together, in one Amp block:
+Three tiers ship together, in two blocks: the Amp NAM block (`nam`) holds the captures and the Amp block (`circuitamp`) the circuit models; the hybrid tier is one of each in series:
 
 1. **Capture amps (NAM / RTNeural)**: user-loaded or bundled, snapshot accuracy. These give fast time-to-value.
 2. **Cathode "Circuit" amps**: our own white- and grey-box models. This is the long-term differentiator and the closest analogue to Fractal's Cygnus approach:
@@ -335,7 +335,7 @@ Three tiers ship together, in one Amp block:
    - full "expert" parameters (bias, B+ sag, transformer match, tube types)
 
    The stages are composable, so new amp types are mostly configuration plus a measured tone-stack topology.
-3. **Hybrid**: a neural preamp capture with a parametric power amp and cab. This keeps master/presence/depth knobs "alive" on captured tones.
+3. **Hybrid**: a neural preamp capture with a parametric power amp and cab. This keeps master/presence/depth knobs "alive" on captured tones. It is an Amp NAM block holding a capture of a preamp, followed by an Amp block with its **Preamp** switch off: that block is then the model's power amp alone (inverter, output tubes, transformer, feedback, supply and speaker load), and its input's full scale is the inverter's, the same level an Amp block with **Power Amp** off puts out. A master that sits in the model's preamp becomes a plain volume control ahead of the inverter. Two Amp blocks of one model, the first with its power amp off and the second with its preamp off, are the whole amp but for the sag the preamp no longer sees (`CircuitAmpHybridTests`).
 
 The **Cab** block covers:
 - IR convolution: uniform partitioned at the buffer size, and Gardner-style zero-latency non-uniform partitioning for larger internal block sizes

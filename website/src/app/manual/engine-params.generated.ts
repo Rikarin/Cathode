@@ -16466,6 +16466,15 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         default: 0,
         page: 'Advanced',
         options: ['Standard', 'High']
+      },
+      {
+        id: 'preamp',
+        name: 'Preamp',
+        kind: 'switch',
+        min: 0,
+        max: 1,
+        default: 1,
+        page: 'Preamp'
       }
     ]
   },

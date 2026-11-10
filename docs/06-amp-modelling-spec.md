@@ -95,6 +95,7 @@ This is the research spec for [Phase 7](04-implementation-plan.md#phase-7-circui
 | Parameter | Range | Default | Physical meaning | Cathode |
 |---|---|---|---|---|
 | Power Amp Modeling | off/on | on | Bypass the power amp for use with a real tube power amp | **K** (preamp-only output; also the "R5 hybrid" building block) |
+| — Preamp | off/on | on | Cathode extra: leave the preamp out, so the block is the power amp alone behind another preamp (a capture in an Amp NAM block, or an Amp block with its power amp off). Full scale at the input is the inverter's; a preamp master becomes a volume control ahead of the inverter | ✅ `preamp` (the other half of the hybrid tier, docs/02 §5.8) |
 | Power Tube Type | 6AQ5, 6CA7, 6L6GB, 6L6GC, 6V6, 300B, 5881, 6550, 6973, EL34, EL84, KT66, KT77, KT88, Transistor (fw 32) | model | Tube curves | **E** (add 6V6, 5881, KT66, KT88, 6550, KT77, 6146B as needed by the models) |
 | Power Tube Grid Bias | % | model | Bias point, class B to class A | **✓** Bias |
 | Negative Feedback | 0–10 | model | Global feedback amount | **✓** Feedback |

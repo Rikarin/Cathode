@@ -57,7 +57,10 @@ public static class AmpFeatures {
             _ => false
         };
 
-    static bool HasMaster(AmpDesign design) =>
+    /// <summary>
+    ///     Whether <paramref name="design" /> has its master volume in the preamp, ahead of the inverter.
+    /// </summary>
+    public static bool HasMaster(AmpDesign design) =>
         design.Preamp.Any(static s => s switch {
                 TriodeStageDesign t => t.Volume is not null && t.VolumeRole == PotRole.Master,
                 ToneStackStageDesign t => t.LoadRole == PotRole.Master,
