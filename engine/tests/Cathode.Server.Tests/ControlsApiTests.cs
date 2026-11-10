@@ -231,6 +231,34 @@ public sealed class ControlsApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task A_soft_note_on_is_a_press_and_a_note_off_is_not() {
+        await PutGlobal(static g => g.MidiMappings.Add(new("m", "note", 0, 85, "mute")));
+        var router = server.Services.GetRequiredService<MidiRouter>();
+
+        // A note-off is a release whatever its release velocity, and so is a note-on with velocity 0.
+        router.OnMidi([new(0x80, 85, 100, 0), new(0x90, 85, 0, 0)]);
+        await Task.Delay(300, Token);
+        Assert.False((await Live()).Muted);
+
+        // Velocity is how hard the key was hit, not a switch position: 1 presses as 127 does.
+        router.OnMidi([new(0x90, 85, 1, 0)]);
+        await ServerFixture.Eventually(async () => (await Live()).Muted);
+    }
+
+    [Fact]
+    public async Task Midi_learn_takes_a_note_on_and_ignores_a_note_off() {
+        var router = server.Services.GetRequiredService<MidiRouter>();
+        router.Learn(new("mute"));
+
+        router.OnMidi([new(0x80, 60, 64, 0)]); // the release of a key held before the learn started
+        Assert.Empty((await Global()).MidiMappings);
+
+        router.OnMidi([new(0x90, 61, 20, 0)]);
+        var mapping = Assert.Single((await Global()).MidiMappings);
+        Assert.Equal(("note", 61, "mute"), (mapping.Message, mapping.Number, mapping.Action));
+    }
+
+    [Fact]
     public async Task The_tuner_has_one_state_for_rest_midi_and_its_led() {
         var sent = new List<byte[]>();
         server.Host.NativeMidiSend = (_, bytes) => {

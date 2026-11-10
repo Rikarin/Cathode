@@ -129,7 +129,7 @@ public sealed partial class MidiRouter : IDisposable {
                 continue;
             }
 
-            var down = kind == "pc" || (message.Data2 >= 64 && (message.Status & 0xF0) != 0x80);
+            var down = IsDown(kind, message);
             PressFootswitches(settings, kind, channel, down, message);
             RunMappings(settings, kind, channel, down, message);
         }
@@ -177,7 +177,8 @@ public sealed partial class MidiRouter : IDisposable {
     bool TryLearn(string kind, int channel, MidiEventMessage message) {
         MidiLearnRequest request;
         lock (gate) {
-            if (learning is null || (kind == "note" && message.Data2 == 0)) {
+            // A note is learnt from its press only, not from the release of a key that was already down.
+            if (learning is null || (kind == "note" && !IsDown(kind, message))) {
                 return false;
             }
 
@@ -550,6 +551,18 @@ public sealed partial class MidiRouter : IDisposable {
             0x90 or 0x80 => "note",
             0xC0 => "pc",
             _ => null
+        };
+
+    /// <summary>
+    ///     Whether the message is a press. A program change always is. A CC is a switch that is down at 64 or more.
+    ///     A note's second byte is its velocity, not a switch position: any note-on is a press, however soft, and
+    ///     a note-off (or a note-on with velocity 0, which MIDI defines as one) is the release.
+    /// </summary>
+    static bool IsDown(string kind, MidiEventMessage message) =>
+        kind switch {
+            "pc" => true,
+            "note" => (message.Status & 0xF0) == 0x90 && message.Data2 > 0,
+            _ => message.Data2 >= 64
         };
 
     /// <summary>A switch with a hold action, down: its hold timer, and whether the hold action has run.</summary>
