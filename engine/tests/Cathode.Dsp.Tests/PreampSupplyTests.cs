@@ -152,20 +152,34 @@ public class PreampSupplyTests {
         Assert.Throws<ArgumentException>(static () => new DecouplingChain([new(10e3, 22e-6, 1e-3, 1)]));
 
     /// <summary>
-    ///     Where a model's rails are not printed, the voltages its stages assume are its chain's own nodes at rest: the
-    ///     inverter on node 0 and each triode stage on its node (the 5150's V1 rail, two droppers down, below its V2).
+    ///     The voltages a model's stages assume are its chain's own nodes at rest, whether the drawing prints them
+    ///     (the SLO-100) or not: the inverter on node 0 and each triode or network stage on its node (the 5150's V1
+    ///     rail, two droppers down, below its V2).
     /// </summary>
     [Theory]
     [InlineData("5150")]
     [InlineData("Savage 120")]
+    [InlineData("SLO-100")] // #296: B+ is the drawing's 497 V, so B2, B4 and B3 rest at its 378, 359 and 350 V
+    [InlineData("Powerball")] // #296: the rails are the chain's nodes, not 400 V on three of them
     public void Assumed_rails_are_the_chains_rest_voltages(string type) {
         var design = AmpDesign.All.Single(a => a.Name == type);
         var channel = new AmpChannel(design, 2 * Rate);
         channel.Reset();
         var chain = channel.Power.Decoupling;
         Assert.InRange(design.Power.PhaseInverter.Supply - chain.Voltage(0), -3, 3);
-        foreach (var stage in design.Preamp.OfType<TriodeStageDesign>()) {
+        AmpStageDesign[] stages = [
+            ..design.Preamp.SelectMany(static IEnumerable<AmpStageDesign> (s) =>
+                s is ChannelSwitchStageDesign c ? [..c.Off, ..c.On] : [s]
+            )
+        ];
+        foreach (var stage in stages.OfType<TriodeStageDesign>()) {
             Assert.InRange(stage.Supply - chain.Voltage(stage.SupplyNode ?? 0), -3, 3);
+        }
+
+        foreach (var stage in stages.OfType<NetworkStageDesign>()) {
+            foreach (var rail in stage.Netlist.Elements.Where(static e => e.Kind == ElementKind.Supply)) {
+                Assert.InRange(rail.Value - chain.Voltage(stage.SupplyNode ?? 0), -3, 3);
+            }
         }
 
         for (var k = 1; k <= chain.Count; k++) {

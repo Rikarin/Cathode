@@ -1,4 +1,5 @@
 using Cathode.Dsp.Amp;
+using Cathode.Dsp.Amp.Models;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Tests.Circuits;
 using Cathode.Testing;
@@ -16,15 +17,19 @@ namespace Cathode.Dsp.Tests;
 ///     first is a <see cref="TriodeStage" />, whose Thévenin resistance treats a partly bypassed cathode (1.8k ‖ 1 µF)
 ///     as grounded, and to -60 dB where it is a network stage, which uses the 1 kHz impedance. Driven hard, the cut's
 ///     linearised plate is the main error, worst behind a cold clipper with a plate bypass cap (SLO-100, 5150III) whose
-///     next stage draws grid current: -17 and -9 dB there (-26 and -19 dB with the cap removed). The Rectifier's chain
+///     next stage draws grid current: -17 and -9 dB there (-26 and -19 dB with the cap removed). That SLO-100 figure
+///     is from while its overdrive path left out the 330k at the node the normal channel joins (#199); with it the
+///     cold clipper works into 254k instead of 2.4M, so the cut's one output resistance (the plate's 100k ‖ 1 nF
+///     taken at 1 kHz) costs more: -15 dB in the linear range (it was under -22) and -9 dB driven hard. The
+///     Rectifier's chain
 ///     was -60 dB while it followed a redraw without the plate cap; the factory drawing has 1 nF there, and it is -8
 ///     dB.
 /// </remarks>
 public partial class AmpStageTests {
     public static TheoryData<string, bool, double, double> ColdClipperChains =>
         new() {
-            { "SLO-100", false, 0.002, -22 },
-            { "SLO-100", false, 0.05, -14 },
+            { "SLO-100", false, 0.002, -12 },
+            { "SLO-100", false, 0.05, -6 },
             { "SLO-100", true, 0.002, -28 },
             { "SLO-100", true, 0.05, -28 },
             { "5150", false, 0.002, -25 },
@@ -123,6 +128,69 @@ public class HighGainAmpTests(ITestOutputHelper output) {
 
         Assert.Equal("Normal Ch", Label("switch1", "SLO-100"));
         Assert.Empty(Label("eq1", "5150"));
+    }
+
+    /// <summary>
+    ///     Issue #199: on the overdrive channel the stage after the cold clipper sits behind the node the normal
+    ///     channel joins, so the cold clipper (about 100k of output resistance) works into the 330k to ground there
+    ///     (254k with the two 2.2M) and loses 2.9 dB into it at 1 kHz. Without the 330k it lost 0.35 dB into 2.4M.
+    /// </summary>
+    [Fact]
+    public void Slo_overdrive_loads_the_cold_clipper_with_the_shared_nodes_330k() {
+        var channel = Assert.IsType<ChannelSwitchStageDesign>(Slo100.Design.Preamp[1]);
+        var design = channel.Off.Single(static s => s.Name == "V2B");
+
+        double Level(double sourceResistance) {
+            var stage = design.Create(Rate);
+            stage.Update(new(0.5, 0.5, 0.5, 0.5, 1, false));
+            stage.SetSourceResistance(sourceResistance);
+            stage.Reset(0);
+            var (low, high) = (double.MaxValue, double.MinValue);
+            for (var n = 0; n < 48_000; n++) {
+                var y = stage.Tick(0.01 * Math.Sin(2 * Math.PI * 1_000 * n / Rate));
+                if (n >= 24_000) {
+                    (low, high) = (Math.Min(low, y), Math.Max(high, y));
+                }
+            }
+
+            return high - low;
+        }
+
+        var lossDb = 20 * Math.Log10(Level(1) / Level(100e3));
+        output.WriteLine($"loss into the join node from 100k: {lossDb:0.00} dB");
+        Assert.InRange(lossDb, 2.6, 3.2);
+    }
+
+    /// <summary>
+    ///     Issue #200: <see cref="LongTailPairDesign.TailResistor" /> is the whole DC path from the bias junction to
+    ///     ground, so on the amps whose tail resistor stands on the feedback shunt it is the drawing's tail resistor
+    ///     (<paramref name="drawnTail" />) plus the shunt (and the leg under it on the Marks' series presence). Eight
+    ///     of these once gave the tail resistor alone and idled their inverters 15 to 30 % hot.
+    /// </summary>
+    [Theory]
+    [InlineData("SLO-100", 10e3)]
+    [InlineData("5150", 10e3)]
+    [InlineData("5150III", 10e3)]
+    [InlineData("Dual Rectifier", 10e3)]
+    [InlineData("Dual Rectifier 3-Ch", 10e3)]
+    [InlineData("Triple Rectifier", 10e3)]
+    [InlineData("Rect-o-Verb", 10e3)]
+    [InlineData("Powerball", 22e3)]
+    [InlineData("Savage 120", 22e3)]
+    [InlineData("Mark IIC+", 22e3)]
+    [InlineData("Mark IV", 22e3)]
+    [InlineData("Blues Junior", 33e3)]
+    [InlineData("Liverpool", 39e3)]
+    public void Long_tail_pairs_rest_on_the_tail_resistor_and_the_feedback_shunt(string name, double drawnTail) {
+        var power = AmpDesign.All.Single(a => a.Name == name).Power;
+        var pair = Assert.IsType<LongTailPairDesign>(power.PhaseInverter);
+        var foot = power.Feedback.ShuntResistor + (power.Feedback.Series?.ShuntLegResistor ?? 0);
+        Assert.Equal(drawnTail + foot, pair.TailResistor, 1e-6);
+
+        // The rest point is the one that tail gives: the junction sits at the tail current times the whole tail.
+        var inverter = LongTailPair.For(pair);
+        var current = inverter.RestCurrents.A + inverter.RestCurrents.B;
+        Assert.Equal(inverter.RestGrid, current * (drawnTail + foot), 1e-3);
     }
 
     /// <summary>Every knob swept end to end while a loud chord plays: finite, bounded, and Newton converging.</summary>

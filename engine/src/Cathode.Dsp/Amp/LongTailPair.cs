@@ -13,6 +13,14 @@ public abstract record PhaseInverterDesign(TriodeModel Tube, double Supply);
 ///     ground and the bias resistor (<paramref name="BiasResistor" />) above it, where both grid leaks return. The
 ///     second grid is AC-grounded; the first takes the signal.
 /// </summary>
+/// <remarks>
+///     <paramref name="TailResistor" /> is the whole DC resistance from the bias junction to ground. Where the tail
+///     resistor stands on the feedback shunt (the feedback enters at the tail's foot: the 5F6-A and nearly every amp
+///     after it), it is the drawing's tail resistor plus what is under it (10k on a 4.7k shunt is 14.7k), not the tail
+///     resistor alone: the rest point is solved with it, and <see cref="FeedbackDesign.ShuntResistor" /> is not added.
+///     The feedback resistor's own path to ground through the output transformer's secondary, in parallel with the
+///     shunt, is left out.
+/// </remarks>
 public sealed record LongTailPairDesign(
     TriodeModel Tube,
     double Supply,

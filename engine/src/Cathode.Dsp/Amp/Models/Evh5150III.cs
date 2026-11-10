@@ -65,7 +65,8 @@ public static class Evh5150III {
             false,
             0,
             100,
-            new LongTailPairDesign(TriodeModel.Ecc83, 402, 82e3, 100e3, 10e3, 470),
+            // The 10k tail stands on the 4.7k feedback shunt: 14.7k from the bias junction to ground.
+            new LongTailPairDesign(TriodeModel.Ecc83, 402, 82e3, 100e3, 14.7e3, 470),
             47e-9,
             220e3,
             1.5e3,

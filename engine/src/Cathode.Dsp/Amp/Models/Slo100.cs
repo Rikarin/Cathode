@@ -22,11 +22,11 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         Guesses and conflicts, marked here because no factory drawing could be read: V1A's plate is 220k in the
 ///         text sources (the redraw has 200k); V1B's cathode bypass is 1 µF in series with 100 Ω (text; the redraw
-///         has a plain 1 µF); the stage after the cold clipper has 220k in series and 2.2M to ground (redraw; here the
-///         2.2M sits on the grid side of the 220k, which only matters under grid current); the redraw wires the
+///         has a plain 1 µF); the redraw gives the stage after the cold clipper only 220k in series and 2.2M to ground
+///         (the 1996 drawing below has the whole node, and the model follows it); the redraw wires the
 ///         middle pot with its cap on the wiper, here it is the usual Marshall rheostat; the redraw has no grid stopper
-///         or leak on the cold clipper (docs/06 quotes 220k and 330k, probably the next stage's). The power amp is not
-///         on the redraw: inverter plates 82k/100k, 220k power-grid leaks, 470 V B+, 40 mA idle, a 4.7k feedback
+///         or leak on the cold clipper (docs/06's 220k and 330k are the next stage's). The power amp is not
+///         on the redraw: inverter plates 82k/100k, 220k power-grid leaks, 40 mA idle, a 4.7k feedback
 ///         shunt and 25k presence pot with 0.1 µF, and the 2.2k primary (Robinette, unverified) are typical values,
 ///         not readings. The inverter's grid current (<see cref="InverterInputDesign" />) is left out: it costs 1.7 %
 ///         of a core.
@@ -36,8 +36,10 @@ namespace Cathode.Dsp.Amp.Models;
 ///         screens to B2 (378 V, 40 µF: the stage after the cold clipper, the followers, the return stage and the
 ///         inverter), and from B2 R61 15k to B4 (359 V, 10 µF: the input stage, and the normal channel's first) and R62
 ///         15k to B3 (350 V, 10 µF: the overdrive gain stage and the cold clipper). Each node draws what its drawn
-///         voltage drops across its resistor (B2 11.7 mA in all). That drawing puts the plates at 497 V; the model
-///         keeps 470 V.
+///         voltage drops across its resistor (B2 11.7 mA in all). B+ is that drawing's 497 V at the plates, which
+///         with these draws rests the screens at 495 V and B2, B4 and B3 within a volt of the drawn 378, 359 and 350
+///         V, the rails the stages are built for (380, 360 and 350 V). It was once kept at 470 V, which left B2 near
+///         351 V under stages built for 380 V (#296).
 ///     </para>
 ///     <para>
 ///         The normal channel (Switch 1, with Switch 2 for Crunch and the Bright switch) is read from the
@@ -45,8 +47,10 @@ namespace Cathode.Dsp.Amp.Models;
 ///         redraw of unknown origin with optocoupler channel switching): V1A's 20 nF output feeds both channels; the
 ///         Crunch/Clean switch puts 470k in series and 39k across the normal volume (Clean) or neither (Crunch), a 470k
 ///         with the bright cap follows, the 500k normal volume, the normal V1B (100k, 2.2k unbypassed), 20 nF into
-///         2.2M ‖ 120 pF over 330k, which joins the overdrive path at the grid side of the stage after the cold
-///         clipper. Robinette's text agrees on the dividers (Crunch passes 52 % at full volume, Clean 4 %; 13 % after
+///         2.2M ‖ 120 pF over 330k. That node is shared: the cold clipper's 20 nF (2.2M to ground after it) comes
+///         into it through the channel switch's optocoupler, and 220k goes from it to the next stage's grid, so the
+///         330k and the normal channel's 2.2M ‖ 120 pF load the cold clipper on the overdrive channel too (Robinette
+///         gives its AC load as 2.2M ‖ 330k). Robinette's text agrees on the dividers (Crunch passes 52 % at full volume, Clean 4 %; 13 % after
 ///         the second stage). Read with doubt: the drawing wires a short across the overdrive path's 470k ‖ 2 nF (taken
 ///         as a drafting error: the overdrive channel keeps it, as in the other sources), and its Bright/Norm switch
 ///         looks like it selects the 470 pF in place of the 470k (here it puts the cap across the 470k, as Fractal
@@ -99,17 +103,7 @@ public static class Slo100 {
                         GridLeak: 1e6,
                         PlateBypass: 1e-9
                     ) { SupplyNode = 2 },
-                    new TriodeStageDesign(
-                        "V2B",
-                        TriodeModel.Ecc83,
-                        380,
-                        220e3,
-                        1.8e3,
-                        1e-6,
-                        CouplingCap: 20e-9,
-                        SeriesResistor: 220e3,
-                        GridLeak: 2.2e6
-                    )
+                    new NetworkStageDesign("V2B", OverdriveJoin())
                 ],
                 [
                     new NetworkStageDesign("Normal V1B", NormalChannel()) { SupplyNode = 1 },
@@ -150,13 +144,14 @@ public static class Slo100 {
             "4 x 6L6GC",
             PentodeModel.SixL6GC,
             2,
-            470,
+            497,
             1e3,
             0.04,
             false,
             0,
             100,
-            new LongTailPairDesign(TriodeModel.Ecc83, 380, 82e3, 100e3, 10e3, 470),
+            // The 10k tail stands on the 4.7k feedback shunt: 14.7k from the bias junction to ground.
+            new LongTailPairDesign(TriodeModel.Ecc83, 380, 82e3, 100e3, 14.7e3, 470),
             22e-9,
             220e3,
             1e3,
@@ -197,6 +192,30 @@ public static class Slo100 {
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.8e3);
         net.Capacitor(cathode, bypass, 1e-6);
         net.Resistor(bypass, StageNetlist.Ground, 100);
+        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
+        net.Output = plate;
+        return net;
+    }
+
+    /// <summary>
+    ///     V2B on the overdrive channel, with the node both channels share ahead of it: 20 nF from the cold clipper
+    ///     with 2.2M to ground, the channel switch's optocoupler (on: a short here) into the join node, where the 330k
+    ///     to ground and the normal channel's 2.2M ‖ 120 pF also sit (the far end of those two is the idle normal
+    ///     stage's plate behind its 20 nF, taken as AC ground), then 220k to the grid; 220k plate, 1.8k ‖ 1 µF.
+    /// </summary>
+    static StageNetlist OverdriveJoin() {
+        var net = new StageNetlist();
+        var (join, grid, supply, plate, cathode) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        net.Capacitor(net.Input, join, 20e-9);
+        net.Resistor(join, StageNetlist.Ground, 2.2e6);
+        net.Resistor(join, StageNetlist.Ground, 330e3);
+        net.Resistor(join, StageNetlist.Ground, 2.2e6);
+        net.Capacitor(join, StageNetlist.Ground, 120e-12);
+        net.Resistor(join, grid, 220e3);
+        net.Supply(supply, 380);
+        net.Resistor(supply, plate, 220e3);
+        net.CathodeResistor(cathode, StageNetlist.Ground, 1.8e3);
+        net.Capacitor(cathode, StageNetlist.Ground, 1e-6);
         net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
         net.Output = plate;
         return net;

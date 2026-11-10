@@ -93,7 +93,8 @@ public static class Peavey5150 {
             false,
             0,
             120,
-            new LongTailPairDesign(TriodeModel.Ecc83, 430, 82e3, 100e3, 10e3, 470),
+            // The 10k tail stands on the 4.7k feedback shunt: 14.7k from the bias junction to ground.
+            new LongTailPairDesign(TriodeModel.Ecc83, 430, 82e3, 100e3, 14.7e3, 470),
             47e-9,
             220e3,
             2.2e3,

@@ -49,7 +49,8 @@ public static class MarkIV {
         MarkIIC.Design.Power with {
             Name = "4 x 6L6GC (Simul-Class)",
             RatedPower = 85,
-            PhaseInverter = new LongTailPairDesign(TriodeModel.Ecc83, 427, 82e3, 91e3, 22e3, 470),
+            // The 22k tail stands on the feedback shunt, 3.3k over 1.5k: 26.8k from the bias junction to ground.
+            PhaseInverter = new LongTailPairDesign(TriodeModel.Ecc83, 427, 82e3, 91e3, 26.8e3, 470),
             Feedback = new(1, 3.3e3, 1.5e3, new(250e3, PotTaper.Linear), 5e-9) { Series = new(56e3, 3.3e3, 47e-9) },
             Transformer = new(2.2e3),
             Strapped = PentodeModel.SixL6GC
