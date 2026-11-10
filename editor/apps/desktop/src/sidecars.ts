@@ -1,4 +1,4 @@
-import { type ChildProcess, execFile, spawn } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { readFile, rm } from 'node:fs/promises';
 import { createServer } from 'node:net';
@@ -7,14 +7,9 @@ import { join } from 'node:path';
 import { type Command, engine } from './engine';
 import { portFree } from './network';
 import type { AudioSettings, NetworkSettings } from './settings';
+import { Sidecar, type SidecarStatus } from './sidecar';
 
-export interface SidecarStatus {
-  name: 'host' | 'server';
-  state: 'starting' | 'running' | 'restarting' | 'stopped' | 'failed';
-  detail: string | null;
-  /** The running process's id, or null. */
-  pid: number | null;
-}
+export type { SidecarStatus } from './sidecar';
 
 export interface IrCaptureOptions {
   seconds: number;
@@ -34,140 +29,9 @@ export interface Connection {
   token: string;
 }
 
-const MaxBackoffMs = 10_000;
 const ReadyTimeoutMs = 60_000;
 /** The host's GC budget (docs/adr/0001-process-model.md): NativeAOT reads it from the environment only, as hex. */
 const Gen0Budget = '10000000';
-
-/**
- * One supervised child process: started with a command line computed at each (re)start, restarted with backoff
- * when it exits on its own, stopped politely on request (its standard input closed, and SIGTERM where there are
- * signals), and killed if it is still running 3 s later.
- */
-class Sidecar {
-  private child: ChildProcess | null = null;
-  private wanted = false;
-  private failures = 0;
-  private restartTimer: NodeJS.Timeout | null = null;
-  readonly log: string[] = [];
-  status: SidecarStatus;
-
-  constructor(
-    readonly name: 'host' | 'server',
-    private readonly commandLine: () => Command & { env?: NodeJS.ProcessEnv },
-    /** What the process prints once it serves: running (again, after a restart). */
-    private readonly ready: RegExp,
-    private readonly onStatus: () => void
-  ) {
-    this.status = { name, state: 'stopped', detail: null, pid: null };
-  }
-
-  /** Starts the process unless it already runs (or is about to restart): never a second one beside the first. */
-  start(): void {
-    this.wanted = true;
-    if (this.child || this.restartTimer) {
-      return;
-    }
-
-    this.launch();
-  }
-
-  /** Whether the process runs now. */
-  get running(): boolean {
-    return this.child !== null;
-  }
-
-  async stop(): Promise<void> {
-    this.wanted = false;
-    if (this.restartTimer) {
-      clearTimeout(this.restartTimer);
-      this.restartTimer = null;
-    }
-
-    const child = this.child;
-    if (child?.exitCode === null) {
-      const exited = new Promise<void>(done => child.once('exit', () => done()));
-      // Closing its lifeline asks it to stop, and it then stops cleanly: the host releases the device and removes its
-      // socket. On Windows that is the only polite way: Node has no signals there, and kill() terminates outright.
-      child.stdin?.end();
-      if (process.platform !== 'win32') {
-        child.kill('SIGTERM');
-      }
-
-      const killer = setTimeout(() => child.kill('SIGKILL'), 3_000);
-      await exited;
-      clearTimeout(killer);
-    }
-
-    this.set('stopped', null);
-  }
-
-  /** Called once the process proves healthy (the server answered), so the next failure starts the backoff over. */
-  healthy(): void {
-    this.failures = 0;
-    this.set('running', null);
-  }
-
-  private launch(): void {
-    this.restartTimer = null;
-    let command: ReturnType<typeof this.commandLine>;
-    try {
-      command = this.commandLine();
-    } catch (error) {
-      this.set('failed', (error as Error).message);
-      return;
-    }
-
-    const child = spawn(command.command, command.args, {
-      env: { ...process.env, ...command.env },
-      // Standard input is the child's lifeline (StdinWatch in the engine): the OS closes it however this app ends, a
-      // crash or a force quit included, and the child then stops on its own instead of outliving the app.
-      stdio: ['pipe', 'pipe', 'pipe'],
-      windowsHide: true
-    });
-    this.child = child;
-    this.set(this.failures === 0 ? 'starting' : 'restarting', null);
-    child.stdin.on('error', () => undefined); // a child that already exited: nothing to tell it
-    const keep = (data: Buffer) => {
-      const lines = data.toString().split('\n').filter(Boolean);
-      this.log.push(...lines);
-      this.log.splice(0, Math.max(0, this.log.length - 200));
-      const waiting = this.status.state === 'starting' || this.status.state === 'restarting';
-      if (this.child === child && waiting && lines.some(line => this.ready.test(line))) {
-        this.set('running', null);
-      }
-    };
-    child.stdout.on('data', keep);
-    child.stderr.on('data', keep);
-    const ended = (code: number | string | null) => {
-      if (this.child !== child) {
-        return;
-      }
-
-      this.child = null;
-      if (!this.wanted) {
-        return;
-      }
-
-      const delay = Math.min(MaxBackoffMs, 500 * 2 ** this.failures++);
-      this.set('restarting', `exited (${code}); restarting in ${Math.round(delay / 1000)} s`);
-      this.restartTimer = setTimeout(() => this.launch(), delay);
-    };
-    child.once('exit', (code, signal) => ended(signal ?? code));
-    // A process that never started emits no exit: it ends here, so it is retried like one that crashed.
-    child.once('error', error => {
-      this.log.push(`spawn failed: ${error.message}`);
-      if (child.pid === undefined) {
-        ended(error.message);
-      }
-    });
-  }
-
-  private set(state: SidecarStatus['state'], detail: string | null): void {
-    this.status = { name: this.name, state, detail, pid: this.child?.pid ?? null };
-    this.onStatus();
-  }
-}
 
 /**
  * The local engine: cathode-host on the chosen interface and cathode-server in front of it, on loopback, and with
@@ -214,10 +78,9 @@ export class Sidecars {
         this.port = await freePort();
       }
 
+      // The host reports itself: it is running once it prints that it serves, not because the Server answers.
       this.host.start();
-      const connection = await this.serve();
-      this.host.healthy();
-      return connection;
+      return await this.serve();
     })().catch((error: unknown) => {
       this.ready = null;
       throw error;
@@ -275,7 +138,6 @@ export class Sidecars {
       this.audio = audio;
       await this.host.stop();
       this.host.start();
-      this.host.healthy();
     });
   }
 
@@ -324,7 +186,6 @@ export class Sidecars {
       return { ok: match !== null, output: output.trim(), roundTripMs: match ? Number(match[1]) : null };
     } finally {
       this.host.start();
-      this.host.healthy();
     }
   }
 
@@ -373,7 +234,6 @@ export class Sidecars {
     } finally {
       await rm(file, { force: true });
       this.host.start();
-      this.host.healthy();
     }
   }
 

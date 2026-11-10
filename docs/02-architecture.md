@@ -436,7 +436,7 @@ Live state outside the preset has events of its own, which carry the current `re
 
 ### 7.1 Shell
 - **Electron main:**
-  - spawns and supervises `cathode-host` and `cathode-server` (sidecars bundled per OS), with health checks and restart
+  - spawns and supervises `cathode-host` and `cathode-server` (sidecars bundled per OS): each counts as running once it prints that it serves, is restarted with backoff when it exits on its own (0.5 s doubling to 10 s, starting over once it serves again), and is reported as failed, with its last output line, after five exits in a row; it is still retried then, so an interface that comes back is picked up
   - gives each sidecar its standard input as a pipe, its lifeline: the OS closes it however the app ends, and the sidecar then stops cleanly (`--watch-stdin`, `Cathode:WatchStdin`), so none outlives a crash or a force quit
   - can instead connect to a remote server (headless rig) by URL and token
   - provides native file dialogs, auto-update and crash reporting
