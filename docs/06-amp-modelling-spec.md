@@ -804,8 +804,8 @@ machine at a load average of 150–210, where the Plexi read 8.4–10.7 / 15.0�
 | Stage 1 [2-src] | 220k plate, 1.8k‖1 µ (AmpBooks says 2000 pF: conflict), 68k stopper, 360 V |
 | To stage 2 | 0.02 µ; 470k‖2 nF; OD gain 500k with 1 nF bright |
 | Stage 2 | 100k, 1.8k with 1 µ in series with 100Ω; 0.02 µ; 470k/1M divider |
-| Stage 3 cold clipper [2-src] | **39k unbypassed**, 100k plate with a **1 nF plate bypass**, 220k stopper, 330k leak |
-| Stage 4 | 220k, 1.8k‖1 µ, then CF DC-coupled |
+| Stage 3 cold clipper [2-src] | **39k unbypassed**, 100k plate with a **1 nF plate bypass**; 470k / 1M divider at its grid |
+| Stage 4 | 0.02 µ from the cold clipper into the node the normal channel joins (330k and 2.2M to ground, the normal channel's 2.2M‖120 pF), 220k to the grid; 220k, 1.8k‖1 µ, then CF DC-coupled |
 | Loop | send 100k/1k (about −40 dB); return stage 220k, 2.2k‖25 µ; second CF drives the stack |
 | Stack [2-src] | treble 250k, bass 1M, mid 25k, **slope 47k**, 470 pF, 22n, 22n; master 1M pre-PI |
 | PI | LTP 0.022 µ, 470Ω, 10k, 47 pF |
