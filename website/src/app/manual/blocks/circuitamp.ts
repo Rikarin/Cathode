@@ -38,7 +38,7 @@ usually go after the Cab, as they would in an effects loop or a studio. The amp 
 - **Tweed (raw, compressed, early breakup):** Champ 5F1, Princeton 5F2-A, Tweed Deluxe 5E3, Bassman 5F6-A, Tweed
   Twin. The *Jumped* versions run both channels at once, the classic way to play them.
 - **British crunch and classic rock:** JTM45, Plexi, Plexi 100W, 1959SLP, 1987X, 1959T Tremolo, Bluesbreaker 1962,
-  18 W 1974X, Major 1967, JCM800 2203 and 2204, Hiwatt DR103 and DR504.
+  18 W 1974X, Major 1967, Super Bass 100, JCM800 2203 and 2204, Hiwatt DR103 and DR504.
 - **Chime and class A:** AC30, AC15, DC-30, Chieftain, Hot Cat 30, Tiny Terror, Liverpool, Express.
 - **Smooth, vocal overdrive:** ODS 97, ODS 70s, Cornford MK50H II, Lone Star, Subway Blues.
 - **Hot-rodded British and modern rock:** Silver Jubilee, JCM900 4100 and 4502, DSL100, JVM410H, BE-100 and
@@ -642,7 +642,9 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'Quick Rod': 'Splawn Quick Rod, both channels with its gear switches (the power amp is assumed).',
       AFD100: 'Marshall AFD100 (Slash), #34 and AFD modes.',
       'Dual Rectifier 3-Ch Orange':
-        'Mesa/Boogie Dual Rectifier three-channel Solo Head, channel 2 (orange), with Raw, Vintage and Modern.'
+        'Mesa/Boogie Dual Rectifier three-channel Solo Head, channel 2 (orange), with Raw, Vintage and Modern.',
+      'Super Bass 100':
+        'Marshall 1992 Super Bass, 100 W: the Super Lead without its bright caps, darker and fuller, for guitar or bass.'
     },
     pretube: {
       Stock: "The schematic's own preamp tubes.",
