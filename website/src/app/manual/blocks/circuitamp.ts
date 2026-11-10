@@ -163,9 +163,9 @@ Each switches the real components on the model's schematic. Some worth knowing:
 - **Mark V, *IIC+ Mode*:** with *Mark IV Mode* (Switch 2), selects the channel-3 mode; both off is Extreme.
 - **TriAxis, *Yellow*:** with *Red* (Switch 2), the preamp's mode switches.
 - **AFD100, *AFD*:** off is the #34 mode, on is AFD.
-- **JC-120, *Distortion*:** the effect channel's distortion (the footswitch on the real amp): the *Distortion* knob
-  (Control 2) and the diode clipper ahead of the tone stack come in. Off, as the amp is usually played, the knob does
-  nothing.`,
+- **JC-120, *Distortion On*:** the effect channel's distortion (on the real amp, the switch at the bottom of the
+  Distortion pot's travel, and the footswitch): the *Distortion* knob (Control 2) and the diode clipper ahead of the
+  tone stack come in. Off, as the amp is usually played, the knob does nothing and is not shown.`,
 
     switch2: `A model's second switch, where it has one: for example *Tube Rectifier* on the Rectifiers (5U4 tube
 rectifiers instead of silicon: more sag), *Crunch* on the SLO-100's normal channel, *Deep* on the Mark IIC+
@@ -188,7 +188,7 @@ starts at 0: the boost is off there, as on the amp until you press its footswitc
     control2: `A model's second extra knob, where it has one: *Lead Master* on the Mark IIC+ and IV, *Presence* on the
 Rectifiers (a preamp presence control there), *Lead Volume* on the Powerball and Savage, *OD Level* on the ODS,
 *Dynamic Voice* on the TriAxis, the 4 kHz band of the Bass 400's EQ, *Distortion* on the JC-120 (the gain ahead of its
-diode clipper, from about 2× to 48×; it acts only with its *Distortion* switch on).`,
+diode clipper, from about 2× to 48×; it shows, and acts, only with the *Distortion On* switch on).`,
 
     eq1: `The first band of a graphic EQ that is part of the model's own circuit (the Mesa Mark IIC+, IV and V's 80 Hz
 slider, the Bass 400's 34 Hz). ±12 dB maps onto the slider's travel; 0 is the slider centred. Hidden on models without

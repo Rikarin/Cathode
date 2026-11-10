@@ -92,6 +92,16 @@ public class ParamBankTests {
         Assert.Equal("mode", block.Params[4].VisibleWhen!.Param);
         Assert.Equal([0f, 2f], block.Params[4].VisibleWhen!.Values);
         Assert.Equal("on", Block(x.ShownWhen("on", 1)).Params[4].VisibleWhen!.Param);
+
+        // A condition on one type only: the same rules, on a type the block has.
+        ParamDescriptor Typed(int value, string param, params float[] values) =>
+            x with { TypeVisibleWhen = new Dictionary<int, ParamCondition> { [value] = new(param, values) } };
+
+        Assert.Throws<ArgumentException>(() => Block(Typed(2, "on", 1))); // no such type
+        Assert.Throws<ArgumentException>(() => Block(Typed(1, "knob", 0)));
+        Assert.Throws<ArgumentException>(() => Block(Typed(1, "mode", 3)));
+        Assert.Throws<ArgumentException>(() => new BlockDescriptor("t", "T", "C", [mode, on, knob, Typed(0, "on", 1)]));
+        Assert.Equal("on", Block(Typed(1, "on", 1)).Params[4].TypeVisibleWhen![1].Param);
     }
 
     /// <summary>

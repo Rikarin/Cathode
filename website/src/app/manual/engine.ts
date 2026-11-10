@@ -34,6 +34,11 @@ export interface EngineParam {
    * knob's id and the values it is shown at; the app hides it otherwise.
    */
   readonly visibleWhen?: { readonly param: string; readonly values: readonly number[] };
+  /**
+   * Such a condition on some values of the block's `type` parameter only, by type value: a knob one model puts behind a
+   * switch of its own (the JC-120's Distortion, shown with Distortion On).
+   */
+  readonly typeVisibleWhen?: Readonly<Record<string, { readonly param: string; readonly values: readonly number[] }>>;
 }
 
 /** One block type, as the engine registers it. */

@@ -39,6 +39,23 @@ describe('isShown', () => {
   it('reads an unset control as its default', () => {
     expect(shown({})).toEqual(['controls', 'threshold', 'attack']);
   });
+
+  it('applies a type’s own condition on that type only', () => {
+    // The JC-120 (type 1 here): its Distortion knob shows only with Distortion On; another model's Control 2 always.
+    const type: ParameterInfo = { ...param('type', 'Type'), kind: 'enum', max: 1, default: 0 };
+    const on: ParameterInfo = { ...param('switch1', 'Switch 1'), kind: 'bool', max: 1, default: 0 };
+    const knob: ParameterInfo = {
+      ...param('control2', 'Control 2'),
+      typeVisibleWhen: { '1': { param: 'switch1', values: [1] } }
+    };
+    const amp = [type, on, knob];
+    const ids = (values: Record<string, number>) => amp.filter(p => isShown(amp, p, id => values[id])).map(p => p.id);
+
+    expect(ids({})).toEqual(['type', 'switch1', 'control2']);
+    expect(ids({ type: 0, switch1: 0 })).toEqual(['type', 'switch1', 'control2']);
+    expect(ids({ type: 1 })).toEqual(['type', 'switch1']);
+    expect(ids({ type: 1, switch1: 1 })).toEqual(['type', 'switch1', 'control2']);
+  });
 });
 
 describe('labelledParams', () => {

@@ -3,6 +3,7 @@ using Cathode.Dsp;
 using Cathode.Dsp.Parameters;
 using Cathode.Dsp.Routing;
 using Cathode.Engine.Rig;
+using System.Globalization;
 
 namespace Cathode.Server.Rig;
 
@@ -74,6 +75,10 @@ public sealed class BlockCatalog {
             p.TypeLabels,
             p.Page,
             p.TypeDefaults,
-            p.VisibleWhen is { } when ? new(when.Param, when.Values) : null
+            p.VisibleWhen is { } when ? new(when.Param, when.Values) : null,
+            p.TypeVisibleWhen?.ToDictionary(
+                static t => t.Key.ToString(CultureInfo.InvariantCulture),
+                static t => new ParameterCondition(t.Value.Param, t.Value.Values)
+            )
         );
 }

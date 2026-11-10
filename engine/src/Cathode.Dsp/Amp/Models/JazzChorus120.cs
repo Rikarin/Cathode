@@ -28,7 +28,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///         IC2a's ground leg and the diodes are out of circuit, so the Distortion knob does nothing; on, the knob turns
 ///         the 50k down (a linear track assumed: the drawing gives only its value) and a silicon pair (4148 type)
 ///         clamps the node after the two 3.9k to about ±0.6 V before the stack. The switch stands for the footswitch's
-///         FET switching, as two channels of the same stages.
+///         FET switching, as two channels of the same stages. On the amp the two are one control, a pot with its
+///         switch at the bottom of its travel; here the switch is Distortion On and the knob shows only while it is on
+///         (<see cref="AmpPanel.BehindSwitch" />).
 ///     </para>
 ///     <para>
 ///         Not modelled: the chorus and vibrato (the Chorus block), the reverb (its return is silent), the input clamp
@@ -89,7 +91,8 @@ public static class JazzChorus120 {
             Bright = null,
             Control1 = "Hi Treble",
             Control2 = "Distortion",
-            Switch1 = "Distortion",
+            Switch1 = "Distortion On",
+            BehindSwitch = new Dictionary<string, string> { ["control2"] = "switch1" },
             HasTubes = false
         }
     };

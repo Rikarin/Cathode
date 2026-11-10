@@ -119,7 +119,7 @@ public class BassAmpTests(ITestOutputHelper output) {
         );
         Assert.Equal("Hi Treble", Label("control1", "JC-120"));
         Assert.Equal("Distortion", Label("control2", "JC-120"));
-        Assert.Equal("Distortion", Label("switch1", "JC-120"));
+        Assert.Equal("Distortion On", Label("switch1", "JC-120"));
         Assert.Empty(Label("switch2", "JC-120"));
         foreach (var type in Models) {
             Assert.Equal("Volume", Label("gain", type));
@@ -137,6 +137,29 @@ public class BassAmpTests(ITestOutputHelper output) {
         foreach (var id in new[] { "sag", "variac", "btc", "poweramp", "lowcut", "intrim" }) {
             Assert.NotEmpty(Label(id, "JC-120"));
         }
+    }
+
+    /// <summary>
+    ///     The JC-120's Distortion knob does nothing until Distortion On is on, so it shows only then; no two of its
+    ///     controls share a name, and no other model hides a control behind a switch.
+    /// </summary>
+    [Fact]
+    public void Jc120_distortion_knob_shows_only_with_its_switch_on() {
+        var info = CircuitAmpBlock.Info;
+        var when = Assert.Single(info.Params[CircuitAmpBlock.Control2].TypeVisibleWhen!);
+        Assert.Equal(TypeOf("JC-120"), when.Key);
+        Assert.Equal(("switch1", 1f), (when.Value.Param, Assert.Single(when.Value.Values)));
+        Assert.All(
+            info.Params.Where(static p => p.Id != "control2"),
+            static p => Assert.Null(p.TypeVisibleWhen)
+        );
+
+        string[] controls = [
+            "gain", "bass", "middle", "treble", "presence", "depth", "cut", "master", "bright", "switch1", "switch2",
+            "switch3", "control1", "control2"
+        ];
+        var names = controls.Select(static id => Label(id, "JC-120")).Where(static name => name.Length > 0).ToArray();
+        Assert.Equal(names.Distinct(), names);
     }
 
     /// <summary>
