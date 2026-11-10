@@ -84,6 +84,12 @@ public readonly record struct LooperSettings {
 ///         <c>base</c>, which removes exactly the latest pass with no copy of the loop on the audio thread.
 ///     </para>
 ///     <para>
+///         An overdub is stored once per loop sample at any speed: at half speed each loop sample takes the mean of
+///         the input samples played over it, and at double speed the input is interpolated onto every loop sample it
+///         passes. The loop then plays the overdub at the level and pitch it was heard at, also after the speed is
+///         changed back.
+///     </para>
+///     <para>
 ///         The memory is zeroed lazily by the OS (<see cref="NativeMemory.AllocZeroed(nuint, nuint)" />), so 300 s of
 ///         capacity costs only what is recorded; a clear zeroes only the samples that were used. Playback fades in and
 ///         out over 2 ms on play and stop. The crossfade blends the playing that follows a closing recording into the
@@ -116,6 +122,9 @@ public sealed unsafe class Looper : IDisposable {
     float fade;
     int seamLength;
     int seamPosition;
+    bool overdubPrimed; // lastLeft and lastRight hold this pass's previous input sample
+    float lastLeft;
+    float lastRight;
 
     public LooperState State { get; private set; } = LooperState.Empty;
 
@@ -314,9 +323,7 @@ public sealed unsafe class Looper : IDisposable {
             playLeft = Sample(baseLeft, layerLeft, index, next, frac);
             playRight = Sample(baseRight, layerRight, index, next, frac);
             if (State == LooperState.Overdubbing) {
-                Fold(index);
-                layerLeft[index] += left;
-                layerRight[index] += right;
+                Overdub(index, left, right);
             }
         }
 
@@ -450,7 +457,46 @@ public sealed unsafe class Looper : IDisposable {
         NativeMemory.Clear(touched, (nuint)((Length + 63) / 64) * sizeof(ulong));
         layerUndoable = true;
         passLevel = settings.OverdubLevel;
+        overdubPrimed = false;
         State = LooperState.Overdubbing;
+    }
+
+    /// <summary>
+    ///     Adds one input sample to the pass so that the loop holds the input once at any speed. At normal speed that
+    ///     is the sample at <paramref name="index" />. Slower, several input samples land on one loop sample, which
+    ///     takes their mean. Faster, one input sample covers several loop samples, which are filled along the line from
+    ///     the previous input sample, so none is left out of the pass.
+    /// </summary>
+    void Overdub(int index, float left, float right) {
+        var step = settings.Speed * (IsHalfSpeed ? 0.5 : 1.0);
+        if (step <= 1) {
+            var gain = (float)step;
+            Fold(index);
+            layerLeft[index] += left * gain;
+            layerRight[index] += right * gain;
+        } else {
+            if (!overdubPrimed) {
+                lastLeft = left;
+                lastRight = right;
+            }
+
+            var count = (int)step;
+            for (var k = 1; k <= count; k++) {
+                var t = (float)k / count;
+                Fold(index);
+                layerLeft[index] += lastLeft + (left - lastLeft) * t;
+                layerRight[index] += lastRight + (right - lastRight) * t;
+                if (IsReversed) {
+                    index = index - 1 < start ? end - 1 : index - 1;
+                } else {
+                    index = index + 1 >= end ? start : index + 1;
+                }
+            }
+        }
+
+        overdubPrimed = true;
+        lastLeft = left;
+        lastRight = right;
     }
 
     /// <summary>

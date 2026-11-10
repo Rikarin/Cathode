@@ -537,7 +537,7 @@ One core (`Cathode.Dsp.Looping.Looper`) serves both. The grid block takes the tr
 | Crossfade | 🆕 ✅ | The playing that follows a closing recording is faded into the loop's first samples (up to 100 ms), so the seam continues the performance; only on a forward first pass at normal speed, and not for a recording closed into Stopped (Stop, or Record 2nd Press = Stop), whose start stays as recorded |  |
 | Loop Quantize (to tempo) | 🆕 ✅ | The closing length is rounded to whole beats of the tempo (quarter notes), padded with silence |  |
 | Record 2nd Press (overdub, play, stop) | 🆕 ✅ | Default Play, which is what the rig looper always did |  |
-| Speed | 🆕 ✅ | Normal, Half, Double; the Half Speed action halves whichever is set |  |
+| Speed | 🆕 ✅ | Normal, Half, Double; the Half Speed action halves whichever is set. An overdub is stored once per loop sample at any speed (the mean of the input over a sample when slower, interpolated onto every sample passed when faster), so it keeps its level when the speed changes back |  |
 | Low Cut, High Cut | 🆕 ✅ | On the loop's playback |  |
 | As a grid block (placed mid-chain, bypass modes) | 🆕 ✅ | `looper`, one per preset. 🆕 A preset change to another preset with a Looper block hands the loop over, still playing (§9); to one without, it stops, where the rig looper plays through. Bypassed in Thru or Mute the block stops running, so the loop pauses; the other modes keep it playing (Mute FX In: the loop plays on while nothing new reaches it) |  |
 

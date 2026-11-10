@@ -180,6 +180,85 @@ public class LooperBlockTests {
     }
 
     [Theory]
+    [InlineData(1.0, true, 1f)] // the Half Speed action
+    [InlineData(0.5, false, 1f)]
+    [InlineData(0.5, true, 1f)] // quarter speed
+    [InlineData(2.0, false, 1f)]
+    [InlineData(2.0, false, 0.5f)] // the overdub level reaches every sample of the loop too
+    public void An_overdub_at_another_speed_is_stored_once_per_loop_sample(double speed, bool half, float level) {
+        const int length = 1_000;
+        using var looper = new Looper(48_000, 1);
+        var settings = LooperSettings.Default with { OverdubLevel = level };
+        looper.Configure(settings);
+        looper.Apply(LooperAction.Record);
+        for (var i = 0; i < length; i++) {
+            looper.Tick(0.1f, 0.1f);
+        }
+
+        looper.Apply(LooperAction.Play);
+        looper.Configure(settings with { Speed = speed });
+        if (half) {
+            looper.Apply(LooperAction.HalfSpeed);
+        }
+
+        // One pass of the loop at this speed, overdubbing a constant.
+        looper.Apply(LooperAction.Overdub);
+        var ticks = (int)(length / (speed * (half ? 0.5 : 1.0)));
+        for (var i = 0; i < ticks; i++) {
+            looper.Tick(0.2f, 0.2f);
+        }
+
+        looper.Apply(LooperAction.Play);
+        Assert.Equal(0, looper.Position);
+
+        // Read back at normal speed: the overdub at the level it was played, on every sample.
+        if (half) {
+            looper.Apply(LooperAction.HalfSpeed);
+        }
+
+        looper.Configure(settings);
+        for (var i = 0; i < length; i++) {
+            var (left, right) = looper.Tick(0f, 0f);
+            Assert.Equal(0.1f * level + 0.2f, left, 1e-6f);
+            Assert.Equal(left, right);
+        }
+
+        looper.Apply(LooperAction.Undo);
+        for (var i = 0; i < length; i++) {
+            Assert.Equal(0.1f, looper.Tick(0f, 0f).Left, 1e-6f);
+        }
+    }
+
+    [Fact]
+    public void A_double_speed_overdub_fills_the_loop_samples_between_its_input_samples() {
+        const int length = 1_000;
+        using var looper = new Looper(48_000, 1);
+        looper.Apply(LooperAction.Record);
+        for (var i = 0; i < length; i++) {
+            looper.Tick(0f, 0f);
+        }
+
+        looper.Apply(LooperAction.Play);
+        looper.Configure(LooperSettings.Default with { Speed = 2 });
+        looper.Apply(LooperAction.Overdub);
+        for (var i = 0; i < length / 2; i++) {
+            looper.Tick(i * 0.001f, 0f); // a ramp of 0.001 per input sample
+        }
+
+        looper.Apply(LooperAction.Play);
+        looper.Configure(LooperSettings.Default);
+        var played = new float[length];
+        for (var i = 0; i < length; i++) {
+            played[i] = looper.Tick(0f, 0f).Left;
+        }
+
+        // The same ramp at half the slope, with no gaps: every step is half an input step.
+        for (var i = 2; i < length; i++) {
+            Assert.Equal(0.0005f, played[i] - played[i - 1], 1e-6f);
+        }
+    }
+
+    [Theory]
     [InlineData(0f, LooperState.Overdubbing)]
     [InlineData(1f, LooperState.Playing)]
     [InlineData(2f, LooperState.Stopped)]
