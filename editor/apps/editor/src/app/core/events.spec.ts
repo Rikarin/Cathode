@@ -2,7 +2,7 @@ import { computed, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import type { Telemetry } from '@cathode/api-client';
 import { ConnectionService } from './connection';
-import { EventStream, blockMeter, modulatedValue } from './events';
+import { EventStream, blockCpuText, blockMeter, modulatedValue } from './events';
 
 describe('blockMeter', () => {
   const frame = {
@@ -21,6 +21,20 @@ describe('blockMeter', () => {
     expect(blockMeter(null, 'cab1', 'peak')).toBeUndefined();
     expect(blockMeter(frame, 'delay1', 'peak')).toBeUndefined();
     expect(blockMeter(frame, 'in1', 'preampIn')).toBeUndefined();
+  });
+});
+
+describe('blockCpuText', () => {
+  it('shows a tenth below 10 % and whole percent from there', () => {
+    expect(blockCpuText(0.42)).toBe('0.4 %');
+    expect(blockCpuText(9.96)).toBe('10.0 %');
+    expect(blockCpuText(12.4)).toBe('12 %');
+    expect(blockCpuText(0)).toBe('0.0 %');
+  });
+
+  it('is empty without a measurement', () => {
+    expect(blockCpuText(undefined)).toBe('');
+    expect(blockCpuText(Number.NaN)).toBe('');
   });
 });
 

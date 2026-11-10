@@ -80,7 +80,7 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         var meters = 0;
         foreach (var block in blocks) {
             // Each slot's peak, then its own meters, as CompiledGraph lays them out.
-            meters += 1 + (block is IBlockMeters own ? own.MeterIds.Count : 0);
+            meters += CompiledGraph.CommonMeters + (block is IBlockMeters own ? own.MeterIds.Count : 0);
         }
 
         if (meters > TelemetryLayout.BlockMeters) {

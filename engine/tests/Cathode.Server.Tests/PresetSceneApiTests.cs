@@ -386,7 +386,7 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         Assert.InRange(cab["peak"]!.GetValue<float>(), 0f, 4f);
         Assert.InRange(cab["preampIn"]!.GetValue<float>(), -96f, 24f);
         Assert.InRange(cab["motorReduction"]!.GetValue<float>(), 0f, 48f);
-        Assert.Equal(["peak"], blocks["in1"]!.AsObject().Select(static p => p.Key));
+        Assert.Equal(["peak", "cpu"], blocks["in1"]!.AsObject().Select(static p => p.Key));
         Assert.Null(frame!["blockMeters"]); // the second path is gone
         await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", Token);
     }

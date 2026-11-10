@@ -382,7 +382,9 @@ Version 8 makes room for the dynamics blocks' gain-reduction meters: the Compres
 
 Each output's peak (after its EQ and Boost/Pad) goes over IPC telemetry (`outputPeaks`, 10 Hz) and on to WebSocket clients in the telemetry frames, for the editor's output clip warning at −1 dBFS; the input clip warning (0.5 dB below full scale) reads the existing input peak.
 
-Still to come: RMS, per-block CPU, scene state, and binary frames.
+Version 9 adds a second meter every block has, `cpu`, right after `peak`: the time the block's `Process` took (with its bypass handling), in percent of the time the audio it processed lasts, so the blocks' figures add up to about the engine's load less what the graph and the rig do around them. The graph reads the clock twice around each block op, sums per callback and smooths the figure over 0.3 s (`CompiledGraph.CaptureMeters`), so the "highest since the last poll" a reader gets is close to the current value. It is measured on the machine and settings that run the engine, unlike the editor's estimate from `BlockCosts`. With two common meters and up to three own, a full grid needs 420 values per slot, so `BlockMeter` holds that many.
+
+Still to come: RMS, scene state, and binary frames.
 
 ### 5.10 MIDI and controllers
 

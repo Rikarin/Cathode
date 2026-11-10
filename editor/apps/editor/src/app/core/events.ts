@@ -32,6 +32,18 @@ export function blockMeter(frame: Telemetry | null | undefined, block: string, m
 }
 
 /**
+ * A block's measured CPU share (its `cpu` meter: percent of real time on the machine that runs the engine, smoothed)
+ * as text, "0.4 %" or "12 %"; empty before telemetry has one.
+ */
+export function blockCpuText(percent: number | undefined): string {
+  if (percent === undefined || !Number.isFinite(percent)) {
+    return '';
+  }
+
+  return `${percent < 10 ? percent.toFixed(1) : Math.round(percent).toString()} %`;
+}
+
+/**
  * The live value of block `block`'s parameter `param` while a modifier drives it, or undefined when none does (or
  * before telemetry arrives).
  */
