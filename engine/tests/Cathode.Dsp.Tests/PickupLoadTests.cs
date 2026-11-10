@@ -110,6 +110,37 @@ public class PickupLoadTests {
         Assert.False(input.PickupActive);
     }
 
+    [Theory]
+    [InlineData(InputBlock.PickupInductance, 8f)]
+    [InlineData(InputBlock.PickupResistance, 15f)]
+    [InlineData(InputBlock.PickupCapacitance, 400f)]
+    [InlineData(InputBlock.CableCapacitance, 2_000f)]
+    public void A_pickup_value_changed_while_the_block_runs_is_heard_without_a_reload(int param, float value) {
+        // Custom pickup into the 32k load; one block gets the value before Prepare, the other while it runs.
+        using var loaded = TestBlocks.Create<InputBlock>(
+            (InputBlock.PickupType, 4),
+            (InputBlock.Impedance, 6),
+            (param, value)
+        );
+        using var edited = TestBlocks.Create<InputBlock>((InputBlock.PickupType, 4), (InputBlock.Impedance, 6));
+        var settle = Signals.Noise(24_000, 5, 0.5f);
+        var signal = Signals.Noise(4_800, 3, 0.5f);
+
+        BlockRender.Mono(edited, settle, 64);
+        edited.Params.SetTarget(param, value);
+        BlockRender.Mono(edited, settle, 64);
+        BlockRender.Mono(loaded, settle, 64);
+        BlockRender.Mono(loaded, settle, 64);
+
+        Assert.False(edited.Params.IsRamping(param));
+        Assert.Equal(value, edited.Params.Current(param));
+        var residual = Analysis.NullResidualDb(
+            BlockRender.Mono(loaded, signal, 64),
+            BlockRender.Mono(edited, signal, 64)
+        );
+        Assert.True(residual < -100, $"{residual:0.0} dB from a block loaded with the value");
+    }
+
     [Fact]
     public void A_lower_load_takes_off_highs_and_the_buffer_adds_them() {
         var damped = PickupLoad.Magnitude(Pickup.SingleCoil, 22e3, 500e-12, 4_000)

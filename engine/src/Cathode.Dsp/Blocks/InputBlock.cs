@@ -220,16 +220,17 @@ public sealed class InputBlock() : DspBlock(Info), ISideInputBlock {
     }
 
     /// <summary>
-    ///     Redesigns the pickup load when its settings change (they are not smoothed: a choice and a few values).
+    ///     Redesigns the pickup load when its settings change: once per callback while one of the four component
+    ///     values ramps to a new setting, and not at all while they rest.
     /// </summary>
-    void DesignPickup() {
+    void DesignPickup(int frames) {
         var settings = (
             Impedance: (int)Params.Current(Impedance),
             Type: (int)Params.Current(PickupType),
-            L: Params.Current(PickupInductance),
-            R: Params.Current(PickupResistance),
-            C: Params.Current(PickupCapacitance),
-            Cable: Params.Current(CableCapacitance),
+            L: Params.Advance(PickupInductance, frames),
+            R: Params.Advance(PickupResistance, frames),
+            C: Params.Advance(PickupCapacitance, frames),
+            Cable: Params.Advance(CableCapacitance, frames),
             Buffer: Params.Current(PickupBuffer) >= 0.5f
         );
         if (settings == pickupDesigned) {
@@ -376,7 +377,7 @@ public sealed class InputBlock() : DspBlock(Info), ISideInputBlock {
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         SelectSource(io);
-        DesignPickup();
+        DesignPickup(io.Length);
         if (pickupActive) {
             pickupLeft.Process(pickupCoefficients, io.Left);
             pickupRight.Process(pickupCoefficients, io.Right);
