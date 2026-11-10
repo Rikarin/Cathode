@@ -26,6 +26,8 @@ public partial class AmpStageTests {
             { "Rect-o-Verb", false, 4, 0.05, -9 },
             { "Powerball", false, 4, 0.0005, -25 },
             { "Powerball", false, 4, 0.05, -10 },
+            { "Powerball", true, 4, 0.002, -38 },
+            { "Powerball", true, 4, 0.05, -15 },
             { "Savage 120", false, 4, 0.002, -80 },
             { "Savage 120", false, 4, 0.05, -5 },
             { "Savage 120", true, 5, 0.002, -35 },
@@ -118,6 +120,8 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
             { "Triple Rectifier", 1, 1, 1 },
             { "Powerball", 0, 0, 0 },
             { "Powerball", 1, 1, 0 },
+            { "Powerball", 0, 0, 1 },
+            { "Powerball", 1, 1, 1 },
             { "Savage 120", 0, 0, 0 },
             { "Savage 120", 1, 1, 0 },
             { "Savage 120", 0, 0, 1 },
@@ -146,9 +150,11 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
             new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "Triple Rectifier"))
         );
         Assert.Equal(
-            ["Focused", "Hi Lead"],
-            new[] { "switch1", "switch2" }.Select(static id => Label(id, "Powerball"))
+            ["Focused", "Gain Hi", "Channel 1"],
+            new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "Powerball"))
         );
+        Assert.Equal("Bright", Label("bright", "Powerball"));
+        Assert.Equal("Channel Volume", Label("control2", "Powerball"));
         Assert.Equal("Mid Open", Label("middle", "Powerball"));
         Assert.Equal("Mid Focused", Label("control1", "Powerball"));
         Assert.Equal(
@@ -178,6 +184,38 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         var (silicon, tube) = (Supply(false), Supply(true));
         output.WriteLine($"B+ under drive: silicon {silicon:0.0} V, 5U4G {tube:0.0} V");
         Assert.True(tube < silicon - 10);
+    }
+
+    /// <summary>
+    ///     The Powerball's channel 1 (Switch 3) runs three of the lead's four stages behind a divider: far less gain
+    ///     than the lead, Crunch (Switch 2) above Clean by its hotter divider, and a Bright switch that lifts the highs
+    ///     at a low gain setting and does nothing in the lead.
+    /// </summary>
+    [Fact]
+    public void Powerball_channel_one_is_the_clean_and_crunch_of_three_stages() {
+        static double At(float channel, float crunch, float bright, double frequency) {
+            using var block = Create(
+                "Powerball",
+                (CircuitAmpBlock.Switch3, channel),
+                (CircuitAmpBlock.Switch2, crunch),
+                (CircuitAmpBlock.Bright, bright),
+                (CircuitAmpBlock.Gain, 3f),
+                (CircuitAmpBlock.Control2, 10f),
+                (CircuitAmpBlock.Master, 3f)
+            );
+            return Level(block, frequency, 1e-6f);
+        }
+
+        // With the channel volume full: at noon the Crunch volume's audio taper puts Crunch below Clean.
+        var (lead, clean, crunch) = (At(0, 0, 0, 1_000), At(1, 0, 0, 1_000), At(1, 1, 0, 1_000));
+        var bright = At(1, 0, 1, 5_000) - At(1, 0, 0, 5_000);
+        var leadBright = At(0, 0, 1, 5_000) - At(0, 0, 0, 5_000);
+        output.WriteLine($"Powerball at 1 kHz: lead {lead:0.0} dB, clean {clean:0.0} dB, crunch {crunch:0.0} dB");
+        output.WriteLine($"Bright at 5 kHz: channel 1 {bright:0.0} dB, lead {leadBright:0.00} dB");
+        Assert.True(clean < lead - 20, $"clean {clean:0.0} dB against the lead's {lead:0.0} dB");
+        Assert.InRange(crunch - clean, 1, 8);
+        Assert.True(bright > 3, $"Bright lifts 5 kHz by {bright:0.0} dB");
+        Assert.Equal(0, leadBright, 6);
     }
 
     /// <summary>
@@ -330,7 +368,7 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
                 continue;
             }
 
-            if (!Plays(type, knob, s1, s2)) {
+            if (!Plays(type, knob, s1, s2, s3)) {
                 continue;
             }
 
@@ -362,11 +400,12 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
     static float SmallSignal(string type) => type is "Powerball" or "Savage 120" ? 1e-6f : 1e-4f;
 
     /// <summary>Whether a control plays in this channel (some only work in one mode).</summary>
-    static bool Plays(string type, int knob, float s1, float s2) =>
+    static bool Plays(string type, int knob, float s1, float s2, float s3) =>
         (type, knob) switch {
             ("Lone Star", CircuitAmpBlock.Control1) => s2 > 0,
-            ("Powerball", CircuitAmpBlock.Control1) => s1 > 0,
-            ("Powerball", CircuitAmpBlock.Middle) => s1 == 0,
+            // The Powerball's lead has a middle pot for each Style; its channel 1 (Switch 3) has one.
+            ("Powerball", CircuitAmpBlock.Control1) => s1 > 0 && s3 == 0,
+            ("Powerball", CircuitAmpBlock.Middle) => s1 == 0 || s3 > 0,
             _ => true
         };
 
