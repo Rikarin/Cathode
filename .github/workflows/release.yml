@@ -109,7 +109,7 @@ jobs:
       - name: Linux audio headers
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           package_json_file: editor/package.json
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -210,7 +210,7 @@ jobs:
           key: native-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt', 'engine/native/cth_audio/CMakeLists.txt') }}
       - name: Linux audio headers
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           package_json_file: editor/package.json
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -306,7 +306,7 @@ jobs:
       id-token: write # the Sigstore certificate that signs the attestation of SHA256SUMS
       attestations: write
     steps:
-      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: release
           merge-multiple: true
