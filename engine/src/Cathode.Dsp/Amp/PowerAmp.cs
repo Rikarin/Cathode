@@ -210,6 +210,7 @@ public sealed class PowerAmp {
     PentodeModel law; // the tube with the hardness applied, for the operating point
     double screenCap;
     double chokeInductance; // 0: the screen node is fed through a resistor
+    readonly double sharedScreenResistance; // the design's shared screen dropper times the tubes per side
     double chokeDecay; // exp(-R T / L)
     double chokeCurrent;
     OperatingInputs? solvedFor; // what the kept operating point was solved for (SolveOperatingPoint)
@@ -315,6 +316,7 @@ public sealed class PowerAmp {
         tube = design.Tube;
         law = tube;
         screenCap = design.PowerSupply.ScreenCap;
+        sharedScreenResistance = design.SharedScreenResistor * design.TubesPerSide;
         PhaseInverter = PhaseInverter.For(design.PhaseInverter);
         inverterTube = TriodeTables.For(design.PhaseInverter.Tube);
         inverterGridTables = design.InverterInput is null
@@ -1143,9 +1145,12 @@ public sealed class PowerAmp {
     void Prime(ref PushPullStage stage) {
         stage.SupplyA = Supply - CathodeVoltage;
         stage.SupplyB = Supply - cathodeB;
+        // The screens' junction: the screen node, less the drop of a shared dropping resistor under all of them.
+        var junction = ScreenSupply
+            - sharedScreenResistance * (stage.ScreenCurrentA + stage.ScreenCurrentB);
         stage.SetScreens(
-            ScreenSupply - Design.ScreenResistor * stage.ScreenCurrentA - CathodeVoltage,
-            ScreenSupply - Design.ScreenResistor * stage.ScreenCurrentB - cathodeB
+            junction - Design.ScreenResistor * stage.ScreenCurrentA - CathodeVoltage,
+            junction - Design.ScreenResistor * stage.ScreenCurrentB - cathodeB
         );
         var bias = Design.CathodeBias ? 0 : GridBias;
         stage.GridOffsetA = bias - CathodeVoltage;
@@ -1300,9 +1305,11 @@ public sealed class PowerAmp {
     ///     resistance).
     /// </summary>
     double ScreenAtIdle(double grid, double node) {
+        // A shared dropping resistor carries every tube's screen current, the same in each at idle.
+        var resistance = Design.ScreenResistor + Design.Sides * sharedScreenResistance;
         var vs = node;
         for (var i = 0; i < 30; i++) {
-            var next = node - Design.ScreenResistor * KorenPentode.Screen(law, grid, vs);
+            var next = node - resistance * KorenPentode.Screen(law, grid, vs);
             if (Math.Abs(next - vs) < 1e-12) {
                 return next;
             }

@@ -9,7 +9,7 @@ namespace Cathode.Dsp.Amp.Models;
 public static class MarshallVintageParts {
     /// <summary>
     ///     The 1959SLP and 1987X reissues (drawings 1959-01-60-02 issue 2 and 1987-01-60-02 issue 4): 470 pF, 33k,
-    ///     22 nF, 22 nF; B250K treble, A1M bass, B25K middle.
+    ///     22 nF, 22 nF; B250K treble, A1M bass, B25K middle with the middle cap on its wiper.
     /// </summary>
     public static ToneStackDesign ReissueStack { get; } = new(
         "Plexi reissue",
@@ -20,11 +20,11 @@ public static class MarshallVintageParts {
         new(250e3, PotTaper.Linear),
         new(1e6, PotTaper.Audio),
         new(25e3, PotTaper.Linear)
-    );
+    ) { MiddleOnWiper = true };
 
     /// <summary>
     ///     The 1962 Bluesbreaker reissue ("1962 STD", 1989–93): 220 pF, 56k, 22 nF, 22 nF; B220K treble, A1M bass, B22K
-    ///     middle.
+    ///     middle (VR4) with C9 22 nF on its wiper.
     /// </summary>
     public static ToneStackDesign BluesbreakerStack { get; } = new(
         "Bluesbreaker",
@@ -35,7 +35,7 @@ public static class MarshallVintageParts {
         new(220e3, PotTaper.Linear),
         new(1e6, PotTaper.Audio),
         new(22e3, PotTaper.Linear)
-    );
+    ) { MiddleOnWiper = true };
 
     /// <summary>
     ///     The 1962 Bluesbreaker reissue's first tube (drawing "1962 STD"): V1a (Channel II, 150k plate) and V1b

@@ -77,6 +77,51 @@ public partial class AmpStageTests(ITestOutputHelper output) {
         Assert.True(worst < 0.5, $"{worst:0.000} dB from the reference");
     }
 
+    /// <summary>
+    ///     The Marshall drawings put the middle cap on the middle pot's wiper, the whole track under the bass pot
+    ///     (#196): the JCM800 stack from a 1.5k source into 1M then loses about 14 dB at 100 Hz with Bass and Middle at
+    ///     0, and still passes signal with all three knobs at 0. As a variable resistor with the cap on the bass pot's
+    ///     foot (the AB763's 10k middle) the same parts lose 31 dB there and go silent.
+    /// </summary>
+    [Fact]
+    public void A_marshall_stack_has_its_middle_cap_on_the_wiper_and_passes_signal_with_every_knob_at_0() {
+        var marshall = Amp.Models.MarshallParts.JCM800Stack;
+        Assert.True(marshall.MiddleOnWiper);
+        Assert.True(ToneStackDesign.Marshall.MiddleOnWiper);
+        Assert.False(ToneStackDesign.Fender.MiddleOnWiper);
+        Assert.False(ToneStackDesign.Vox.MiddleOnWiper);
+
+        double Gain(ToneStackDesign design, double hz, double bass, double middle, double treble) {
+            var stack = new ToneStackCircuit(design, Rate, 1.5e3);
+            stack.Set(bass, middle, treble);
+            var impulse = new float[32_768];
+            for (var i = 0; i < impulse.Length; i++) {
+                impulse[i] = (float)stack.Tick(i == 0 ? 1 : 0);
+            }
+
+            return Analysis.ToDb(Math.Max(Analysis.MagnitudeAt(impulse, hz, Rate), 1e-9));
+        }
+
+        var rheostat = marshall with { MiddleOnWiper = false };
+        var low = Gain(marshall, 100, 0, 0, 0.5);
+        var mid = Gain(marshall, 400, 0, 0, 0.5);
+        var closed = Gain(marshall, 400, 0, 0, 0);
+        output.WriteLine(
+            $"Bass 0, Middle 0, Treble 5: {low:0.0} dB at 100 Hz, {mid:0.0} dB at 400 Hz (as a variable resistor "
+            + $"{Gain(rheostat, 100, 0, 0, 0.5):0.0} and {Gain(rheostat, 400, 0, 0, 0.5):0.0} dB); all at 0: "
+            + $"{closed:0.0} dB at 400 Hz ({Gain(rheostat, 400, 0, 0, 0):0.0} dB)"
+        );
+        Assert.Equal(-14.0, low, 1.0);
+        Assert.Equal(-12.8, mid, 1.0);
+        Assert.InRange(closed, -20, -8);
+        Assert.Equal(-30.9, Gain(rheostat, 100, 0, 0, 0.5), 1.0);
+        Assert.True(Gain(rheostat, 400, 0, 0, 0) < -100, "a middle rheostat at 0 grounds the stack");
+        // At noon the two wirings are within half a decibel: the fix moves the low Bass and Middle settings.
+        foreach (var hz in new[] { 100.0, 400, 1_000, 3_000 }) {
+            Assert.Equal(Gain(rheostat, hz, 0.5, 0.5, 0.5), Gain(marshall, hz, 0.5, 0.5, 0.5), 0.5);
+        }
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]

@@ -12,7 +12,7 @@ public static class MarshallParts {
 
     /// <summary>
     ///     JCM800 2203/2204 (drawings 2203 STD and 2204 STD, issue 4): 470 pF, 33k, 22 nF, 22 nF; 220k linear treble,
-    ///     1M log bass, 22k linear middle.
+    ///     1M log bass, 22k linear middle (VR4, its top on the bass pot's foot, C12 on its wiper).
     /// </summary>
     public static ToneStackDesign JCM800Stack { get; } = new(
         "JCM800",
@@ -23,11 +23,11 @@ public static class MarshallParts {
         new(220e3, PotTaper.Linear),
         new(1e6, PotTaper.Audio),
         new(22e3, PotTaper.Linear)
-    );
+    ) { MiddleOnWiper = true };
 
     /// <summary>
     ///     1959 Super Lead (Unicord drawing 70-6-11): 500 pF, 33k, 22 nF, 22 nF; 250k treble (linear assumed), 1M log
-    ///     bass, 25k linear middle.
+    ///     bass, 25k linear middle with the 0.022 µF drawn into its wiper.
     /// </summary>
     public static ToneStackDesign SuperLeadStack { get; } = new(
         "Super Lead",
@@ -38,10 +38,11 @@ public static class MarshallParts {
         new(250e3, PotTaper.Linear),
         new(1e6, PotTaper.Audio),
         new(25e3, PotTaper.Linear)
-    );
+    ) { MiddleOnWiper = true };
 
     /// <summary>
-    ///     JTM45 (drawing JTM45.DGM issue 7): 270 pF, 56k, 20 nF, 20 nF; 250k-B treble, 1M-A bass, 25k-B middle.
+    ///     JTM45 (drawing JTM45.DGM issue 7): 270 pF, 56k, 20 nF, 20 nF; 250k-B treble, 1M-A bass, 25k-B middle with
+    ///     the 0.02 µF on its wiper.
     /// </summary>
     public static ToneStackDesign JTM45Stack { get; } = new(
         "JTM45",
@@ -52,7 +53,7 @@ public static class MarshallParts {
         new(250e3, PotTaper.Linear),
         new(1e6, PotTaper.Audio),
         new(25e3, PotTaper.Linear)
-    );
+    ) { MiddleOnWiper = true };
 
     /// <summary>
     ///     The panel of a two-channel Marshall without a master: the jumper and the normal input on switches 1 and 2.
@@ -87,7 +88,8 @@ public static class MarshallParts {
     };
 
     /// <summary>
-    ///     A cathode follower DC-coupled to the previous plate, driving a TMB stack whose treble wiper is the output:
+    ///     A cathode follower DC-coupled to the previous plate, driving a TMB stack (its middle pot wired as
+    ///     <see cref="ToneStackDesign.MiddleOnWiper" /> says) whose treble wiper is the output:
     ///     an amp without a master volume, whose stack feeds the phase inverter. As a <see cref="ToneStackStage" />
     ///     with a fixed <paramref name="load" /> (the inverter's grid leak) in place of the load pot, or none (0) where
     ///     the power amp models the inverter's input network (<see cref="InverterInputDesign" />).
@@ -108,10 +110,17 @@ public static class MarshallParts {
         net.Capacitor(cathode, top, stack.TrebleCap, CapacitorRole.Stack);
         net.Resistor(cathode, slope, stack.SlopeResistor);
         net.Capacitor(slope, bottom, stack.BassCap, CapacitorRole.Stack);
-        net.Capacitor(slope, middle, stack.MiddleCap, CapacitorRole.Stack);
         var wiper = net.Pot(top, bottom, stack.Treble, PotRole.Treble);
         net.Rheostat(bottom, middle, stack.Bass, PotRole.Bass);
-        net.Rheostat(middle, StageNetlist.Ground, stack.Middle, PotRole.Middle);
+        if (stack.MiddleOnWiper) {
+            // The whole middle track under the bass pot, the middle cap on its wiper (as Marshall draws it).
+            var middleWiper = net.Pot(middle, StageNetlist.Ground, stack.Middle, PotRole.Middle);
+            net.Capacitor(slope, middleWiper, stack.MiddleCap, CapacitorRole.Stack);
+        } else {
+            net.Capacitor(slope, middle, stack.MiddleCap, CapacitorRole.Stack);
+            net.Rheostat(middle, StageNetlist.Ground, stack.Middle, PotRole.Middle);
+        }
+
         if (load > 0) {
             net.Resistor(wiper, StageNetlist.Ground, load);
         }
@@ -161,11 +170,12 @@ public static class MarshallParts {
     /// <summary>
     ///     The JCM800 preamp after the first stage: V1B cold clipper (100k, 10k unbypassed), 22 nF into 470k with 470
     ///     pF over 470k, V2A (100k, 820 unbypassed), the V2B cathode follower (100k) on the JCM800 stack and the 1M log
-    ///     master.
+    ///     master. V2 runs on the power supply's preamp node (the drawing's X, <paramref name="supply" />), V1 on
+    ///     node 1 of <see cref="JCM800Supply" /> (<paramref name="firstSupply" />).
     /// </summary>
     public static AmpStageDesign[] JCM800Preamp(double firstSupply, double supply) => [
-        JCM800Input(firstSupply),
-        new TriodeStageDesign("V1B", TriodeModel.Ecc83, firstSupply, 100e3, 10e3),
+        JCM800Input(firstSupply) with { SupplyNode = 1 },
+        new TriodeStageDesign("V1B", TriodeModel.Ecc83, firstSupply, 100e3, 10e3) { SupplyNode = 1 },
         new TriodeStageDesign(
             "V2A",
             TriodeModel.Ecc83,
@@ -176,7 +186,7 @@ public static class MarshallParts {
             SeriesResistor: 470e3,
             SeriesBypass: 470e-12,
             GridLeak: 470e3
-        ),
+        ) { SupplyNode = 0 },
         new ToneStackStageDesign(
             "V2B",
             TriodeModel.Ecc83,
@@ -186,8 +196,14 @@ public static class MarshallParts {
             JCM800Stack,
             new(1e6, PotTaper.Audio),
             PotRole.Master
-        )
+        ) { SupplyNode = 0 }
     ];
+
+    /// <summary>
+    ///     The JCM800's preamp supply below node X (2203 STD and 2204 STD): R8 10k 1 W from X into one half of C21
+    ///     (50 + 50 µF, the other half on X), feeding V1's two plates, which draw <paramref name="firstCurrent" />.
+    /// </summary>
+    public static PreampSupplyDesign JCM800Supply(double firstCurrent) => new([new(10e3, 50e-6, firstCurrent)]);
 
     /// <summary>
     ///     The first tube of a two-channel Marshall with separate cathodes (1959): both triodes with 100k plates, the

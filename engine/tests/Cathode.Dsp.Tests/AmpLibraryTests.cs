@@ -294,8 +294,17 @@ public partial class AmpStageTests {
         net.Capacitor(slope, middle, s.MiddleCap / settings.StackFrequency);
         net.Resistor(top, output, Math.Max((1 - t) * s.Treble.Ohms, Floor));
         net.Resistor(output, bottom, Math.Max(t * s.Treble.Ohms, Floor));
-        net.Resistor(bottom, middle, Math.Max(s.Bass.Fraction(controls.Bass) * s.Bass.Ohms, Floor));
-        net.Resistor(middle, StageNetlist.Ground, Math.Max(s.Middle.Fraction(controls.Middle) * s.Middle.Ohms, Floor));
+        var m = s.Middle.Fraction(controls.Middle);
+        if (s.MiddleOnWiper) {
+            // The whole middle track under the bass pot, the middle cap on its wiper.
+            var foot = net.Node();
+            net.Resistor(bottom, foot, Math.Max(s.Bass.Fraction(controls.Bass) * s.Bass.Ohms, Floor));
+            net.Resistor(foot, middle, Math.Max((1 - m) * s.Middle.Ohms, Floor));
+        } else {
+            net.Resistor(bottom, middle, Math.Max(s.Bass.Fraction(controls.Bass) * s.Bass.Ohms, Floor));
+        }
+
+        net.Resistor(middle, StageNetlist.Ground, Math.Max(m * s.Middle.Ohms, Floor));
         var a = d.Load.Fraction(d.LoadRole is { } role ? controls.Rotation(role) : 1);
         net.Resistor(output, wiper, Math.Max((1 - a) * d.Load.Ohms, Floor));
         net.Resistor(wiper, StageNetlist.Ground, Math.Max(a * d.Load.Ohms, Floor));
