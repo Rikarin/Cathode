@@ -31,7 +31,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         Unverified: B+ (410 V), the supply nodes (320 V at the inverter, 250 V at the preamp, from Robinette's
 ///         Stokes-mod page), the 6V6 idle current (22 mA), the resistor standing in for the missing choke (1k), the
-///         coupling cap after V1B (0.02 µF) and the reverb driver's grid leak (1M).
+///         coupling cap after V1B (0.02 µF), the reverb driver's grid leak (1M) and the 10" speaker's impedance curve
+///         (<see cref="SpeakerDesign.OpenBack1x10" />, typical values).
 ///     </para>
 /// </remarks>
 public static class PrincetonReverb {
@@ -109,7 +110,7 @@ public static class PrincetonReverb {
             new(MixerGain, 2.7e3, 47, new(1e3, PotTaper.Linear), 1e-12),
             true,
             new(8.5e3),
-            SpeakerDesign.OpenBack1x12,
+            SpeakerDesign.OpenBack1x10,
             new(150, 20e-6, 1e3, 20e-6, 10e3, 20e-6, 5e-3, RectifierModel.FiveU4)
         ) { BiasTremolo = Tremolo },
         -9

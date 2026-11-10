@@ -37,7 +37,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///         second grid, here the tail's foot (the same difference); the 33k + 5 nF across the 56k is the network's
 ///         fixed shelf (more feedback above 360 Hz, a 0.37 ratio). Guessed: the output transformer (8k, a typical
 ///         primary for two EL84), the EL84s' idle current (30 mA at -11 V), the bias network as a 290k leak (330k ‖
-///         2.42M) behind the 220k series resistors.
+///         2.42M) behind the 220k series resistors, and the 10 in speaker's impedance curve
+///         (<see cref="SpeakerDesign.OpenBack1x10" />).
 ///     </para>
 /// </remarks>
 public static class SubwayBlues {
@@ -73,7 +74,7 @@ public static class SubwayBlues {
             new(1, 20.8e3, 1.6e3, new(1e6, PotTaper.Linear), 0, 965, 0.37),
             true,
             new(8e3),
-            SpeakerDesign.OpenBack1x12,
+            SpeakerDesign.OpenBack1x10,
             // Two 30 µF stacked, 3 x 820 + 3 x 1k to the screens' 30 µF, 33k + 15k + 15k to the preamp's 30 µF.
             new(30, 15e-6, 5.46e3, 30e-6, 63e3, 30e-6, 2.6e-3, RectifierModel.Silicon),
             InverterInput: new(20e-9, 1e6)

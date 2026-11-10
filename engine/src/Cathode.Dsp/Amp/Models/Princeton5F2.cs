@@ -12,13 +12,11 @@ namespace Cathode.Dsp.Amp.Models;
 ///     code K-EG): every passive value, both pots linear, the tone network's wiring, the supply chain (2 × 16 µF, 10k,
 ///     8 µF, 22k, 8 µF), 470 Ω ‖ 25 µF, 22k feedback into V1B's 1.5k. The drawing prints no voltages, so B+ and the
 ///     nodes are taken as the 5F1's (the same supply chain); the output transformer (Fender 265) is taken as the
-///     Champ's 8k : 4 Ω, and the speaker's curve is a typical 10".
+///     Champ's 8k : 4 Ω, and the speaker's curve is a typical 10" (<see cref="SpeakerDesign.OpenBack1x10" />).
 /// </remarks>
 public static class Princeton5F2 {
-    /// <summary>An open-back 1 × 10 (typical values).</summary>
-    static readonly SpeakerDesign OpenBack1x10 = new(6.2, 0.7e-3, 30, 110, 38, 2.8);
-
-    public static AmpDesign Design { get; } = Champ.Build("Princeton 5F2-A", FirstStage(), OpenBack1x10, -16, "Tone");
+    public static AmpDesign Design { get; } =
+        Champ.Build("Princeton 5F2-A", FirstStage(), SpeakerDesign.OpenBack1x10, -16, "Tone");
 
     /// <summary>V1A (bypassed), the volume and the tone network; the output is the volume's wiper.</summary>
     static NetworkStageDesign FirstStage() {

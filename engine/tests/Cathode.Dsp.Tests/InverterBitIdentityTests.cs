@@ -30,7 +30,7 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         { "Deluxe Reverb", (0xE39CFAB4C3BBB031, 0x9D144EB089B635B1) },
         { "Twin Reverb", (0x2BD2DBD0FCB651D7, 0xAF1A2D8E9FD1E59F) },
         { "Super Reverb", (0x2BD2DBD0FCB651D7, 0x4D6D0818CA15640F) },
-        { "Princeton Reverb", (0xD45935F647FBF6E8, 0xBEDFCBFA1DDE09DB) },
+        { "Princeton Reverb", (0xD45935F647FBF6E8, 0x93A5F529338C924E) },
         { "Bassman 5F6-A", (0x198AF1CECAF0406C, 0xB398A79890A66813) },
         { "Bassman 5F6-A Jumped", (0x198AF1CECAF0406C, 0xB398A79890A66813) },
         { "Tweed Deluxe 5E3", (0x751704F24D4270C5, 0x838AB22CAAE5B68B) },
@@ -64,7 +64,7 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         { "Tweed Twin 5F8-A Jumped", (0xF6A44F422C4235FB, 0x662F5D33C862698B) },
         { "Tremolux AA763", (0x7ADA586669E241F5, 0x7C125AF1766A8130) },
         { "Princeton 5F2-A", (0x751704F24D4270C5, 0x86E1083C42F44E68) },
-        { "Princeton AA964", (0xFF3967EFEBF1B134, 0xC114E828FEC4395A) },
+        { "Princeton AA964", (0xFF3967EFEBF1B134, 0x7B58C8DA86BCB73E) },
         { "Vibro-King", (0xDA7A23B207AE5239, 0xFD7EFD5D17F5BF06) },
         { "Blues Junior", (0x0874B0DB2CAC1F77, 0x680C8F5553985E66) },
         { "BE-100", (0x06CBD971B1F3A258, 0x828C6DC6401C58DB) },
@@ -82,7 +82,7 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         { "Liverpool", (0x20A2049A8B34EA73, 0x1E80AAC97F3C88F8) },
         { "ODS 70s", (0xC0BA94849F63DA26, 0x88D1D84D616BD065) },
         { "Dual Rectifier 3-Ch", (0xA743C4E16D9DAC79, 0x7DF854C88033DFE1) },
-        { "Subway Blues", (0xB83BF82E1409763B, 0xDF1FEEAD30F31B64) },
+        { "Subway Blues", (0xB83BF82E1409763B, 0x67256F948ED649B1) },
         { "TriAxis Rhythm", (0x626AC8FABA73BCDB, 0xFC58CA1C580ED32A) },
         { "TriAxis Lead 1", (0x626AC8FABA73BCDB, 0xFC58CA1C580ED32A) },
         { "TriAxis Lead 2", (0x626AC8FABA73BCDB, 0xFC58CA1C580ED32A) },
@@ -95,7 +95,7 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         { "Deluxe 6G3", (0xCF998D388667A246, 0xB56B3E631E221656) },
         { "Vibrolux 6G11", (0x571C6DBBBE507E38, 0x59E3FA28438EA575) },
         { "Bassman 135", (0xFC42035894385A78, 0xD78999EF2D341A23) },
-        { "Scout GA-17RVT", (0x53511F6E464C9C80, 0x1E5CA20F2BA4C479) }
+        { "Scout GA-17RVT", (0x53511F6E464C9C80, 0xE6C411F384241792) }
     };
 
     static readonly Lock UpdateLock = new();

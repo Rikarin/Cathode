@@ -17,11 +17,6 @@ namespace Cathode.Dsp.Amp.Models;
 ///     source resistance, and the 15" speaker's impedance curve (a typical open-back 15: resonance near 75 Hz).
 /// </remarks>
 public static class Vibroverb {
-    /// <summary>
-    ///     An open-back 1 × 15: a lower resonance than a 12, a little more voice-coil inductance (typical values).
-    /// </summary>
-    static readonly SpeakerDesign OpenBack1x15 = new(6.4, 1.3e-3, 25, 75);
-
     public static AmpDesign Design { get; } = new(
         "Vibroverb AB763",
         [
@@ -48,7 +43,7 @@ public static class Vibroverb {
             Ab763.Feedback(1, 47),
             true,
             new(4e3),
-            OpenBack1x15,
+            SpeakerDesign.OpenBack1x15,
             new(100, 35e-6, 100, 20e-6, 5.7e3, 20e-6, 8.8e-3, RectifierModel.GZ34),
             InverterInput: Ab763.InverterInput
         ),
