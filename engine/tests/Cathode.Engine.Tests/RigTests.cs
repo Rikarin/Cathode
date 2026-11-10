@@ -359,6 +359,33 @@ public class RigTests {
         Assert.Equal(MathF.Pow(10f, db / 20f), left[^1], 3);
     }
 
+    [Theory]
+    [InlineData("manualE")]
+    [InlineData("ext9")]
+    [InlineData("ext16")]
+    public void Manual_e_and_externals_9_to_16_are_modifier_sources(string source) {
+        var engine = Engine(Modifier(source, -40f, 0f));
+        Set(engine, source, 0.5f);
+
+        var (left, _) = OfflineRenderer.Render(engine, Signals.Step(9_600), Signals.Step(9_600), 64);
+
+        Assert.Equal(0.1f, left[^1], 3); // -20 dB, half way
+        Assert.True(ModNames.TryParseSource(source, out var parsed));
+        Assert.Equal(source, ModNames.Sources[(int)parsed]);
+    }
+
+    [Fact]
+    public void Every_modifier_source_has_a_name_and_a_rig_parameter_where_a_person_sets_it() {
+        Assert.Equal(Enum.GetValues<ModSource>().Length, ModNames.Sources.Length);
+        Assert.Equal(RigControls.ManualCount, ModNames.Sources.Count(static s => s.StartsWith("manual", StringComparison.Ordinal)));
+        Assert.Equal(RigControls.ExternalCount, ModNames.Sources.Count(static s => s.StartsWith("ext", StringComparison.Ordinal)));
+        foreach (var name in ModNames.Sources.Where(static s =>
+                     s.StartsWith("manual", StringComparison.Ordinal) || s.StartsWith("ext", StringComparison.Ordinal)
+                 )) {
+            Assert.True(RigControls.Descriptor.IndexOf(name) >= 0, name);
+        }
+    }
+
     [Fact]
     public void Modifiers_with_an_unknown_second_source_or_operation_are_rejected() {
         var definition = Graph();

@@ -106,9 +106,9 @@ Touch the pedal and the wah is on, wherever the pedal is. Park it at the heel an
 
 ## The controllers
 
-Open **Controllers** in the navigation bar to set them up. Their settings are stored with the preset, except **Manual A to D**, which are global.
+Open **Controllers** in the navigation bar to set them up. Their settings are stored with the preset, except **Manual A to E**, which are global.
 
-<!-- screenshot wanted: the Controllers page: scene level and controllers, Manual A-D, LFO 1 and 2, ADSR 1 and 2 and the followers side by side, the sequencer -->
+<!-- screenshot wanted: the Controllers page: scene level and controllers, Manual A-E, LFO 1 and 2, ADSR 1 and 2 and the followers side by side, the sequencer -->
 
 ### Scene controllers
 
@@ -116,11 +116,11 @@ The **Scene** section at the top shows the active scene's **Scene Level** and **
 
 Use a scene controller as a modifier source when a knob should sit at a different position in each scene: assign **Scene Controller 1** to the delay's mix with Min 0 % and Max 50 %, then set Controller 1 to 20 % in the verse scene and 60 % in the solo scene. Unlike a channel, this needs no copy of the whole block, and the change glides with the modifier's Attack and Release.
 
-### Manual A to D
+### Manual A to E
 
-Four global knobs (0 to 100 %) on the Controllers page, the same in every preset. A MIDI controller or footswitch can set them too (the **manual** action). Use them for anything you want to control by hand the same way everywhere.
+Five global knobs (0 to 100 %) on the Controllers page, the same in every preset. A MIDI controller or footswitch can set them too (the **manual** action). Use them for anything you want to control by hand the same way everywhere.
 
-### External 1 to 8
+### External 1 to 16
 
 The sources an expression pedal or a MIDI CC drives (see [Expression pedals](/manual/midi-and-footswitches#expression-pedals)). **External (live)** on the Controllers page has a knob for each, so you can move a wah, a whammy or any External modifier without a pedal. These are live values only: they are not saved, the knobs show what you last set here, and a pedal moved afterwards takes over.
 
@@ -160,7 +160,7 @@ A source that follows the pitch of the note you play. **Low** and **High** (in H
 
 ### Sequencer
 
-A step sequencer: a source that steps through 2 to 16 fixed levels in a loop.
+A step sequencer: a source that steps through 2 to 32 fixed levels in a loop.
 
 1. Set **Stages** (how many steps).
 2. Set **Rate** (0.1 to 20 Hz), or **Tempo** to a note value to step in time.
@@ -172,7 +172,7 @@ While audio is running, the stage playing is marked on the Controllers page: its
 
 Put it on a filter for a rhythmic, synth-like pattern, or on a volume for a gated chop.
 
-### External 1 to 8
+### Mapping an External
 
 Values from your MIDI controller: an expression pedal, a knob or a fader sending CC messages. You connect a CC to an External number on the **Global** page, and from then on any modifier with that External as its source follows it. See [Expression pedals](/manual/midi-and-footswitches#expression-pedals).
 

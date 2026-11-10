@@ -38,6 +38,16 @@ public sealed class GlobalStoreTests : IDisposable {
     }
 
     [Fact]
+    public void Four_manual_values_from_an_earlier_release_gain_manual_e_at_rest() {
+        File.WriteAllText(Path.Combine(folder, "global.json"), """{ "manual": [0.1, 0.2, 0.3, 0.4] }""");
+
+        var store = new GlobalStore(Options.Create(new ServerOptions { DataDirectory = folder }));
+
+        Assert.Equal([0.1f, 0.2f, 0.3f, 0.4f, 0f], store.Get().Manual);
+        Assert.Equal(1f, store.Update(static g => g.Manual[4] = 1f).Manual[4]);
+    }
+
+    [Fact]
     public void Dual_mono_from_an_earlier_release_reads_as_copy_left_to_right() {
         File.WriteAllText(
             Path.Combine(folder, "global.json"),

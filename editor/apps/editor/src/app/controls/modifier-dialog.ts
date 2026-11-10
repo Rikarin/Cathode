@@ -38,6 +38,7 @@ const SourceNames: Record<string, string> = {
   manualB: 'Manual B',
   manualC: 'Manual C',
   manualD: 'Manual D',
+  manualE: 'Manual E',
   scene1: 'Scene Controller 1',
   scene2: 'Scene Controller 2',
   scene3: 'Scene Controller 3',

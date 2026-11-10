@@ -1,4 +1,5 @@
 using Cathode.Contracts;
+using Cathode.Engine.Rig;
 using Cathode.Server.Rig;
 using System.Collections.Immutable;
 
@@ -114,8 +115,8 @@ static class GlobalValidation {
             errors.Add("The active song is -1 (before the first) or an entry of the setlist, from 0.");
         }
 
-        if (settings.Manual.Count != 4) {
-            errors.Add("Manual has four values (A-D).");
+        if (settings.Manual.Count != RigControls.ManualCount) {
+            errors.Add("Manual has five values (A-E).");
         }
     }
 

@@ -98,12 +98,15 @@ public sealed class Modulation(ParamBank rig, double sampleRate) {
         SequencerStages = stages;
 
         values[(int)ModSource.Pitch] = rig.Advance(pitch, frames);
-        for (var i = 0; i < 4; i++) {
+        for (var i = 0; i < RigControls.ManualCount; i++) {
             values[(int)ModSource.ManualA + i] = rig.Advance(manualA + i, frames);
+        }
+
+        for (var i = 0; i < RigControls.SceneControllerCount; i++) {
             values[(int)ModSource.Scene1 + i] = rig.Advance(scene1 + i, frames);
         }
 
-        for (var i = 0; i < 8; i++) {
+        for (var i = 0; i < RigControls.ExternalCount; i++) {
             values[(int)ModSource.Ext1 + i] = rig.Advance(ext1 + i, frames);
         }
     }

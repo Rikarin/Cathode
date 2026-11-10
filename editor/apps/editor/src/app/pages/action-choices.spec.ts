@@ -53,7 +53,10 @@ describe('action values', () => {
     ]);
     expect(valueChoices('channel', context, 'amp1', null)?.[1]).toEqual({ label: 'Channel B', value: 1 });
     expect(valueChoices('manual', context, null, null)?.[3]).toEqual({ label: 'Manual D', value: 3 });
+    expect(valueChoices('manual', context, null, null)?.[4]).toEqual({ label: 'Manual E', value: 4 });
+    expect(valueChoices('channel', context, null, null)).toHaveLength(4);
     expect(valueChoices('external', context, null, null)?.[0]).toEqual({ label: 'External 1', value: 1 });
+    expect(valueChoices('external', context, null, null)?.[15]).toEqual({ label: 'External 16', value: 16 });
     expect(valueChoices('view', context, null, null)).toEqual([
       { label: 'Scenes', value: 0 },
       { label: 'Effects', value: 1 }

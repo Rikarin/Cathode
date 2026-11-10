@@ -1,4 +1,5 @@
 using Cathode.Contracts;
+using Cathode.Engine.Rig;
 using Cathode.Ipc;
 using Cathode.Server.Engine;
 using Cathode.Server.Realtime;
@@ -406,10 +407,10 @@ public sealed partial class MidiRouter : IDisposable {
                 await rig.SetChannelAsync(block, Preset.ChannelNames[(action.Value ?? data) & 3], null);
                 break;
             case "external":
-                rig.SetExternal(Math.Clamp((action.Value ?? 1) - 1, 0, 7), data / 127f);
+                rig.SetExternal(Math.Clamp((action.Value ?? 1) - 1, 0, RigControls.ExternalCount - 1), data / 127f);
                 break;
             case "manual":
-                rig.SetManual(Math.Clamp(action.Value ?? 0, 0, 3), data / 127f);
+                rig.SetManual(Math.Clamp(action.Value ?? 0, 0, RigControls.ManualCount - 1), data / 127f);
                 break;
             case "tap" when down:
                 rig.Tap(sampleTime);

@@ -668,7 +668,7 @@ public sealed partial class LiveRig(
             : null;
 
     /// <summary>
-    ///     Everything the global settings put into the engine: tempo (global mode), metronome, Manual A-D, the outputs'
+    ///     Everything the global settings put into the engine: tempo (global mode), metronome, Manual A-E, the outputs'
     ///     modes, Boost/Pad and EQs, Input 1's gain and calibration, and the tuner's output and reference.
     /// </summary>
     public static List<ParamValue> GlobalValues(GlobalSettings global) {
@@ -687,7 +687,7 @@ public sealed partial class LiveRig(
         }
 
         values.AddRange(
-            global.Manual.Take(4).Select(static (v, i) => new ParamValue(IpcBlocks.Rig, $"manual{(char)('A' + i)}", v))
+            global.Manual.Take(RigControls.ManualCount).Select(static (v, i) => new ParamValue(IpcBlocks.Rig, $"manual{(char)('A' + i)}", v))
         );
         values.Add(new(IpcBlocks.Rig, "copyOut2", global.CopyOutput1To2 ? 1 : 0));
         for (var k = 0; k < 4; k++) {

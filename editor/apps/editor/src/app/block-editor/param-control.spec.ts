@@ -16,6 +16,9 @@ describe('Learn MIDI controller', () => {
     // Learned in another preset: External 1 already follows a pedal, though this preset does not use it.
     expect(freeExternal({ midiMappings: [mapping(1)], footswitches: [] }, [], [])).toBe(2);
     expect(freeExternal({ midiMappings: [mapping(1)], footswitches: [] }, [{ source: 'ext2' }], [])).toBe(3);
+    expect(
+      freeExternal({ midiMappings: [mapping(1)], footswitches: [] }, [{ source: 'lfo1', source2: 'ext2' }], [])
+    ).toBe(3);
     const layout: FootswitchLayout = {
       id: 'main',
       name: 'Main',
@@ -43,8 +46,8 @@ describe('Learn MIDI controller', () => {
     ).toBe(2);
   });
 
-  it('finds none when all eight are taken', () => {
-    const all = [1, 2, 3, 4, 5, 6, 7, 8].map(mapping);
+  it('finds none when all 16 are taken', () => {
+    const all = Array.from({ length: 16 }, (_, i) => i + 1).map(mapping);
     expect(freeExternal({ midiMappings: all, footswitches: [] }, [], [])).toBeNull();
   });
 });

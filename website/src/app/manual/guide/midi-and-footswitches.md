@@ -62,8 +62,8 @@ A new mapping replaces any old mapping of the same message on the same channel. 
 | `presetNext`, `presetPrevious`   |                                                                                |                              | Loads the next or previous preset in bank order, as the editor's arrows do: see [Loading presets](/manual/presets-and-scenes#loading-presets). |
 | `bypass`                         | A block                                                                        |                              | Toggles the block on a press. From a CC, values of 64 and up engage it and lower values bypass it.                                             |
 | `channel`                        | A block                                                                        | Channel, **1 to 4** (1 is A) | Switches the block to that channel.                                                                                                            |
-| `external`                       |                                                                                | External, **1 to 8**         | The CC's value drives External 1 to 8, a modifier source. See [Expression pedals](#expression-pedals).                                         |
-| `manual`                         |                                                                                | Manual, **1 to 4** (1 is A)  | The CC's value sets Manual A to D.                                                                                                             |
+| `external`                       |                                                                                | External, **1 to 16**        | The CC's value drives External 1 to 16, a modifier source. See [Expression pedals](#expression-pedals).                                        |
+| `manual`                         |                                                                                | Manual, **1 to 5** (1 is A)  | The CC's value sets Manual A to E.                                                                                                             |
 | `tap`                            |                                                                                |                              | Taps the tempo.                                                                                                                                |
 | `tuner`                          |                                                                                |                              | Turns the tuner on and off. From a CC, 64 and up is on.                                                                                        |
 | `metronome`                      |                                                                                |                              | Turns the metronome on and off. From a CC, 64 and up is on.                                                                                    |
@@ -92,7 +92,7 @@ Turn on **Global ▸ Presets and scenes ▸ Ignore redundant PC** if your contro
 
 ## Expression pedals
 
-An expression pedal plugged into a MIDI controller sends a CC whose value follows the pedal. In Cathode, it drives one of the **External 1 to 8** controllers, and modifiers follow the External.
+An expression pedal plugged into a MIDI controller sends a CC whose value follows the pedal. In Cathode, it drives one of the **External 1 to 16** controllers, and modifiers follow the External.
 
 **Map the pedal once:**
 

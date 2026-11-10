@@ -860,7 +860,7 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
-    /** Manual A-D (index 0-3), 0..1. */
+    /** Manual A-E (index 0-4), 0..1. */
     put: operations['SetManual'];
     post?: never;
     delete?: never;
@@ -877,7 +877,7 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
-    /** External 1-8 (index 0-7), 0..1: what a pedal or CC would set. */
+    /** External 1-16 (index 0-15), 0..1: what a pedal or CC would set. */
     put: operations['SetExternal'];
     post?: never;
     delete?: never;
@@ -2355,7 +2355,7 @@ export interface components {
      * @description A MIDI message bound to an action. `Message` is cc, note or pc; `Channel` 0 means any. Actions:
      *     scene (Value = scene, or the message value when absent), sceneNext, scenePrevious, presetSlot (Target = bank
      *     id, the PC number picks the slot), presetNext, presetPrevious, bypass (Target = block), channel (Target = block,
-     *     Value = 0-3), external (Value = 1-8, the CC value drives External n), manual (Value = 0-3), tap, tuner,
+     *     Value = 0-3), external (Value = 1-16, the CC value drives External n), manual (Value = 0-4), tap, tuner,
      *     metronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear), sceneLevelUp and
      *     sceneLevelDown (the active scene's level by ±1 dB, then save the preset), save (save the preset), layout
      *     (Target = layout id), view (Value = view index), viewNext, viewPrevious, songNext and songPrevious (the next or
@@ -2560,7 +2560,7 @@ export interface components {
     PresetModifier: {
       block: string;
       param: string;
-      /** @description lfo1, lfo2, adsr1, adsr2, seq, env, pitch, manualA-D, scene1-4 or ext1-8. */
+      /** @description lfo1, lfo2, adsr1, adsr2, seq, env, pitch, manualA-E, scene1-4 or ext1-16. */
       source: string;
       /** Format: float */
       min: number;

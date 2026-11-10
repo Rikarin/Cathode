@@ -1,4 +1,5 @@
 using Cathode.Contracts;
+using Cathode.Engine.Rig;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -110,9 +111,20 @@ public sealed class GlobalStore {
 
     /// <summary>
     ///     Settings saved by an earlier Cathode, brought up to date: the output mode <c>dualMono</c> (up to
-    ///     1.0.0-rc.3) did what <c>copyLR</c> does and is now that.
+    ///     1.0.0-rc.3) did what <c>copyLR</c> does and is now that, and the four Manual values (A-D, up to 1.0.0-rc.5)
+    ///     gain Manual E at 0.
     /// </summary>
     public static GlobalSettings? Upgrade(GlobalSettings? settings) {
+        if (settings is not null) {
+            while (settings.Manual.Count < RigControls.ManualCount) {
+                settings.Manual.Add(0f);
+            }
+
+            if (settings.Manual.Count > RigControls.ManualCount) {
+                settings.Manual.RemoveRange(RigControls.ManualCount, settings.Manual.Count - RigControls.ManualCount);
+            }
+        }
+
         foreach (var output in settings?.Outputs ?? []) {
             if (output.Mode == "dualMono") {
                 output.Mode = "copyLR";

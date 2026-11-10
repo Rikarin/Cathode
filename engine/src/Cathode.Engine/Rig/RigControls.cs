@@ -6,13 +6,22 @@ namespace Cathode.Engine.Rig;
 
 /// <summary>
 ///     The rig-wide parameters (IPC block id <c>rig</c>): scene level, tempo, metronome, the modifier sources a person
-///     or a pedal moves (Manual A-D, scene controllers 1-4, external 1-8) and the settings of the controllers
+///     or a pedal moves (Manual A-E, scene controllers 1-4, external 1-16) and the settings of the controllers
 ///     (LFOs, ADSRs, envelope follower, sequencer). They live with the engine, not the graph, so changing one never
 ///     recompiles and controllers keep their phase across preset changes.
 /// </summary>
 public static class RigControls {
     public const string BlockId = "rig";
-    public const int SequencerStages = 16;
+    public const int SequencerStages = 32;
+
+    /// <summary>Manual A-E.</summary>
+    public const int ManualCount = 5;
+
+    /// <summary>Scene Controller 1-4.</summary>
+    public const int SceneControllerCount = 4;
+
+    /// <summary>External 1-16.</summary>
+    public const int ExternalCount = 16;
 
     // Values of the Output Mode choices.
     public const int Stereo = 0;
@@ -60,9 +69,9 @@ public static class RigControls {
             ..Enumerable.Range(1, 4).SelectMany(static k => Output(k)),
             // Preset-change spillover: on, the outgoing preset's tails ring out; off, it fades out in the swap fade.
             ParamDescriptor.Switch("spillover", "Preset Spillover", true),
-            ..Names("manual", ["A", "B", "C", "D"], "Manual "),
-            ..Names("scene", ["1", "2", "3", "4"], "Scene Controller "),
-            ..Names("ext", ["1", "2", "3", "4", "5", "6", "7", "8"], "External "),
+            ..Names("manual", Enumerable.Range(0, ManualCount).Select(static i => ((char)('A' + i)).ToString()), "Manual "),
+            ..Names("scene", Numbers(SceneControllerCount), "Scene Controller "),
+            ..Names("ext", Numbers(ExternalCount), "External "),
             // Written by the host's pitch detector (normalised between pitchLow and pitchHigh), not by people.
             ParamDescriptor.Float("pitch", "Pitch", 0f, 1f, 0f),
             ParamDescriptor.Float("pitchLow", "Pitch Low", 40f, 2_000f, 82f, "Hz", ParamTaper.Log),
@@ -107,7 +116,10 @@ public static class RigControls {
         ParamDescriptor.Float($"out{k}Level", $"Output {k} Boost/Pad", -18f, 18f, 0f, "dB")
     ];
 
-    static IEnumerable<ParamDescriptor> Names(string prefix, string[] suffixes, string name) =>
+    static IEnumerable<string> Numbers(int count) =>
+        Enumerable.Range(1, count).Select(static i => i.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+    static IEnumerable<ParamDescriptor> Names(string prefix, IEnumerable<string> suffixes, string name) =>
         suffixes.Select(s => ParamDescriptor.Float(prefix + s, name + s, 0f, 1f, 0f));
 
     static IEnumerable<ParamDescriptor> Lfo(int n) => [
@@ -138,6 +150,7 @@ public enum ModSource {
     ManualB,
     ManualC,
     ManualD,
+    ManualE,
     Scene1,
     Scene2,
     Scene3,
@@ -149,7 +162,15 @@ public enum ModSource {
     Ext5,
     Ext6,
     Ext7,
-    Ext8
+    Ext8,
+    Ext9,
+    Ext10,
+    Ext11,
+    Ext12,
+    Ext13,
+    Ext14,
+    Ext15,
+    Ext16
 }
 
 /// <summary>The shape a source value (0..1) is bent through before it is scaled into the parameter's range.</summary>
@@ -228,8 +249,9 @@ public static class ModNames {
     public const string EngageParam = "engage";
 
     public static readonly ImmutableArray<string> Sources = [
-        "lfo1", "lfo2", "adsr1", "adsr2", "seq", "env", "pitch", "manualA", "manualB", "manualC", "manualD", "scene1",
-        "scene2", "scene3", "scene4", "ext1", "ext2", "ext3", "ext4", "ext5", "ext6", "ext7", "ext8"
+        "lfo1", "lfo2", "adsr1", "adsr2", "seq", "env", "pitch", "manualA", "manualB", "manualC", "manualD", "manualE",
+        "scene1", "scene2", "scene3", "scene4", "ext1", "ext2", "ext3", "ext4", "ext5", "ext6", "ext7", "ext8", "ext9",
+        "ext10", "ext11", "ext12", "ext13", "ext14", "ext15", "ext16"
     ];
 
     public static readonly ImmutableArray<string> Curves = ["linear", "exp", "log", "scurve"];

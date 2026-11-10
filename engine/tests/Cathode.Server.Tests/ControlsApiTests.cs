@@ -568,7 +568,14 @@ public sealed class ControlsApiTests : IAsyncLifetime {
             }
         );
         await Ok(client.PutAsJsonAsync("/api/v1/live/manual/1", new ValueRequest(0.75f), Token));
+        await Ok(client.PutAsJsonAsync("/api/v1/live/manual/4", new ValueRequest(0.25f), Token));
+        await Ok(client.PutAsJsonAsync("/api/v1/live/external/15", new ValueRequest(0.5f), Token));
+        using var noManual = await client.PutAsJsonAsync("/api/v1/live/manual/5", new ValueRequest(1f), Token);
+        using var noExternal = await client.PutAsJsonAsync("/api/v1/live/external/16", new ValueRequest(1f), Token);
+        Assert.Equal(HttpStatusCode.BadRequest, noManual.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, noExternal.StatusCode);
         var bad = (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!;
+        Assert.Equal(0.25f, bad.Manual[4]);
         bad.TempoMode = "whenever";
         using var rejected = await client.PutAsJsonAsync("/api/v1/global", bad, Token);
 
@@ -577,6 +584,8 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         await ServerFixture.Eventually(() => eq.Params.GetTarget(eq.Descriptor.IndexOf("g1k")) == 6f);
         Assert.Equal(1f, Rig("metronome"));
         Assert.Equal(0.75f, Rig("manualB"));
+        Assert.Equal(0.25f, Rig("manualE"));
+        Assert.Equal(0.5f, Rig("ext16"));
     }
 
     [Fact]

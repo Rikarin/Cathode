@@ -61,6 +61,7 @@ export const ModifierSources = [
   'manualB',
   'manualC',
   'manualD',
+  'manualE',
   'scene1',
   'scene2',
   'scene3',
@@ -72,8 +73,22 @@ export const ModifierSources = [
   'ext5',
   'ext6',
   'ext7',
-  'ext8'
+  'ext8',
+  'ext9',
+  'ext10',
+  'ext11',
+  'ext12',
+  'ext13',
+  'ext14',
+  'ext15',
+  'ext16'
 ] as const;
+
+/** How many Externals there are (RigControls.ExternalCount). */
+export const ExternalCount = 16;
+
+/** The Manual controllers' letters (RigControls.ManualCount of them). */
+export const ManualLetters = ['A', 'B', 'C', 'D', 'E'] as const;
 
 export const ModifierCurves = ['linear', 'exp', 'log', 'scurve'] as const;
 

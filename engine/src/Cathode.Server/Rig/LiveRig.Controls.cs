@@ -419,19 +419,19 @@ public sealed partial class LiveRig {
             }
         );
 
-    /// <summary>Manual A-D: global modifier sources (a person, a MIDI pedal).</summary>
+    /// <summary>Manual A-E: global modifier sources (a person, a MIDI pedal).</summary>
     public void SetManual(int index, float value) {
         var clamped = Math.Clamp(value, 0f, 1f);
         globals.Update(g => g.Manual[index] = clamped);
         engine.SetParams(generation, [new(IpcBlocks.Rig, $"manual{(char)('A' + index)}", clamped)]);
     }
 
-    /// <summary>External 1-8 (expression pedals, CCs): live values only, never stored.</summary>
+    /// <summary>External 1-16 (expression pedals, CCs): live values only, never stored.</summary>
     public void SetExternal(int index, float value) =>
         engine.SetParams(generation, [new(IpcBlocks.Rig, $"ext{index + 1}", Math.Clamp(value, 0f, 1f))]);
 
     /// <summary>
-    ///     Global settings changed (EQ, metronome, tempo mode, Manual A-D, the footswitch layout or view), from the
+    ///     Global settings changed (EQ, metronome, tempo mode, Manual A-E, the footswitch layout or view), from the
     ///     editor, MIDI or a footswitch: put them into the engine and tell clients with <c>globalChanged</c>, which
     ///     carries the current revision without raising it (the working copy did not change).
     /// </summary>

@@ -272,7 +272,7 @@ public sealed class PresetModifier {
 
     public string Param { get; set; } = string.Empty;
 
-    /// <summary>lfo1, lfo2, adsr1, adsr2, seq, env, pitch, manualA-D, scene1-4 or ext1-8.</summary>
+    /// <summary>lfo1, lfo2, adsr1, adsr2, seq, env, pitch, manualA-E, scene1-4 or ext1-16.</summary>
     public string Source { get; set; } = "lfo1";
 
     public float Min { get; set; }

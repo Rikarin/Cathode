@@ -1859,7 +1859,7 @@
         "tags": [
           "Live"
         ],
-        "summary": "Manual A-D (index 0-3), 0..1.",
+        "summary": "Manual A-E (index 0-4), 0..1.",
         "operationId": "SetManual",
         "parameters": [
           {
@@ -1897,7 +1897,7 @@
         "tags": [
           "Live"
         ],
-        "summary": "External 1-8 (index 0-7), 0..1: what a pedal or CC would set.",
+        "summary": "External 1-16 (index 0-15), 0..1: what a pedal or CC would set.",
         "operationId": "SetExternal",
         "parameters": [
           {
@@ -5199,7 +5199,7 @@
             "format": "int32"
           }
         },
-        "description": "A MIDI message bound to an action. \u0060Message\u0060 is cc, note or pc; \u0060Channel\u0060 0 means any. Actions:\nscene (Value = scene, or the message value when absent), sceneNext, scenePrevious, presetSlot (Target = bank\nid, the PC number picks the slot), presetNext, presetPrevious, bypass (Target = block), channel (Target = block,\nValue = 0-3), external (Value = 1-8, the CC value drives External n), manual (Value = 0-3), tap, tuner,\nmetronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear), sceneLevelUp and\nsceneLevelDown (the active scene\u0027s level by \u00B11 dB, then save the preset), save (save the preset), layout\n(Target = layout id), view (Value = view index), viewNext, viewPrevious, songNext and songPrevious (the next or\nprevious entry of the active setlist, stopping at either end). A CC mapped to scene without a Value\nselects the scene its value names (0-7), and a value above 63 steps to the next scene."
+        "description": "A MIDI message bound to an action. \u0060Message\u0060 is cc, note or pc; \u0060Channel\u0060 0 means any. Actions:\nscene (Value = scene, or the message value when absent), sceneNext, scenePrevious, presetSlot (Target = bank\nid, the PC number picks the slot), presetNext, presetPrevious, bypass (Target = block), channel (Target = block,\nValue = 0-3), external (Value = 1-16, the CC value drives External n), manual (Value = 0-4), tap, tuner,\nmetronome, looper (Target = record, play, stop, overdub, undo, reverse, halfSpeed or clear), sceneLevelUp and\nsceneLevelDown (the active scene\u0027s level by \u00B11 dB, then save the preset), save (save the preset), layout\n(Target = layout id), view (Value = view index), viewNext, viewPrevious, songNext and songPrevious (the next or\nprevious entry of the active setlist, stopping at either end). A CC mapped to scene without a Value\nselects the scene its value names (0-7), and a value above 63 steps to the next scene."
       },
       "MidiOutputInfo": {
         "required": [
@@ -5733,7 +5733,7 @@
           },
           "source": {
             "type": "string",
-            "description": "lfo1, lfo2, adsr1, adsr2, seq, env, pitch, manualA-D, scene1-4 or ext1-8."
+            "description": "lfo1, lfo2, adsr1, adsr2, seq, env, pitch, manualA-E, scene1-4 or ext1-16."
           },
           "min": {
             "type": "number",

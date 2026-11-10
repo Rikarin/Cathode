@@ -65,9 +65,9 @@ describe('ControllersPage externals', () => {
     return { page, put };
   }
 
-  it('offers External 1 to 8, at rest until set', () => {
+  it('offers External 1 to 16, at rest until set', () => {
     const { page } = render();
-    expect(page.externals()).toEqual([0, 0, 0, 0, 0, 0, 0, 0]);
+    expect(page.externals()).toEqual(Array.from({ length: 16 }, () => 0));
   });
 
   it('drives an External through PUT /live/external/{index} and keeps the value it sent', async () => {
@@ -83,6 +83,6 @@ describe('ControllersPage externals', () => {
       params: { path: { index: 7 } },
       body: { value: 1 }
     });
-    expect(page.externals()).toEqual([0.5, 0, 0, 0, 0, 0, 0, 1]);
+    expect(page.externals()).toEqual([0.5, 0, 0, 0, 0, 0, 0, 1, ...Array.from({ length: 8 }, () => 0)]);
   });
 });

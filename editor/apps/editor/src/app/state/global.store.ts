@@ -25,7 +25,7 @@ export function refreshesGlobals(event: RigEvent): boolean {
   return RefreshEvents.has(event.type);
 }
 
-/** The rig's global settings: tempo mode, metronome, global EQ, Manual A-D, MIDI, footswitches, global blocks. */
+/** The rig's global settings: tempo mode, metronome, global EQ, Manual A-E, MIDI, footswitches, global blocks. */
 @Injectable({ providedIn: 'root' })
 export class GlobalStore {
   private readonly connection = inject(ConnectionService);
