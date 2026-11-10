@@ -103,7 +103,7 @@ Last updated: 2026-10-24 (after the second round of family streams merged).
 | Amp | Status | Cathode type | References we have | Look for | Typical cab |
 |---|---|---|---|---|---|
 | Soldano SLO-100 | ✅ Done | SLO-100: OD channel; Switch 1 the normal channel (Crunch, Bright) | GPL: Soldano crunch and high (model not stated); T3K: SLO-100 pack | Normal channel clean and crunch captures; OD gain sweep | 4x12 closed, Vintage 30 / G12T-75 |
-| Mesa/Boogie Mark IIC+ | ✅ Done (presence: the rheostat in series with the feedback, as drawn) | Mark IIC+, lead (Switch 1 Treble Shift, Switch 2 Deep, Switch 3 Bass Shift; Bright is Volume 1's and the Lead Master's pull together) | GPL: IIC+ Drive-knob model, IIC+ Drive 8; T3K: IIC+ pack | EQ in and out, Lead Drive sweep | 1x12 / 4x12 closed, EVM12L / Vintage 30 |
+| Mesa/Boogie Mark IIC+ | ✅ Done (presence: the rheostat in series with the feedback, as drawn) | Mark IIC+, lead (Switch 1 Treble Shift, Switch 2 Deep, Switch 3 Bass Shift; Bright is Volume 1's and the Lead Master's pull together); Mark IIC+ Rhythm, the rhythm channel from the factory scan (the same amp without the lead circuit and the lead master) | GPL: IIC+ Drive-knob model, IIC+ Drive 8; T3K: IIC+ pack | EQ in and out, Lead Drive sweep | 1x12 / 4x12 closed, EVM12L / Vintage 30 |
 | Peavey 5150 / 6505 | ✅ Done (lead; the supply page unread, its preamp rails derived from the assumed chain); rhythm ⏸ | 5150, lead | GPL: 5150 block letter, 6505+ red (two sources) | Rhythm channel: its network is on the factory "Initial Preamp Stage" page, but the relay states (K1, K2, K4) per channel and crunch setting are on a page the excerpts lack; a full factory set or a trace of the switching logic | 4x12 closed, Sheffield / Vintage 30 |
 | EVH 5150III | ✅ Done | 5150III, red | T3K: 5150III OB1 v2 | Blue and red channels | 4x12 closed, G12EVH / Vintage 30 |
 | Mesa/Boogie Dual Rectifier | ✅ Done (factory two-channel drawing, 1993, red channel; Modern takes the feedback out) | Dual Rectifier, red | GPL: Mini Rectifier (not the same amp) | Dual/Triple Rec, modern and vintage modes, tube vs SS rectifier | 4x12 closed, Vintage 30 |
@@ -195,7 +195,7 @@ Counted over every table in this file, including the two sections added from Fra
 
 ### Circuit Amp types by index
 
-The Circuit Amp block has 88 types. The "Cathode type" column above names them; this is their order in the Type list.
+The Circuit Amp block has 89 types. The "Cathode type" column above names them; this is their order in the Type list.
 
 | # | Type | # | Type | # | Type |
 |---|---|---|---|---|---|
@@ -227,10 +227,10 @@ The Circuit Amp block has 88 types. The "Cathode type" column above names them; 
 | 25 | Mark IV | 55 | 18 W 1974X | 85 | JMP-1 |
 | 26 | Legacy VL100 | 56 | Hiwatt DR103 | 86 | Quick Rod |
 | 27 | Chieftain | 57 | 1959SLP | 87 | AFD100 |
-| 28 | Hot Cat 30 | 58 | 1987X |  |  |
+| 28 | Hot Cat 30 | 58 | 1987X | 88 | Mark IIC+ Rhythm |
 | 29 | ODS 97 | 59 | 1959T Tremolo |  |  |
 
-Types 81 to 87, the newest, are:
+Types 81 to 88, the newest, are:
 
 | # | Type | Family | Modelled after |
 |---|---|---|---|
@@ -241,6 +241,7 @@ Types 81 to 87, the newest, are:
 | 85 | JMP-1 | Marshall | Marshall JMP-1 MIDI valve preamp (Clean I/II, OD I/II) into a 100 W EL34 power amp |
 | 86 | Quick Rod | Splawn | Splawn Quick Rod, the two-channel version with three 12AX7s |
 | 87 | AFD100 | Marshall | Marshall AFD100 (Slash), both modes and the Low input |
+| 88 | Mark IIC+ Rhythm | Mesa/Boogie | Mesa/Boogie Mark IIC+, the rhythm channel (the lead channel is type 21) |
 
 Match quality against the references is in `docs/06-amp-modelling-spec.md` (as-built notes per family) and in the
 manifest's targets. Only the Prometheus clean channel reaches the spec's ESR target; captures with stated knob settings
@@ -366,8 +367,9 @@ exists:
 - **High gain:**
   - EVH: the 5150III Stealth (100S).
   - Mesa: Mark IIC+ Bright/Deep, the Mark IV rhythm and mid-gain voicings, the Mark V IIC+/MKIV/XT modes (now the
-    Mark V type's mode switches), and JP-2C Shred. The IIC+ and Mark IV rhythm channels are on the factory scans
-    (Boogie_mkiic_plus.pdf, Boogie_mkiv.pdf) but not modelled yet.
+    Mark V type's mode switches), and JP-2C Shred. The IIC+ rhythm channel is the Mark IIC+ Rhythm type, read from
+    the factory scan (Boogie_mkiic_plus.pdf). The Mark IV rhythm channels are on its factory scan (Boogie_mkiv.pdf)
+    but not modelled yet.
   - Others: Ecstasy 20th Anniversary (no drawing found), Diezel Herbert MkIII (no drawing found), Carvin VL300, Revv Generator Green/Purple/Red, PRS Archon Clean/Lead/Bright, Fryette D60 Less/More.
 - **Boutique:** Two-Rock and ODS PAB switch variants.
 

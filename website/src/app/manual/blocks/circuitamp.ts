@@ -44,7 +44,8 @@ usually go after the Cab, as they would in an effects loop or a studio. The amp 
 - **Hot-rodded British and modern rock:** Silver Jubilee, JCM900 4100 and 4502, DSL100, JVM410H, BE-100 and
   BE-100 HBE, AFD100, Quick Rod, Laney GH100L, Hot Rod Deluxe.
 - **High gain:** SLO-100, 5150, 5150III, Dual Rectifier, Dual Rectifier 3-Ch, Triple Rectifier, Rect-o-Verb,
-  Mark IIC+, Mark IV, Mark V, TriAxis, Legacy VL100, Powerball, Savage 120, Prometheus.
+  Mark IIC+ (and its clean rhythm channel, Mark IIC+ Rhythm), Mark IV, Mark V, TriAxis, Legacy VL100, Powerball,
+  Savage 120, Prometheus.
 - **Bass:** SVT, Portaflex B-15N, Bassman 135, Bass 400.
 - **Solid state:** JC-120 and Valvestate 8080 (a tube preamp into a transistor power amp). Their tube-only knobs are
   hidden.
@@ -515,6 +516,8 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'SLO-100':
         'Soldano SLO-100 overdrive channel (Switch 1 for the normal channel with its Crunch switch). Smooth, singing high gain.',
       'Mark IIC+': 'Mesa/Boogie Mark IIC+ lead channel with its five-band EQ: tight, focused, singing lead tone.',
+      'Mark IIC+ Rhythm':
+        'Mesa/Boogie Mark IIC+ rhythm channel: the same amp without the lead circuit, clean to a light break-up, with the five-band EQ.',
       '5150': 'Peavey 5150 lead channel: aggressive high gain, tight and bright.',
       'Dual Rectifier':
         'Mesa/Boogie Dual Rectifier (two-channel, 1993), red channel, with Modern, Tube Rectifier and Spongy switches. Thick, saturated modern high gain.',
