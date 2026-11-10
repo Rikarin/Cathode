@@ -294,7 +294,7 @@ Every amp below was missing from the catalogue. The Axe model names are given so
 
 | Amp | Status | Cathode type | Axe models | Look for | Typical cab |
 |---|---|---|---|---|---|
-| Dumble ODS (HRM and Robben Ford versions) | ✅ Done as the 1970s ODS (schematicheaven `dumbleamps/` preamp, overdrive, supply and output redraws: Rock/Jazz, Deep, Bright, Accent; no HRM drawing found, so no HRM stack) | ODS 70s (Switch 1 Overdrive, Switch 2 Jazz, Switch 3 Deep, Presence = Accent) | — (the GPL Dumble kit and clone captures stay on ODS 97: their circuits are not stated) | HRM schematic; captures of a 1970s ODS | 1x12 / 2x12 open |
+| Dumble ODS (HRM and Robben Ford versions) | ✅ Done as the 1970s ODS (schematicheaven `dumbleamps/` preamp, overdrive, supply and output redraws: Rock/Jazz, Deep, Bright, Accent; no HRM drawing found, so no HRM stack; no Master: none is drawn on the sheets, so the model has none) | ODS 70s (Switch 1 Overdrive, Switch 2 Jazz, Switch 3 Deep, Presence = Accent) | — (the GPL Dumble kit and clone captures stay on ODS 97: their circuits are not stated) | HRM schematic; captures of a 1970s ODS; whether the 1970s amp had a Master the redraws leave out | 1x12 / 2x12 open |
 | Fuchs Overdrive Supreme | ⏸ Waiting (searched 2026-10: no schematic) | — | Fox ODS, Fox ODS Deep | Schematic | 1x12 / 2x12 open |
 | Two-Rock Jet 35 | ⏸ Waiting (searched 2026-10: no schematic) | — | Two Stone J35 1 / 2 | Schematic | 1x12 open |
 | Bludotone Ojai | ⏸ Waiting (searched 2026-10: no schematic; said to follow Robben Ford's "Tan" Dumble) | — | Bludojai Clean / Lead 1 / Lead 2 | Schematic | 1x12 / 2x12 open |
