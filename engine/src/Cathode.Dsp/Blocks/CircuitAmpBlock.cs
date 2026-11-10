@@ -26,7 +26,8 @@ namespace Cathode.Dsp.Blocks;
 ///     <para>
 ///         1.0 at the input is 1 V at the guitar jack; full scale at the output is the largest swing the output tubes
 ///         can make (each plate from B+ down to 0 V, the other up to twice B+), less a few decibels of trim per model,
-///         so a power amp driven into clipping peaks a few decibels under full scale.
+///         so a power amp driven into clipping peaks a few decibels under full scale. A NaN or infinite input sample
+///         is taken as silence, since it would otherwise stay in the circuit's state until a reset.
 ///     </para>
 ///     <para>
 ///         A solid-state model (<see cref="AmpDesign.SolidState" />, the JC-120) runs a
@@ -871,6 +872,19 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
         output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
+    /// <summary>
+    ///     Replaces NaN and infinite samples with silence. Everything after the input is recursive (the oversampler's
+    ///     allpasses, the stages' capacitors, the supply): one such sample would stay in that state and leave the amp
+    ///     silent, with a finite output, until it was reset.
+    /// </summary>
+    static void SilenceNonFinite(Span<float> samples) {
+        for (var i = 0; i < samples.Length; i++) {
+            if (!float.IsFinite(samples[i])) {
+                samples[i] = 0f;
+            }
+        }
+    }
+
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var type = (int)Params.Current(Type);
         if (type != activeType) {
@@ -887,6 +901,7 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
             }
         }
 
+        SilenceNonFinite(io.Left);
         for (var offset = 0; offset < io.Length;) {
             var length = Math.Min(SubBlock - phase, io.Length - offset);
             ProcessChunk(io.Left.Slice(offset, length));

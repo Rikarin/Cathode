@@ -265,6 +265,55 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         }
     }
 
+    /// <summary>
+    ///     Model (0 Blackface, 1 Plexi, 2 JC-120), the bad sample, the rate (96 kHz runs without the oversampler), the
+    ///     oversampler's phase, Input Select.
+    /// </summary>
+    public static TheoryData<int, float, double, OversamplingPhase, int> BadSamples =>
+        new() {
+            { 0, float.NaN, 48_000, OversamplingPhase.Minimum, 0 },
+            { 0, float.PositiveInfinity, 48_000, OversamplingPhase.Minimum, 0 },
+            { 1, float.NaN, 48_000, OversamplingPhase.Minimum, 0 },
+            { 1, float.NegativeInfinity, 48_000, OversamplingPhase.Minimum, 0 },
+            { 1, float.NaN, 48_000, OversamplingPhase.Linear, 0 },
+            { 1, float.NaN, 96_000, OversamplingPhase.Minimum, 0 },
+            { 1, float.PositiveInfinity, 96_000, OversamplingPhase.Minimum, 2 },
+            { 2, float.NaN, 48_000, OversamplingPhase.Minimum, 0 },
+            { 2, float.PositiveInfinity, 48_000, OversamplingPhase.Minimum, 1 }
+        };
+
+    [Theory]
+    [MemberData(nameof(BadSamples))]
+    public void A_non_finite_input_sample_is_a_sample_of_silence_and_the_amp_plays_on(
+        int model,
+        float bad,
+        double rate,
+        OversamplingPhase phase,
+        int inputSelect
+    ) {
+        // One NaN or infinity used to stay in the oversampler's allpasses and the stages' capacitors for good: the
+        // output was finite, silent, and stayed so until the block was reset.
+        AmpDesign[] designs = [Blackface.Design, Plexi.Design, JazzChorus120.Design];
+        var type = AmpDesign.All.ToList().IndexOf(designs[model]);
+        const int At = 9_000;
+        var sine = Signals.Sine(220, rate, (int)rate, 0.2f);
+        float[] Render(float sample) {
+            using var block = new CircuitAmpBlock { OversamplingPhase = phase };
+            block.Params.SetTarget(CircuitAmpBlock.Type, type);
+            block.Params.SetTarget(CircuitAmpBlock.InputSelect, inputSelect);
+            block.Prepare(new(rate, 64));
+            var input = (float[])sine.Clone();
+            input[At] = sample;
+            return BlockRender.Stereo(block, input, input, static _ => 64, sampleRate: rate).Left;
+        }
+
+        var expected = Render(0f);
+        var actual = Render(bad);
+
+        Assert.True(Analysis.Peak(expected.AsSpan(expected.Length / 2)) > 0.01, "the undisturbed amp is silent");
+        Assert.Equal(expected, actual);
+    }
+
     static CircuitAmpBlock Create(int type, params (int Index, float Value)[] settings) {
         var block = new CircuitAmpBlock();
         block.Params.SetTarget(CircuitAmpBlock.Type, type);
