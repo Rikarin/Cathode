@@ -87,7 +87,8 @@ public readonly record struct LooperSettings {
 ///         The memory is zeroed lazily by the OS (<see cref="NativeMemory.AllocZeroed(nuint, nuint)" />), so 300 s of
 ///         capacity costs only what is recorded; a clear zeroes only the samples that were used. Playback fades in and
 ///         out over 2 ms on play and stop. The crossfade blends the playing that follows a closing recording into the
-///         loop's first samples during its first pass, so the seam continues the performance instead of clicking.
+///         loop's first samples during its first pass, so the seam continues the performance instead of clicking. A
+///         recording closed into Stopped has no such playing and keeps its start as recorded.
 ///     </para>
 /// </remarks>
 public sealed unsafe class Looper : IDisposable {
@@ -424,7 +425,11 @@ public sealed unsafe class Looper : IDisposable {
         UpdateWindow();
         Position = IsReversed && Length > 0 ? end - 1 : start;
         fade = next == LooperState.Stopped ? 0f : 1f;
-        seamLength = start == 0 ? Math.Min(settings.CrossfadeSamples, Length / 2) : 0;
+        // The seam blends the playing that goes straight on after the recording. A recording closed into Stopped has
+        // none: whatever is played when the loop starts later is unrelated, and must not be written over its start.
+        seamLength = start == 0 && next != LooperState.Stopped
+            ? Math.Min(settings.CrossfadeSamples, Length / 2)
+            : 0;
         seamPosition = 0;
     }
 

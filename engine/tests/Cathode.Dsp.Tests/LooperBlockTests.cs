@@ -129,6 +129,28 @@ public class LooperBlockTests {
     }
 
     [Theory]
+    [InlineData(LooperAction.Stop, 1f)]
+    [InlineData(LooperAction.Record, 2f)] // Record 2nd Press = Stop
+    public void A_recording_closed_into_stopped_keeps_its_start_when_played_later(LooperAction close, float press) {
+        using var block = Create((LooperBlock.Crossfade, 10f), (LooperBlock.SecondPress, press));
+        var looper = block.Looper!;
+        looper.Apply(LooperAction.Record);
+        Render(block, Ramp);
+        looper.Apply(close);
+        Assert.Equal(LooperState.Stopped, looper.State);
+        Render(block, new float[Loop]); // stopped for a while
+
+        // Unrelated playing while the loop starts: none of it may be faded into the loop's first samples.
+        looper.Apply(LooperAction.Play);
+        var first = Render(block, Enumerable.Repeat(0.4f, Loop).ToArray());
+        var second = Render(block, new float[Loop]);
+
+        // Play fades in over 2 ms (96 samples); the 10 ms crossfade would have covered 480.
+        Assert.Equal(Ramp[96..], first[96..]);
+        Assert.Equal(Ramp, second);
+    }
+
+    [Theory]
     [InlineData(26_000, 24_000)] // 120 BPM: a beat is 24 000 samples
     [InlineData(40_000, 48_000)]
     [InlineData(5_000, 24_000)]

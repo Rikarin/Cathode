@@ -534,7 +534,7 @@ One core (`Cathode.Dsp.Looping.Looper`) serves both. The grid block takes the tr
 | Max Loop Time | 🆕 ✅ | 1–300 s on the block (memory committed only as it is recorded); the rig looper keeps 60 s |  |
 | Playback Level, Dry Level | 🆕 ✅ | Block only, ramped per sample |  |
 | Overdub Level (loop decay) | 🆕 ✅ | Each pass scales what the loop held; at 0 % Undo cannot bring it back |  |
-| Crossfade | 🆕 ✅ | The playing that follows a closing recording is faded into the loop's first samples (up to 100 ms), so the seam continues the performance; only on a forward first pass at normal speed |  |
+| Crossfade | 🆕 ✅ | The playing that follows a closing recording is faded into the loop's first samples (up to 100 ms), so the seam continues the performance; only on a forward first pass at normal speed, and not for a recording closed into Stopped (Stop, or Record 2nd Press = Stop), whose start stays as recorded |  |
 | Loop Quantize (to tempo) | 🆕 ✅ | The closing length is rounded to whole beats of the tempo (quarter notes), padded with silence |  |
 | Record 2nd Press (overdub, play, stop) | 🆕 ✅ | Default Play, which is what the rig looper always did |  |
 | Speed | 🆕 ✅ | Normal, Half, Double; the Half Speed action halves whichever is set |  |
