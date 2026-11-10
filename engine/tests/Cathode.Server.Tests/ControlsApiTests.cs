@@ -122,13 +122,24 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         await PutGlobal(static g => g.MidiMappings.Add(new("tap", "cc", 0, 80, "tap")));
         var router = server.Services.GetRequiredService<MidiRouter>();
 
-        // Four taps exactly half a second apart on the engine's clock: 120 BPM, however late they are delivered.
+        // The rig and a new working copy both start at 120 BPM, so the taps must be at another tempo to show anything.
+        Assert.Equal(120, server.Host.Engine.Tempo);
+        Assert.Equal(120, (await Live()).Preset.Tempo);
+
+        // Four taps exactly 32,000 samples apart on the engine's clock: 90 BPM at 48 kHz. They are delivered
+        // unevenly and far closer together than that (by their arrival they would be a tempo off the scale), so
+        // only their sample times can give 90.
+        int[] waitMs = [0, 40, 5, 90];
         for (var i = 0; i < 4; i++) {
-            router.OnMidi([new(0xB0, 80, 127, 1_000 + i * 24_000)]);
+            await Task.Delay(waitMs[i], Token);
+            router.OnMidi([new(0xB0, 80, 127, 1_000 + i * 32_000)]);
         }
 
-        await ServerFixture.Eventually(() => Math.Abs(server.Host.Engine.Tempo - 120) < 0.01);
-        await ServerFixture.Eventually(async () => (await Live()).Preset.Tempo == 120);
+        await ServerFixture.Eventually(
+            () => Math.Abs(server.Host.Engine.Tempo - 90) < 0.01,
+            () => $"engine tempo {server.Host.Engine.Tempo}"
+        );
+        await ServerFixture.Eventually(async () => (await Live()).Preset.Tempo == 90);
     }
 
     [Fact]
