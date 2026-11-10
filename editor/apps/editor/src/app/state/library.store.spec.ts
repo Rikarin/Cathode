@@ -119,6 +119,95 @@ describe('stores resync after a reconnection', () => {
   });
 });
 
+describe('LibraryStore.saveSetlist', () => {
+  /** A Server whose answers to PUT wait until the test lets them go. */
+  function setup(stored: Setlist[]) {
+    const puts: { setlist: Setlist; answer: (ok: boolean) => void }[] = [];
+    const PUT = (_path: string, request: { body: Setlist }) =>
+      new Promise((resolve, reject) =>
+        puts.push({
+          setlist: request.body,
+          answer: ok => {
+            if (ok) {
+              stored = [...stored.filter(s => s.id !== request.body.id), request.body];
+              resolve({ data: request.body, response: new Response('{}') });
+            } else {
+              reject(new ApiError(400, 'Refused.'));
+            }
+          }
+        })
+      );
+    const GET = () => Promise.resolve({ data: stored, response: new Response('{}') });
+    const run = async (action: () => Promise<unknown>) => {
+      try {
+        return await action();
+      } catch {
+        return undefined;
+      }
+    };
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: ConnectionService, useValue: { client: { GET, PUT } } },
+        { provide: EventStream, useValue: { events$: new Subject(), connected$: new Subject() } },
+        { provide: Notify, useValue: { run, error: () => undefined } }
+      ]
+    });
+    const library = TestBed.inject(LibraryStore);
+    library.setlists.set(stored);
+    const settle = () => new Promise(resolve => setTimeout(resolve));
+    const songs = () => library.setlists()[0]?.entries.map(e => e.presetId);
+    /** An edit as the Setlists page makes one: from the setlist the store shows now. */
+    const add = (presetId: string) => {
+      const shown = library.setlists()[0] ?? friday;
+      return library.saveSetlist({ ...shown, entries: [...shown.entries, { presetId, scene: 0 }] });
+    };
+    return { library, puts, settle, songs, add };
+  }
+
+  const friday: Setlist = { id: 'friday', name: 'Friday', entries: [{ presetId: 'a', scene: 0 }] };
+
+  it('keeps both of two edits made before the Server answered the first', async () => {
+    const { puts, settle, songs, add } = setup([friday]);
+
+    const first = add('b');
+    expect(songs()).toEqual(['a', 'b']); // shown at once, so the next edit starts from it
+    const second = add('c');
+    await settle();
+
+    expect(puts).toHaveLength(1); // one request at a time, in the order the edits were made
+    puts[0]?.answer(true);
+    await settle();
+    expect(puts).toHaveLength(2);
+    expect(puts[1]?.setlist.entries.map(e => e.presetId)).toEqual(['a', 'b', 'c']);
+    puts[1]?.answer(true);
+
+    await expect(first).resolves.toBe(true);
+    await expect(second).resolves.toBe(true);
+    expect(songs()).toEqual(['a', 'b', 'c']);
+  });
+
+  it('shows what is stored after a refusal, and drops the edit that was built on the refused one', async () => {
+    const { puts, settle, songs, add } = setup([friday]);
+
+    const first = add('missing');
+    const second = add('c');
+    await settle();
+    puts[0]?.answer(false);
+
+    await expect(first).resolves.toBe(false);
+    await expect(second).resolves.toBe(false);
+    expect(puts).toHaveLength(1);
+    expect(songs()).toEqual(['a']);
+
+    // The next edit is stored as usual.
+    const third = add('d');
+    await settle();
+    puts[1]?.answer(true);
+    await expect(third).resolves.toBe(true);
+    expect(songs()).toEqual(['a', 'd']);
+  });
+});
+
 describe('presetUses', () => {
   const banks: Bank[] = [
     { id: 'factory', name: 'Factory', slots: ['f1'], factory: true },
