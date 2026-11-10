@@ -2,6 +2,7 @@ using Cathode.Dsp.Amp;
 using Cathode.Dsp.Amp.Models;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Tests.Circuits;
+using Cathode.Dsp.Wdf;
 using Cathode.Testing;
 
 namespace Cathode.Dsp.Tests;
@@ -386,6 +387,62 @@ public class MarshallModelTests(ITestOutputHelper output) {
         var (noon, closed) = (Level(5), Level(0));
         output.WriteLine($"{model}: {noon:0.0} dB at noon, {closed:0.0} dB with the three at 0");
         Assert.True(closed > noon - 30, $"{closed:0.0} dB with the tone knobs at 0, {noon:0.0} dB at noon");
+    }
+
+    /// <summary>
+    ///     2203 STD (output stage issue 6, preamp issue 4) feeds node X (the inverter's 82k and 100k, V2a's 100k and
+    ///     V2b's plate) from the screens' node through R29 10k alone, and V1 from X through R8 10k (#198). So the
+    ///     models' rails are the ones those droppers leave with the stages' own idle currents, the supply's preamp
+    ///     draw is that current, and the power amp's preamp node rests at the inverter's rail.
+    /// </summary>
+    [Theory]
+    [InlineData("JCM800 2203")]
+    [InlineData("JCM800 2204")]
+    public void The_jcm800s_preamp_rails_follow_from_the_drawings_10k_droppers(string model) {
+        var design = AmpDesign.All[TypeOf(model)];
+        var supply = design.Power.PowerSupply;
+        var inverter = (LongTailPairDesign)design.Power.PhaseInverter;
+        var railX = inverter.Supply;
+        var railV1 = ((TriodeStageDesign)design.Preamp[1]).Supply;
+        Assert.Equal(railX, ((TriodeStageDesign)design.Preamp[2]).Supply);
+        Assert.Equal(railX, ((ToneStackStageDesign)design.Preamp[3]).Supply);
+        Assert.Equal(10e3, supply.PreampResistance);
+        var chain = Assert.Single(design.PreampSupply!.Nodes);
+        Assert.Equal((10e3, 50e-6, 0), (chain.Resistance, chain.Cap, chain.Parent)); // R8 into half of C21
+        Assert.Equal([1, 1, 0, 0], design.Preamp.Select(static s => s.SupplyNode ?? 0));
+
+        // The idle currents at given rails: the inverter's two plates, V2a, the V2b follower on V2a's plate, V1a and
+        // the V1b cold clipper.
+        (double X, double V1) Currents(double x, double v1) {
+            var tables = PhaseInverter.For(inverter with { Supply = x });
+            var pair = (x - tables.RestPlateA) / inverter.PlateResistorA
+                + (x - tables.RestPlateB) / inverter.PlateResistorB;
+            var (v2a, plate, _) = OperatingPoint.CommonCathode(TriodeModel.Ecc83, 0, x, 100e3, 820);
+            var (v2b, _) = OperatingPoint.CathodeFollower(TriodeModel.Ecc83, plate, x, 100e3);
+            var (v1a, _, _) = OperatingPoint.CommonCathode(TriodeModel.Ecc83, 0, v1, 100e3, 2.7e3);
+            var (v1b, _, _) = OperatingPoint.CommonCathode(TriodeModel.Ecc83, 0, v1, 100e3, 10e3);
+            return (pair + v2a + v2b + v1a + v1b, v1a + v1b);
+        }
+
+        var power = new AmpChannel(design, 96_000).Power;
+        var screens = power.ScreenSupply;
+        var (solvedX, solvedV1) = (railX, railV1);
+        for (var i = 0; i < 50; i++) {
+            var (ix, iv1) = Currents(solvedX, solvedV1);
+            (solvedX, solvedV1) = (screens - 10e3 * ix, solvedX - 10e3 * iv1);
+        }
+
+        var (drawX, drawV1) = Currents(railX, railV1);
+        output.WriteLine(
+            $"{model}: screens {screens:0.0} V; the droppers leave {solvedX:0.0} V at X and {solvedV1:0.0} V at V1 "
+            + $"(the model: {railX:0} and {railV1:0} V), drawing {drawX * 1e3:0.00} mA through R29 and "
+            + $"{drawV1 * 1e3:0.00} mA through R8; preamp node {power.PreampVoltage:0.0} V"
+        );
+        Assert.Equal(solvedX, railX, 0.01 * solvedX);
+        Assert.Equal(solvedV1, railV1, 0.01 * solvedV1);
+        Assert.Equal(drawX, supply.PreampCurrent, 0.03 * drawX);
+        Assert.Equal(drawV1, chain.Current, 0.03 * drawV1);
+        Assert.Equal(railX, power.PreampVoltage, 0.01 * railX);
     }
 
     static int TypeOf(string model) => AmpDesign.All.ToList().FindIndex(a => a.Name == model);

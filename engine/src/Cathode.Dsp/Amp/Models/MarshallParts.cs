@@ -170,11 +170,12 @@ public static class MarshallParts {
     /// <summary>
     ///     The JCM800 preamp after the first stage: V1B cold clipper (100k, 10k unbypassed), 22 nF into 470k with 470
     ///     pF over 470k, V2A (100k, 820 unbypassed), the V2B cathode follower (100k) on the JCM800 stack and the 1M log
-    ///     master.
+    ///     master. V2 runs on the power supply's preamp node (the drawing's X, <paramref name="supply" />), V1 on
+    ///     node 1 of <see cref="JCM800Supply" /> (<paramref name="firstSupply" />).
     /// </summary>
     public static AmpStageDesign[] JCM800Preamp(double firstSupply, double supply) => [
-        JCM800Input(firstSupply),
-        new TriodeStageDesign("V1B", TriodeModel.Ecc83, firstSupply, 100e3, 10e3),
+        JCM800Input(firstSupply) with { SupplyNode = 1 },
+        new TriodeStageDesign("V1B", TriodeModel.Ecc83, firstSupply, 100e3, 10e3) { SupplyNode = 1 },
         new TriodeStageDesign(
             "V2A",
             TriodeModel.Ecc83,
@@ -185,7 +186,7 @@ public static class MarshallParts {
             SeriesResistor: 470e3,
             SeriesBypass: 470e-12,
             GridLeak: 470e3
-        ),
+        ) { SupplyNode = 0 },
         new ToneStackStageDesign(
             "V2B",
             TriodeModel.Ecc83,
@@ -195,8 +196,14 @@ public static class MarshallParts {
             JCM800Stack,
             new(1e6, PotTaper.Audio),
             PotRole.Master
-        )
+        ) { SupplyNode = 0 }
     ];
+
+    /// <summary>
+    ///     The JCM800's preamp supply below node X (2203 STD and 2204 STD): R8 10k 1 W from X into one half of C21
+    ///     (50 + 50 µF, the other half on X), feeding V1's two plates, which draw <paramref name="firstCurrent" />.
+    /// </summary>
+    public static PreampSupplyDesign JCM800Supply(double firstCurrent) => new([new(10e3, 50e-6, firstCurrent)]);
 
     /// <summary>
     ///     The first tube of a two-channel Marshall with separate cathodes (1959): both triodes with 100k plates, the
