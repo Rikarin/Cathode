@@ -53,6 +53,48 @@ public class GateBlockTests {
         Assert.True(gate.CurrentGain > 0.99f, $"gain {gate.CurrentGain} should still be open inside the hold time");
     }
 
+    [Theory]
+    [InlineData(GateBlock.Expander, 0, 0f)] // Hard: open above the threshold
+    [InlineData(GateBlock.Expander, 1, -1f)] // Soft, 6 dB: -3 * (1 - 3)^2 / 12
+    [InlineData(GateBlock.Expander, 2, -3.125f)] // Softer, 12 dB: -3 * (1 - 6)^2 / 24
+    [InlineData(GateBlock.ModernExpander, 0, 0f)]
+    [InlineData(GateBlock.ModernExpander, 1, -1f)]
+    [InlineData(GateBlock.ModernExpander, 2, -3.125f)]
+    public void The_knee_shapes_the_gain_just_above_the_threshold_whatever_the_hold(int type, int knee, float gainDb) {
+        // 1 dB over the threshold at 4:1, with the default 20 ms Hold.
+        using var gate = Create(-30, type: type, knee: knee);
+
+        BlockRender.Mono(gate, Signals.Step(48_000, Db(-29)), 64);
+
+        Assert.Equal(gainDb, 20 * MathF.Log10(gate.CurrentGain), 0.01f);
+    }
+
+    [Theory]
+    [InlineData(GateBlock.Expander, -10.125f)] // 3 dB under, still inside the 12 dB knee: -3 * (-3 - 6)^2 / 24
+    [InlineData(GateBlock.ModernExpander, -4.5f)] // inside the hysteresis: the gain at the threshold, -3 * 36 / 24
+    public void Under_the_threshold_the_modern_expander_keeps_the_knee_gain_it_had_there(int type, float gainDb) {
+        using var gate = Create(-30, type: type, knee: 2);
+        var input = Signals.Concat(Signals.Step(24_000, Db(-29)), Signals.Step(48_000, Db(-33)));
+
+        BlockRender.Mono(gate, input, 64);
+
+        Assert.Equal(gainDb, 20 * MathF.Log10(gate.CurrentGain), 0.01f);
+    }
+
+    [Fact]
+    public void Hold_keeps_the_knee_gain_after_the_signal_stops() {
+        using var gate = Create(-30, holdMs: 50, releaseMs: 5, knee: 1);
+        BlockRender.Mono(gate, Signals.Step(24_000, Db(-29)), 64);
+
+        // The detector falls through the knee's upper half in about a millisecond, then the hold starts.
+        BlockRender.Mono(gate, Signals.Step(48 * 10, Db(-90)), 64);
+        var held = gate.CurrentGain;
+        BlockRender.Mono(gate, Signals.Step(48 * 30, Db(-90)), 64); // 40 ms in all, inside the hold
+
+        Assert.InRange(20 * MathF.Log10(held), -2.25f, -1f); // between the gain 1 dB over and at the threshold
+        Assert.Equal(held, gate.CurrentGain);
+    }
+
     [Fact]
     public void Closing_and_opening_do_not_click() {
         using var gate = Create(-30, releaseMs: 20);
@@ -88,8 +130,17 @@ public class GateBlockTests {
         }
     }
 
-    static GateBlock Create(float threshold = -60, float ratio = 4, float holdMs = 20, float releaseMs = 100) {
+    static GateBlock Create(
+        float threshold = -60,
+        float ratio = 4,
+        float holdMs = 20,
+        float releaseMs = 100,
+        int type = GateBlock.Expander,
+        int knee = 0
+    ) {
         var gate = new GateBlock();
+        gate.Params.SetTarget(GateBlock.Type, type);
+        gate.Params.SetTarget(GateBlock.Knee, knee);
         gate.Params.SetTarget(GateBlock.Threshold, threshold);
         gate.Params.SetTarget(GateBlock.Ratio, ratio);
         gate.Params.SetTarget(GateBlock.Hold, holdMs);

@@ -201,6 +201,97 @@ public class BlockConformanceTests {
         Assert.True(Analysis.ToDb(Analysis.Peak(tail)) < -120, "tail did not decay");
     }
 
+    /// <summary>
+    ///     A smoothed parameter the block reads with <c>Params.Current</c> but never passes to <c>Params.Advance</c>
+    ///     stays where the last reset left it: the knob does nothing until the preset is reloaded. So every smoothed
+    ///     parameter shown on a type, changed while the block runs, must have finished its ramp a little later.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(BlockTypes))]
+    public void A_parameter_changed_while_the_block_runs_reaches_its_target(string typeId) {
+        var descriptor = Registry.GetDescriptor(typeId);
+        var typeParam = descriptor.Params.FirstOrDefault(static p => p.Id == "type");
+        var types = typeParam is null ? 1 : (int)typeParam.Max + 1;
+        var input = Signals.Noise(20 * MaxBlock, 23, 0.1f);
+        var stuck = new List<string>();
+        for (var type = 0; type < types; type++) {
+            using var block = Registry.Create(typeId);
+            if (typeParam is not null) {
+                block.Params.SetTarget(descriptor.IndexOf("type"), type);
+                block.Params.ResetToDefaults();
+            }
+
+            block.Prepare(Spec);
+            BlockRender.Mono(block, input, MaxBlock);
+            var moved = new List<int>();
+            var longestMs = 0f;
+            for (var i = 0; i < block.Params.Count; i++) {
+                var p = block.Params.Descriptor(i);
+                if (p.Kind != ParamKind.Float || p.Smoothing == ParamSmoothing.Step || !Shown(block, p, type)) {
+                    continue;
+                }
+
+                // A quarter of the range away from where it is, towards the further end.
+                var from = block.Params.GetTarget(i);
+                var quarter = (p.Max - p.Min) / 4;
+                block.Params.SetTarget(i, from - p.Min > p.Max - from ? from - quarter : from + quarter);
+                moved.Add(i);
+                longestMs = Math.Max(longestMs, p.SmoothingMs);
+            }
+
+            // Four times the longest ramp, and at least a tenth of a second.
+            var frames = (int)(Math.Max(100, 4 * longestMs) * 0.001 * Spec.SampleRate);
+            BlockRender.Mono(block, Signals.Noise(frames, 29, 0.1f), MaxBlock);
+
+            stuck.AddRange(
+                moved.Where(i => block.Params.IsRamping(i) && !NeedsNoSmoother(typeId, Id(block, i), type))
+                    .Select(i => $"{Id(block, i)} (type {type})")
+            );
+        }
+
+        Assert.True(stuck.Count == 0, $"{typeId}: still ramping: {string.Join(", ", stuck)}");
+
+        static string Id(IDspBlock block, int index) => block.Params.Descriptor(index).Id;
+    }
+
+    /// <summary>
+    ///     Smoothed parameters a block rightly never advances: the ones it reads from the target, off the audio thread
+    ///     or at an event, where a ramp has no meaning.
+    /// </summary>
+    static bool NeedsNoSmoother(string typeId, string param, int type) =>
+        typeId switch {
+            // The mic slots are rendered into the IR on the control thread, from the targets.
+            "cab" => param.Length > 2 && param[0] == 'm' && char.IsAsciiDigit(param[1]),
+            // So are the IR slots' Length, Level and Pan.
+            "irplayer" => param is "length1" or "level1" or "pan1" or "length2" or "level2" or "pan2",
+            // Read when the block is prepared: it sizes the compensation delay.
+            "fxloop" => param == "latency",
+            // Read when the LFO restarts (engage, reset, a new note).
+            "tremolo" => param == "startPhase",
+            // Auto-Swell's two knobs, which the Volume type does not run (the descriptor shows them on both).
+            "volpan" => type == 0 && param is "threshold" or "attack",
+            _ => false
+        };
+
+    /// <summary>Whether the editor shows <paramref name="p" /> on the block's type with its current settings.</summary>
+    static bool Shown(IDspBlock block, ParamDescriptor p, int type) {
+        if (p.TypeLabels is { } labels && labels[type].Length == 0) {
+            return false;
+        }
+
+        if (p.VisibleWhen is not { } condition) {
+            return true;
+        }
+
+        for (var i = 0; i < block.Params.Count; i++) {
+            if (block.Params.Descriptor(i).Id == condition.Param) {
+                return condition.Values.Contains(block.Params.GetTarget(i));
+            }
+        }
+
+        return true;
+    }
+
     static IDspBlock Create(string typeId, float[]? normalised) {
         var block = Registry.Create(typeId);
         if (normalised is not null) {
