@@ -80,9 +80,11 @@ it shapes the whole wash, and with **Mod Frequency** it can sweep.`,
     filterFrequency: `The cutoff or centre frequency of the loop filter.`,
 
     filterQ: `The resonance of the loop filter (for Band Pass, how narrow it is). Since it acts on every pass, a high Q
-makes the wash ring at that frequency.`,
+makes the wash ring at that frequency. The resonance never makes the wash build up: the frequencies at the peak decay in
+the **Decay Time** and everything else dies away faster, the more so the higher the Q.`,
 
-    filterGain: `Peak only: how much the loop filter boosts or cuts its band, on every pass.`,
+    filterGain: `Peak only: how much the loop filter boosts or cuts its band, on every pass. A boost works the same way as
+a high Q: the boosted band decays in the Decay Time and the rest faster.`,
 
     filterLfoRate: `The speed of the sine LFO that sweeps the loop filter. Ignored when **Filter LFO Tempo** is set.`,
 

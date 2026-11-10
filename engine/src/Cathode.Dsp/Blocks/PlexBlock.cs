@@ -29,11 +29,12 @@ namespace Cathode.Dsp.Blocks;
 ///     </para>
 ///     <para>
 ///         The loop also holds the low and high cut and a filter (low-pass, high-pass, band-pass or peak) whose
-///         frequency an LFO moves by Mod Frequency octaves. The input passes an envelope swell, a pre-delay and an
-///         input diffuser (four allpasses) before it enters every line at 1/√N. The shifters are granular
-///         (<see cref="GrainShifter" />): Granule sets their grain, Crossfade how much of each grain fades, and
-///         Direction Reverse plays the grains backwards. Hold loops the network at unity with the input closed, Stack
-///         with it open; the delay limiter keeps every loop bounded.
+///         frequency an LFO moves by Mod Frequency octaves. That filter's peak gain (a resonance, a Peak boost) is
+///         taken out of every loop gain, so it cannot make the network oscillate. The input passes an envelope swell,
+///         a pre-delay and an input diffuser (four allpasses) before it enters every line at 1/√N. The shifters are
+///         granular (<see cref="GrainShifter" />): Granule sets their grain, Crossfade how much of each grain fades,
+///         and Direction Reverse plays the grains backwards. Hold loops the network at unity with the input closed,
+///         Stack with it open; the delay limiter keeps every loop bounded.
 ///     </para>
 /// </remarks>
 public sealed class PlexBlock() : DspBlock(Info) {
@@ -316,6 +317,17 @@ public sealed class PlexBlock() : DspBlock(Info) {
             Params.Current(FilterGain)
         );
 
+    /// <summary>
+    ///     The largest gain the Filter has at any frequency: the resonance peak of a low or high pass above a Q of 1/√2
+    ///     (<c>Q / √(1 - 1/(4Q²))</c>), a Peak's boost, else unity. Moving the frequency does not change it.
+    /// </summary>
+    public static float FilterPeakGain(int type, float q, float gainDb) =>
+        type switch {
+            1 or 2 => q > LoopFilter.ButterworthQ ? q / MathF.Sqrt(1f - 1f / (4f * q * q)) : 1f,
+            4 => Math.Max(1f, Decibels.ToGain(gainDb)),
+            _ => 1f
+        };
+
     void ClearState() {
         for (var i = 0; i < MaxLines; i++) {
             lines[i].Reset();
@@ -442,8 +454,18 @@ public sealed class PlexBlock() : DspBlock(Info) {
         var granule = Params.Current(Granule) / 1000.0;
         var crossfade = Params.Current(Crossfade) / 100f;
         var masterDetune = Params.Current(MasterDetune) / 100f;
+        var filterType = (int)Params.Current(FilterType);
+
+        // The Filter sits in every loop, so its gain is loop gain: a resonance or a Peak boost above unity would make
+        // the network oscillate by itself. Each loop gain is divided by the filter's peak, so the frequencies it
+        // passes most decay in the Decay time and the rest faster.
+        var filtered = filterType != FilterOff;
+        var filterNormal = filtered
+            ? 1f / FilterPeakGain(filterType, Params.Current(FilterQ), Params.Current(FilterGain))
+            : 1f;
         for (var i = 0; i < count; i++) {
-            gains[i] = MathF.Pow(10f, -3f * (lineTarget[i] + allpassLength[i]) / (decay * sampleRate));
+            gains[i] = filterNormal
+                * MathF.Pow(10f, -3f * (lineTarget[i] + allpassLength[i]) / (decay * sampleRate));
             var (left, right) = Pan(Math.Clamp(Params.Current(Pan1 + i) / 100f + masterPan, -1f, 1f));
             var level = Params.Current(Level1 + i) / 100f;
             tapLeft[i] = level * left;
@@ -468,10 +490,9 @@ public sealed class PlexBlock() : DspBlock(Info) {
             CutFilter.Slope12,
             LoopFilter.ButterworthQ
         );
-        var filterType = (int)Params.Current(FilterType);
         var modDepth = Params.Current(ModFrequency);
         var filterRate = TempoDivisions.Rate((int)Params.Current(FilterLfoTempo), tempo, Params.Current(FilterLfoRate));
-        if (filterType != FilterOff && modDepth == 0) {
+        if (filtered && modDepth == 0) {
             filterCoefficients = DesignFilter(filterType, sampleRate, 1f);
         }
 
@@ -516,7 +537,7 @@ public sealed class PlexBlock() : DspBlock(Info) {
                 }
             }
 
-            if (filterType != FilterOff && modDepth > 0) {
+            if (filtered && modDepth > 0) {
                 // Coefficients move on a fixed internal hop, so the output does not depend on the host block size.
                 if (filterCounter == 0) {
                     filterCoefficients = DesignFilter(
@@ -551,12 +572,16 @@ public sealed class PlexBlock() : DspBlock(Info) {
                     y = loopState[i].Tick(loop, y);
                 }
 
-                if (filterType != FilterOff) {
+                var heard = y;
+                if (filtered) {
+                    // The limiter bounds what is written into the line; the filter's boost comes after it, so what is
+                    // heard passes the same limiter (with Stack a resonance would otherwise ring far above full scale).
                     y = (float)filterState[i].Tick(filterCoefficients, y);
+                    heard = DelayBlock.Limit(y);
                 }
 
-                wetLeft += y * tapLeft[i];
-                wetRight += y * tapRight[i];
+                wetLeft += heard * tapLeft[i];
+                wetRight += heard * tapRight[i];
                 outputs[i] = y * gains[i];
                 sum += outputs[i];
             }

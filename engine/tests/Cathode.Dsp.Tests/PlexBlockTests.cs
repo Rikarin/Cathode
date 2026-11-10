@@ -143,6 +143,39 @@ public class PlexBlockTests {
         Assert.Equal(0, Analysis.ToDb(late / early), 1.0);
     }
 
+    [Theory]
+    [InlineData(1, 10f, 0f, 0f)] // Low Pass at the top of Filter Q
+    [InlineData(2, 10f, 0f, 0f)] // High Pass
+    [InlineData(1, 3f, 0f, 2f)] // swept two octaves either way
+    [InlineData(3, 10f, 0f, 0f)] // Band Pass
+    [InlineData(4, 0.7071f, 12f, 0f)] // Peak at its largest boost
+    public void A_resonant_or_boosting_loop_filter_still_decays_to_silence(int type, float q, float gain, float mod) {
+        // Everything else at its defaults (Decay 2 s). The filter's gain is loop gain: without taking its peak out of
+        // the loops the network howls above full scale for ever.
+        using var plex = Create(
+            (PlexBlock.FilterType, type),
+            (PlexBlock.FilterQ, q),
+            (PlexBlock.FilterGain, gain),
+            (PlexBlock.ModFrequency, mod)
+        );
+        var input = Signals.Concat(Signals.Noise(9_600, 5, 0.1f), new float[(int)(Rate * 10)]);
+
+        var output = BlockRender.Mono(plex, input, 64);
+
+        var tail = Analysis.ToDb(Analysis.Peak(output.AsSpan(output.Length - 24_000)));
+        Assert.True(tail < -100, $"the tail is at {tail:0.0} dB");
+    }
+
+    [Fact]
+    public void A_filter_peak_at_unity_or_below_leaves_the_decay_time_alone() {
+        Assert.Equal(1f, PlexBlock.FilterPeakGain(1, 0.7071f, 12f));
+        Assert.Equal(1f, PlexBlock.FilterPeakGain(2, 0.3f, 0f));
+        Assert.Equal(1f, PlexBlock.FilterPeakGain(3, 10f, 12f)); // the band-pass peaks at 0 dB
+        Assert.Equal(1f, PlexBlock.FilterPeakGain(4, 5f, -12f));
+        Assert.Equal(2f, PlexBlock.FilterPeakGain(4, 5f, 6.0206f), 1e-4f);
+        Assert.Equal(10.0125f, PlexBlock.FilterPeakGain(1, 10f, 0f), 1e-3f);
+    }
+
     [Fact]
     public void Plex_verb_size_scales_its_lines() {
         static float First(float size) {
