@@ -745,7 +745,8 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
             preamp.Master,
             ownTremolo ? tremoloRate : 0,
             ownTremolo ? tremoloDepth : 0,
-            postInverter ? postMaster.Fraction(masterRotation) : 1
+            postInverter ? postMaster.Fraction(masterRotation) : 1,
+            design.Power.Feedback.Deep is { } deep && preamp.IsOn(deep.Switch)
         );
 
         var excursion = Percent(Params.Current(MasterExcursion));

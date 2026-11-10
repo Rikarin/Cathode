@@ -21,6 +21,7 @@ namespace Cathode.Dsp.Amp;
 ///     divider on both inverter outputs, ahead of the coupling caps; 1 for none. Last, so that positional callers of
 ///     the earlier fields are unaffected.
 /// </param>
+/// <param name="Deep">The model's Deep switch (<see cref="FeedbackDesign.Deep" />), where it has one.</param>
 public readonly record struct PowerControls(
     double Presence,
     double Depth,
@@ -31,7 +32,8 @@ public readonly record struct PowerControls(
     double Master = 1,
     double TremoloRate = 0,
     double TremoloDepth = 0,
-    double PostMaster = 1
+    double PostMaster = 1,
+    bool Deep = false
 );
 
 /// <summary>How the supply's rectifier is fed.</summary>
@@ -450,6 +452,7 @@ public sealed class PowerAmp {
         this.controls = controls;
         if (controls.Presence != previous.Presence
             || controls.Depth != previous.Depth
+            || controls.Deep != previous.Deep
             || controls.Feedback != previous.Feedback) {
             var amount = Design.HasFeedback ? 2 * controls.Feedback : Math.Max(0, 2 * controls.Feedback - 1);
             // The secondary is the primary less the copper's drop into the nominal load (see the remarks).
@@ -464,7 +467,8 @@ public sealed class PowerAmp {
                 turns,
                 sampleRate,
                 settings.PresenceFrequency,
-                settings.DepthFrequency
+                settings.DepthFrequency,
+                controls.Deep
             );
         }
 
@@ -1345,6 +1349,68 @@ struct FirstOrder {
 }
 
 /// <summary>
+///     A second-order section, transposed direct form II, with a look-ahead that leaves the state alone. Designed as a
+///     first-order one (<see cref="Design(double, double, double, double, double)" />) it computes what
+///     <see cref="FirstOrder" /> does, bit for bit.
+/// </summary>
+struct SecondOrder {
+    double b1;
+    double b2;
+    double a1;
+    double a2;
+    double state1;
+    double state2;
+
+    public double B0 { get; private set; }
+
+    /// <summary>The identity.</summary>
+    public static SecondOrder Unity => new() { B0 = 1 };
+
+    /// <summary>
+    ///     Bilinear transform of (n0 + n1 s) / (d0 + d1 s) at <paramref name="rate" />, keeping the state.
+    /// </summary>
+    public void Design(double n0, double n1, double d0, double d1, double rate) {
+        var k = 2 * rate;
+        var norm = 1 / (d0 + d1 * k);
+        B0 = (n0 + n1 * k) * norm;
+        b1 = (n0 - n1 * k) * norm;
+        a1 = (d0 - d1 * k) * norm;
+        b2 = 0;
+        a2 = 0;
+    }
+
+    /// <summary>
+    ///     Bilinear transform of (1 + n1 s + n2 s²) / (1 + d1 s + d2 s²) at <paramref name="rate" />, keeping the
+    ///     state.
+    /// </summary>
+    public void Design(double n1, double n2, double d1, double d2, double rate, bool secondOrder) {
+        var k = 2 * rate;
+        var norm = 1 / (1 + d1 * k + d2 * k * k);
+        B0 = (1 + n1 * k + n2 * k * k) * norm;
+        b1 = 2 * (1 - n2 * k * k) * norm;
+        b2 = (1 - n1 * k + n2 * k * k) * norm;
+        a1 = 2 * (1 - d2 * k * k) * norm;
+        a2 = (1 - d1 * k + d2 * k * k) * norm;
+    }
+
+    /// <summary>The output for <paramref name="x" /> without advancing.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public readonly double Peek(double x) => B0 * x + state1;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public double Process(double x) {
+        var y = B0 * x + state1;
+        state1 = b1 * x - a1 * y + state2;
+        state2 = b2 * x - a2 * y;
+        return y;
+    }
+
+    public void Reset() => (state1, state2) = (0, 0);
+
+    public void FlushDenormals() => (state1, state2) = (Flush.Value(state1), Flush.Value(state2));
+}
+
+/// <summary>
 ///     The power tubes' grid networks, in AC terms: each phase inverter plate (a two-port Thévenin source with the
 ///     inverter's output impedance matrix, so that the plates' coupling through the inverter's cathode is kept) through
 ///     its coupling cap to the grid-leak node, the grid leak to the (AC-grounded) bias supply, the grid stopper to the
@@ -1586,7 +1652,7 @@ struct PushPullStage : INonlinearDevice {
     FirstOrder presence;
     FirstOrder branch; // the feedback's second section (FeedbackDesign.Branch or FeedbackDesign.Series)
     bool hasBranch;
-    FirstOrder depth;
+    SecondOrder depth; // the depth control's shelf, or the Deep switch's resonant branch (FeedbackDesign.Deep)
     FirstOrder cut;
     GridPair grids;
     double feedback; // feedback knob × tap gain / turns ratio: volts at the feedback filter per volt of primary
@@ -1647,7 +1713,7 @@ struct PushPullStage : INonlinearDevice {
         differentialResistance = rd * 2 * gridLeak / (rd + 2 * gridLeak);
         presence = FirstOrder.Unity;
         branch = FirstOrder.Unity;
-        depth = FirstOrder.Unity;
+        depth = SecondOrder.Unity;
         cut = FirstOrder.Unity;
         SetSampleRate(rate);
     }
@@ -1698,7 +1764,10 @@ struct PushPullStage : INonlinearDevice {
     ///     β(s) = β (1 + s τ₁) / (1 + s τ₂), from Z / (R_f + Z) with the shunt's impedance Z; a fixed branch across the
     ///     shunt (<see cref="FeedbackDesign.Branch" />) makes it second order, two sections in series
     ///     (<see cref="FeedbackDesign.BranchTimes" />), and so does a presence in series with the feedback
-    ///     (<see cref="FeedbackDesign.Series" />, <see cref="FeedbackDesign.SeriesTimes" />).
+    ///     (<see cref="FeedbackDesign.Series" />, <see cref="FeedbackDesign.SeriesTimes" />). A model with a Deep
+    ///     switch (<see cref="FeedbackDesign.Deep" />, <paramref name="deep" /> its position) has that branch across
+    ///     the shunt in place of the depth control: third order, the presence's section and a second-order one
+    ///     (<see cref="FeedbackDesign.DeepTimes" />), its resonance scaled by the depth frequency.
     /// </summary>
     public void SetFeedback(
         FeedbackDesign design,
@@ -1708,8 +1777,22 @@ struct PushPullStage : INonlinearDevice {
         double turns,
         double rate,
         double presenceFrequency = 1,
-        double depthFrequency = 1
+        double depthFrequency = 1,
+        bool deep = false
     ) {
+        // Push-pull: the inverter's driven output is its inverted plate, so the primary voltage rises with the input.
+        // Single-ended the input drives the grid directly and the plate falls as it rises: the tap is taken the other
+        // way round (a real amp's secondary is wired for that), or the "feedback" would be positive. A loop stage
+        // inverts too (see LoopStage).
+        feedback = (singleEnded != loop is not null ? -1 : 1) * amount * design.TapGain / turns;
+        if (design.Deep is not null) {
+            hasBranch = false;
+            var t = design.DeepTimes(presence, deep, presenceFrequency, depthFrequency);
+            this.presence.Design(t.Gain, t.Gain * t.Zero, 1, t.Pole, rate);
+            this.depth.Design(t.N1, t.N2, t.D1, t.D2, rate, true);
+            return;
+        }
+
         hasBranch = design.Branch is not null || design.Series is not null;
         if (hasBranch) {
             var (gain, zero1, pole1, zero2, pole2) = design.Series is not null
@@ -1725,11 +1808,6 @@ struct PushPullStage : INonlinearDevice {
         var omega = 2 * Math.PI * (design.DepthFrequency * depthFrequency);
         var floor = design.LowFeedback * (1 - 0.9 * Math.Clamp(depth, 0, 1));
         this.depth.Design(floor * omega, 1, omega, 1, rate);
-        // Push-pull: the inverter's driven output is its inverted plate, so the primary voltage rises with the input.
-        // Single-ended the input drives the grid directly and the plate falls as it rises: the tap is taken the other
-        // way round (a real amp's secondary is wired for that), or the "feedback" would be positive. A loop stage
-        // inverts too (see LoopStage).
-        feedback = (singleEnded != loop is not null ? -1 : 1) * amount * design.TapGain / turns;
     }
 
     /// <summary>

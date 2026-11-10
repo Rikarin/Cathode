@@ -123,7 +123,8 @@ public sealed record SpeakerDesign(
 ///     feedback, and so lifts the response, at high frequencies; or, with <see cref="PresenceIsShunt" />, the presence
 ///     pot's track is the shunt itself and the cap goes from its wiper to ground (the 5F6-A and the amps that copied
 ///     it); or, with <see cref="Series" />, the presence is a rheostat in series with the feedback resistor (the Mesa
-///     Marks). Depth lowers it below <paramref name="DepthFrequency" />, lifting the speaker resonance.
+///     Marks). Depth lowers it below <paramref name="DepthFrequency" />, lifting the speaker resonance; a model with a
+///     Deep switch of its own (<see cref="Deep" />) has that circuit instead.
 /// </summary>
 /// <param name="FeedbackResistor">From the tap to the shunt resistor.</param>
 /// <param name="ShuntResistor">From the bottom of the phase inverter tail to ground.</param>
@@ -274,9 +275,10 @@ public sealed record FeedbackDesign(
     /// <summary>
     ///     The feedback fraction β(jω) at <paramref name="hz" /> straight from the network, Z / (R_f + Z) with the
     ///     shunt, the presence (at rotation <paramref name="presence" />) and <see cref="Branch" /> in parallel, or the
-    ///     <see cref="Series" /> wiring's divider (control thread; for tests and plots).
+    ///     <see cref="Series" /> wiring's divider (control thread; for tests and plots). With <see cref="Deep" />,
+    ///     its branch is across the shunt too, <paramref name="deep" /> its switch.
     /// </summary>
-    public Complex Response(double hz, double presence, double frequency = 1) {
+    public Complex Response(double hz, double presence, double frequency = 1, bool deep = false) {
         var s = new Complex(0, 2 * Math.PI * hz);
         var c = PresenceCap / frequency;
         var (rf, rx) = (FeedbackResistor, ShuntResistor);
@@ -300,8 +302,149 @@ public sealed record FeedbackDesign(
             z = 1 / (1 / z + s * branch.Cap / (1 + s * branch.Resistor * branch.Cap));
         }
 
+        if (Deep is { } resonator) {
+            z = 1 / (1 / z + 1 / resonator.Impedance(s, deep));
+        }
+
         return z / (rf + z);
     }
+
+    /// <summary>
+    ///     A Deep switch's resonant branch across the shunt (the DSL100's simulated inductor); null for none. With it
+    ///     the Depth knob does nothing (<see cref="DepthFrequency" /> and <see cref="LowFeedback" /> are unused): the
+    ///     branch is the amp's depth circuit, in either switch position. Not with <see cref="Branch" /> or
+    ///     <see cref="Series" />.
+    /// </summary>
+    public DeepSwitchDesign? Deep { get; init; }
+
+    /// <summary>
+    ///     With <see cref="Deep" />: the feedback fraction as a first-order and a second-order section in series,
+    ///     β(s) = <c>Gain</c> (1 + s <c>Zero</c>) / (1 + s <c>Pole</c>) × (1 + s <c>N1</c> + s² <c>N2</c>) / (1 + s
+    ///     <c>D1</c> + s² <c>D2</c>), from 1 / (1 + R_f Y) with the shunt's admittance Y = Y_presence + 1 / Z_deep
+    ///     (either presence wiring). The numerator is the presence part's zero and the branch's own series resonance;
+    ///     the denominator is a cubic: the first-order pole is its largest real root, or its one real root where the
+    ///     other two are a complex pair of larger real part, and those two are the second-order section's.
+    ///     <paramref name="frequency" /> divides the presence cap, <paramref name="deepFrequency" /> scales the
+    ///     branch's resonance (its cap and inductance divided by it).
+    /// </summary>
+    public (double Gain, double Zero, double Pole, double N1, double N2, double D1, double D2) DeepTimes(
+        double presence,
+        bool on,
+        double frequency = 1,
+        double deepFrequency = 1
+    ) {
+        var deep = Deep ?? throw new InvalidOperationException("The feedback network has no Deep branch.");
+        var c = PresenceCap / frequency;
+        var (rf, rx) = (FeedbackResistor, ShuntResistor);
+
+        // The presence part's admittance n(s) / d(s), each first order (as BranchTimes).
+        double n0, n1, d0, d1;
+        if (PresenceIsShunt) {
+            var p = Presence.Fraction(presence);
+            var (a, b) = ((1 - p) * rx, p * rx);
+            (n0, n1, d0, d1) = (1, b * c, rx, a * b * c);
+        } else {
+            var rp = Presence.Ohms * (1 - Presence.Fraction(presence));
+            (n0, n1, d0, d1) = (1, (rp + rx) * c, rx, rx * rp * c);
+        }
+
+        // The branch: 1 / Z = s C / q(s), q = 1 + s R C + s² L C.
+        var cap = deep.Cap / deepFrequency;
+        var q1 = deep.Resistance(on) * cap;
+        var q2 = deep.Inductance / deepFrequency * cap;
+
+        // β = d q / ((d + R_f n) q + s R_f C d) = d q / (c0 + c1 s + c2 s² + c3 s³).
+        var (p0, p1) = (d0 + rf * n0, d1 + rf * n1);
+        var c0 = p0;
+        var c1 = p1 + p0 * q1 + rf * cap * d0;
+        var c2 = p1 * q1 + p0 * q2 + rf * cap * d1;
+        var c3 = p1 * q2;
+
+        // A real pole, s = -x, of g(x) = c3 x³ - c2 x² + c1 x - c0 (its roots' real parts are positive: the network is
+        // passive, so the largest real root is under their sum, c2 / c3). With a real root at or beyond g's local
+        // minimum, Newton from the sum only comes down to the largest one; otherwise g has one real root, bisected.
+        double Cubic(double at) => ((c3 * at - c2) * at + c1) * at - c0;
+        var x = c2 / c3;
+        var bend = c2 * c2 - 3 * c1 * c3;
+        if (bend >= 0 && Cubic((c2 + Math.Sqrt(bend)) / (3 * c3)) <= 0) {
+            for (var i = 0; i < 100; i++) {
+                var next = x - Cubic(x) / ((3 * c3 * x - 2 * c2) * x + c1);
+                var done = !(Math.Abs(next - x) > 1e-15 * x);
+                x = next;
+                if (done) {
+                    break;
+                }
+            }
+        } else {
+            var (low, high) = (0.0, x);
+            for (var i = 0; i < 200 && high - low > 1e-15 * high; i++) {
+                var middle = 0.5 * (low + high);
+                if (Cubic(middle) < 0) {
+                    low = middle;
+                } else {
+                    high = middle;
+                }
+            }
+
+            x = 0.5 * (low + high);
+        }
+
+        // What is left of c0 (1 + s τ_a) (1 + s τ_b) (1 + s / x), from the time constants' sum and product or, where
+        // 1 / x is most of that sum (the slowest pole was removed), from the roots' sum and product: each exact, and
+        // each without the other's cancellation.
+        if (1 / x < 0.5 * c1 / c0) {
+            return (d0 / c0, d1 / d0, 1 / x, q1, q2, c1 / c0 - 1 / x, c3 * x / c0);
+        }
+
+        var (sum, product) = (c2 / c3 - x, c0 / (c3 * x));
+        return (d0 / c0, d1 / d0, 1 / x, q1, q2, sum / product, 1 / product);
+    }
+}
+
+/// <summary>
+///     A Deep switch as the JCM2000 DSL has it (<see cref="FeedbackDesign.Deep" />): from the feedback node to ground,
+///     <paramref name="OffResistor" />, <paramref name="Cap" /> and an inductor of <paramref name="Inductance" />
+///     henries with <paramref name="SeriesResistance" /> in series; the switch shorts the resistor. At the series
+///     resonance, 1 / (2π √(L C)), the branch is down to its resistance and takes the feedback away, so the amp's
+///     response rises there (and its damping of the speaker's resonance falls). The inductor is an op-amp gyrator: a
+///     follower bootstraps the junction of R_a (from the input) and R_b (to ground) through a cap C_g, which makes
+///     Z = R_a + R_b + s C_g R_a R_b (<see cref="Gyrator" />); the op-amp is taken as ideal.
+/// </summary>
+/// <param name="Switch">The panel switch that shorts <paramref name="OffResistor" />.</param>
+/// <param name="Cap">The series cap.</param>
+/// <param name="Inductance">The (simulated) inductor.</param>
+/// <param name="SeriesResistance">The inductor's series resistance.</param>
+/// <param name="OffResistor">In series with the branch while the switch is off.</param>
+public sealed record DeepSwitchDesign(
+    SwitchRole Switch,
+    double Cap,
+    double Inductance,
+    double SeriesResistance,
+    double OffResistor
+) {
+    /// <summary>
+    ///     The branch with a gyrator for its inductor: <paramref name="ra" /> from the input to the bootstrapped
+    ///     junction, <paramref name="rb" /> from there to ground, <paramref name="gyratorCap" /> from the follower's
+    ///     output to the junction.
+    /// </summary>
+    public static DeepSwitchDesign Gyrator(
+        SwitchRole role,
+        double cap,
+        double ra,
+        double rb,
+        double gyratorCap,
+        double offResistor
+    ) =>
+        new(role, cap, gyratorCap * ra * rb, ra + rb, offResistor);
+
+    /// <summary>The series resonance, hertz.</summary>
+    public double Resonance => 1 / (2 * Math.PI * Math.Sqrt(Inductance * Cap));
+
+    /// <summary>The branch's series resistance with the switch <paramref name="on" /> or off.</summary>
+    public double Resistance(bool on) => SeriesResistance + (on ? 0 : OffResistor);
+
+    /// <summary>The branch's impedance at <paramref name="s" />.</summary>
+    public Complex Impedance(Complex s, bool on) => Resistance(on) + 1 / (s * Cap) + s * Inductance;
 }
 
 /// <summary>A fixed series resistor and cap across the feedback shunt (<see cref="FeedbackDesign.Branch" />).</summary>

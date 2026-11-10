@@ -10022,7 +10022,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           '',
           'Resonance',
-          'Deep',
+          '',
           '',
           '',
           ''
@@ -10527,7 +10527,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           'Bright',
           '',
-          '',
+          'Deep',
           '',
           'OD2',
           ''

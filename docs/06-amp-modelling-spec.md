@@ -659,7 +659,9 @@ cites its drawings and marks what is read, inferred or guessed:
   descriptions: Clean 2 / 3 / 4 triodes with RL2 on in Red, Crunch 2 / 3 (RL2 on) / 3, OD 3 / 4 (RL2 on) / 4. Each mode
   is its own chain of stages under nested `ChannelSwitchStageDesign`s (no library change).
 - **DSL100** (`Dsl100.cs`), both channels: Classic Gain (Clean / Crunch on Switch 2) and Ultra Gain (Switch 1; Lead 1 /
-  Lead 2 on Switch 2), Tone Shift on Switch 3, Deep as the Depth control. The previous blocker, the missing wiring
+  Lead 2 on Switch 2), Tone Shift on Switch 3, Deep on the Bright switch (the amp's own network across the feedback
+  shunt, `FeedbackDesign.Deep`: 10k, shorted by the switch, and 10 µF into the gyrator's 600 Ω and 0.89 H, resonant at
+  53 Hz; the panel has no Depth knob). The previous blocker, the missing wiring
   drawing JCM2-68-02, is not needed: both boards print their connectors' partners (main CON3 to front CON2 and so on),
   and the 1997 issue-1 main board (JCM2-60-00, a scan) agrees. V1B into relay RL1, which feeds one channel's network
   and grounds the other's input; Classic's wiper and Ultra's V1A path (4.7 nF, 10k, 1k ‖ 470 pF) meet through 470k each

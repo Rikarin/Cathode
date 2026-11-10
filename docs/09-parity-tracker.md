@@ -47,7 +47,7 @@ When merging a stream, walk its rows. Set each to ✅, ◐, ❌ or ⏸ with evid
 
 | ID | Item | Status | Evidence | Notes |
 |---|---|---|---|---|
-| M1.1 | DSL100 / JCM2000: Classic Gain and Ultra Gain, modes, Tone Shift, Deep | ◐ | Dsl100_modes_and_tone_shift_do_what_the_handbook_says; Remaining_marshall_chains_match_the_reference (DSL100, 5 settings) | Deep is the generic Depth knob labelled "Deep", not the gyrator switch; no Deep test. Feedback resistor guessed |
+| M1.1 | DSL100 / JCM2000: Classic Gain and Ultra Gain, modes, Tone Shift, Deep | ✅ | Dsl100_modes_and_tone_shift_do_what_the_handbook_says; Remaining_marshall_chains_match_the_reference (DSL100, 5 settings); Dsl100_deep_network_matches_its_circuit; Dsl100_deep_switch_lifts_the_bass | Deep is the amp's switch (the block's Bright) and its gyrator network across the feedback shunt, read from JCM2-61-00 (#331). Feedback resistor guessed |
 | M1.2 | JMP-1 preamp: OD1, OD2, Clean (and Crunch) + documented power amp | ✅ | Jmp1_switches_change_the_gain_and_the_bass; Jmp1_active_tone_is_flat_at_the_centre_and_each_band_boosts_its_region | Clean I/II, OD I/II, Bass Shift into the JCM900 4100 power amp; digital pot values guessed; OD path −25 dB vs reference (finite-GBW op-amp) |
 | M1.3 | JVM410HJS (Satriani) as its own model | ⏸ | — | 5 relays, 9 gain structures; no published relay table per mode |
 | M1.4 | JVM410H Clean and Crunch channels | ✅ | Remaining_marshall_chains_match_the_reference (JVM, 6 settings) | type `JVM410H Clean/Crunch` |
