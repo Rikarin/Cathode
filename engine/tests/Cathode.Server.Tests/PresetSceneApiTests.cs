@@ -318,7 +318,14 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         Assert.False((await Live()).Dirty);
         await ServerFixture.Eventually(() => Rig("level") == 1f);
 
+        // The step stores the level and nothing else: an unsaved edit made before it stays unsaved.
         await Patch("/api/v1/live/scenes/0", new SceneUpdateRequest("Renamed"));
+        router.OnMidi([new(0xB0, 40, 127, 0)]);
+        await ServerFixture.Eventually(() => presets.Get(saved.Preset.Id)!.Scenes[0].Level == 2f);
+        Assert.NotEqual("Renamed", presets.Get(saved.Preset.Id)!.Scenes[0].Name);
+        var stepped = await Live();
+        Assert.True(stepped.Dirty);
+        Assert.Equal("Renamed", stepped.Preset.Scenes[0].Name);
         router.OnMidi([new(0xB0, 42, 127, 0)]);
         await ServerFixture.Eventually(() => presets.Get(saved.Preset.Id)!.Scenes[0].Name == "Renamed");
 
@@ -328,6 +335,31 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         await ServerFixture.Eventually(async () => (await Live()).ActiveScene == 0);
         router.OnMidi([new(0xB0, 43, 100, 0)]);
         await ServerFixture.Eventually(async () => (await Live()).ActiveScene == 1);
+    }
+
+    [Fact]
+    public async Task A_scene_level_step_on_a_factory_preset_makes_no_copy_and_keeps_the_bank_position() {
+        await PutGlobal(static g => g.MidiMappings.Add(new("up", "cc", 0, 40, "sceneLevelUp")));
+        var router = server.Services.GetRequiredService<MidiRouter>();
+        var presets = server.Services.GetRequiredService<Stores.PresetStore>();
+        var slot = presets.Factory.Bank().Slots.FindIndex(static s => s is not null);
+        var loaded = await Put($"/api/v1/live/banks/{Stores.FactoryPresets.BankId}/slots/{slot}", new { });
+        var level = loaded.Preset.Scenes[loaded.ActiveScene].Level;
+        var next = (await client.GetFromJsonAsync<PresetStep>("/api/v1/live/neighbour?step=1", Token))!;
+
+        router.OnMidi([new(0xB0, 40, 127, 0)]);
+        await ServerFixture.Eventually(async () => {
+                var live = await Live();
+                return live.Preset.Scenes[live.ActiveScene].Level == Math.Min(level + 1, 12f);
+            }
+        );
+
+        var stepped = await Live();
+        Assert.Equal(loaded.Preset.Id, stepped.Preset.Id); // still the factory preset, not a copy of it
+        Assert.True(stepped.Dirty);
+        Assert.Equal(new(Stores.FactoryPresets.BankId, slot), stepped.Position);
+        Assert.Empty(presets.User());
+        Assert.Equal(next, await client.GetFromJsonAsync<PresetStep>("/api/v1/live/neighbour?step=1", Token));
     }
 
     [Fact]
