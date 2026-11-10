@@ -1,6 +1,7 @@
 using Cathode.Contracts;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json.Nodes;
 
 namespace Cathode.Server.Tests;
 
@@ -81,6 +82,63 @@ public sealed class ConcurrencyApiTests : IAsyncLifetime {
         var volpan = (await Live()).Preset.Blocks.Single(static b => b.Id == "volpan1");
         Assert.False(volpan.Channels.TryGetValue("A", out var values) && values.ContainsKey("level"));
     }
+
+    [Theory]
+    [InlineData("setlists")]
+    [InlineData("banks")]
+    public async Task A_setlist_or_bank_carries_a_revision_and_a_stale_save_is_refused_with_412(string kind) {
+        // Two editors read the same entry (issue #178); without If-Match the second save would replace the first.
+        const string id = "shared";
+        var path = $"/api/v1/{kind}/{id}";
+        using var created = await client.PutAsJsonAsync(path, new { id, name = "As created" }, Token);
+        Assert.Equal(HttpStatusCode.OK, created.StatusCode);
+        Assert.Equal("\"1\"", created.Headers.ETag!.Tag);
+        Assert.Equal(1, await StoredRevision(kind, id));
+
+        using var first = await PutNamed(path, "First editor", "\"1\"");
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+        Assert.Equal("\"2\"", first.Headers.ETag!.Tag);
+
+        using var stale = await PutNamed(path, "Second editor", "\"1\"");
+        Assert.Equal(HttpStatusCode.PreconditionFailed, stale.StatusCode);
+        Assert.Equal("application/problem+json", stale.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(("First editor", 2), (await StoredName(kind, id), await StoredRevision(kind, id)));
+
+        // On the revision read again it lands; the revision a body carries is the Server's to set, not the client's.
+        using var current = await PutNamed(path, "Second editor", "\"2\"", 40);
+        Assert.Equal(HttpStatusCode.OK, current.StatusCode);
+        Assert.Equal(("Second editor", 3), (await StoredName(kind, id), await StoredRevision(kind, id)));
+
+        // Without If-Match a save replaces whatever is stored, as before.
+        using var unguarded = await PutNamed(path, "A script", null);
+        Assert.Equal(HttpStatusCode.OK, unguarded.StatusCode);
+        Assert.Equal(4, await StoredRevision(kind, id));
+
+        // A save made on an entry that has since been deleted does not bring it back.
+        using var deleted = await client.DeleteAsync(path, Token);
+        Assert.Equal(HttpStatusCode.NoContent, deleted.StatusCode);
+        using var gone = await PutNamed(path, "Back again", "\"4\"");
+        Assert.Equal(HttpStatusCode.PreconditionFailed, gone.StatusCode);
+        Assert.Null(await Stored(kind, id));
+    }
+
+    async Task<HttpResponseMessage> PutNamed(string path, string name, string? ifMatch, long? revision = null) {
+        using var request = new HttpRequestMessage(HttpMethod.Put, path);
+        request.Content = JsonContent.Create(new { name, revision });
+        if (ifMatch is not null) {
+            Assert.True(request.Headers.TryAddWithoutValidation("If-Match", ifMatch));
+        }
+
+        return await client.SendAsync(request, Token);
+    }
+
+    async Task<JsonNode?> Stored(string kind, string id) =>
+        (await client.GetFromJsonAsync<JsonArray>($"/api/v1/{kind}", Token))!
+        .SingleOrDefault(e => e!["id"]!.GetValue<string>() == id);
+
+    async Task<string> StoredName(string kind, string id) => (await Stored(kind, id))!["name"]!.GetValue<string>();
+
+    async Task<long> StoredRevision(string kind, string id) => (await Stored(kind, id))!["revision"]!.GetValue<long>();
 
     [Theory]
     [InlineData("W/\"1\"")] // a weak tag never matches If-Match

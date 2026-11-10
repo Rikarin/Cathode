@@ -19,12 +19,14 @@ import type { AsksBeforeLeaving } from '../core/leave-guard';
 import { newId } from '../core/new-id';
 import { Notify, errorMessage } from '../core/notify';
 import { TagColors, tagColorName } from '../shell/picker-list';
-import { LibraryStore, presetUses } from '../state/library.store';
+import { LibraryStore, type Revised, ifMatch, isStale, presetUses } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
 import { ManageSession, type SlotRef, nextSelection } from './manage';
 
 const SlotMime = 'application/x-cathode-slot';
 const PresetMime = 'application/x-cathode-preset';
+/** How many times Save stores a bank that another editor keeps changing under it before it gives up. */
+const StaleRetries = 3;
 /** The height of an entry in the Library list, which the virtual scroll lays the list out by. */
 export const LibraryEntryHeight = 24;
 
@@ -452,12 +454,11 @@ export class ManagePage implements AsksBeforeLeaving {
       name: `Bank ${this.banks().length + 1}`,
       slots: []
     };
-    const stored = await this.notify.run(async () => {
-      unwrap(await this.connection.client.PUT('/api/v1/banks/{id}', { params: { path: { id: bank.id } }, body: bank }));
-      return true;
-    });
+    const stored = await this.notify.run(async () =>
+      unwrap(await this.connection.client.PUT('/api/v1/banks/{id}', { params: { path: { id: bank.id } }, body: bank }))
+    );
     if (stored) {
-      this.session().addBank(bank);
+      this.session().addBank(stored); // as the Server stored it: with its revision
       this.changed();
       this.selectBank(bank.id);
       await this.library.refreshBanks();
@@ -519,16 +520,29 @@ export class ManagePage implements AsksBeforeLeaving {
     this.confirmDeleteBank.set(true);
   }
 
-  /** Renames a bank on the Server at once, with its stored slots: pending slot changes stay pending. */
+  /**
+   * Renames a bank on the Server at once, with its stored slots: pending slot changes stay pending. Guarded with the
+   * revision the stored bank was last read at: when another editor has stored it since, the Server refuses the rename
+   * (it carries the slots this editor last read, and would put them back), the banks are read again and the rename
+   * can be made again.
+   */
   private async renameBank(id: string, name: string): Promise<void> {
-    const stored = this.library.banks().find(b => b.id === id) ?? { id, name, slots: [] };
-    const done = await this.notify.run(async () => {
+    const stored: Bank & Revised = this.library.banks().find(b => b.id === id) ?? { id, name, slots: [] };
+    const renamed = await this.notify.run(async (): Promise<Revised> =>
       unwrap(
-        await this.connection.client.PUT('/api/v1/banks/{id}', { params: { path: { id } }, body: { ...stored, name } })
-      );
-      return true;
-    });
-    if (done) {
+        await this.connection.client.PUT('/api/v1/banks/{id}', {
+          params: { path: { id } },
+          body: { ...stored, name },
+          headers: ifMatch(stored.revision)
+        })
+      )
+    );
+    if (!renamed) {
+      await this.library.refreshBanks(); // a rename refused as stale is made on the bank as it is now next time
+    }
+
+    if (renamed) {
+      this.session().bankSaved(id, stored.revision, renamed.revision);
       this.session().renameBank(id, name);
       this.renaming.set(false);
       this.changed();
@@ -622,6 +636,52 @@ export class ManagePage implements AsksBeforeLeaving {
   }
 
   /**
+   * Stores a bank's slots as the session has them, guarded with the revision its working copy was made from. When
+   * another editor has stored the bank since (412), the banks are read again, the session's own slot changes are put
+   * on the bank as it is stored now ({@link ManageSession.rebaseBank}) and it is stored again: both editors' slots
+   * stay. A bank another editor has deleted leaves the session, and the save fails saying so.
+   */
+  private async storeBank(session: ManageSession, id: string): Promise<void> {
+    for (let attempt = 1; ; attempt++) {
+      const bank = session.plan().banks.find(b => b.id === id);
+      if (!bank) {
+        return;
+      }
+
+      try {
+        // Empty slots are null on the wire (see WorkBank).
+        const stored: Revised = unwrap(
+          await this.connection.client.PUT('/api/v1/banks/{id}', {
+            params: { path: { id } },
+            body: bank as Bank,
+            headers: ifMatch(bank.revision)
+          })
+        );
+        session.bankStored(id, stored.revision);
+        return;
+      } catch (error) {
+        if (!isStale(error) || attempt >= StaleRetries) {
+          throw error;
+        }
+      }
+
+      await this.library.refreshBanks();
+      const now = this.library.banks().find(b => b.id === id);
+      if (!now) {
+        const wasShown = this.bank()?.id === id;
+        session.deleteBank(id);
+        if (wasShown) {
+          this.selectBank(this.banks()[0]?.id ?? '');
+        }
+
+        throw new Error('The bank was deleted in another editor, and its slot changes went with it.');
+      }
+
+      session.rebaseBank(now);
+    }
+  }
+
+  /**
    * Carries out the session: copies, renames and metadata, banks, then deletions. Each step that is stored leaves the
    * session. When a request fails, what it and the steps after it would have done stays pending, the failure names
    * the step, and Save can be tried again.
@@ -662,9 +722,7 @@ export class ManagePage implements AsksBeforeLeaving {
 
       for (const bank of plan.banks) {
         step = `Storing bank “${bank.name}”`;
-        // Empty slots are null on the wire (see WorkBank).
-        unwrap(await client.PUT('/api/v1/banks/{id}', { params: { path: { id: bank.id } }, body: bank as Bank }));
-        session.bankStored(bank.id);
+        await this.storeBank(session, bank.id);
       }
 
       for (const id of plan.deletes) {

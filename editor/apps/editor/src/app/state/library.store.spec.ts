@@ -147,22 +147,37 @@ describe('stores resync after a reconnection', () => {
 describe('LibraryStore.saveSetlist', () => {
   /** A Server whose answers to PUT wait until the test lets them go. */
   function setup(stored: Setlist[]) {
-    const puts: { setlist: Setlist; answer: (ok: boolean) => void }[] = [];
-    const PUT = (_path: string, request: { body: Setlist }) =>
-      new Promise((resolve, reject) =>
+    const puts: { setlist: Setlist; ifMatch: string | undefined; answer: (ok: boolean) => void }[] = [];
+    /** The revision of each stored setlist, counted as the Server counts it. */
+    const revisions = new Map<string, number>();
+    const withRevisions = () => stored.map(s => ({ ...s, revision: revisions.get(s.id) }));
+    const PUT = (_path: string, request: { body: Setlist; headers?: Record<string, string> }) =>
+      new Promise((resolve, reject) => {
+        const { id } = request.body;
+        const ifMatch = request.headers?.['If-Match'];
         puts.push({
           setlist: request.body,
+          ifMatch,
           answer: ok => {
-            if (ok) {
-              stored = [...stored.filter(s => s.id !== request.body.id), request.body];
-              resolve({ data: request.body, response: new Response('{}') });
+            if (ifMatch !== undefined && ifMatch !== `"${revisions.get(id) ?? 0}"`) {
+              reject(new ApiError(412, 'Changed elsewhere.'));
+            } else if (ok) {
+              revisions.set(id, (revisions.get(id) ?? 0) + 1);
+              stored = [...stored.filter(s => s.id !== id), request.body];
+              resolve({ data: { ...request.body, revision: revisions.get(id) }, response: new Response('{}') });
             } else {
               reject(new ApiError(400, 'Refused.'));
             }
           }
-        })
-      );
-    const GET = () => Promise.resolve({ data: stored, response: new Response('{}') });
+        });
+      });
+    /** Another editor stores a setlist. */
+    const elsewhere = (setlist: Setlist) => {
+      revisions.set(setlist.id, (revisions.get(setlist.id) ?? 0) + 1);
+      stored = [...stored.filter(s => s.id !== setlist.id), setlist];
+    };
+    const GET = () => Promise.resolve({ data: withRevisions(), response: new Response('{}') });
+    stored.forEach(s => revisions.set(s.id, 1));
     const run = async (action: () => Promise<unknown>) => {
       try {
         return await action();
@@ -181,7 +196,7 @@ describe('LibraryStore.saveSetlist', () => {
       ]
     });
     const library = TestBed.inject(LibraryStore);
-    library.setlists.set(stored);
+    void library.refreshSetlists();
     const settle = () => new Promise(resolve => setTimeout(resolve));
     const songs = () => library.setlists()[0]?.entries.map(e => e.presetId);
     /** An edit as the Setlists page makes one: from the setlist the store shows now. */
@@ -189,13 +204,14 @@ describe('LibraryStore.saveSetlist', () => {
       const shown = library.setlists()[0] ?? friday;
       return library.saveSetlist({ ...shown, entries: [...shown.entries, { presetId, scene: 0 }] });
     };
-    return { library, puts, settle, songs, add };
+    return { library, puts, settle, songs, add, elsewhere };
   }
 
   const friday: Setlist = { id: 'friday', name: 'Friday', entries: [{ presetId: 'a', scene: 0 }] };
 
   it('keeps both of two edits made before the Server answered the first', async () => {
     const { puts, settle, songs, add } = setup([friday]);
+    await settle();
 
     const first = add('b');
     expect(songs()).toEqual(['a', 'b']); // shown at once, so the next edit starts from it
@@ -207,6 +223,8 @@ describe('LibraryStore.saveSetlist', () => {
     await settle();
     expect(puts).toHaveLength(2);
     expect(puts[1]?.setlist.entries.map(e => e.presetId)).toEqual(['a', 'b', 'c']);
+    // Each save is guarded with the revision it was made on: the one read, then the one the first was answered with.
+    expect(puts.map(p => p.ifMatch)).toEqual(['"1"', '"2"']);
     puts[1]?.answer(true);
 
     await expect(first).resolves.toBe(true);
@@ -214,8 +232,60 @@ describe('LibraryStore.saveSetlist', () => {
     expect(songs()).toEqual(['a', 'b', 'c']);
   });
 
+  it('does not put a setlist back over what another editor stored since this one read it (412)', async () => {
+    const { library, puts, settle, songs, add, elsewhere } = setup([friday]);
+    await settle();
+
+    elsewhere({ ...friday, entries: [{ presetId: 'theirs', scene: 0 }] });
+    const stale = add('mine'); // made on the setlist as it was read, before the other editor's change is known
+    await settle();
+    puts[0]?.answer(true);
+
+    await expect(stale).resolves.toBe(false);
+    expect(songs()).toEqual(['theirs']); // read again: the other editor's setlist, not the refused one
+
+    // Made again on what is stored now, the edit lands with the other editor's change kept.
+    const again = add('mine');
+    await settle();
+    expect(puts[1]?.ifMatch).toBe('"2"');
+    puts[1]?.answer(true);
+    await expect(again).resolves.toBe(true);
+    expect(songs()).toEqual(['theirs', 'mine']);
+    expect(library.setlists()).toHaveLength(1);
+  });
+
+  it('guards an edit with the revision it was made on, not one read while it waited behind another save', async () => {
+    const { library, puts, settle, add, elsewhere } = setup([friday, { id: 'sat', name: 'Saturday', entries: [] }]);
+    await settle();
+
+    const other = library.saveSetlist({ id: 'sat', name: 'Saturday night', entries: [] });
+    const mine = add('mine'); // Friday, at revision 1, waiting behind the save of Saturday
+    elsewhere({ ...friday, entries: [{ presetId: 'theirs', scene: 0 }] });
+    await library.refreshSetlists(); // the other editor's change is announced and read while the edit waits
+    await settle();
+    puts[0]?.answer(true);
+    await other;
+    await settle();
+
+    expect(puts[1]?.ifMatch).toBe('"1"');
+    puts[1]?.answer(true);
+    await expect(mine).resolves.toBe(false);
+  });
+
+  it('sends no If-Match for a setlist that has never been stored', async () => {
+    const { library, puts, settle } = setup([]);
+    await settle();
+
+    const made = library.saveSetlist({ id: 'new', name: 'New', entries: [] });
+    await settle();
+    expect(puts[0]?.ifMatch).toBeUndefined();
+    puts[0]?.answer(true);
+    await expect(made).resolves.toBe(true);
+  });
+
   it('shows what is stored after a refusal, and drops the edit that was built on the refused one', async () => {
     const { puts, settle, songs, add } = setup([friday]);
+    await settle();
 
     const first = add('missing');
     const second = add('c');

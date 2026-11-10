@@ -54,6 +54,29 @@ export function withSetlist(list: readonly Setlist[], setlist: Setlist): Setlist
   );
 }
 
+/**
+ * A setlist or bank as far as its revision goes: how many times the Server has stored it. The Server sets it on every
+ * save and answers with it; an entry that has never been stored has none.
+ */
+export interface Revised {
+  id: string;
+  revision?: number | null;
+}
+
+/**
+ * The `If-Match` header that guards a save of a setlist or bank read at `revision`: the Server refuses it (412) when
+ * another editor stored or deleted the entry in between, instead of letting this save replace that change. No header
+ * for an entry that has no revision yet: it is new, and there is nothing to overwrite.
+ */
+export function ifMatch(revision: number | null | undefined): Record<string, string> {
+  return revision == null ? {} : { 'If-Match': `"${revision}"` };
+}
+
+/** Whether a failed save was refused because the entry was changed or deleted elsewhere since it was read (412). */
+export function isStale(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 412;
+}
+
 /** The file a library backup is saved as and restored from. */
 export const BackupFileExtension = '.cthbackup';
 
@@ -100,6 +123,16 @@ export class LibraryStore {
   private savingSetlists: Promise<unknown> = Promise.resolve();
   /** How many setlist saves the Server has refused. */
   private setlistRefusals = 0;
+  /**
+   * The newest revision of each setlist this editor knows of, from the lists it has read and the answers to its own
+   * saves. A list read while a save was on its way can be older than that save's answer, so a list only ever raises
+   * a revision; the list read after a refusal replaces them all.
+   */
+  private readonly setlistRevisions = new Map<string, number>();
+  /** The revision each setlist's last answered save left it at, for the save queued behind it. */
+  private readonly savedRevisions = new Map<string, number>();
+  /** How many saves of each setlist are queued or on their way. */
+  private readonly setlistSaves = new Map<string, number>();
 
   constructor() {
     const events = inject(EventStream);
@@ -180,8 +213,34 @@ export class LibraryStore {
     await this.notify.run(async () => this.banks.set(unwrap(await this.connection.client.GET('/api/v1/banks'))));
   }
 
-  async refreshSetlists(): Promise<void> {
-    await this.notify.run(async () => this.setlists.set(unwrap(await this.connection.client.GET('/api/v1/setlists'))));
+  /**
+   * Reads the setlists again. `replaceRevisions` takes their revisions as the Server has them now, whatever this
+   * editor believed (after a refused save); otherwise a revision is only ever raised (see {@link setlistRevisions}).
+   */
+  async refreshSetlists(replaceRevisions = false): Promise<void> {
+    await this.notify.run(async () => {
+      const setlists: (Setlist & Revised)[] = unwrap(await this.connection.client.GET('/api/v1/setlists'));
+      if (replaceRevisions) {
+        this.setlistRevisions.clear();
+      }
+
+      const stored = new Set(setlists.map(s => s.id));
+      for (const id of [...this.setlistRevisions.keys()].filter(known => !stored.has(known))) {
+        this.setlistRevisions.delete(id); // deleted (here or elsewhere): one made again under its id starts over
+      }
+
+      for (const setlist of setlists) {
+        this.sawRevision(setlist.id, setlist.revision);
+      }
+
+      this.setlists.set(setlists);
+    });
+  }
+
+  private sawRevision(id: string, revision: number | null | undefined): void {
+    if (revision != null && revision > (this.setlistRevisions.get(id) ?? 0)) {
+      this.setlistRevisions.set(id, revision);
+    }
   }
 
   /**
@@ -191,16 +250,28 @@ export class LibraryStore {
    * {@link setlists} shows the change before the Server has answered, so an edit made straight after this one is
    * built from it, not from the setlist as it was. The requests go out one at a time, in the order the edits were
    * made: each carries the whole setlist, and the last one must be the one that stays stored.
+   *
+   * Each save is guarded with `If-Match` on the revision the edit was made on: the one this editor knew when the edit
+   * was made, or, for an edit made while an earlier save of the same setlist was still on its way, the one that save
+   * was answered with. When another editor stored or deleted the setlist in between, the Server refuses the save
+   * (412) and it is handled like any refusal: reported, and the stored setlists shown, the other editor's change
+   * among them. Without the guard this save would have put the old setlist back over that change.
    */
   saveSetlist(setlist: Setlist): Promise<boolean> {
+    const id = setlist.id;
+    const queued = this.setlistSaves.get(id) ?? 0;
+    const madeOn = queued > 0 ? undefined : this.setlistRevisions.get(id);
+    this.setlistSaves.set(id, queued + 1);
     this.setlists.update(list => withSetlist(list, setlist));
     const refusals = this.setlistRefusals;
-    const result = this.savingSetlists.then(() => this.putSetlist(setlist, refusals));
+    const result = this.savingSetlists
+      .then(() => this.putSetlist(setlist, refusals, queued > 0 ? this.savedRevisions.get(id) : madeOn))
+      .finally(() => this.setlistSaves.set(id, (this.setlistSaves.get(id) ?? 1) - 1));
     this.savingSetlists = result.catch(() => undefined);
     return result;
   }
 
-  private async putSetlist(setlist: Setlist, refusals: number): Promise<boolean> {
+  private async putSetlist(setlist: Setlist, refusals: number, madeOn: number | undefined): Promise<boolean> {
     // An edit made while a save that was then refused was still on its way was built on the refused change, and what
     // is shown has since been read back from the Server: it is dropped with it.
     if (refusals !== this.setlistRefusals) {
@@ -208,17 +279,23 @@ export class LibraryStore {
     }
 
     const done = await this.notify.run(async () => {
-      unwrap(
+      const stored: Revised = unwrap(
         await this.connection.client.PUT('/api/v1/setlists/{id}', {
           params: { path: { id: setlist.id } },
-          body: setlist
+          body: setlist,
+          headers: ifMatch(madeOn)
         })
       );
+      if (stored.revision != null) {
+        this.savedRevisions.set(setlist.id, stored.revision);
+        this.sawRevision(setlist.id, stored.revision);
+      }
+
       return true;
     });
     if (!done) {
       this.setlistRefusals++;
-      await this.refreshSetlists(); // show what is stored, not the refused change
+      await this.refreshSetlists(true); // show what is stored, not the refused change
     }
 
     return done ?? false;
