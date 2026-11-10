@@ -161,6 +161,38 @@ public class HighGainAmpTests(ITestOutputHelper output) {
         Assert.InRange(lossDb, 2.6, 3.2);
     }
 
+    /// <summary>
+    ///     Issue #200: <see cref="LongTailPairDesign.TailResistor" /> is the whole DC path from the bias junction to
+    ///     ground, so on the amps whose tail resistor stands on the feedback shunt it is the drawing's tail resistor
+    ///     (<paramref name="drawnTail" />) plus the shunt (and the leg under it on the Marks' series presence). Eight
+    ///     of these once gave the tail resistor alone and idled their inverters 15 to 30 % hot.
+    /// </summary>
+    [Theory]
+    [InlineData("SLO-100", 10e3)]
+    [InlineData("5150", 10e3)]
+    [InlineData("5150III", 10e3)]
+    [InlineData("Dual Rectifier", 10e3)]
+    [InlineData("Dual Rectifier 3-Ch", 10e3)]
+    [InlineData("Triple Rectifier", 10e3)]
+    [InlineData("Rect-o-Verb", 10e3)]
+    [InlineData("Powerball", 22e3)]
+    [InlineData("Savage 120", 22e3)]
+    [InlineData("Mark IIC+", 22e3)]
+    [InlineData("Mark IV", 22e3)]
+    [InlineData("Blues Junior", 33e3)]
+    [InlineData("Liverpool", 39e3)]
+    public void Long_tail_pairs_rest_on_the_tail_resistor_and_the_feedback_shunt(string name, double drawnTail) {
+        var power = AmpDesign.All.Single(a => a.Name == name).Power;
+        var pair = Assert.IsType<LongTailPairDesign>(power.PhaseInverter);
+        var foot = power.Feedback.ShuntResistor + (power.Feedback.Series?.ShuntLegResistor ?? 0);
+        Assert.Equal(drawnTail + foot, pair.TailResistor, 1e-6);
+
+        // The rest point is the one that tail gives: the junction sits at the tail current times the whole tail.
+        var inverter = LongTailPair.For(pair);
+        var current = inverter.RestCurrents.A + inverter.RestCurrents.B;
+        Assert.Equal(inverter.RestGrid, current * (drawnTail + foot), 1e-3);
+    }
+
     /// <summary>Every knob swept end to end while a loud chord plays: finite, bounded, and Newton converging.</summary>
     [Theory]
     [MemberData(nameof(Types))]

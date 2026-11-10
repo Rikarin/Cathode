@@ -148,7 +148,8 @@ public static class Slo100 {
             false,
             0,
             100,
-            new LongTailPairDesign(TriodeModel.Ecc83, 380, 82e3, 100e3, 10e3, 470),
+            // The 10k tail stands on the 4.7k feedback shunt: 14.7k from the bias junction to ground.
+            new LongTailPairDesign(TriodeModel.Ecc83, 380, 82e3, 100e3, 14.7e3, 470),
             22e-9,
             220e3,
             1e3,

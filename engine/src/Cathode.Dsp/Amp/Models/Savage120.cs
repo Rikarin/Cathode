@@ -74,7 +74,8 @@ public static class Savage120 {
             false,
             0,
             120,
-            new LongTailPairDesign(TriodeModel.Ecc83, InverterRail, 82e3, 100e3, 22e3, 470),
+            // The 22k tail stands on the 4.8k feedback shunt (1.5k and 3.3k): 26.8k from the bias junction to ground.
+            new LongTailPairDesign(TriodeModel.Ecc83, InverterRail, 82e3, 100e3, 26.8e3, 470),
             47e-9,
             150e3,
             2.2e3,

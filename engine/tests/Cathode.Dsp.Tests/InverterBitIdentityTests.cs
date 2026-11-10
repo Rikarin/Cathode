@@ -8,8 +8,9 @@ namespace Cathode.Dsp.Tests;
 ///     (49fe687). An intended change to an inverter or to <see cref="PowerAmp" /> regenerates the table from this
 ///     test's output (the power-amp renders of the Mesa, Soldano and Engl models were regenerated when their supplies
 ///     took their drawings' preamp draws and filter caps; their inverter tables did not move; the Powerball's render
-///     again when its inverter's grid leak was corrected to the drawing's 100k). The hashes are macOS ARM64 renders, so
-///     the test runs there only
+///     again when its inverter's grid leak was corrected to the drawing's 100k; the tables and renders of the SLO-100,
+///     5150, 5150III, Rect-o-Verb, Powerball, Savage 120, Mark IIC+ and Mark IV when their tails took in the feedback
+///     shunt they stand on, #200). The hashes are macOS ARM64 renders, so the test runs there only
 ///     (<see cref="BaselinePlatform" />).
 /// </summary>
 public class InverterBitIdentityTests(ITestOutputHelper output) {
@@ -35,12 +36,12 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         { "Bassman 5F6-A Jumped", (0x198AF1CECAF0406C, 0xB398A79890A66813) },
         { "Tweed Deluxe 5E3", (0x751704F24D4270C5, 0x838AB22CAAE5B68B) },
         { "Tweed Deluxe 5E3 Jumped", (0x751704F24D4270C5, 0x838AB22CAAE5B68B) },
-        { "SLO-100", (0x5295DF82E6C0BE75, 0x3EF7F59DF1E7CD0D) },
-        { "Mark IIC+", (0x69AC6CE47CB13EA8, 0x091F0F7746FA78D3) },
-        { "5150", (0x4D48EE5EA28519A1, 0xCA33CC27152AEE83) },
+        { "SLO-100", (0x9E76F230EA59D180, 0xEF18404635B7A7F8) },
+        { "Mark IIC+", (0x9F72DE98C1AB2887, 0x1AB5D894D835046E) },
+        { "5150", (0x8C9B83B274B605CD, 0x6C3F1D47FD770F99) },
         { "Dual Rectifier", (0x626AC8FABA73BCDB, 0xFC58CA1C580ED32A) },
-        { "5150III", (0x4F811AEFF475696E, 0x9CF3048C46C2C9A7) },
-        { "Mark IV", (0x65C665B82CA5FABB, 0xBA861B2550A8724F) },
+        { "5150III", (0x4B03EF3D2EA85CC3, 0xADF4EEC98F044F87) },
+        { "Mark IV", (0xA8B4B95D001B1364, 0xC5353E365A61B505) },
         { "Legacy VL100", (0x62CA6B505BCAA6A8, 0xCA558CC4597F3C55) },
         { "Chieftain", (0x6DC958B20D52CEBF, 0xD7205E0F637221E2) },
         { "Hot Cat 30", (0x7D4B8004F4D3DC40, 0xB32027284E21F09F) },
@@ -48,10 +49,10 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         { "Express", (0x3C6D880CF487CCF8, 0x052A5010005DAEEB) },
         { "Lone Star", (0xEF23C177E7AB0CDD, 0xC231447E9AD36884) },
         { "Mark V", (0x3DA801BA1355FEFD, 0x78933BBAB444EB1F) },
-        { "Rect-o-Verb", (0x2A1BCEFCC98E2CDB, 0xBB5AFC5116095590) },
+        { "Rect-o-Verb", (0xB778F3CB9BA94445, 0xC13EFBAA3265359F) },
         { "Triple Rectifier", (0xA743C4E16D9DAC79, 0x5B11C2A97AF5269A) },
-        { "Powerball", (0x581B90237DB38239, 0xC18642751A42C71C) },
-        { "Savage 120", (0x96BE26A30C20DFDD, 0xFE6DD5C86DB23352) },
+        { "Powerball", (0xD0DE5DA892FC10DB, 0x0247AC35402D9F00) },
+        { "Savage 120", (0x56D6501E365C1725, 0xE60E3DD7553D7DC2) },
         { "SVT", (0xD1764C0CC01C37B0, 0x1D8F66AC6688D267) },
         { "Portaflex B-15N", (0x76788BF6655480E6, 0x375A6E0DDFCC5DBB) },
         { "JC-120", (0xE5591A0D89D0E308, 0xA7D1B0B5F3CF18FC) },

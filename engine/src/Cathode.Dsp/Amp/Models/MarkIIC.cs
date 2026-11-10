@@ -70,7 +70,8 @@ public static class MarkIIC {
             false,
             0,
             75,
-            new LongTailPairDesign(TriodeModel.Ecc83, 427, 82.5e3, 90.9e3, 22e3, 470),
+            // The 22k tail stands on the feedback shunt, 3.3k over 1.5k: 26.8k from the bias junction to ground.
+            new LongTailPairDesign(TriodeModel.Ecc83, 427, 82.5e3, 90.9e3, 26.8e3, 470),
             0.1e-6,
             220e3,
             2.2e3,
