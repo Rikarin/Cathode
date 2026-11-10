@@ -104,6 +104,23 @@ import { PresetSwitcher } from '../state/preset-switcher';
       [(open)]="confirmClear"
       (confirmed)="live.clear()"
     />
+    <!-- Above the Snapshots and New from template dialogs: a stored snapshot or template is not in the undo history. -->
+    <xui-alert-dialog
+      destructive
+      title="Delete snapshot?"
+      [description]="'“' + (snapshotToDelete()?.name ?? '') + '” will be deleted. This cannot be undone.'"
+      confirmText="Delete"
+      [(open)]="confirmDeleteSnapshot"
+      (confirmed)="deleteSnapshot()"
+    />
+    <xui-alert-dialog
+      destructive
+      title="Delete template?"
+      [description]="'“' + (templateToDelete()?.name ?? '') + '” will be deleted. This cannot be undone.'"
+      confirmText="Delete"
+      [(open)]="confirmDeleteTemplate"
+      (confirmed)="deleteTemplate()"
+    />
 
     @if (snapshotsOpen()) {
       <xui-dialog
@@ -135,7 +152,7 @@ import { PresetSwitcher } from '../state/preset-switcher';
                   color="error"
                   class="shrink-0"
                   [attr.aria-label]="'Delete snapshot ' + s.name"
-                  (click)="deleteSnapshot(s)"
+                  (click)="askDeleteSnapshot(s)"
                 >
                   <ng-icon xui name="matDeleteRound" size="sm" />
                 </button>
@@ -181,7 +198,7 @@ import { PresetSwitcher } from '../state/preset-switcher';
                   color="error"
                   class="shrink-0"
                   [attr.aria-label]="'Delete template ' + t.name"
-                  (click)="deleteTemplate(t)"
+                  (click)="askDeleteTemplate(t)"
                 >
                   <ng-icon xui name="matDeleteRound" size="sm" />
                 </button>
@@ -298,6 +315,11 @@ export class PresetMenu {
   protected readonly templateName = signal('');
   protected readonly snapshots = signal<readonly SnapshotSummary[]>([]);
   protected readonly templates = signal<readonly PresetSummary[]>([]);
+  /** The snapshot and the template the delete confirmations ask about. */
+  protected readonly snapshotToDelete = signal<SnapshotSummary | null>(null);
+  protected readonly confirmDeleteSnapshot = signal(false);
+  protected readonly templateToDelete = signal<PresetSummary | null>(null);
+  protected readonly confirmDeleteTemplate = signal(false);
 
   /** Opens the name, author and tags of the working copy; Apply changes them (undoable, saved with the preset). */
   openInfo(): void {
@@ -353,7 +375,19 @@ export class PresetMenu {
     }
   }
 
-  protected async deleteSnapshot(snapshot: SnapshotSummary): Promise<void> {
+  /** Asks before deleting a snapshot: the Server deletes it for good, outside the working copy's undo. */
+  protected askDeleteSnapshot(snapshot: SnapshotSummary): void {
+    this.snapshotToDelete.set(snapshot);
+    this.confirmDeleteSnapshot.set(true);
+  }
+
+  /** Deletes the snapshot the confirmation asked about. */
+  protected async deleteSnapshot(): Promise<void> {
+    const snapshot = this.snapshotToDelete();
+    if (!snapshot) {
+      return;
+    }
+
     await this.notify.run(async () => {
       await this.connection.client.DELETE('/api/v1/snapshots/{id}', { params: { path: { id: snapshot.id } } });
     });
@@ -395,7 +429,19 @@ export class PresetMenu {
     }
   }
 
-  protected async deleteTemplate(template: PresetSummary): Promise<void> {
+  /** Asks before deleting a template, as for a snapshot. */
+  protected askDeleteTemplate(template: PresetSummary): void {
+    this.templateToDelete.set(template);
+    this.confirmDeleteTemplate.set(true);
+  }
+
+  /** Deletes the template the confirmation asked about. */
+  protected async deleteTemplate(): Promise<void> {
+    const template = this.templateToDelete();
+    if (!template) {
+      return;
+    }
+
     await this.notify.run(async () => {
       await this.connection.client.DELETE('/api/v1/templates/{id}', { params: { path: { id: template.id } } });
     });
