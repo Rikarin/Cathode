@@ -42,7 +42,7 @@ It also does thru-zero flanging, the tape-machine trick where the swept copy pas
     exponent: `Bends the sweep towards one end. At 1 the sweep is as set; above 1 it lingers at the short-delay (high-notch) end; below 1 it lingers at the long-delay end.`,
     stereoSpread: `Widens or narrows the wet signal's stereo image. 100 % leaves it as it is, 0 % folds it to mono, negative swaps the sides, beyond ±100 % widens past the speakers.`,
     lfoReset: `When on, engaging the block restarts the sweep from the same point, so every time you stomp it on it starts the same way. Handy when the flange has to land on a particular beat.`,
-    globalMix: `When on, this block's Mix follows the global **Effects Mix** offset.`
+    globalMix: `When on, this block's Mix follows the global **[Effects Mix](/manual/live-performance#adjusting-to-the-room)** offset.`
   },
 
   options: {

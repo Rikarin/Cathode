@@ -35,7 +35,7 @@ It is monophonic: play single notes. A chord has no single pitch, so the trackin
     mix: `The balance between your guitar (dry) and the synth (a straight crossfade). 100 % is synth only.`,
     level: `The block's output volume.`,
     balance: `Turns the opposite side down to shift the block's output left or right.`,
-    globalMix: `When on, this block's Mix follows the global **Effects Mix** offset.`
+    globalMix: `When on, this block's Mix follows the global **[Effects Mix](/manual/live-performance#adjusting-to-the-room)** offset.`
   },
 
   options: {

@@ -15,6 +15,7 @@ on:
       - "engine/src/Cathode.Dsp.Native/**"
       - "engine/global.json"
       - ".github/actions/**"
+      - "editor/apps/editor/src/app/shell/shortcuts.ts"
       - ".github/workflows/website.yml"
 
 permissions:

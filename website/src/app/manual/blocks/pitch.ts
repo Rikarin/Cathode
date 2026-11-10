@@ -116,7 +116,7 @@ Many knobs only apply to some types; the editor hides the ones the current type 
     formant: `Keeps the natural tone colour (the formants) of your guitar while the pitch moves, instead of the "chipmunk" or "giant" character a large shift gives. Available on Chromatic, Diatonic, Whammy, Arpeggiator, Virtual Capo and Custom Shifter. Off by default.`,
     'formantShift#': `With Formant Correction on: moves the tone colour of this voice up or down, independent of its pitch. Positive sounds smaller and brighter, negative bigger and darker. The single-voice types use the first one. Has no effect while Formant Correction is off.`,
 
-    globalMix: `When on, this block's Mix follows the global **Effects Mix** offset.`,
+    globalMix: `When on, this block's Mix follows the global **[Effects Mix](/manual/live-performance#adjusting-to-the-room)** offset.`,
     ...customTable
   },
 

@@ -38,7 +38,7 @@ Under the hood each side (left and right) runs a short delay line whose delay ti
     lfo2Depth: `How much LFO 2 speeds up and slows down the main sweep. A little makes the chorus less regular and more organic, like an old tape machine.`,
     stereoSpread: `Widens or narrows the wet signal's stereo image. 100 % leaves it as it is, 0 % folds it to mono, negative values swap the sides, and values beyond ±100 % push it wider than the speakers.`,
     dimension: `Switches to a dimension-style chorus: one voice per side, the two sweeps in opposite directions, and each side's wet taking an inverted portion of the other side's (30, 50 or 70 % for Low, Medium, High). The parts of the two wets that don't move cancel, so you get width and depth with very little audible pitch movement. Off is the normal chorus.`,
-    globalMix: `When on, this block's Mix follows the global **Effects Mix** offset, so one setting makes every such effect wetter or drier for the room you are playing in.`
+    globalMix: `When on, this block's Mix follows the global **[Effects Mix](/manual/live-performance#adjusting-to-the-room)** offset, so one setting makes every such effect wetter or drier for the room you are playing in.`
   },
 
   options: {

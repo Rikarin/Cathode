@@ -44,17 +44,19 @@ On Windows and Linux, read **⌘** as **Ctrl**, **⌥** as **Alt** and **⇧** a
 
 ## Grid
 
-| Shortcut    | Action                                                       |
-| ----------- | ------------------------------------------------------------ |
-| ← → ↑ ↓     | Move the selection from cell to cell (with the grid focused) |
-| ↵           | Add a block on the selected empty cell or shunt              |
-| Q           | Add a block, or replace the selected one                     |
-| ⌘X          | Cut the block                                                |
-| ⌘C          | Copy the block                                               |
-| ⌘V          | Paste (onto a block of the same type: its settings)          |
-| ⌘D          | Disconnect all cables of the block                           |
-| ⌘U          | Insert a shunt                                               |
-| Delete or ⌫ | Remove the block, or the selected cable                      |
+| Shortcut    | Action                                                                                   |
+| ----------- | ---------------------------------------------------------------------------------------- |
+| ← → ↑ ↓     | Move the selection from cell to cell (with the grid focused)                             |
+| ↵           | Add a block on the selected empty cell or shunt                                          |
+| Q           | Add a block, or replace the selected one                                                 |
+| ⌘X          | Cut the block                                                                            |
+| ⌘C          | Copy the block                                                                           |
+| ⌘V          | Paste (onto a block of the same type: its settings)                                      |
+| ⌘D          | Disconnect all cables of the block                                                       |
+| ⌘U          | Insert a shunt                                                                           |
+| K           | Draw a cable from the block: move to the target with the arrows, ↵ connects, Esc cancels |
+| ⇧K          | Select the next cable of the block (then Delete removes it)                              |
+| Delete or ⌫ | Remove the block, or the selected cable                                                  |
 
 ## Edit
 

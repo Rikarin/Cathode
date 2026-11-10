@@ -106,6 +106,16 @@ The rules:
 
 To remove a cable, click it (it turns to the highlight colour), then press **Delete** or **⌫**. To remove all of a block's cables at once, select it and press **⌘D**, or right-click it and choose **Disconnect all cables**.
 
+### Cabling from the keyboard
+
+Everything above also works without the mouse:
+
+1. Select the block the cable starts from and press **K** (or right-click it and choose **Cable to…**).
+2. Move to the target with the arrow keys. The blocks you can connect to are outlined, as when you drag, and the dashed cable is drawn to the selected one when it can be reached.
+3. Press **↵** to connect, or **Esc** to cancel. A screen reader announces the start of the cable and how to land it.
+
+To remove one cable, select a block at either end and press **⇧K** until that cable is highlighted (each press moves to the block's next cable, in or out), then press **Delete** or **⌫**.
+
 ### Shunts
 
 Select an empty cell and press **⌘U**, or right-click it and choose **Add shunt**, to place a shunt by hand. Cable into and out of it like any block. A shunt is drawn as a plain wire across its cell, like a cable; its cell's outline shows only when you hover over it or select it. Delete one like a block.
@@ -190,6 +200,7 @@ On a block:
 - **Engage in all scenes** (⇧Space), **Bypass in all scenes** (⇧⌘Space), **Channel in all scenes**
 - **Cut** (⌘X), **Copy** (⌘C), **Paste** or **Paste settings (all channels)** (⌘V)
 - **Replace with…** (Q)
+- **Cable to…** (K), on a block with an outlet
 - **Disconnect all cables** (⌘D)
 - **Save to the Library…** (⌘B)
 - **Make global** (G), or **Unlink from global**; **Link to global** when there are global blocks of its type

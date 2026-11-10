@@ -36,7 +36,7 @@ You can tune the resonators to a chord on a root note, or set four free frequenc
     'feedback#': `Scales this resonator's feedback. 100 % gives the decay the **Decay** knob asks for; lower values make this voice die away sooner than the others.`,
     'filterLocation#': `Adds a band-pass filter at this resonator's own pitch. **Pre** filters what goes in, so only the parts of your playing near its pitch excite it: it rings more selectively. **Post** filters what comes out, so it rings with mainly its fundamental, a purer tone. **Off** leaves it unfiltered.`,
     'filterQ#': `The width of this resonator's band-pass filter (when Filter Location is Pre or Post). Higher Q is narrower and more selective.`,
-    globalMix: `When on, this block's Mix follows the global **Effects Mix** offset.`
+    globalMix: `When on, this block's Mix follows the global **[Effects Mix](/manual/live-performance#adjusting-to-the-room)** offset.`
   },
 
   options: {

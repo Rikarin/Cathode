@@ -205,7 +205,7 @@ loop and slows the wow and flutter; faster does the opposite.`,
     inputSelect: `Which input the delays hear: the sum of both sides, the left only or the right only. The output is
 always stereo.`,
 
-    globalMix: `When on, the global Effects Mix offset is added to this block's Mix.`,
+    globalMix: `When on, the global [Effects Mix](/manual/live-performance#adjusting-to-the-room) offset is added to this block's Mix.`,
 
     killDry: `Mutes the block's dry signal, so Mix sets only the repeat level. For parallel paths that already carry the
 dry.`
