@@ -321,6 +321,38 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
         Assert.True(Analysis.AllFinite(post));
     }
 
+    /// <summary>
+    ///     Master Location, Pre-Triode: the master is a divider ahead of the last preamp gain stage and the circuit's
+    ///     own master is full up. At 10 the divider passes everything, so the render is the stock one with the master
+    ///     at 10, bit for bit; turned down it lowers the level step by step, and it is not the stock master's sound.
+    /// </summary>
+    [Fact]
+    public void Pre_triode_master_turns_down_the_last_gain_stage() {
+        var type = Index(Index(JCM2203.Design) >= 0 ? JCM2203.Design : Plexi.Design);
+        Assert.True(AmpFeatures.Has(AmpDesign.All[type], "mvloc"));
+        var input = CircuitAmpBlockTests.Chord(9_600, 0.5f);
+        (int, float) preTriode = (CircuitAmpBlock.MasterLocation, CircuitAmpBlock.MasterPreTriode);
+
+        float[] At(float master, params (int, float)[] more) =>
+            Render(type, input, [(CircuitAmpBlock.Gain, 8f), (CircuitAmpBlock.Master, master), ..more]);
+
+        Assert.Equal(At(10), At(10, preTriode));
+
+        var (low, middle, full) = (At(2, preTriode), At(5, preTriode), At(10, preTriode));
+        output.WriteLine(
+            $"pre-triode master 2 / 5 / 10: {SteadyDb(low):0.0} / {SteadyDb(middle):0.0} / {SteadyDb(full):0.0} dB"
+        );
+        Assert.True(Analysis.AllFinite(low) && Analysis.AllFinite(middle));
+        Assert.True(SteadyDb(low) < SteadyDb(middle) - 1);
+        Assert.True(SteadyDb(middle) < SteadyDb(full) - 0.25); // the power amp is clipping by then
+        Assert.True(Residual(At(5), middle) > -40, $"{Residual(At(5), middle):0.0}");
+
+        // Without a master to move the choice does nothing.
+        var bare = Index(Bluesbreaker.Design);
+        Assert.False(AmpFeatures.Has(AmpDesign.All[bare], "mvloc"));
+        Assert.Equal(Render(bare, input), Render(bare, input, preTriode));
+    }
+
     [Fact]
     public void Solid_state_output_mode_leaves_the_speaker_stages_to_the_cab() {
         var type = Index(Blackface.Design);

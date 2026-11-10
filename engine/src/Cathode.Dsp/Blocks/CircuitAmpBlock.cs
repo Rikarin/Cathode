@@ -199,7 +199,8 @@ namespace Cathode.Dsp.Blocks;
 ///             over all three, and <b>Plate Suppressor Diodes</b>.
 ///         </item>
 ///         <item>
-///             <b>Master Location</b> (Stock, or Post PI: the master as a divider after the phase inverter).
+///             <b>Master Location</b> (Stock; Post PI: the master as a divider after the phase inverter; Pre-Triode:
+///             as a divider ahead of the last preamp gain stage).
 ///         </item>
 ///         <item>
 ///             <b>Output Mode</b> (FRFR; SS Power Amp + Cab leaves the speaker stages to the real cab), Speaker load
@@ -329,6 +330,7 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
     // Values of Speaker, Master Location and Output Mode.
     public const int SpeakerAuto = 6;
     public const int MasterPostInverter = 1;
+    public const int MasterPreTriode = 2;
     public const int OutputSolidStateCab = 1;
 
     /// <summary>Presence Shift: the presence control's frequency multiplied by this.</summary>
@@ -390,7 +392,7 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
     readonly AmpBoost boost = new();
     readonly AmpEqualizer equalizer = new();
     readonly float[] eqGains = new float[GraphicEqualizer.MaxBands];
-    readonly Pot postMaster = new(1e6, PotTaper.Audio); // a master moved after the phase inverter
+    readonly Pot postMaster = new(1e6, PotTaper.Audio); // a master moved after the phase inverter or before a triode
     HighTreble highTreble;
     AdvancedFeatures features = Features[0];
     CabBlock? cab;
@@ -692,7 +694,9 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
         static double Hardness(float value) => Math.Pow(2, (value - 5) / 2.5);
 
         var design = Channel.Design;
-        var postInverter = (int)Params.Current(MasterLocation) == MasterPostInverter && features.PostMaster;
+        var masterLocation = features.PostMaster ? (int)Params.Current(MasterLocation) : 0;
+        var postInverter = masterLocation == MasterPostInverter;
+        var preTriode = masterLocation == MasterPreTriode && Channel.HasGainStage;
         var masterRotation =
             Math.Min(Knob(Params.Advance(Master, frames)) * Percent(Params.Advance(MasterTrim, frames)), 1);
         var switch1 = Params.Current(Switch1) >= 0.5f;
@@ -703,7 +707,7 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
             Knob(Params.Advance(Bass, frames)),
             Knob(Params.Advance(Middle, frames)),
             Knob(Params.Advance(Treble, frames)),
-            postInverter ? 1 : masterRotation,
+            postInverter || preTriode ? 1 : masterRotation,
             Params.Current(Bright) >= 0.5f,
             Knob(Params.Advance(Control1, frames)),
             Knob(Params.Advance(Control2, frames)),
@@ -820,7 +824,8 @@ public sealed partial class CircuitAmpBlock : DspBlock, IOversampledBlock, ICabF
             Params.Current(PowerAmpModel) >= 0.5f,
             (StackLocation)Math.Clamp((int)Params.Current(StackPlace), 0, 3),
             overdrive > 0 && features.Overdrive ? Decibels.ToGain(overdrive * OverdriveDb / 10) : 1,
-            Percent(Params.Current(Triode2Plate))
+            Percent(Params.Current(Triode2Plate)),
+            preTriode ? postMaster.Fraction(masterRotation) : 1
         );
 
         Channel.Apply(preampSettings, powerSettings, channelSettings);

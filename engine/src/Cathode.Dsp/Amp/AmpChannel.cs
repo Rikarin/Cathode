@@ -19,15 +19,27 @@ namespace Cathode.Dsp.Amp;
 ///     The last plate-bypass cap's corner (<see cref="AmpFeatures.HasPlateCap(AmpStageDesign)" />,
 ///     <see cref="PreampSettings.PlateFrequency" />).
 /// </param>
+/// <param name="PreTriodeMaster">
+///     The gain of a master moved ahead of the last gain stage (the Circuit Amp's Master Location, Pre-Triode): a
+///     divider on that stage's input swing, as <paramref name="Overdrive" /> is a gain on it; 1 for none. It does
+///     nothing on a channel without a gain stage (<see cref="AmpChannel.HasGainStage" />).
+/// </param>
 public readonly record struct ChannelSettings(
     double LowCut = 0,
     double PreampSag = 1,
     bool PowerAmp = true,
     StackLocation StackLocation = StackLocation.Stock,
     double Overdrive = 1,
-    double Plate = 1
+    double Plate = 1,
+    double PreTriodeMaster = 1
 ) {
     public static ChannelSettings Stock => new(0);
+
+    /// <summary>
+    ///     The gain on the last gain stage's input swing: <see cref="Overdrive" /> times
+    ///     <see cref="PreTriodeMaster" />.
+    /// </summary>
+    public double LastStageDrive => Overdrive * PreTriodeMaster;
 }
 
 /// <summary>Where a channel runs its tone stack's stage (the Circuit Amp's Tonestack Location).</summary>
@@ -198,6 +210,12 @@ public sealed class AmpChannel {
     ///     Whether the channel has a tone stack it can move (<see cref="ChannelSettings.StackLocation" />).
     /// </summary>
     public bool HasMovableStack => stackStage >= 0;
+
+    /// <summary>
+    ///     Whether the channel has a gain stage, so a place for a master ahead of its last one
+    ///     (<see cref="ChannelSettings.PreTriodeMaster" />).
+    /// </summary>
+    public bool HasGainStage => lastGainStage >= 0;
 
     /// <summary>
     ///     Whether a stage of <paramref name="design" /> is a tone stack: a stack stage, a network with stack caps, or
@@ -398,7 +416,7 @@ public sealed class AmpChannel {
     public double Tick(double input) {
         UpdateSupplies();
         var x = channelSettings.LowCut > 0 ? lowCut.Process(input) : input;
-        if (reordered || channelSettings.Overdrive != 1) {
+        if (reordered || channelSettings.LastStageDrive != 1) {
             x = RunStages(x);
         } else {
             foreach (var stage in stages) {
@@ -425,7 +443,7 @@ public sealed class AmpChannel {
     public double TickPreamp(double input) {
         UpdateSupplies();
         var x = channelSettings.LowCut > 0 ? lowCut.Process(input) : input;
-        if (reordered || channelSettings.Overdrive != 1) {
+        if (reordered || channelSettings.LastStageDrive != 1) {
             x = RunStages(x);
         } else {
             foreach (var stage in stages) {
@@ -450,12 +468,12 @@ public sealed class AmpChannel {
     }
 
     /// <summary>
-    ///     The stages in running order with each one's level shift (<see cref="Reorder" />), and the overdrive on the
-    ///     last gain stage's input swing.
+    ///     The stages in running order with each one's level shift (<see cref="Reorder" />), and the overdrive and a
+    ///     pre-triode master on the last gain stage's input swing.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     double RunStages(double x) {
-        var overdrive = channelSettings.Overdrive;
+        var overdrive = channelSettings.LastStageDrive;
         for (var k = 0; k < order.Length; k++) {
             var i = order[k];
             var stage = stages[i];
