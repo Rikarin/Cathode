@@ -17,10 +17,12 @@ namespace Cathode.Dsp.Amp.Models;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         The tremolo is off (the library has no tremolo yet): its J174 FET, which shunts the Intensity pot's wiper to
-///         ground at the oscillator's rate, is taken as open, so the tremolo node carries 0.22 µF into the 220k
-///         Intensity and the 100k under it. Which state the FET rests in with the footswitch's oscillator stopped is
-///         not on the drawing (a guess).
+///         The amp's own tremolo is not built (#291; Bias Trem Rate and Depth run the Circuit Amp's generic bias
+///         tremolo here): its J174 FET, which shunts the Intensity pot's wiper to ground at the oscillator's rate, is
+///         taken as open, so the tremolo node carries 0.22 µF into the 220k Intensity and the 100k under it. The
+///         library's stage tremolos (<see cref="StageTremoloDesign" />) have no switched shunt inside a stage's
+///         netlist, and the FET's gate drive depends on the RV2 preset, whose setting the drawing does not give. Which
+///         state the FET rests in with the footswitch's oscillator stopped is not on the drawing (a guess).
 ///     </para>
 ///     <para>
 ///         The presence pot is drawn as the tail's shunt to ground with 0.1 µF from its wiper, and built so

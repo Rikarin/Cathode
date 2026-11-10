@@ -128,7 +128,7 @@ public sealed partial class CircuitAmpBlock {
                 Expert(Scale("ptrecovery", "Recovery Time")),
                 Expert(ParamDescriptor.Float("masterbiasx", "Master Bias Excursion", 0f, 200f, 100f, "%")),
                 ParamDescriptor.Switch("suppressor", "Plate Suppressor Diodes"),
-                ParamDescriptor.Choice("mvloc", "Master Location", [Stock, "Post PI"]),
+                ParamDescriptor.Choice("mvloc", "Master Location", [Stock, "Post PI", "Pre-Triode"]),
                 ParamDescriptor.Choice("outmode", "Output Mode", ["FRFR", "SS Power Amp + Cab"]),
                 Expert(Scale("screenfreq", "Screen Freq")),
                 Expert(ParamDescriptor.Float("screenq", "Screen Q", 0f, 5f, 0f)),

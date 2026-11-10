@@ -128,7 +128,7 @@ public static class AmpFeatures {
     /// <summary>
     ///     Whether a stage holds a plate-bypass cap (a triode stage's <see cref="TriodeStageDesign.PlateBypass" />, a
     ///     network's <see cref="CapacitorRole.Plate" /> cap, or either in a channel-switched branch). Triode 2 Plate
-    ///     Freq scales the last such stage's, Triode 1 the one before it.
+    ///     Freq scales the last such stage's.
     /// </summary>
     public static bool HasPlateCap(AmpStageDesign stage) =>
         stage switch {

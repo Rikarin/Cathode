@@ -1,4 +1,5 @@
 using Cathode.Dsp.Amp;
+using Cathode.Dsp.Amp.Models;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Tests.Circuits;
 using Cathode.Dsp.Wdf;
@@ -167,7 +168,8 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
             new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "DSL100"))
         );
         Assert.Equal("Volume", Label("master", "DSL100"));
-        Assert.Equal("Deep", Label("depth", "DSL100"));
+        Assert.Equal("Deep", Label("bright", "DSL100"));
+        Assert.Empty(Label("depth", "DSL100"));
         Assert.Empty(Label("control1", "DSL100"));
 
         Assert.Equal(
@@ -319,6 +321,79 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
         var shifted = Level(750, (CircuitAmpBlock.Switch3, 1f)) - Level(3_000, (CircuitAmpBlock.Switch3, 1f));
         output.WriteLine($"750 Hz against 3 kHz: {scoop:0.0} dB, with Tone Shift {shifted:0.0} dB");
         Assert.True(shifted < scoop - 2);
+    }
+
+    /// <summary>
+    ///     The DSL100's Deep network from the drawing (JCM2-61-00): 10k (shorted by the switch) and 10 µF into the
+    ///     gyrator, 270 Ω + 330 Ω and 10 µF × 270 Ω × 330 Ω = 0.891 H, across the 4k7 shunt beside the 5k presence pot
+    ///     and its 100 nF. Its series resonance is 53 Hz; the feedback filter's two sections equal Z / (R_f + Z)
+    ///     written out here from the parts at every setting; with the switch on, the feedback at the resonance is
+    ///     that of 4k7 ∥ 600 Ω (18 dB under the mid band's with the presence at 0), with it off that of 4k7 ∥ 10.6k
+    ///     (3 dB under); the Depth Freq setting divides the cap and the inductance, which moves the resonance.
+    /// </summary>
+    [Fact]
+    public void Dsl100_deep_network_matches_its_circuit() {
+        var design = Dsl100.Design.Power.Feedback;
+        var deep = design.Deep!;
+        Assert.Equal(SwitchRole.Bright, deep.Switch);
+        var (rf, rx, c, cd, l) = (47e3, 4.7e3, 0.1e-6, 10e-6, 10e-6 * 270 * 330);
+        Assert.Equal((rf, rx, c), (design.FeedbackResistor, design.ShuntResistor, design.PresenceCap));
+        Assert.Equal(l, deep.Inductance, 1e-12);
+        Assert.Equal(53.3, deep.Resonance, 0.1);
+        foreach (var (on, scale) in new[] {
+                     (false, 1.0), (true, 1.0), (true, 2.0), (false, 0.5), (true, 0.5), (false, 0.7), (false, 2.0)
+                 }) {
+            // Depth Freq scales the resonance: the cap and the inductance divided by it.
+            var (r, cs, ls) = (on ? 600.0 : 10.6e3, cd / scale, l / scale);
+            foreach (var presence in new[] { 0.0, 0.3, 0.5, 0.9, 1.0 }) {
+                var rp = 5e3 * (1 - presence);
+                var t = design.DeepTimes(presence, on, 1, scale);
+                foreach (var frequency in new[] { 5.0, 20, 53.3, 100, 300, 1_000, 3_000, 10_000, 100_000 }) {
+                    var s = new System.Numerics.Complex(0, 2 * Math.PI * frequency);
+                    var z = 1 / (1 / rx + s * c / (1 + s * rp * c) + 1 / (r + 1 / (s * cs) + s * ls));
+                    var circuit = z / (rf + z);
+                    var model = t.Gain * (1 + s * t.Zero) / (1 + s * t.Pole) * (1 + s * t.N1 + s * s * t.N2)
+                        / (1 + s * t.D1 + s * s * t.D2);
+                    Assert.True(
+                        (circuit - model).Magnitude < 1e-9 * circuit.Magnitude,
+                        $"deep {on}, presence {presence}, {frequency} Hz: {model.Magnitude} against {circuit.Magnitude}"
+                    );
+                    if (scale == 1) {
+                        Assert.True((design.Response(frequency, presence, deep: on) - circuit).Magnitude < 1e-12);
+                    }
+                }
+            }
+        }
+
+        static double Db(double x) => 20 * Math.Log10(x);
+        var mid = design.Beta;
+        var dipOn = Db(design.Response(deep.Resonance, 0, deep: true).Magnitude / mid);
+        var dipOff = Db(design.Response(deep.Resonance, 0, deep: false).Magnitude / mid);
+        output.WriteLine($"feedback at {deep.Resonance:0.0} Hz against mid band: on {dipOn:0.0}, off {dipOff:0.0} dB");
+        Assert.InRange(dipOn, -19, -17);
+        Assert.InRange(dipOff, -3.5, -2.5);
+    }
+
+    /// <summary>
+    ///     Deep is a switch on the DSL100 (the block's Bright), and it lifts the bass around the network's 53 Hz
+    ///     against the middle: less feedback there. The Depth knob, which the panel no longer has, does nothing.
+    /// </summary>
+    [Fact]
+    public void Dsl100_deep_switch_lifts_the_bass() {
+        static double Level(float hz, params (int, float)[] settings) {
+            using var block = Create("DSL100", [(CircuitAmpBlock.Gain, 3f), (CircuitAmpBlock.Master, 2f), ..settings]);
+            var rendered = BlockRender.Mono(block, Signals.Sine(hz, Rate, 48_000, 0.0005f), 64);
+            return Analysis.ToDb(Analysis.MagnitudeAt(rendered.AsSpan(24_000).ToArray(), hz, Rate));
+        }
+
+        var off = Level(55) - Level(1_000);
+        var on = Level(55, (CircuitAmpBlock.Bright, 1f)) - Level(1_000, (CircuitAmpBlock.Bright, 1f));
+        var far = Level(1_000, (CircuitAmpBlock.Bright, 1f)) - Level(1_000);
+        output.WriteLine($"55 Hz against 1 kHz: {off:0.0} dB, with Deep {on:0.0} dB; 1 kHz moves {far:0.0} dB");
+        Assert.True(on > off + 2);
+        Assert.InRange(far, -1.5, 1.5);
+
+        Assert.Equal(Level(55), Level(55, (CircuitAmpBlock.Depth, 10f)), 1e-9);
     }
 
     /// <summary>

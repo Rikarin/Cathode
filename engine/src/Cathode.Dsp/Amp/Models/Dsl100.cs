@@ -21,8 +21,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///     nF in series with the middle cap. The treble wiper's 470k feeds both channels' 1M audio Volumes; relay RL2 takes
 ///     the playing channel's wiper, through the reverb send's 2M2 + 680k, to the inverter: 22 nF, 1M, 470 Ω and 10k
 ///     tail over 4k7, 82k / 100k with 47 pF across, 22 nF out, 220k leaks, 5k6 stoppers, four EL34 with 1k screens; the
-///     5k linear Presence with 100 nF and the Deep switch's gyrator (a 10 µF / 270 Ω / 330 Ω RC4558 simulated inductor)
-///     on the feedback node through 47 µF.
+///     5k linear Presence with 100 nF and the Deep network (10k, which the Deep switch shorts, and 10 µF into an RC4558
+///     simulated inductor: 270 Ω to a junction with 330 Ω to ground, bootstrapped through 10 µF by a follower, so 600 Ω
+///     and 0.89 H) from the feedback node to ground, that node on the tail's 4k7 through 47 µF.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -51,11 +52,15 @@ namespace Cathode.Dsp.Amp.Models;
 ///         stack; the reverb at zero (its return's driver as ground behind the 47k + 2k2; the send's 2M2 + 680k as a
 ///         load); the switching-mute JFETs (TR1, TR3) off; LDR3 as open in the Ultra channel and the Ultra path's 470k
 ///         as grounded in the Classic one; the Classic network's grounded wiper, in the Ultra channel, as 470k to
-///         ground; the Deep switch's gyrator as the library's depth control (Depth, labelled Deep).
+///         ground; the gyrator's op-amp as ideal, and the 47 µF between the feedback node and the 4k7 as a wire.
 ///     </para>
 ///     <para>
 ///         Panel: Switch 1 selects the Ultra Gain channel, Switch 2 its mode (Classic: Crunch; Ultra: Lead 2), Switch 3
-///         Tone Shift; Gain and Master are the playing channel's Gain and Volume (the amp has no master).
+///         Tone Shift; Deep is the block's Bright switch (<see cref="SwitchRole.Bright" />, which no stage of this
+///         model uses; <see cref="FeedbackDesign.Deep" />): a broad dip in the feedback around 53 Hz, there in part
+///         with the switch off, through the 10k. The switch is drawn open; that closing it is Deep on is inferred (it
+///         is the position with the bass lift). Gain and Master are the playing channel's Gain and Volume (the amp has
+///         no master).
 ///     </para>
 /// </remarks>
 public static class Dsl100 {
@@ -97,7 +102,9 @@ public static class Dsl100 {
             5.6e3,
             0,
             new(1e6, PotTaper.Linear),
-            new(Math.Sqrt(2), 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6),
+            new(Math.Sqrt(2), 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6) {
+                Deep = DeepSwitchDesign.Gyrator(SwitchRole.Bright, 10e-6, 270, 330, 10e-6, 10e3)
+            },
             true,
             new(1.7e3),
             SpeakerDesign.Closed4x12,
@@ -108,9 +115,9 @@ public static class Dsl100 {
     ) {
         Panel = AmpPanel.Standard with {
             Master = "Volume",
-            Depth = "Deep",
+            Depth = null,
             Cut = null,
-            Bright = null,
+            Bright = "Deep",
             Switch1 = "Ultra Gain",
             Switch2 = "Crunch / Lead 2",
             Switch3 = "Tone Shift"

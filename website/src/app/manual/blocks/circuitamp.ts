@@ -102,7 +102,7 @@ other way, so turning it **up** puts more resistance in front of the cap and bri
 below its corner frequency (at 10, down to a tenth of the stock amount), so the power amp's gain and its
 interaction with the speaker load rise in the bass: more thump and chest. It is on the models whose originals have a
 resonance or depth control (*Resonance* on the 5150s, Cornford and JVM, *Depth Punch* on the Powerball, *Depth Boost*
-on the Savage, *Deep* on the DSL100). At 0 the feedback is stock.`,
+on the Savage). At 0 the feedback is stock. The DSL100's *Deep* is a switch, as on the amp: see *Bright*.`,
 
     cut: `The Vox-style cut control (AC30, AC15, DC-30): a pot and cap across the phase inverter's outputs that shunt
 treble away before the power tubes. Turning it **up** removes more treble (it works backwards to a treble knob). Use it
@@ -144,8 +144,9 @@ Rectifiers, the *Modern* switch takes the feedback out as on the real amp.`,
 bypass the pot. The boost is biggest with the pot turned down and fades as you turn it up. Some models give it their
 own name and meaning: *Brilliance* (AC15), *Brilliant* (Prometheus Clean), *Thick* (Lone Star), *Raw* (Rectifiers),
 *Bright Input* (SVT, Portaflex), *Sat* (BE-100), *OD2* (Quick Rod). On the Mark IIC+ it pulls both brights, Volume 1's
-and the Lead Master's. The value of the cap is on the Advanced page as
-*Bright Cap*.`,
+and the Lead Master's. On the DSL100 it is the amp's *Deep* switch, which is not a bright at all: it puts the amp's
+resonant network (a simulated inductor, tuned to about 53 Hz) across the feedback, for a broad lift in the bass. The
+value of the cap is on the Advanced page as *Bright Cap*.`,
 
     level: `The block's output level in dB, after everything else. A clean digital volume: it does not change the amp's
 drive or tone. Use it to balance this amp against other presets or the other amp. See
@@ -315,7 +316,8 @@ up into the upper treble, lower brings it down into the upper mids. Shown on mod
 circuit, also where it is a fixed one with no knob (the Dual Rectifier, whose panel Presence is in the preamp).`,
 
     depthfreq: `The depth control's corner frequency, as a percentage of stock. Higher makes Depth reach higher into the
-low mids; lower keeps it down in the deep bass. Shown on models that have a Depth (or Resonance) control.`,
+low mids; lower keeps it down in the deep bass. Shown on models that have a Depth (or Resonance) control; on the
+DSL100 it moves the *Deep* switch's resonance instead.`,
 
     variac: `The mains voltage, as a percentage of normal: it scales every supply voltage (and a fixed bias with them).
 Below 100 % the amp has less headroom and breaks up earlier and softer, the "brown sound" trick of running an amp on a
@@ -476,8 +478,9 @@ its hardest distortion.`,
 
     mvloc: `Moves the master volume. *Stock* is where the circuit has it; *Post PI* makes it a divider after the phase
 inverter, so the inverter is driven fully whatever the Master, and turning the master down keeps the inverter's own
-distortion. Shown on push-pull amps that have a master; where the master belongs to one channel, it acts while that
-channel plays.`,
+distortion. *Pre-Triode* makes it a divider ahead of the last preamp gain stage, with the circuit's own master full up:
+turning it down cleans up that stage and everything after it, and what the earlier stages do stays. Shown on push-pull
+amps that have a master; where the master belongs to one channel, it acts while that channel plays.`,
 
     outmode: `What the amp's output feeds. *FRFR* is for headphones, studio monitors and full-range speakers through a
 Cab block. *SS Power Amp + Cab* is for a solid-state power amp into a real guitar cabinet: it turns off Speaker Drive,
@@ -699,7 +702,8 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
     },
     mvloc: {
       Stock: 'Where the circuit has it.',
-      'Post PI': 'As a divider after the phase inverter.'
+      'Post PI': 'As a divider after the phase inverter.',
+      'Pre-Triode': 'As a divider ahead of the last preamp gain stage.'
     },
     outmode: {
       FRFR: 'For a Cab block into headphones, monitors or full-range speakers.',

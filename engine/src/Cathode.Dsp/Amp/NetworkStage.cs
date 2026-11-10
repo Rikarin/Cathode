@@ -520,7 +520,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         elements = [..netlist.Elements];
         index = new int[elements.Length];
         values = new double[elements.Length];
-        // A cap across a master pot's upper half (its bright cap) follows Master Cap.
+        // A cap across a master pot's upper half (its bright cap) keeps its drawn value: Bright Cap leaves it alone.
         acrossMaster = [
             ..elements.Select(e => e.Kind == ElementKind.Capacitor && StageNetlist.AcrossMaster(e, elements))
         ];

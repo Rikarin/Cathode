@@ -10053,7 +10053,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           '',
           'Resonance',
-          'Deep',
+          '',
           '',
           '',
           ''
@@ -10558,7 +10558,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           '',
           'Bright',
           '',
-          '',
+          'Deep',
           '',
           'OD2',
           ''
@@ -16306,10 +16306,10 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
         name: 'Master Location',
         kind: 'choice',
         min: 0,
-        max: 1,
+        max: 2,
         default: 0,
         page: 'Power Amp',
-        options: ['Stock', 'Post PI'],
+        options: ['Stock', 'Post PI', 'Pre-Triode'],
         typeLabels: [
           'Master Location',
           'Master Location',
