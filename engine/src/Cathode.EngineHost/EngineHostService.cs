@@ -23,7 +23,10 @@ namespace Cathode.EngineHost;
 ///     from control threads only; one lock serialises requests and telemetry.
 /// </summary>
 public sealed class EngineHostService : IDisposable {
-    /// <summary>Longest block or parameter id the allocation-free path reads; longer ones take the slow path.</summary>
+    /// <summary>
+    ///     Longest block or parameter id (in UTF-8 bytes) the allocation-free path reads. A frame with a longer one
+    ///     anywhere, a <c>setParams</c> value's ids included, takes the slow path as a whole.
+    /// </summary>
     const int MaxIdLength = 64;
 
     /// <summary>
@@ -174,7 +177,8 @@ public sealed class EngineHostService : IDisposable {
             var header = new FrameHeader { BlockLength = -1 };
             Span<char> block = stackalloc char[MaxIdLength];
             var parameters = default(Utf8JsonReader);
-            if (!ReadHeader(ref reader, block, ref header, ref parameters)) {
+            if (!ReadHeader(ref reader, block, ref header, ref parameters)
+                || (header.Type == IpcTypes.SetParams && !IdsFit(parameters))) {
                 return false;
             }
 
@@ -492,6 +496,29 @@ public sealed class EngineHostService : IDisposable {
         return null;
     }
 
+    /// <summary>
+    ///     Whether every block and parameter id in a <c>params</c> array (reader on its property name) is one
+    ///     <see cref="ReadId" /> can read. Checked before any value is applied, so a frame with an id that is too
+    ///     long (or not a string) goes to the slow path untouched instead of being half applied here.
+    /// </summary>
+    static bool IdsFit(Utf8JsonReader reader) {
+        if (reader.Read() && reader.TokenType == JsonTokenType.StartArray) {
+            while (reader.Read() && reader.TokenType == JsonTokenType.StartObject) {
+                while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName) {
+                    var isId = reader.ValueTextEquals("block"u8) || reader.ValueTextEquals("param"u8);
+                    reader.Read();
+                    if (isId && !IsReadableId(ref reader)) {
+                        return false;
+                    }
+
+                    reader.Skip();
+                }
+            }
+        }
+
+        return true;
+    }
+
     /// <summary>Whether a <c>params</c> array (reader on its property name) is empty or names a graph block.</summary>
     static bool TargetsGraph(Utf8JsonReader reader) {
         var empty = true;
@@ -569,11 +596,17 @@ public sealed class EngineHostService : IDisposable {
     ///     Copies a string token into <paramref name="destination" />; -1 if it is not a string or too long.
     /// </summary>
     static int ReadId(ref Utf8JsonReader reader, scoped Span<char> destination) =>
-        reader.TokenType == JsonTokenType.String
-        && !reader.HasValueSequence
-        && reader.ValueSpan.Length <= destination.Length
+        IsReadableId(ref reader) && reader.ValueSpan.Length <= destination.Length
             ? reader.CopyString(destination)
             : -1;
+
+    /// <summary>
+    ///     Whether the token under <paramref name="reader" /> is a string of at most <see cref="MaxIdLength" /> bytes.
+    /// </summary>
+    static bool IsReadableId(ref Utf8JsonReader reader) =>
+        reader.TokenType == JsonTokenType.String
+        && !reader.HasValueSequence
+        && reader.ValueSpan.Length <= MaxIdLength;
 
     IpcMessage Ok(long id) {
         ok.Id = id;
