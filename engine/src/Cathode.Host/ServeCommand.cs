@@ -90,7 +90,22 @@ static class ServeCommand {
             await serving.CancelAsync().ConfigureAwait(false);
             return await watch.ConfigureAwait(false) ?? exit;
         } finally {
-            session.Stop();
+            StopQuietly(session.Stop, deviceService.DeviceStatus == AudioDeviceStatus.Lost);
+        }
+    }
+
+    /// <summary>
+    ///     Stops the device on the way out without letting a failure replace the exit code: stopping a device that has
+    ///     just been unplugged can fail, and the host must still exit with <see cref="DeviceExitCode" />. A failure is
+    ///     logged unless the device is known to be lost, where it is expected and says nothing new.
+    /// </summary>
+    internal static void StopQuietly(Action stopDevice, bool deviceLost) {
+        try {
+            stopDevice();
+        } catch (InvalidOperationException e) {
+            if (!deviceLost) {
+                Console.Error.WriteLine($"{DateTime.Now:HH:mm:ss.fff} warning: {e.Message}");
+            }
         }
     }
 
