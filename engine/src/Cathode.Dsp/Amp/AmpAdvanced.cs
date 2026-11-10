@@ -4,8 +4,8 @@ namespace Cathode.Dsp.Amp;
 
 /// <summary>
 ///     Which of the Circuit Amp's advanced controls mean something on a model (docs/08 §4): most act on a component the
-///     model may not have (a plate-bypass cap, a cathode follower, the phase inverter's input network, a cap across the
-///     master), and a generic switch stands in only where the model has no circuit of its own for it. A control a model
+///     model may not have (a plate-bypass cap, a cathode follower, the phase inverter's input network, a master
+///     volume), and a generic switch stands in only where the model has no circuit of its own for it. A control a model
 ///     lacks is hidden on its panel (<see cref="AmpPanel.Label" />) and does nothing.
 /// </summary>
 public static class AmpFeatures {
@@ -45,7 +45,7 @@ public static class AmpFeatures {
     /// <summary>
     ///     Whether a stage holds a plate-bypass cap (a triode stage's <see cref="TriodeStageDesign.PlateBypass" />, a
     ///     network's <see cref="CapacitorRole.Plate" /> cap, or either in a channel-switched branch). Triode 2 Plate
-    ///     Freq scales the last such stage's, Triode 1 the one before it.
+    ///     Freq scales the last such stage's.
     /// </summary>
     public static bool HasPlateCap(AmpStageDesign stage) =>
         stage switch {

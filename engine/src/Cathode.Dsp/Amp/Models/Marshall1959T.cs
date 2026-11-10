@@ -16,11 +16,14 @@ namespace Cathode.Dsp.Amp.Models;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         The tremolo is off (the library has no tremolo yet): the transistor is off, so the normal volume carries the
-///         0.1 µF and 93k of the Intensity chain as a fixed load, which is what sets this amp's normal channel apart
-///         from the 1959 Super Lead (<see cref="SuperLead100" />) at the same settings (about 6 dB less at noon, where
-///         the wiper's source resistance, about 90k, meets the load's 93k). With the tremolo on, the transistor would
-///         chop that load's lower part at the oscillator's rate.
+///         The amp's own tremolo is not built (#291; Bias Trem Rate and Depth run the Circuit Amp's generic bias
+///         tremolo here): the transistor's type and its base network are illegible on the scan, and the library's
+///         stage tremolos (<see cref="StageTremoloDesign" />) have no switched shunt inside a stage's netlist. The
+///         transistor is taken as off, so the normal volume carries the 0.1 µF and 93k of the Intensity chain as a
+///         fixed load, which is what sets this amp's normal channel apart from the 1959 Super Lead
+///         (<see cref="SuperLead100" />) at the same settings (about 6 dB less at noon, where the wiper's source
+///         resistance, about 90k, meets the load's 93k). With the tremolo on, the transistor would chop that load's
+///         lower part at the oscillator's rate.
 ///     </para>
 ///     <para>
 ///         The feedback resistor is taken as 47k (the drawing's first value; the 1959SLP reissue drawing also has 47k

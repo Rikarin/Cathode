@@ -527,8 +527,8 @@ drawing and marks its guesses (mostly the rails, idle currents and output transf
   (1959SLP, four EL34) or 100k (1987X, two EL34) of feedback from the 16 Ω tap into the B5K presence pot alone.
 - **1959T Tremolo** (Unicord 70-11-11, 1970): the 1968–70 Super Lead with the tremolo channel's load, 0.1 µF and 93k
   (10k, the 50k Intensity, 33k) from the normal volume's wiper to ground, which the oscillator's transistor chops when the
-  tremolo runs; here the tremolo is off (no library tremolo), so the load is fixed: the normal channel's first stage is
-  5.5 dB below the Super Lead's at noon. Feedback 47k (the drawing's "47K (100K)") into the 5k presence pot.
+  tremolo runs; here the amp's tremolo is not built (the transistor and its base network are illegible), so the load is
+  fixed: the normal channel's first stage is 5.5 dB below the Super Lead's at noon. Feedback 47k (the drawing's "47K (100K)") into the 5k presence pot.
 - **Bluesbreaker 1962** (reissue drawing "1962 STD", issues 3 and 4): V1a (Channel II, **150k** plate) and V1b
   (Channel I, 100k) on a shared 820 Ω with 330 µF as one two-triode network (the JTM45's one-triode trick needs equal
   plates); 100 pF across both A1M volumes; Channel I's mixer 470k with 220 pF; Channel II's wiper reaches the mixing node
