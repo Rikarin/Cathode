@@ -98,7 +98,10 @@ public sealed class PresetNavigator(Library library, PresetStore presets, LiveRi
         return stops[(((from + step) % stops.Count) + stops.Count) % stops.Count];
     }
 
-    /// <summary>The order to step through, and where the loaded preset stands in it (-1: nowhere).</summary>
+    /// <summary>
+    ///     The order to step through, and where the loaded preset stands in it (-1: nowhere). The banks and the
+    ///     presets' names come from the stores' in-memory indexes: a step reads no preset file but the one it loads.
+    /// </summary>
     (List<PresetStep> Stops, int Index) Stops(string presetId, PresetPosition? at) {
         if (at is { Setlist: { } setlistId, Entry: { } entry }
             && library.Setlist(setlistId) is { } setlist

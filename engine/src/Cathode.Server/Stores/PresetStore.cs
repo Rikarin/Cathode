@@ -7,29 +7,44 @@ namespace Cathode.Server.Stores;
 /// <summary>
 ///     The preset library: the factory bank (<see cref="FactoryPresets" />, read-only) and the user's presets, one JSON
 ///     file each in <c>&lt;data&gt;/presets</c>. A factory preset cannot be saved over or deleted; its colour tag and
-///     favourite flag, the user's, are kept in <c>&lt;data&gt;/factory-marks</c>.
+///     favourite flag, the user's, are kept in <c>&lt;data&gt;/factory-marks</c>. Listings (the library, preset
+///     next/previous, asset usage) come from an index of summaries kept in memory
+///     (<see cref="JsonFileIndex{T, TEntry}" />); only a preset that is loaded is read whole.
 /// </summary>
 public sealed class PresetStore(
     IOptions<ServerOptions> options,
     FactoryPresets factory,
     ILogger<PresetStore>? logger = null
 ) {
-    readonly JsonFileStore<Preset> files = new(
-        Path.Combine(options.Value.DataDirectory, "presets"),
-        "preset",
-        ContractsJsonContext.Default.Preset,
-        static p => p.Id,
-        PresetMigrations.Upgrade,
-        logger
+    readonly JsonFileIndex<Preset, Indexed> index = new(
+        new(
+            Path.Combine(options.Value.DataDirectory, "presets"),
+            "preset",
+            ContractsJsonContext.Default.Preset,
+            static p => p.Id,
+            PresetMigrations.Upgrade,
+            logger
+        ),
+        static (preset, modified) => new(
+            Summary(preset, modified),
+            [..preset.Blocks.SelectMany(static b => b.Assets.Values).Distinct()]
+        )
     );
 
-    readonly JsonFileStore<FactoryPresetMark> marks = new(
-        Path.Combine(options.Value.DataDirectory, "factory-marks"),
-        "factory preset mark",
-        ContractsJsonContext.Default.FactoryPresetMark,
-        static m => m.Id,
-        logger: logger
+    readonly JsonFileIndex<FactoryPresetMark, FactoryPresetMark> markIndex = new(
+        new(
+            Path.Combine(options.Value.DataDirectory, "factory-marks"),
+            "factory preset mark",
+            ContractsJsonContext.Default.FactoryPresetMark,
+            static m => m.Id,
+            logger: logger
+        ),
+        static (mark, _) => mark
     );
+
+    JsonFileStore<Preset> files => index.Store;
+
+    JsonFileStore<FactoryPresetMark> marks => markIndex.Store;
 
     public FactoryPresets Factory => factory;
 
@@ -38,8 +53,8 @@ public sealed class PresetStore(
 
     /// <summary>The user's own presets, by name.</summary>
     public IReadOnlyList<PresetSummary> User() => [
-        ..files.All()
-            .Select(static e => Summary(e.Item, e.Modified))
+        ..index.All()
+            .Select(static e => e.Summary)
             .OrderBy(static p => p.Name, StringComparer.OrdinalIgnoreCase)
     ];
 
@@ -78,12 +93,8 @@ public sealed class PresetStore(
 
     /// <summary>Every asset a stored preset uses, with those presets' names (sorted); factory ones use none.</summary>
     public AssetUsage[] AssetUsage() => [
-        ..files.All()
-            .SelectMany(static e => e.Item.Blocks
-                    .SelectMany(static b => b.Assets.Values)
-                    .Distinct()
-                    .Select(reference => (Reference: reference, e.Item.Name))
-            )
+        ..index.All()
+            .SelectMany(static e => e.Assets.Select(reference => (Reference: reference, e.Summary.Name)))
             .GroupBy(static use => use.Reference)
             .Select(static g => new AssetUsage(
                     g.Key,
@@ -124,10 +135,17 @@ public sealed class PresetStore(
             : files.Delete(id);
 
     IEnumerable<PresetSummary> FactorySummaries() {
-        var marked = marks.All().ToDictionary(static e => e.Item.Id, static e => e.Item, StringComparer.Ordinal);
+        var marked = new Dictionary<string, FactoryPresetMark>(StringComparer.Ordinal);
+        foreach (var mark in markIndex.All()) {
+            marked[mark.Id] = mark;
+        }
+
         return factory.Summaries.Select(s => marked.TryGetValue(s.Id, out var mark)
                 ? s with { Color = mark.Color, Favorite = mark.Favorite }
                 : s
         );
     }
+
+    /// <summary>What the listings need of a stored preset: its summary and the assets its blocks use.</summary>
+    sealed record Indexed(PresetSummary Summary, string[] Assets);
 }

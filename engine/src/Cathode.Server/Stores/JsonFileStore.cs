@@ -43,7 +43,10 @@ public sealed class JsonFileStore<T>
         Directory.CreateDirectory(folder);
     }
 
-    /// <summary>Every readable item with its last-modified time. Unreadable files are skipped (and logged).</summary>
+    /// <summary>
+    ///     Every readable item with its last-modified time, each file read and parsed now. Unreadable files are
+    ///     skipped (and logged). A listing made often goes through a <see cref="JsonFileIndex{T, TEntry}" /> instead.
+    /// </summary>
     public IEnumerable<(T Item, DateTimeOffset Modified)> All() =>
         Directory.EnumerateFiles(folder, "*.json")
             .Select(path => (Item: TryRead(path), Modified: (DateTimeOffset)File.GetLastWriteTimeUtc(path)))
@@ -55,7 +58,9 @@ public sealed class JsonFileStore<T>
     public bool Exists(string id) => StoreIds.IsValid(id) && File.Exists(PathOf(id));
 
     public void Save(T item) {
-        AtomicRename.Write(PathOf(idOf(item)), JsonSerializer.Serialize(item, typeInfo));
+        var path = PathOf(idOf(item));
+        AtomicRename.Write(path, JsonSerializer.Serialize(item, typeInfo));
+        Changed?.Invoke(path);
     }
 
     public bool Delete(string id) {
@@ -65,8 +70,18 @@ public sealed class JsonFileStore<T>
         }
 
         File.Delete(path);
+        Changed?.Invoke(path);
         return true;
     }
+
+    /// <summary>Raised with a file's path after the store saved or deleted it (for its indexes).</summary>
+    internal event Action<string>? Changed;
+
+    /// <summary>The folder's item files, as the folder lists them now.</summary>
+    internal IEnumerable<FileInfo> Files() => new DirectoryInfo(folder).EnumerateFiles("*.json");
+
+    /// <summary>The item in the file at <paramref name="path" />; null (and logged) when it cannot be read.</summary>
+    internal T? Read(string path) => TryRead(path);
 
     string PathOf(string id) =>
         StoreIds.IsValid(id)
