@@ -27,7 +27,10 @@ public static class AmpFeatures {
                 && design.Power.ShuntMaster is null
                 && design.Power.Topology == PowerTopology.PushPull,
             "fatsw" => !panel.HasSwitch("Fat"),
-            "presshift" => HasPresenceNetwork(design),
+            "presshift" or "presfreq" => HasPresenceNetwork(design),
+            // The depth shelf is flat with the knob at 0, where a panel without one leaves it; a fixed low shelf in
+            // the network itself (the BE-100's) is there whatever the knob.
+            "depthfreq" => panel.Depth is not null || design.Power.Feedback.LowFeedback != 1,
             "overdrive" => !panel.HasSwitch("Overdrive")
                 && panel.Control1 is not ("Overdrive" or "Drive" or "Lead Drive")
                 && panel.Control2 is not ("Overdrive" or "Drive" or "Lead Drive"),

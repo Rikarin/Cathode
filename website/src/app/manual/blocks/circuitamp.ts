@@ -309,10 +309,11 @@ clip and how strongly the amp's response follows the speaker's curve. Real amps 
 of two without harm; here you can hear what it does.`,
 
     presfreq: `The presence control's frequency, as a percentage of stock (its cap divided by it). Higher moves the lift
-up into the upper treble, lower brings it down into the upper mids.`,
+up into the upper treble, lower brings it down into the upper mids. Shown on models whose power amp has a presence
+circuit, also where it is a fixed one with no knob (the Dual Rectifier, whose panel Presence is in the preamp).`,
 
     depthfreq: `The depth control's corner frequency, as a percentage of stock. Higher makes Depth reach higher into the
-low mids; lower keeps it down in the deep bass.`,
+low mids; lower keeps it down in the deep bass. Shown on models that have a Depth (or Resonance) control.`,
 
     variac: `The mains voltage, as a percentage of normal: it scales every supply voltage (and a fixed bias with them).
 Below 100 % the amp has less headroom and breaks up earlier and softer, the "brown sound" trick of running an amp on a

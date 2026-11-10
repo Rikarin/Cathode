@@ -425,6 +425,41 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     }
 
     [Fact]
+    public void Depth_and_presence_frequency_hide_where_there_is_nothing_for_them_to_move() {
+        var parameters = CircuitAmpBlock.Info.Params;
+        var depth = parameters[CircuitAmpBlock.DepthFrequency].TypeLabels!;
+        var presence = parameters[CircuitAmpBlock.PresenceFrequency].TypeLabels!;
+        for (var type = 0; type < AmpDesign.All.Count; type++) {
+            var design = AmpDesign.All[type];
+            var feedback = design.Power.Feedback;
+            // Depth Freq: a Depth knob, or a fixed low shelf in the feedback network (the BE-100).
+            var hasDepth = design.Panel.HasTubes && (design.Panel.Depth is not null || feedback.LowFeedback != 1);
+            Assert.True(hasDepth == (depth[type] == "Depth Freq"), $"{design.Name}: Depth Freq '{depth[type]}'");
+            // Presence Freq: a presence cap in a tube power amp's feedback network, with a knob on it or not.
+            var hasPresence = design.Panel.HasTubes && feedback.PresenceCap >= 1e-9;
+            Assert.True(
+                hasPresence == (presence[type] == "Presence Freq"),
+                $"{design.Name}: Presence Freq '{presence[type]}'"
+            );
+            if (design.Panel.Presence is not null && !design.Power.Brilliance && design.Panel.HasTubes) {
+                Assert.True(hasPresence, $"{design.Name} has a Presence knob");
+            }
+        }
+
+        string Label(string model, IReadOnlyList<string> labels) =>
+            labels[AmpDesign.All.ToList().FindIndex(a => a.Name == model)];
+
+        Assert.Equal(string.Empty, Label("Mark IIC+", depth));
+        Assert.Equal(string.Empty, Label("SVT", depth));
+        Assert.Equal("Depth Freq", Label("SLO-100", depth));
+        Assert.Equal(string.Empty, Label("SVT", presence));
+        Assert.Equal(string.Empty, Label("Portaflex B-15N", presence));
+        Assert.Equal(string.Empty, Label("Bass 400", presence));
+        Assert.Equal(string.Empty, Label("Legacy VL100", presence));
+        Assert.Equal("Presence Freq", Label("Dual Rectifier", presence));
+    }
+
+    [Fact]
     public void Preamp_tube_replaces_paralleled_twelve_ax7s_with_both_halves_of_the_chosen_tube() {
         var paralleled = TriodeModel.Ecc83.Paralleled(2);
         Assert.Equal(2, paralleled.SectionsOf(TriodeModel.Ecc83));
