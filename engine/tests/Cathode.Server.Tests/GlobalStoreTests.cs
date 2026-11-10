@@ -38,6 +38,42 @@ public sealed class GlobalStoreTests : IDisposable {
     }
 
     [Fact]
+    public void A_hand_edited_file_with_nulls_and_ids_that_are_no_ids_reads_repaired() {
+        File.WriteAllText(
+            Path.Combine(folder, "global.json"),
+            """
+            { "tempo": 97,
+              "startupPreset": "../../etc/passwd",
+              "activeSetlist": "tour 2026/leg 1", "activeSong": 3,
+              "outputs": [ { "eq": null }, null, { "eq": { "g1k": 40, "nothing": 1, "masterQ": 2 } }, {}, {} ],
+              "midiMappings": null,
+              "footswitches": [ null, { "id": "a", "name": "A", "switches": null } ],
+              "blocks": [ { "id": "g1", "type": "drive", "channels": { "A": null, "B": { "gain": 3 } } } ],
+              "manual": null, "tuning": null }
+            """
+        );
+
+        var settings = new GlobalStore(Options.Create(new ServerOptions { DataDirectory = folder })).Get();
+
+        // Read, not replaced by the defaults: one bad line must not cost the rest of the settings.
+        Assert.Equal(97, settings.Tempo);
+        Assert.False(File.Exists(Path.Combine(folder, "global.json.damaged")));
+        Assert.Null(settings.StartupPreset);
+        Assert.Null(settings.ActiveSetlist);
+        Assert.Equal(-1, settings.ActiveSong);
+        Assert.Equal(4, settings.Outputs.Count);
+        Assert.Empty(settings.Outputs[0].Eq);
+        Assert.Equal(12, settings.Outputs[1].Eq["g1k"]); // within the band's range
+        Assert.Equal(2, settings.Outputs[1].Eq["masterQ"]);
+        Assert.False(settings.Outputs[1].Eq.ContainsKey("nothing"));
+        Assert.Empty(settings.MidiMappings);
+        Assert.Empty(Assert.Single(settings.Footswitches).Switches);
+        Assert.Equal(["B"], Assert.Single(settings.Blocks).Channels.Keys);
+        Assert.Equal([0, 0, 0, 0], settings.Manual);
+        Assert.Equal("chromatic", settings.Tuning);
+    }
+
+    [Fact]
     public void Dual_mono_from_an_earlier_release_reads_as_copy_left_to_right() {
         File.WriteAllText(
             Path.Combine(folder, "global.json"),

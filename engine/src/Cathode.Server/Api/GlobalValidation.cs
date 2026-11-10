@@ -1,11 +1,15 @@
 using Cathode.Contracts;
+using Cathode.Dsp.Blocks;
 using Cathode.Server.Rig;
+using Cathode.Server.Stores;
 using System.Collections.Immutable;
 
 namespace Cathode.Server.Api;
 
 /// <summary>
-///     Checks a global settings document before it is stored: modes, MIDI messages, channels and actions.
+///     Checks a global settings document before it is stored: modes, MIDI messages, channels and actions, the ids it
+///     refers to, the outputs' EQ and the global blocks. It expects the document's lists and maps to be there
+///     (<see cref="GlobalShape.Repair" />).
 /// </summary>
 static class GlobalValidation {
     static readonly string[] TempoModes = ["preset", "global", "midiClock"];
@@ -38,6 +42,8 @@ static class GlobalValidation {
         CheckOptions(settings, errors);
         CheckMidi(settings, errors);
         CheckLayouts(settings, errors);
+        CheckReferences(settings, errors);
+        CheckBlocks(settings, errors);
         if (errors.Count > 0) {
             throw new RigException(400, "The global settings are invalid.", errors);
         }
@@ -74,6 +80,47 @@ static class GlobalValidation {
 
             if (output.BoostPad is < -18f or > 18f || !float.IsFinite(output.BoostPad)) {
                 errors.Add($"Output {n}: Boost/Pad is -18 to 18 dB.");
+            }
+
+            foreach (var (id, value) in output.Eq) {
+                if (GraphicEqBlock.Info.Params.FirstOrDefault(p => p.Id == id) is not { } param) {
+                    errors.Add($"Output {n}: the Graphic EQ has no parameter '{id}'.");
+                } else if (!(value >= param.Min && value <= param.Max)) {
+                    errors.Add($"Output {n}: EQ '{id}' is {param.Min} to {param.Max}.");
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    ///     The startup preset and the active setlist are store ids. An id of another form names a file outside the
+    ///     store: the stores refuse it, and the Server would do so at every start.
+    /// </summary>
+    static void CheckReferences(GlobalSettings settings, List<string> errors) {
+        if (!string.IsNullOrWhiteSpace(settings.StartupPreset) && !StoreIds.IsValid(settings.StartupPreset)) {
+            errors.Add($"The startup preset '{settings.StartupPreset}' is not a preset id.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(settings.ActiveSetlist) && !StoreIds.IsValid(settings.ActiveSetlist)) {
+            errors.Add($"The active setlist '{settings.ActiveSetlist}' is not a setlist id.");
+        }
+    }
+
+    /// <summary>
+    ///     Each global block has an id of its own and a type, and its channels hold numbers. The type is not checked
+    ///     against this Server's blocks: a block saved by a newer Cathode stays in the settings, linked to nothing.
+    /// </summary>
+    static void CheckBlocks(GlobalSettings settings, List<string> errors) {
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var block in settings.Blocks) {
+            if (string.IsNullOrWhiteSpace(block.Id) || string.IsNullOrWhiteSpace(block.Type)) {
+                errors.Add($"The global block '{block.Name}' needs an id and a type.");
+            } else if (!ids.Add(block.Id)) {
+                errors.Add($"Two global blocks have the id '{block.Id}'.");
+            }
+
+            if (block.Channels.Values.Any(static c => c.Values.Any(static v => !float.IsFinite(v)))) {
+                errors.Add($"The global block '{block.Name}' has a value that is not a number.");
             }
         }
     }
@@ -145,12 +192,25 @@ static class GlobalValidation {
     /// <summary>The MIDI mappings' and the footswitches' messages and actions.</summary>
     static void CheckMidi(GlobalSettings settings, List<string> errors) {
         foreach (var mapping in settings.MidiMappings) {
+            if (string.IsNullOrWhiteSpace(mapping.Id)) {
+                errors.Add("A MIDI mapping has no id.");
+            }
+
             CheckMessage(mapping.Message, mapping.Channel, mapping.Number, errors);
             CheckAction(mapping.Action, errors);
         }
 
+        foreach (var layout in settings.Footswitches.Where(static l => l.Id is null || l.Name is null)) {
+            errors.Add($"The footswitch layout '{layout.Name ?? layout.Id}' needs an id and a name.");
+        }
+
         foreach (var footswitch in settings.Footswitches.SelectMany(static l => l.Switches)) {
             CheckMessage(footswitch.Message, footswitch.Channel, footswitch.Number, errors);
+            if (footswitch.Tap is null || footswitch.Label is null) {
+                errors.Add($"Switch {footswitch.Index} needs a label and a tap action.");
+                continue;
+            }
+
             CheckAction(footswitch.Tap.Action, errors);
             if (footswitch.Hold is { } hold) {
                 CheckAction(hold.Action, errors);

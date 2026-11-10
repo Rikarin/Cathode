@@ -230,6 +230,51 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         Assert.True((await Live()).Muted);
     }
 
+    [Theory]
+    [InlineData("startupPreset", "\"../../etc/passwd\"")]
+    [InlineData("startupPreset", "\"a preset\"")]
+    [InlineData("activeSetlist", "\"tour/leg-1\"")]
+    [InlineData("outputs", """[{ "eq": { "nothing": 1 } }, {}, {}, {}]""")]
+    [InlineData("outputs", """[{ "eq": { "g1k": 99 } }, {}, {}, {}]""")]
+    [InlineData("outputs", """[null, {}, {}, {}]""")]
+    [InlineData("blocks", """[{ "id": "", "type": "drive" }]""")]
+    [InlineData("blocks", """[{ "id": "g1", "type": null }]""")]
+    [InlineData("blocks", """[{ "id": "g1", "type": "drive" }, { "id": "g1", "type": "delay" }]""")]
+    [InlineData(
+        "footswitches",
+        """[{ "id": "a", "name": "A", "switches": [{ "index": 1, "label": "x", "message": "cc", "number": 1 }] }]"""
+    )]
+    public async Task Put_global_refuses_what_the_server_could_not_live_with(string property, string json) {
+        var global = (await client.GetFromJsonAsync<JsonObject>("/api/v1/global", Token))!;
+        global[property] = JsonNode.Parse(json);
+
+        using var response = await client.PutAsJsonAsync("/api/v1/global", global, Token);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+    }
+
+    [Fact]
+    public async Task Put_global_reads_a_null_list_or_map_as_an_empty_one_and_the_rig_keeps_working() {
+        var global = (await client.GetFromJsonAsync<JsonObject>("/api/v1/global", Token))!;
+        global["outputs"] = JsonNode.Parse("""[{ "eq": null }, { "mode": "sum" }, {}, {}]""");
+        global["midiMappings"] = null;
+        global["blocks"] = JsonNode.Parse("""[null, { "id": "g1", "type": "drive", "channels": null }]""");
+        global["footswitches"] = JsonNode.Parse("""[{ "id": "a", "name": "A", "switches": null }]""");
+
+        await Ok(client.PutAsJsonAsync("/api/v1/global", global, Token));
+
+        var stored = await Global();
+        Assert.Empty(stored.Outputs[0].Eq);
+        Assert.Equal("sum", stored.Outputs[1].Mode);
+        Assert.Empty(stored.MidiMappings);
+        Assert.Empty(Assert.Single(stored.Blocks).Channels);
+        Assert.Empty(Assert.Single(stored.Footswitches).Switches);
+        // A structural edit syncs the graph with the global values, the outputs' EQ among them.
+        var live = await Post("/api/v1/live/blocks", new AddBlockRequest("delay", Preset.DefaultRow, 4));
+        Assert.Contains(live.Preset.Blocks, static b => b.Type == "delay");
+    }
+
     [Fact]
     public async Task A_soft_note_on_is_a_press_and_a_note_off_is_not() {
         await PutGlobal(static g => g.MidiMappings.Add(new("m", "note", 0, 85, "mute")));
