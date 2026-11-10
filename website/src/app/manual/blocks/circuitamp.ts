@@ -534,7 +534,7 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
         'Engl Powerball channel 2 (lead), Lo and Hi modes, with its Open and Focused middle. Tight modern metal. Two supply filter nodes are assumed (not on the drawing) to stop it motorboating.',
       'Savage 120': 'Engl Savage 120 lead channel: aggressive, mid-forward high gain.',
       SVT: 'Ampeg SVT: the classic tube bass amp, with Ultra Hi, Ultra Lo and Bass Cut.',
-      'Portaflex B-15N': 'Ampeg B-15N Portaflex: warm, round vintage bass.',
+      'Portaflex B-15N': 'Ampeg B-15N Portaflex: warm, round vintage bass. One channel: its two are the same circuit.',
       'JC-120':
         'Roland JC-120 Jazz Chorus (chorus and reverb off): a solid-state clean, very flat and bright, with its diode Distortion on Switch 1.',
       'Hot Rod Deluxe': 'Fender Hot Rod Deluxe, Normal and Drive channels with More Drive.',
