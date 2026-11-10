@@ -65,8 +65,11 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         // 5150's fixed bias: 11-14 mA a tube) idles well under half its rating.
         // So do the class-A EL34 pairs on a resistor each: the Chieftain's and the Hot Cat's drawings both measure 24 V
         // across 270 Î© (89 mA a tube, about 31 W of plate dissipation at 390 V).
+        // The Tweed Deluxe 5E3's 6V6s, on the drawing's shared 250 Ω with their screens straight on its 5k node, idle
+        // close to the rating: 37 mA a tube (Robinette measures 38 mA), about 13 W of the 6V6GT's 14 W.
         var hot = design.CathodeBias && design.Tube == PentodeModel.EL84 ? 1.45
             : design.CathodeBias && design.Tube == PentodeModel.EL34 ? 1.5
+            : design.CathodeBias && design.Tube == PentodeModel.SixV6GT ? 1
             : 0.9;
         var coldest = design.IdleCurrent < 0.02 ? 0.15 : 0.4;
         Assert.InRange(dissipation, coldest * rating, hot * rating);

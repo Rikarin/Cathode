@@ -139,6 +139,29 @@ public class FenderAmpTests(ITestOutputHelper output) {
     }
 
     [Fact]
+    public void Tweed_deluxe_supply_has_the_drawings_droppers_and_its_nodes_follow_from_them() {
+        // The 5E3 drawing: 5k from the reservoir to the screen node, 22k on to the preamp node. It prints no voltages,
+        // so the preamp node is where the 22k and the draw of the stages on it meet.
+        var design = Amp.Models.TweedDeluxe.Design;
+        var supply = design.Power.PowerSupply;
+        Assert.Equal(5e3, supply.ChokeResistance);
+        Assert.Equal(22e3, supply.PreampResistance);
+
+        var rail = design.Power.PhaseInverter.Supply;
+        var draw = 2 * OperatingPoint.CommonCathode(Wdf.TriodeModel.TwelveAY7, 0, rail, 100e3, 2 * 820).Current
+            + OperatingPoint.CommonCathode(Wdf.TriodeModel.Ecc83, 0, rail, 100e3, 1.5e3).Current
+            + OperatingPoint.CommonCathode(Wdf.TriodeModel.Ecc83, 0, rail, 56e3 + 56e3, 1.5e3).Current;
+        var power = new AmpChannel(design, 96_000).Power;
+        output.WriteLine(
+            $"B+ {power.Supply:0} V, screens {power.ScreenSupply:0} V, preamp {power.PreampVoltage:0} V "
+            + $"(stages on {rail:0} V drawing {draw * 1e3:0.00} mA)"
+        );
+        Assert.Equal(draw, supply.PreampCurrent, 0.03 * draw);
+        Assert.Equal(rail, power.PreampVoltage, 0.02 * rail);
+        Assert.InRange(power.ScreenSupply, 310, 330);
+    }
+
+    [Fact]
     public void Switching_to_a_fender_model_and_playing_it_does_not_allocate() {
         using var block = new CircuitAmpBlock();
         block.Prepare(new(Rate, 64));
