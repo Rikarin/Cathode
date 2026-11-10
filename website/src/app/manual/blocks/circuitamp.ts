@@ -460,12 +460,17 @@ have been playing over the last second or two.`,
     tremrate: `The tremolo's speed in Hz. On the models with a tremolo or vibrato circuit of their own (the blackface
 Fenders' vibrato: Deluxe, Twin, Super and Princeton Reverb, Vibroverb, Vibrolux Reverb, Bandmaster, Tremolux and
 Princeton AA964; the Vibro-King, the brownface Deluxe and Vibrolux, the brownface Concert and Super's harmonic
-vibrato, the 18 W and the Scout) it is that circuit's *Speed*, held to the original knob's range. On every other model
-it is a sine that swings the power tubes' bias.`,
+vibrato, the 18 W, the Bluesbreaker 1962 and the Scout) it is that circuit's *Speed*, held to the original knob's
+range (the Bluesbreaker's is slow, about 2 to 4.7 Hz). On every other model it is a sine that swings the power tubes'
+bias.`,
 
     tremdepth: `The tremolo's depth; 0 is off. On models with their own tremolo it is that circuit's *Intensity* (or
 *Depth*) knob. Elsewhere it swings the power tubes' bias around the *Bias* setting, 100 % taking it all the way from
-cold to hot: a bias tremolo, which also changes the tone and break-up as it pulses.`,
+cold to hot: a bias tremolo, which also changes the tone and break-up as it pulses. On the 18 W the knob is the amp's
+Intensity control, which does not go down to nothing: 0 is the footswitch (tremolo off), and the lowest setting above
+it already pulses a little, because in that circuit the running oscillator alone moves the channel. The Bluesbreaker
+1962's Intensity does not reach nothing either (at its lowest the switch still works on the resistor under the pot), and its tremolo works on Channel II
+only: play *Channel II* alone for the full effect; with the channels jumpered Channel I plays on through it.`,
 
     balance: `The left/right balance of the block's stereo output.`,
 
@@ -617,7 +622,8 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       '1987X': 'Marshall 1987X reissue, the 50 W Super Lead.',
       '1959T Tremolo':
         'Marshall 1959T Super Lead Tremolo (the tremolo itself is not built; its load on the circuit is).',
-      'Bluesbreaker 1962': 'Marshall 1962 Bluesbreaker combo, both channels: warm KT66 crunch.',
+      'Bluesbreaker 1962':
+        'Marshall 1962 Bluesbreaker combo, both channels: warm KT66 crunch, and its tremolo on Channel II.',
       'Hiwatt DR504': "Hiwatt Custom 50 / DR504: the DR103's preamp with a 50 W output.",
       'Cornford MK50H II': 'Cornford MK50H II, both channels: British boutique crunch and lead.',
       'Tiny Terror': 'Orange Tiny Terror, 15 W: thick, mid-heavy crunch.',

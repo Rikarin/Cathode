@@ -1,4 +1,5 @@
 using Cathode.Dsp.Amp;
+using Cathode.Dsp.Amp.Models;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Tests.Circuits;
 using Cathode.Testing;
@@ -290,6 +291,9 @@ public class MesaBoutiqueAmpTests(ITestOutputHelper output) {
         Assert.Empty(Label("master", "Liverpool"));
         Assert.Equal(["Bright", "Overdrive", "Jazz", "Deep"], Switches("ODS 70s"));
         Assert.Equal("Accent", Label("presence", "ODS 70s"));
+        // No Master on the 1970s ODS: none is on its sheets, and nothing in its preamp turns with the knob (#195).
+        Assert.Empty(Label("master", "ODS 70s"));
+        Assert.False(AmpFeatures.HasMaster(OverdriveSpecial70s.Design));
         Assert.Equal([string.Empty, "Modern", "Tube Rectifier", "Spongy"], Switches("Dual Rectifier"));
         Assert.Equal(["Raw", "Modern", "Tube Rectifier", "Spongy"], Switches("Dual Rectifier 3-Ch"));
         Assert.Equal(["Raw", "Modern", "Tube Rectifier", "Spongy"], Switches("Dual Rectifier 3-Ch Orange"));

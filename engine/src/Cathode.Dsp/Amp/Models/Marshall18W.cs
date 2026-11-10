@@ -18,14 +18,23 @@ namespace Cathode.Dsp.Amp.Models;
 ///         The inverter is the mixer: the Normal volume drives V2A's grid through 0.01 µF, the Tremolo volume V2B's
 ///         through 0.022 µF. Each channel here drives the inverter's input; the idle channel's grid is taken as AC
 ///         ground (in the amp it sits on the idle volume's wiper). With the tremolo stopped the footswitch grounds
-///         V3B's grid, so V3B idles on the shared cathode (820 plus the 1k Intensity rheostat, at half here) and its
-///         plate current through the shared 100k sets V3A's supply; the phase-shift network's 0.05 µF decouples that
-///         node, the rest of it is left out. Running, V3B oscillates and its current moves V3A's supply and cathode:
+///         V3B's grid, so V3B idles on the shared cathode (820 plus the 1k Intensity rheostat) and its plate current
+///         through the shared 100k sets V3A's supply; the phase-shift network's 0.05 µF decouples that node, the rest
+///         of it is left out. Running, V3B oscillates and its current moves V3A's supply and cathode:
 ///         <see cref="Oscillator" /> drives V3B's grid in a copy of the channel's netlist
-///         (<see cref="GridDriveTremoloDesign" />),
-///         on the Circuit Amp's tremolo parameters (Speed, and Depth for the oscillation's swing). The Normal Tone
-///         grounds its wiper: turned up, it grounds the 100k's foot (thinner, brighter); down, the 0.01 µF's foot
-///         (darker); that direction is assumed.
+///         (<see cref="GridDriveTremoloDesign" />), on the Circuit Amp's tremolo parameters (Speed and Depth). The
+///         Normal Tone grounds its wiper: turned up, it grounds the 100k's foot (thinner, brighter); down, the 0.01
+///         µF's foot (darker); that direction is assumed.
+///     </para>
+///     <para>
+///         Depth is the amp's Intensity, R32, the 1k linear rheostat between the foot of R14 820 and ground (#330). The
+///         drawing takes the grid leak R10 to that same junction, so the rheostat does not touch the oscillator's own
+///         bias (the drop across R14) and the oscillator swings fully at any setting: what the rheostat adds is
+///         resistance in the cathode the two triodes share, which lifts V3A's cathode against its grounded grid. The
+///         drawing does not say which way it turns. In this netlist more of R32 gives the deeper tremolo, and
+///         Marshall's 1974X handbook says the effect deepens as Intensity is turned clockwise, so the knob up is more
+///         resistance: 0 Ω at Depth just above 0, 1k at 100 %. Depth 0 is the footswitch: the oscillator stopped, and
+///         the knob, which the footswitch does not move, taken at half (820 + 500 Ω).
 ///     </para>
 ///     <para>
 ///         Nodes from the drawing: 325 V (EL84 plates), 300 V (inverter), 280 V (preamp), from 1.5k and 8.2k droppers.
@@ -36,19 +45,33 @@ namespace Cathode.Dsp.Amp.Models;
 public static class Marshall18W {
     const double PreampSupply = 280;
 
+    /// <summary>R14, the cathode resistor the two halves of V3 share.</summary>
+    const double SharedCathode = 820;
+
+    /// <summary>
+    ///     R14 as V3B alone sees it: 820 Ω carrying V3A's current as well. In the running netlist with the Intensity at
+    ///     half, V3B draws 1.15 mA and V3A 0.12 mA, 1.05 V across R14: 910 Ω (1.04k with the Intensity at 0, 840 Ω at
+    ///     full).
+    /// </summary>
+    const double OscillatorCathode = 910;
+
+    /// <summary>R32, the Intensity rheostat: 1k linear.</summary>
+    static readonly Pot Intensity = new(1e3, PotTaper.Linear);
+
     /// <summary>
     ///     The tremolo's oscillator, V3B, from the drawing: R11 100k from the 280 V node to its plate (shared with
     ///     V3A's 220k), C7 0.05 µF from the plate to ground, C10 0.01 µF to R24 470k and the 2M audio Speed rheostat
     ///     R33 to ground, C9 0.01 µF to R26 1M, C8 0.01 µF to the grid with R10 2.2M to the cathode's foot (between R14
     ///     820 and the 1k Intensity rheostat R32; the footswitch grounds the grid, stopping it). Approximations: the
-    ///     shared cathode (820 with 50 µF, the Intensity at half) as V3B's own 1.32k, bypassed; V3A's path (220k and
-    ///     its plate) as a 280k load on the plate; which way the Speed rheostat turns (up is faster).
+    ///     bias, the drop both triodes' currents leave across R14 (the grid leak returns to its foot, so R32 is not in
+    ///     it), as V3B's own cathode resistor, <see cref="OscillatorCathode" />, bypassed; V3A's path (220k and its
+    ///     plate) as a 280k load on the plate; which way the Speed rheostat turns (up is faster).
     /// </summary>
     static PhaseShiftOscillatorDesign Oscillator { get; } = new(
         TriodeModel.Ecc83,
         PreampSupply,
         100e3,
-        1.32e3,
+        OscillatorCathode,
         0.01e-6,
         0.01e-6,
         0.01e-6,
@@ -138,11 +161,17 @@ public static class Marshall18W {
     ///     whose foot has 0.005 µF to ground; the Tone's and the Volume's wipers are joined (the output).
     /// </summary>
     static NetworkStageDesign Tremolo() =>
-        TremoloChannel(false) with { Tremolo = new GridDriveTremoloDesign(TremoloChannel(true), 0, Oscillator) };
+        TremoloChannel(false) with {
+            Tremolo = new GridDriveTremoloDesign(TremoloChannel(true), 0, Oscillator) {
+                FullSwing = true, Inverted = true
+            }
+        };
 
     /// <summary>
-    ///     The Tremolo channel's netlist (see <see cref="Tremolo" />); <paramref name="oscillating" /> puts V3B's grid
-    ///     on a source (the netlist's first element) for the tremolo to swing.
+    ///     The Tremolo channel's netlist (see <see cref="Tremolo" />). <paramref name="oscillating" /> is the tremolo
+    ///     running: R14 from the cathode to its foot, the Intensity rheostat (Depth) from there to ground, and V3B's
+    ///     grid on that foot, where its leak returns, less a source (the netlist's first element) for the tremolo to
+    ///     swing.
     /// </summary>
     static NetworkStageDesign TremoloChannel(bool oscillating) {
         var net = new StageNetlist();
@@ -161,8 +190,17 @@ public static class Marshall18W {
         net.Capacitor(shared, StageNetlist.Ground, 0.05e-6);
         net.Resistor(shared, plate, 220e3);
         net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-        net.Triode(shared, drive, cathode, TriodeModel.Ecc83);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.32e3);
+        if (oscillating) {
+            var (foot, oscillatorGrid) = (net.Node(), net.Node());
+            net.Amplifier(foot, drive, oscillatorGrid, 1);
+            net.Triode(shared, oscillatorGrid, cathode, TriodeModel.Ecc83);
+            net.CathodeResistor(cathode, foot, SharedCathode);
+            net.Rheostat(foot, StageNetlist.Ground, Intensity, PotRole.TremoloDepth);
+        } else {
+            net.Triode(shared, drive, cathode, TriodeModel.Ecc83);
+            net.CathodeResistor(cathode, StageNetlist.Ground, SharedCathode + Intensity.Ohms / 2);
+        }
+
         net.Capacitor(cathode, StageNetlist.Ground, 50e-6);
         net.Capacitor(plate, coupled, 0.005e-6);
         net.Resistor(coupled, StageNetlist.Ground, 470e3);

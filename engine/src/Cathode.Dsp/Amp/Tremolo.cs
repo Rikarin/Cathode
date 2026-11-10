@@ -27,7 +27,9 @@ namespace Cathode.Dsp.Amp;
 ///         on its AC load line (<paramref name="PlateResistor" /> in parallel with what the ladder and the loads draw
 ///         at the rate), solved point by point on the tube's Koren curves, and the fundamental of that clipped plate
 ///         wave, times the ladder's loss, must equal the grid's swing. The plate's first three harmonics are kept: they
-///         shape the tremolo's waveform downstream. The cathode is taken as fully bypassed at the rate.
+///         shape the tremolo's waveform downstream. The cathode is taken as fully bypassed at the rate, unless
+///         <see cref="CathodeBypassed" /> says it has no cap: then its resistor is in the plate's source resistance
+///         (r_p + (µ + 1) R_k) and in each point of the plate wave.
 ///     </para>
 ///     <para>
 ///         Both are solved on a table of Speed rotations when a design is first used (a few tens of milliseconds, on
@@ -76,6 +78,18 @@ public sealed record PhaseShiftOscillatorDesign(
     internal const int Harmonics = 3;
 
     static readonly ConditionalWeakTable<PhaseShiftOscillatorDesign, OscillatorTable> Tables = new();
+
+    /// <summary>
+    ///     Whether the cathode resistor has a bypass cap (the default). Without one (the 1962 reissue's 560 Ω) the
+    ///     resistor degenerates the stage: less gain, a higher plate resistance.
+    /// </summary>
+    public bool CathodeBypassed { get; init; } = true;
+
+    /// <summary>The cathode resistor as the signal sees it: 0 when bypassed.</summary>
+    internal double Degeneration => CathodeBypassed ? 0 : CathodeResistor;
+
+    /// <summary>The plate's voltage at the operating point (the oscillator stopped).</summary>
+    public double RestPlate => OperatingPoint().Plate;
 
     /// <summary>The solved table (built on first use, then shared).</summary>
     internal OscillatorTable Table => Tables.GetValue(this, static d => new(d));
@@ -143,7 +157,8 @@ public sealed record PhaseShiftOscillatorDesign(
     /// <summary>The plate as a source: its resistor in parallel with r_p at the operating point.</summary>
     internal double PlateSourceResistance() {
         var (_, plate, cathode) = OperatingPoint();
-        var (rp, _) = Amp.OperatingPoint.SmallSignal(Tube, -cathode, plate - cathode);
+        var (rp, mu) = Amp.OperatingPoint.SmallSignal(Tube, -cathode, plate - cathode);
+        rp += (mu + 1) * Degeneration;
         return PlateResistor * rp / (PlateResistor + rp);
     }
 
@@ -233,7 +248,9 @@ sealed class OscillatorTable {
 
             // The swing where the fundamental's loop gain is 1: it falls as the swing grows.
             double Gain(double amplitude, Span<double> plate) =>
-                Fundamental(triode, amplitude, cathode, plateVolts, current, load, plate).Magnitude * loss
+                Fundamental(triode, amplitude, (cathode, design.Degeneration), plateVolts, current, load, plate)
+                    .Magnitude
+                * loss
                 / amplitude;
 
             if (Gain(1e-3, wave) <= 1) {
@@ -253,7 +270,7 @@ sealed class OscillatorTable {
 
             var amplitude = Math.Sqrt(low * high);
             amplitudes[p] = amplitude;
-            Fundamental(triode, amplitude, cathode, plateVolts, current, load, wave);
+            Fundamental(triode, amplitude, (cathode, design.Degeneration), plateVolts, current, load, wave);
             for (var k = 1; k <= PhaseShiftOscillatorDesign.Harmonics; k++) {
                 plateHarmonics[p * PhaseShiftOscillatorDesign.Harmonics + k - 1] = Harmonic(wave, k);
             }
@@ -305,26 +322,29 @@ sealed class OscillatorTable {
 
     /// <summary>
     ///     The plate wave (into <paramref name="plate" />, one cycle) for a grid swinging by
-    ///     <paramref name="amplitude" />, and its fundamental.
+    ///     <paramref name="amplitude" />, and its fundamental. <paramref name="bias" /> is the cathode's rest voltage
+    ///     and the resistance that moves it with the current (0 for a bypassed cathode).
     /// </summary>
     static Complex Fundamental(
         Triode triode,
         double amplitude,
-        double cathode,
+        (double Cathode, double Degeneration) bias,
         double plateVolts,
         double current,
         double load,
         Span<double> plate
     ) {
-        var bias = amplitude <= cathode ? -cathode : -amplitude; // grid current clamps the positive peaks at 0 V
+        var (cathode, degeneration) = bias;
+        var rest = amplitude <= cathode ? -cathode : -amplitude; // grid current clamps the positive peaks at 0 V
         var most = current + (plateVolts - cathode) / load;
         for (var n = 0; n < plate.Length; n++) {
-            var grid = bias + amplitude * Math.Sin(2 * Math.PI * n / plate.Length);
+            var grid = rest + amplitude * Math.Sin(2 * Math.PI * n / plate.Length);
             double low = 0, high = most;
             for (var i = 0; i < 40; i++) {
                 var middle = 0.5 * (low + high);
-                var vpk = plateVolts - load * (middle - current) - cathode;
-                if (OperatingPoint.PlateCurrent(triode, grid, vpk) > middle) {
+                var lift = degeneration * (middle - current); // an unbypassed cathode rises with the current
+                var vpk = plateVolts - load * (middle - current) - cathode - lift;
+                if (OperatingPoint.PlateCurrent(triode, grid - lift, vpk) > middle) {
                     low = middle;
                 } else {
                     high = middle;
