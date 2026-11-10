@@ -105,8 +105,8 @@ public class RigTests {
     public void Every_smoothed_rig_parameter_changed_while_the_engine_runs_reaches_its_target() {
         // Read from the target (and smoothed, where it matters, by the engine's own gain ramps), never advanced.
         string[] readFromTheTarget = [
-            "metroLevel", "effectsMix", "gateOffset", "in1Gain", "in1Cal", "out1Level", "out2Level", "out3Level",
-            "out4Level", "pitchLow", "pitchHigh"
+            "metroLevel", "effectsMix", "gateOffset", "in1Gain", "in1Cal", "in2Gain", "in2Cal", "in3Gain", "in3Cal",
+            "in4Gain", "in4Cal", "out1Level", "out2Level", "out3Level", "out4Level", "pitchLow", "pitchHigh"
         ];
         var engine = Engine();
         var input = Enumerable.Repeat(0.5f, 48_000).ToArray();

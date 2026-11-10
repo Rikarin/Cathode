@@ -329,7 +329,8 @@ export const ENGINE = {
         'AFD100',
         'Mark IIC+ Rhythm',
         'Mark IV Rhythm 1',
-        'Mark IV Rhythm 2'
+        'Mark IV Rhythm 2',
+        'Dual Rectifier 3-Ch Orange'
       ]
     },
     {

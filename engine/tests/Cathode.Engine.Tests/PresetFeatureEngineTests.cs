@@ -143,7 +143,8 @@ public class PresetFeatureEngineTests {
         OfflineRenderer.Render(engine, tone, tone, 64);
         monitor.Poll();
 
-        Assert.Equal(["peak", "cpu"], graph.MeterIds(graph.SlotOf("amp")).ToArray());
+        // The two every block has come first; the amp's own (its solver counts) follow.
+        Assert.Equal(["peak", "cpu"], graph.MeterIds(graph.SlotOf("amp")).Take(2).ToArray());
         var amp = monitor.BlockMeters[graph.MeterIndex("amp", CompiledGraph.CpuMeter)];
         var input = monitor.BlockMeters[graph.MeterIndex("in", CompiledGraph.CpuMeter)];
         var output = monitor.BlockMeters[graph.MeterIndex("out", CompiledGraph.CpuMeter)];

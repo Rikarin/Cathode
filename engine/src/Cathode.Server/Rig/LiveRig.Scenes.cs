@@ -195,7 +195,9 @@ public sealed partial class LiveRig {
     ///     recalls; false, storing nothing, for a factory preset or one the library does not have.
     /// </summary>
     bool StoreSceneLevel(int scene, float level) {
-        if (preset.Factory == true
+        // A working copy without a name (after Clear) is no longer the preset its id names: nothing is stored.
+        if (string.IsNullOrWhiteSpace(preset.Name)
+            || preset.Factory == true
             || FactoryPresets.IsFactoryId(preset.Id)
             || presets.Get(preset.Id) is not { } stored
             || stored.Scenes.Count != Preset.SceneCount) {

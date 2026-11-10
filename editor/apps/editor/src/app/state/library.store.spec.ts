@@ -173,7 +173,10 @@ describe('LibraryStore.saveSetlist', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: ConnectionService, useValue: { client: { GET, PUT } } },
-        { provide: EventStream, useValue: { events$: new Subject(), connected$: new Subject() } },
+        {
+          provide: EventStream,
+          useValue: { events$: new Subject(), connected$: new Subject(), library$: new Subject() }
+        },
         { provide: Notify, useValue: { run, error: () => undefined } }
       ]
     });
@@ -291,7 +294,10 @@ describe('restoring a backup', () => {
             }
           }
         },
-        { provide: EventStream, useValue: { events$: new Subject(), connected$: new Subject() } },
+        {
+          provide: EventStream,
+          useValue: { events$: new Subject(), connected$: new Subject(), library$: new Subject() }
+        },
         { provide: Notify, useValue: { run: (action: () => Promise<unknown>) => action(), error: () => undefined } }
       ]
     });

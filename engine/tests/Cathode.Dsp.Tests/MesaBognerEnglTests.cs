@@ -155,7 +155,9 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
     [Fact]
     public void Rect_o_Verb_shares_the_Dual_Rectifiers_stages_with_its_own_stack_wiring() {
         static IReadOnlyList<StageElement> Stage(string type, string name) =>
-            ((NetworkStageDesign)AmpDesign.All.Single(a => a.Name == type).Preamp.Single(s => s.Name == name))
+            ((NetworkStageDesign)AmpDesign.All.Single(a => a.Name == type)
+                .Preamp.SelectMany(static s => s is ChannelSwitchStageDesign c ? [..c.Off, ..c.On] : new[] { s })
+                .Single(s => s.Name == name))
             .Netlist.Elements;
 
         static int Tracks(IReadOnlyList<StageElement> stage, PotRole role) =>

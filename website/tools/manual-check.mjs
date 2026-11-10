@@ -29,15 +29,19 @@ const editorShortcuts = join(
   'shell',
   'shortcuts.ts'
 );
-// The editor's shortcuts file needs only these two names from Angular, and the website does not install the editor's
-// packages, so they are stubbed.
-const angularStub = `data:text/javascript,${encodeURIComponent('export const Injectable = () => target => target; export const signal = value => () => value;')}`;
+const audioUiPlatform = join(dirname(editorShortcuts), '../../../../../libs/audio-ui/src/lib/platform.ts');
+// The editor's shortcuts file needs only these names from Angular, and the website does not install the editor's
+// packages, so they are stubbed. Its key names come from one dependency-free file of the audio-ui library.
+const angularStub = `data:text/javascript,${encodeURIComponent('export const Injectable = () => target => target; export const Pipe = () => target => target; export const signal = value => () => value;')}`;
 
 // Extensionless relative imports resolve to .ts files, .ts is transpiled, and .md loads as text, as the build does.
 registerHooks({
   resolve(specifier, context, next) {
     if (specifier === '@angular/core' && context.parentURL === pathToFileURL(editorShortcuts).href) {
       return { url: angularStub, shortCircuit: true };
+    }
+    if (specifier === '@cathode/audio-ui' && context.parentURL === pathToFileURL(editorShortcuts).href) {
+      return next(pathToFileURL(audioUiPlatform).href, context);
     }
     if (specifier.startsWith('.') && context.parentURL?.startsWith('file:') && !/\.[cm]?[jt]s$|\.md$/.test(specifier)) {
       const base = fileURLToPath(new URL(specifier, context.parentURL));

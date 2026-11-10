@@ -6,6 +6,87 @@ the format upgrades older presets as it reads them.
 
 ## 1.0.0-rc.6 — unreleased
 
+The fixes below came out of a second full audit of the code (issues #163 to #356).
+
+### Added
+
+- Editor: the access token no longer stays in the browser's address bar once it is remembered; Settings ▸ Audio setup
+  ▸ Home Screen shortcut puts it there on request for a shortcut or bookmark that opens signed in (#189).
+- Docs: the ODS 70s model's notes and the amp catalogue state that the source drawings show no Master volume, so the
+  model has none (#195).
+- Amp: the Mark IIC+ has its rhythm channel as a new type, Mark IIC+ Rhythm, read from the factory scan (#202).
+- Amp: the Mark IV has its Rhythm 1 and Rhythm 2 channels as new types, and Presence Shift on the Mark IV is the amp's
+  own pull shift (#203).
+- Amp: on Dual Rectifier 3-Ch and Triple Rectifier the Presence pot is in the feedback in Raw and Vintage and a preamp
+  control in Modern, as the relays wire it; new Dual Rectifier 3-Ch Orange type (channel 2) (#205)
+- Security: the packaged desktop app sets Electron's fuses (no ELECTRON_RUN_AS_NODE, NODE_OPTIONS or --inspect; code
+  only from the integrity-checked app.asar) and ignores the development overrides CATHODE_EDITOR_URL,
+  CATHODE_EDITOR_DIR and CATHODE_ENGINE_DIR (#209).
+- Desktop: on macOS Cathode asks for microphone access before the engine opens an interface, and Audio setup says when
+  it is refused, with a button to the Microphone privacy pane (#210)
+- Modifiers: a second source (add or multiply) and a response with Start, Mid, End, Slope, Scale and Offset, in the
+  modifier dialog and the API (#219)
+- Amp NAM: Size runs a slimmable (A2) capture at Full or Lite, about a seventh of the CPU (#220)
+- Server: preset next/previous, the preset list and asset usage come from an in-memory index that re-reads only
+  changed files, instead of parsing every preset and bank file each time (#248).
+- Editor: nine unused @xui packages (data-table, divider, label, numeric-input, omnibar, scroll-area, slider,
+  statistic, upload) are no longer dependencies (#270).
+- Server: the editor it serves carries a Content-Security-Policy (own scripts only, no framing), nosniff and
+  no-referrer (#271).
+- Preset menu: Export saves the working copy, unsaved changes included, as a .cthpreset file (#273).
+- Amp: solver faults (unconverged samples, non-finite samples, failed recomputes) are reported as the Amp block's
+  meters in telemetry, for bug reports (#278).
+- Bassman 5F6-A and Jumped: the inverter takes the tone stack through its 0.02 µF input cap and draws grid current
+  under drive, as on the Tweed Twin; PI Bias Excursion now applies to them (#283).
+- Amp: the Princeton Reverb, Princeton AA964, Scout GA-17RVT and Subway Blues use a 10-inch speaker's impedance curve
+  as their Stock speaker load (was the 1x12 curve) (#285).
+- Docs: the Bluesbreaker 1962 and 1959T entries say why their own tremolo is not built and what it still needs (#291).
+- Amp: where an amp's three-position switch is shown as two switches (Mark V modes, Raw / Modern on the three-channel
+  Rectifiers, Ultra Lo / Bass Cut on the SVT, Bite on the Prometheus), turning both on no longer gives a voicing the
+  amp does not have; the second of the pair wins (#301).
+- Amp: the SLO-100, Mark IIC+/IV/V, 5150, 5150III, the Rectifiers, TriAxis and Prometheus share the "4x12 Closed"
+  speaker load as their Stock load (resonance 105 Hz instead of 95 Hz), like the other closed 4x12 models (#302).
+- Amp: the Rect-o-Verb is built from the Dual Rectifier's shared stage netlists; no change in sound (its middle
+  rheostat was checked against the Solo 50 / Rectoverb drawing and is right) (#303).
+- Amp: Rect-o-Verb gains its rhythm channel (Switch 1 Rhythm, Switch 2 Pushed), with that channel's presence pot in
+  the feedback (#305)
+- Amp Powerball: Switch 3 plays channel 1 (Clean, or Crunch with Gain Hi) with its Bright switch; Switch 2 is now
+  "Gain Hi" and Control 2 "Channel Volume" (#307)
+- Amp Savage 120: Switch 3 is Smooth, the lead's second voice (V3A after the tone stack); the mode it always had is
+  correctly named Rough (#308)
+- Docs: the SVT model's notes say that channel two and the feedback's 120 pF are not modelled, and record channel
+  two's circuit from the drawing (#309)
+- Docs: the Portaflex B-15N's two channels are the same circuit, so the model is either channel (#310)
+- Amp JC-120: the distortion switch is named Distortion On, and the Distortion knob is shown only while it is on
+  (#311)
+- Desktop: the app and both engine processes now write log files (main.log, host.log, server.log), and Help ▸ Show
+  Logs opens their folder for bug reports (#316).
+- Desktop: .cthpreset files are associated with Cathode; opening one (double-click, the Dock icon, the command line)
+  imports it into the library (#317)
+- Desktop: the app checks GitHub for a newer release at start and once a day and offers its page in the menu; Check
+  for Updates Automatically turns it off (#318)
+- Amp: the DSL100's Deep is a switch with the amp's own gyrator network across the feedback (53 Hz) instead of the
+  generic Depth knob (#331).
+- Amp: Master Location gains Pre-Triode (the master ahead of the last preamp gain stage); Tonestack Location End is
+  documented as left out on purpose (#332).
+- Audio I/O: Inputs 2 to 4 have their own gain trim and calibration, in Global and Audio setup (#333)
+- *Formant:** all ten Peterson-Barney vowels; IH, AE, OO, UH and ER join A, E, I, O, U (#334)
+- Controllers: the sequencer has up to 32 stages, and there are Manual A-E and External 1-16 (#335)
+- Amp NAM: EQ Location puts the four tone controls before the capture (Pre) or after it (Post) (#336)
+- *Amp:** a Preamp switch; off, the block is the model's power amp alone, so an Amp NAM capture of a preamp ahead of
+  it gets a working Master, Presence, Depth and Sag (#337)
+- *Filter:** Ladder LP 12 and 24 types with Drive, and an Envelope page that moves the frequency with the block's own
+  input level (#338)
+- Reamp: a DI recording renders offline through the current preset, faster than real time and without the interface
+  (`POST /live/render`, Preset ▸ Reamp a recording…) (#339)
+- MIDI: Cathode can send MIDI clock at its tempo (Global ▸ MIDI ▸ Send MIDI clock) (#340)
+- Library: the whole library (settings, presets, banks, setlists, block presets, templates, snapshots, IRs and
+  captures) backs up to one `.cthbackup` file and restores from it (`GET /library/backup`, `POST /library/restore`,
+  Library ▸ Backup) (#341)
+- Telemetry: each block reports its measured CPU share, shown on the block's page (#342)
+- Editor: the Amp NAM, IR Player and Cab file pickers explain that Cathode ships no captures or IRs while the library
+  has none, and what to do (#355)
+
 ### Changed
 
 - **Amp NAM uses the capture's input level** (#13): a NAM file that records the level it was made at
@@ -20,6 +101,79 @@ the format upgrades older presets as it reads them.
   exports it, with `bank.json` giving the order and each scene's loudness lift. They are embedded in the Server, so the
   app and the headless package carry them. A preset changes by replacing its file with an exported one; the leveling
   test rewrites the levels in the files. The C# recipes are gone.
+- Tests: a conformance test now checks that every smoothed parameter changed while a block or the rig runs reaches its
+  target (#171).
+- Releases are built with the current .NET servicing release (SDK 10.0.403, runtime and ASP.NET Core 10.0.14), and a
+  release whose SDK pin is behind is not published (#208).
+- CI: the packaged desktop app is started and tested on macOS, Windows and Linux (it runs the engine it carries,
+  serves its editor and stops cleanly) before its installers are uploaded or released (#211)
+- Tests: every block's golden render now holds processing, each block type has a golden, and a golden equal to the dry
+  input fails (#214)
+- Tests: the MIDI tap tempo test taps a tempo other than the default, so it fails if taps or their sample times are
+  ignored (#215).
+- Tests: the legacy corpus now holds data folders written by 1.0.0-rc.4 and rc.5 (schema 2), and a release without a
+  corpus folder fails the build (#216).
+- Tests: the capture-match tests are named a drift guard, also guard harmonic and response distance, and the nightly
+  summary counts the captures that reach the docs/06 ship target (#217)
+- Tests: end-to-end specs drive Setlists, Perform, Scenes, Controllers, footswitch layouts, MIDI learn, templates,
+  Revert, Clear, Batch Set, Leveling and the Amp page tools in the desktop app (#218)
+- Docs: docs/03 marks the test tools and gates that are not built and describes the ones that are (#221)
+- Docs: the parity tracker is current as of rc.5: no unverified rows, and the rows about removed Amp parameters, model
+  counts, the Tiny Terror's Tone and the telemetry layout are corrected (#222)
+- Engine: LFOs, envelopes, the sequencer and modifiers update every 64 frames at most, so modulation no longer gets
+  coarser and later at large audio buffers (#232).
+- Docs: docs/02 describes the MIDI path, the modifiers and the command ring as built (#233)
+- Tests: the host's IPC error paths (malformed, oversize and cut-short frames, throwing handlers), looper export
+  failures and the MIDI clock follower are now covered (#241).
+- Server: an If-Match that is not one revision (a weak tag, a list, text) is refused with 400 instead of applying the
+  edit unguarded; docs/02's API table and conventions match the Server (#249)
+- Tests: the A/B compare store, the Block Library store, the Audio setup page, the Save to the Library dialog and the
+  Settings dialog's tabs have unit tests (#272).
+- Amp: the Major 1967's loop stage no longer rebuilds its network on every sub-block while an unrelated knob moves;
+  solver leftovers and three stale comments cleaned up (#279).
+- Docs: the Fender notes in docs/06 and docs/07 match the models (6G11 and Scout tremolos built, 5F6-A inverter caps,
+  Super Reverb feedback 29 % below a 4 Ω tap, Blackface and ODS rows) (#288)
+- Docs: docs/06 §3.2 gives the Marshall type indices of the Type list and marks the statements later streams overtook
+  (#292)
+- Amp: the 5150III's presence cap is the redraw's two 68 nF in parallel (136 nF, was 68 nF), so Presence reaches an
+  octave lower; the docs and manual now say the type is drawn from the 100S (Stealth) (#297).
+- Docs: docs/06 lists the Powerball, Savage 120 and Legacy as built from factory drawings and gives the Mark IIC+
+  treble caps and the SLO cold clipper's grid network as the models have them (#298)
+- Amp: the Mark IV's third switch is named Mid Gain, as on the amp (off is Harmonics); it was "Mid Boost" (#304).
+- CI: Dependabot now opens weekly update pull requests and a nightly audit fails on a known vulnerability in a shipped
+  package; Storybook, Nx, Vite, the Angular build tools, wrangler and the ASP.NET Core and xunit packages are updated,
+  clearing the tool chain's critical and high advisories (#312).
+- CI: a pull request that changes the engine runs the desktop end-to-end tests, and one that changes the desktop app's
+  packaging or the native build builds the installers (#319)
+- CI: every push and pull-request job has a timeout, and a new push to a pull request cancels the run it supersedes
+  (#320)
+- CI: release.yml builds nothing for a tag that is not on master, and only a release run (not a manual run from a
+  branch) gets the signing secrets and attests its installers (#321)
+- CI: the .NET install scripts are committed with the setup-dotnet action instead of downloaded and run in every job,
+  and the SDK is cached (#322)
+- Docs: the release document gives the preset schema version as 2, since 1.0.0-rc.4 (#325).
+- CI: desktop builds from master carry a snapshot version (the package version plus the commit) instead of the
+  release's name; the editor README names the release workflow as the one that publishes (#326).
+- Tests: POST /live/tap, PUT /live/external/{index} and GET /catalog/rig are now covered (#328).
+- Tests: the analysis toolkit's aliasing and octave-band measures are checked against signals with known answers
+  (#329)
+- Docs: the repository layout in docs/02 matches the repository (#344)
+- Docs: docs/02 no longer names RTNeural or per-preset MIDI mappings; AIDA-X models run in managed code (#345)
+- Docs: docs/04's checklist shows what is left before 1.0 (#346)
+- Docs: docs/06 §1.3 names the Amp parameter for every Axe-Fx row that has one, and §1.4 no longer lists built
+  parameters as gaps (#347)
+- Docs: docs/08's summary counts are current (88 amp models, 11 reverb types, every guide block covered) and it no
+  longer lists the removed Triode 1 Plate Freq, Master Cap or a B bypass key (#348)
+- Docs: ADR-0003 and ADR-0004 are amended to say that AIDA-X models and shared-memory telemetry have shipped (#349).
+- Docs: amp model comments no longer cite a missing library tremolo or the removed Master Cap and Triode 1 Plate Freq
+  parameters (#350).
+- Manual: the keyboard-shortcuts and grid chapters cover K and ⇧K (drawing and selecting cables from the keyboard),
+  and the website check fails when an editor shortcut is missing from the chapter (#351)
+- Docs: the README counts 45 block types, as the website does, and no longer lists the tuner as a block (#353).
+- Manual: Live performance has an "Adjusting to the room" section (Effects Mix, the noise gate offset, the output EQ
+  and Boost/Pad), linked from every block's Global Mix (#354)
+- Docs: docs/07 has one row per amp, a Counts table that adds up, and blockers that match the stage library (paraphase
+  inverter, op-amp stages) (#356)
 
 ### Fixed
 
@@ -27,6 +181,216 @@ the format upgrades older presets as it reads them.
   ratio, which the amp's gain undid, so a single note's tail and the guitar's hiss came out as a crackling fizz,
   nearly as loud as the note on some. They now use 10:1 at the same thresholds.
 - **AIDA-X models** apply their `in_gain`, as the AIDA-X plugin does: Cathode read it but left the input unscaled.
+- Plex: a resonant Low/High Pass or a Peak boost in the loop Filter no longer makes the network oscillate above full
+  scale; the filter's peak decays in the Decay Time and the rest faster (#163).
+- Flanger: Drive no longer adds gain inside the feedback loop, so the flange dies away after the playing stops at any
+  Drive and Feedback instead of howling (#164).
+- Controllers: ADSR 1 and 2 now follow their Attack, Decay, Sustain, Release and Threshold settings; they were stuck
+  at the defaults (#165).
+- Looper: exporting the loop while it records no longer crashes the audio engine; Export WAV is available while the
+  loop plays or is stopped, and a long loop's export no longer allocates the whole loop in the engine (#166).
+- Editor: New setlist, Duplicate setlist, New bank, copying a preset in Manage presets and saving to the Block Library
+  work in a browser that reaches the rig over plain http (#167).
+- Input block: Pickup Inductance, Resistance, Capacitance and Cable Capacitance now take effect while the preset runs,
+  not only after a reload (#168).
+- Looper: an overdub made at half speed is no longer 6 dB too loud, and one made at double speed no longer leaves the
+  loop gritty when the speed is set back (#169).
+- Looper: Erase and Undo on a long loop no longer cause a dropout; both take effect at once and do their work in small
+  slices (#170).
+- Host: a request that throws, or a frame that is not a valid request, is answered with an error instead of killing
+  the host or dropping the link; a failed telemetry reading no longer stops telemetry, and a graph that fails to build
+  no longer leaks its blocks (#172).
+- MIDI: a controller that is unplugged and plugged back in quickly, or swapped for another, is reconnected within a
+  couple of seconds instead of staying dead until another device change or a restart (#173).
+- macOS: a MIDI controller plugged in after Cathode started is picked up within a couple of seconds (the CoreMIDI
+  client now runs on a thread with a run loop) (#174).
+- Server: undo and redo no longer bring back the preset's old id, colour, favourite or Library name, so Save As New
+  followed by an undo and a save no longer overwrites the original preset (#175).
+- Server: a pedal on Manual A-D or a dragged knob of a linked global block no longer writes global.json and publishes
+  globalChanged for every message; the value reaches the engine at once and the file and event follow at most twice a
+  second (#176).
+- Global blocks: choosing an IR or capture, or Copy Channel, on a linked block is written to the global block and the
+  preset's other linked blocks, so it is no longer lost at the next load (#177).
+- Server and editor: deleting, duplicating or importing presets, saving setlists and banks, and changing assets, block
+  presets, snapshots or templates now shows up in every connected editor at once (libraryChanged event) (#178, events
+  only; setlists and banks still have no revision).
+- Server: PUT /global refuses a startup preset or active setlist id that is not an id and a malformed output EQ or
+  global block; a global.json with nulls or such ids is repaired on load instead of stopping the Server or failing
+  every graph sync (#179).
+- Security: a Server without an access token refuses requests from other sites' pages and requests addressed to a host
+  name that is not a loopback one (cross-site POSTs, uploads and DNS rebinding) (#180).
+- Server: one non-finite meter, scope or RTA value no longer stops the meters, tuner and looper display for every
+  client; it is shown as 0 and logged (#181).
+- Block Library: a .cthblock file exported by 1.0.0-rc.3 or earlier imports again, with its Amp entries upgraded so
+  they sound the same; a file from a newer Cathode is refused with a message (#182).
+- A/B compare: both versions are forgotten when another preset is loaded from a footswitch, MIDI or another editor,
+  and on Revert, Clear preset and a snapshot load, so switching A/B can no longer put the previous preset's content
+  into the new one (#183).
+- Settings, the preset picker and the tuner no longer run in the background while closed: the Audio setup page stops
+  polling the Server every 2 s, and the desktop app no longer lists audio devices at start-up (#184).
+- Shortcuts no longer act on the rig behind an open dialog: only the Tuner, Settings, Keyboard shortcuts, mute and
+  clip-light keys work there (#185).
+- Editor: on a touch screen, touch and hold opens the right-click menu of a knob, switch or choice, the Engaged
+  switch, a bank and a setlist; a knob's menu has Reset to default (#186).
+- Editor: an open browser editor asks for the new access token when the Server refuses the old one (after New token),
+  instead of retrying for ever with 401 errors (#187).
+- Manage presets: a Save that fails part-way keeps the changes not stored yet and names the step that failed; a preset
+  a setlist holds is not deleted and the message says where it is used (#188).
+- Amp NAM: every capture runs with fast tanh, as the benchmark always did; a WaveNet capture costs less than half the
+  CPU it did (#190)
+- Amp: a NaN or infinite input sample no longer silences the Circuit Amp until the preset is reloaded (#191)
+- Amp: on the Champ 5F1 and Princeton 5F2-A, Xfmr Drive no longer saturates the core at rest or spikes the output far
+  over full scale when Xfmr Low Freq, Bias, Variac or another Power Tube is set (#192).
+- Twin Reverb, Super Reverb and Blackface: the preamp runs on the drawings' 410 V supply node (270 V is the plate
+  voltage, not the rail) and the inverter on 450 V, for more clean headroom (#193).
+- Tweed Deluxe 5E3: the supply has the drawing's 5k and 22k dropping resistors, so the screens rest higher and sag
+  less, and the preamp runs on the 233 V that follows from them (#194).
+- Amp, Tone Stack, Graphic EQ: the Marshall-family and Bassman 5F6-A tone stacks have the middle cap on the middle
+  pot's wiper, as drawn; low Bass and Middle settings keep their low end and the amps no longer go silent with all
+  three tone knobs at 0 (#196).
+- Amp Plexi 100W: the power amp's feedback is the drawing's 47k into the 5k presence pot (about 6.6 dB more feedback,
+  the presence law of the 1959SLP and 1959T); Purple Haze and Machine Gun re-levelled (#197).
+- Amp JCM800 2203/2204: the preamp and inverter rails follow from the drawing's 10k droppers (about 387 / 374 V, not
+  310 / 290 V): more preamp headroom, and Preamp Sag works against the right nominal (#198).
+- SLO-100: the overdrive channel now has the 330k to ground at the node where the normal channel joins, so the stage
+  after the cold clipper is driven about 2.5 dB less and loses its sub-bass below 22 Hz (#199).
+- Amp: the phase inverter of the SLO-100, 5150, 5150III, Rect-o-Verb, Powerball, Savage 120, Mark IIC+ and Mark IV
+  idles on its tail resistor plus the feedback shunt under it, as the Dual Rectifiers already did, instead of 15 to 30
+  % hot (#200).
+- Packaging: the desktop installers and the headless package carry Cathode's licence, THIRD-PARTY-NOTICES.md and the
+  licence texts of the third-party code in a licenses folder; the desktop app opens it from Help > Open Source
+  Licences (#206)
+- Desktop: Electron is at 45.2.3, the newest patch of the 45 line, with its Chromium and Node security fixes (#207)
+- Linux: the packages state their minimum system (glibc 2.39: Ubuntu 24.04, Debian 13, Raspberry Pi OS based on it),
+  the release build checks it, the NAM library no longer needs the system's libstdc++, and the headless installer
+  refuses a system the engine cannot start on before changing anything (#212).
+- Headless rig: channel options in `CATHODE_HOST_ARGS` with an input map (`--input-map 1;2`) no longer stop the
+  engine; the line is split at spaces and never read as shell (#213).
+- Looper: a loop recorded and stopped keeps its first notes when you play it later; the seam crossfade no longer fades
+  unrelated playing into its start (#223).
+- Delay lines: fractional reads keep full resolution on long lines (the Delay's 16 s), removing a low-level granular
+  noise on modulated and tape repeats, worse at 96 and 192 kHz (#224).
+- Delay, Filter, Multi Delay, Plex: L/R Time Ratio, Head 2 Ratio, Right Post Delay, Comb Time and Pre-Delay glide per
+  sample instead of stepping once per audio callback (#225).
+- Pitch: the Voices, Whammy, Octave, Capo, Crystals, Arpeggiator, Key, Scale and Custom Shifter table controls are
+  shown only on the types that use them (#226).
+- Tremolo, Enhancer, Delay: Pan Center, LFO Phase, Enhancer Time and side cuts, and Bit Reduction on Vintage Digital
+  are hidden on the types where they did nothing (#227).
+- Gate/Expander: the soft Knee now works above the threshold with any Hold, and on Modern Expander, where it did
+  nothing (#228).
+- Delay: Repeat Hold now takes the loop filters out of the loop, so held repeats keep their level and highs on Analog,
+  Tape, Mono Tape and Vintage Digital; Stack still filters every pass (#229).
+- Tuner: low strings (bass E and B, 7/8-string guitars) now read correctly at 88.2, 96, 176.4 and 192 kHz (#230).
+- MIDI clock: when an external clock pauses and resumes (or sends Start, Continue or Stop), the tempo holds until a
+  full beat of new ticks is in instead of dropping to 30 BPM for a beat (#231).
+- Host CLI: out-of-range or malformed --rate, --buffer, --seconds, --tail, --length, --level and --size, an unwritable
+  --out and a missing or malformed --graph give a one-line error and exit code 1 instead of a crash; --ir-capture no
+  longer hangs when the device stops mid-sweep (#234).
+- Host: losing the audio device on macOS exits with code 3 as documented, even when stopping the vanished device fails
+  (#235).
+- Host: a starting host removes the telemetry files left next to its socket by hosts that crashed or were killed
+  (#236).
+- Host: a parameter update with a block or parameter id longer than 64 bytes is applied (through the slow path)
+  instead of being reported as an unknown parameter after part of it was set (#237).
+- FX Loop: a mono send (one --loop-out channel) carries both sides of the send bus folded to mono instead of only the
+  right side (#238).
+- IPC: the Server no longer keeps an entry for every engine request that timed out, was cancelled or failed to send
+  (#239).
+- MIDI out: the host refuses anything that is not one complete short MIDI message, and on macOS system messages
+  (clock, start, song position) are sent as valid packets (#240).
+- Assets: an upload that is cancelled, cut off or over the size limit no longer leaves its temporary file in the
+  assets folder, and files left by an earlier crash are removed at start-up (#242).
+- MIDI: footswitch LEDs and the bypass toggle read a published copy of the block states instead of the scene's
+  dictionary while the rig writes it, and a failed LED refresh is logged instead of ending the Server (#243).
+- MIDI: a note-on of any velocity above 0 now counts as a press (soft pads and keys fire their actions); a note-off is
+  never learnt (#244).
+- MIDI: Scene Level Up/Down stores only the scene level in the saved preset instead of saving the whole working copy;
+  on a factory or unsaved preset it stays an unsaved edit, makes no copy and keeps the bank position (#245).
+- Server: a block can no longer be given the reserved ids rig or global/global2-4 (its knobs went to the scene level,
+  tempo or a global EQ), a client-chosen block id must be 1-64 letters, digits and hyphens, and a block whose id
+  merely starts with shunt keeps its meter (#246).
+- Server: the EQ chart, speaker resonance, Cab Align page and cab IR export describe the channel a block is actually
+  running when Scene Ignore holds it, and Save All Blocks stores the live channel's values instead of scene 1's
+  (#247).
+- Preset import: a damaged or hand-made .cthpreset package answers with a reason instead of a server error, and a
+  refused package no longer leaves its IRs and captures in the library (#250).
+- Server: PUT /live clamps tempo, scene levels, scene controllers and block parameter values and refuses invalid scene
+  MIDI or scene channels with 400 (a null channel used to be a 500) (#251).
+- Server: POST /live/save and the MIDI save action no longer store a preset with an empty name (after Clear); the save
+  is refused until the preset is named (#252).
+- Cmd/Ctrl+C copies selected text (the rig's address, the access token) instead of the block, and each network address
+  has a Copy button (#253).
+- Audio setup: the engine log has a Copy button, and the log, the latency test's output and the IR capture's output
+  can be selected (#254).
+- Manage presets: leaving the page with unsaved changes (Close, the navigation bar, Back, a reload) asks before
+  discarding them (#255).
+- Setlists: two edits made in quick succession are both kept; before, the second could overwrite the first (#256).
+- Knob: a typed value is read in every unit the engine uses, with a decimal comma or as -∞, and text that holds no
+  value keeps the field open and marked instead of being dropped silently (#257).
+- Knob: Escape in the typed-value field keeps the value, returns focus to the knob and no longer closes the dialog
+  around it (#258).
+- Tooltips, menus and hints show Ctrl, Alt and Shift on Windows and Linux instead of the macOS key symbols (#259).
+- T opens the tuner, as well as Cmd/Ctrl+T, which a browser keeps for a new tab (#260).
+- Controllers page: one drag of an LFO, ADSR, envelope follower, pitch follower or sequencer control is one undo step,
+  and the next drag is another (#261).
+- Editor: meters, clip marks, the tuner and the looper readout no longer freeze at their last values when the
+  connection drops or the engine stops (#262).
+- Grid: a cable drag interrupted by a scroll or system gesture is dropped instead of connecting on the next tap
+  (#263).
+- Save to the Library: the dialog stays open, with the name and folder as typed, when the save is refused (#264).
+- Scene name: a rename is applied to the scene whose name was clicked, even if another scene becomes active while the
+  field is open (#265).
+- IR capture: a sweep level of 0 dBFS can be entered, and the sweep length, level and IR length are limited to their
+  ranges (#266).
+- Preset menu: deleting a snapshot or a template asks for confirmation first (#267).
+- Preset and IR pickers: Tab no longer walks through two hidden buttons per entry; a star and a colour button under
+  the list favourite and tag the highlighted entry (#268).
+- Editor: a block's page tabs and the list of setlists are one tab stop each and move with the arrow keys, Home and
+  End; the page panel is named by its tab (#269).
+- Amp: a type change back to an amp, a channel switch and Tonestack Location no longer re-solve every stage's
+  operating point on the audio thread (channel reset about 0.5 ms down to 5-20 us on the SVT, Subway Blues and
+  JVM410H) (#274).
+- Amp: switching Power Amp off while playing no longer leaves the preamp on a sagged supply; it runs on the supply at
+  rest, and still follows Variac, Sag and Bias (#275).
+- Amp: Cathode Time Const, Master Trim, Bright Cap, Stack Freq, Fat, Preamp Sag, Preamp Tube and Overdrive are hidden
+  on models where they have nothing to act on; the Portaflex B-15N no longer shows a Middle knob (#276)
+- Amp: Preamp Tube also replaces stages that run both halves of a 12AX7 in parallel (Chieftain, DC-30, 18 W 1974X,
+  AFD100, Quick Rod) (#280)
+- Tweed Deluxe 5E3: the Tone pot is wired as on the drawing, so the 500 pF bright cap fades out as Tone is turned down
+  instead of staying across the Instrument volume (#281).
+- Blackface: built from the AB763 parts (470 Ω inverter bias, 34k input stopper, 0.047 µF and 1 nF into the inverter,
+  10K-A mid pot), so it has more low end and its Middle knob reads like the Twin's and Super's; the Tone Stack block's
+  Fender type and Prometheus Clean take the same audio-taper mid pot (#282).
+- Amp: the Princeton Reverb and Princeton AA964 use the 125A10B output transformer's 8.5k primary (was the Deluxe's
+  6.6k): a little less clean power and an earlier clip (#284).
+- Hot Rod Deluxe: the Presence knob follows the amp's reverse-audio 25k pot, so it lifts more of the top at noon and
+  is spread more evenly along its travel (#286).
+- Amp: Master Location is available on models whose master sits inside a channel switch (Bassman 135, Hot Rod Deluxe,
+  ODS 97, Hot Cat 30) and acts while that channel plays (#287)
+- Amp JTM45: the screens hang on the drawing's shared 1k 2 W dropper, for more screen sag at full power (#289).
+- Amp 18 W 1974X: the Stock speaker load is the open-back 1 x 12 of the 1974 combo, not a 2 x 12 (#290).
+- Amp: Triode 2 Plate Freq is available on the Rectifiers, Rect-o-Verb, Mark IIC+, Mark IV, Legacy, Prometheus and
+  other models with a cap across a plate resistor (#293)
+- Amp: Presence Shift is shown only on models whose power amp has a presence circuit (#294)
+- Amp: Depth Freq and Presence Freq are hidden on models with no depth control or presence circuit for them to move
+  (#295)
+- SLO-100, Powerball: the preamp supply nodes rest at the rails the stages are built for (the SLO-100 at the drawing's
+  497 V B+; the Powerball's stages on their chain's own voltages), so Preamp Sag is scaled from the right rest point
+  (#296).
+- Bass 400: the tone stack's 47 nF bass cap and 0.1 µF middle cap are confirmed against the 1985 drawing (the reverse
+  of the Mark guitar amps) and documented; no change in sound (#299).
+- Desktop: a settings.json with values of the wrong shape (a remote Server without a valid address, a bad port, audio
+  fields that are not lists) no longer leaves a blank window or a failed engine; the bad parts take their defaults
+  (#313).
+- Desktop: switching to a remote Server or quitting during a latency test or IR capture no longer leaves an engine
+  holding the audio interface or a sweep playing after the app has gone (#314).
+- Desktop: the engine status no longer says running while the host is crash-looping on a bad device; a host that keeps
+  exiting is shown as failed with its last log line, and restarts after an occasional crash stay fast over a long
+  session (#315).
+- Windows: the audio and NAM libraries carry the Visual C++ runtime, so the engine loads on a machine without the
+  Visual C++ Redistributable (#323).
+- Headless rig: `uninstall.sh` also removes the server's cache (`/var/cache/cathode`) and the socket folder, and an
+  update clears the previous version's unpacked files (#324).
 
 ## 1.0.0-rc.5 — 2026-10-30
 

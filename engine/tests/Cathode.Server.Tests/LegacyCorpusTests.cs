@@ -307,6 +307,14 @@ public sealed class LegacyCorpusTests {
 
                 break;
             case JsonArray expected:
+                // Manual E came after rc.5: a release's four Manual values read back with it at rest.
+                if (path.EndsWith("global.manual", StringComparison.Ordinal)
+                    && read is JsonArray { Count: 5 } manual
+                    && expected.Count == 4
+                    && manual[4]?.GetValue<double>() == 0) {
+                    manual.RemoveAt(4);
+                }
+
                 Assert.True(
                     read is JsonArray actual && actual.Count == expected.Count,
                     $"{path}: {expected.ToJsonString()} was written, {read?.ToJsonString() ?? "null"} is read"

@@ -94,7 +94,7 @@ describe('BlockPresetsStore', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: ConnectionService, useValue: { client } },
-        { provide: EventStream, useValue: { connected$ } },
+        { provide: EventStream, useValue: { connected$, library$: new Subject() } },
         { provide: LiveStore, useValue: live },
         {
           provide: Notify,

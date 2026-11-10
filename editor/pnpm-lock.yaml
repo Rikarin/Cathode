@@ -216,7 +216,7 @@ importers:
         version: 3.0.1(81edafb7058167ae25fd1dd734ec3f43)
       '@xui/dialog':
         specifier: ^3.0.1
-        version: 3.0.1(5b1509389d8cb6ec37634e94dee4a208)
+        version: 3.0.1(6b28e6e07b831f6c9f29869ce8e3b4b7)
       '@xui/echarts':
         specifier: ^3.0.1
         version: 3.0.1(e7278dffaafa4bb688951ba89341d9f4)
@@ -249,7 +249,7 @@ importers:
         version: 3.0.1(c40eae7604fa58dbf5273b0a306e6182)
       '@xui/select':
         specifier: ^3.0.1
-        version: 3.0.1(36fad05ac3d117352262adc10ec937bc)
+        version: 3.0.1(2b3181b0c356b73f1eac5740eecffe23)
       '@xui/spinner':
         specifier: ^3.0.1
         version: 3.0.1(@angular/core@22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2))(@xui/core@3.0.1(81edafb7058167ae25fd1dd734ec3f43))(class-variance-authority@0.7.1)(clsx@2.1.1)
@@ -10312,7 +10312,7 @@ snapshots:
     optionalDependencies:
       luxon: 3.7.2
 
-  '@xui/dialog@3.0.1(5b1509389d8cb6ec37634e94dee4a208)':
+  '@xui/dialog@3.0.1(6b28e6e07b831f6c9f29869ce8e3b4b7)':
     dependencies:
       '@angular/cdk': 22.2.4(@angular/common@22.2.3(@angular/core@22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2))(@angular/forms@22.2.3(@angular/common@22.2.3(@angular/core@22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2))(@angular/platform-browser@22.2.3(@angular/animations@22.2.3(@angular/core@22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2)))(@angular/common@22.2.3(@angular/core@22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2)))(rxjs@7.8.2))(@angular/platform-browser@22.2.3(@angular/animations@22.2.3(@angular/core@22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2)))(@angular/common@22.2.3(@angular/core@22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2)))(rxjs@7.8.2)
       '@angular/core': 22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2)
@@ -10377,7 +10377,7 @@ snapshots:
       konva: 10.9.0
       tslib: 2.8.1
 
-  '@xui/menu@3.0.1(5e43bd47ed850714e7c3de3b29f11868)':
+  '@xui/menu@3.0.1(646233850b4b493fdbbf1f93697f0393)':
     dependencies:
       '@angular/cdk': 22.2.4(@angular/common@22.2.3(@angular/core@22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2))(@angular/forms@22.2.3(@angular/common@22.2.3(@angular/core@22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2))(@angular/platform-browser@22.2.3(@angular/animations@22.2.3(@angular/core@22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2)))(@angular/common@22.2.3(@angular/core@22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2)))(rxjs@7.8.2))(@angular/platform-browser@22.2.3(@angular/animations@22.2.3(@angular/core@22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2)))(@angular/common@22.2.3(@angular/core@22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2)))(rxjs@7.8.2)
       '@angular/core': 22.2.3(@angular/compiler@22.2.3)(rxjs@7.8.2)

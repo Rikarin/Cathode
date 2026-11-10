@@ -179,7 +179,7 @@ interface Stored {
   target: ({ mode?: unknown; baseUrl?: unknown } & StoredSecret) | undefined;
   network: ({ enabled?: unknown; port?: unknown } & StoredSecret) | undefined;
   /** Absent from files written before the update check existed: the default applies. */
-  updates?: { check?: unknown };
+  updates: { check?: unknown } | undefined;
 }
 
 /** A token as read: decrypted, and whether the file should be written again (clear text, or an old key). */
@@ -247,7 +247,8 @@ export class SettingsStore {
     const stored: Stored = {
       audio: parsed['audio'],
       target: this.section(parsed, 'target'),
-      network: this.section(parsed, 'network')
+      network: this.section(parsed, 'network'),
+      updates: this.section(parsed, 'updates')
     };
     const available = await this.cipher.available();
     const loose = this.tightenMode();
@@ -257,7 +258,9 @@ export class SettingsStore {
       audio: this.audio(stored.audio),
       target: target.value,
       network: { ...this.network(stored.network), token: network.token },
-      updates: { check: typeof stored.updates?.check === 'boolean' ? stored.updates.check : defaults.updates.check }
+      updates: {
+        check: typeof stored.updates?.check === 'boolean' ? stored.updates.check : defaultSettings().updates.check
+      }
     };
 
     // A clear-text token from an older version (or one under a rotated key), now that it can be kept encrypted.
@@ -334,7 +337,10 @@ export class SettingsStore {
   }
 
   /** A section of the file when it is an object, as it should be; otherwise as if it were missing, with a log line. */
-  private section(parsed: Record<string, unknown>, name: 'target' | 'network'): Record<string, unknown> | undefined {
+  private section(
+    parsed: Record<string, unknown>,
+    name: 'target' | 'network' | 'updates'
+  ): Record<string, unknown> | undefined {
     const value = parsed[name];
     if (value === undefined || isObject(value)) {
       return value;

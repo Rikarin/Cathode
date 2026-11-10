@@ -39,7 +39,10 @@ public static class AmpFeatures {
             "presshift" or "presfreq" => HasPresenceNetwork(design),
             // The depth shelf is flat with the knob at 0, where a panel without one leaves it; a fixed low shelf in
             // the network itself (the BE-100's) is there whatever the knob.
-            "depthfreq" => panel.Depth is not null || design.Power.Feedback.LowFeedback != 1,
+            "depthfreq" => panel.Depth is not null
+                || design.Power.Feedback.LowFeedback != 1
+                // A Deep switch's resonance follows it (the DSL100).
+                || design.Power.Feedback.Deep is not null,
             "overdrive" => Any(preamp, IsGainStage)
                 && !panel.HasSwitch("Overdrive")
                 && panel.Control1 is not ("Overdrive" or "Drive" or "Lead Drive")

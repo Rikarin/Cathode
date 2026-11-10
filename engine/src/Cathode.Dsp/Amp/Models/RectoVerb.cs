@@ -257,7 +257,7 @@ public static class RectoVerb {
         net.Capacitor(grid, StageNetlist.Ground, 47e-12);
         net.Supply(supply, 376);
         net.Resistor(supply, plate, 100e3);
-        net.Capacitor(supply, plate, 500e-12);
+        net.Capacitor(supply, plate, 500e-12, CapacitorRole.Plate);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
         net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
         net.Capacitor(plate, blocked, 47e-9);

@@ -71,7 +71,8 @@ public sealed class MidiInputTests : IDisposable {
         midi.Translate(Clock(ref time, 1_000, TicksPerBeat + 1));
         Assert.Equal(300f, Tempo);
 
-        midi.Translate(Clock(ref time, 10, TicksPerBeat + 1));
+        // Slower than the range, yet ticks closer than the gap that counts as the clock pausing (100 ms).
+        midi.Translate(Clock(ref time, 27, TicksPerBeat + 1));
         Assert.Equal(30f, Tempo);
     }
 
