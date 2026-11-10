@@ -19,16 +19,16 @@ Cathode is free and open source (GPL-3.0-or-later).
 - **Cabinets:** a Cab block that builds the response from 10 speakers, 11 microphones and 7 cabinets, with mic
   position, distance and angle. Load your own impulse responses (`.wav`, `.cabgrid`) too, mix them, trim them, or
   capture one with a sine sweep.
-- **48 block types:** drives, delays (including multi-tap, ten-tap and plex delays), reverbs, chorus, flanger, phaser,
+- **45 block types:** drives, delays (including multi-tap, ten-tap and plex delays), reverbs, chorus, flanger, phaser,
   rotary, tremolo, wah, pitch and harmonisers, synth, vocoder, compressors and gates, EQs, filters, a looper, a
-  tuner, mixers and FX loops.
+  real-time analyser, mixers and FX loops.
 - **A grid like the hardware's:** six rows of fourteen cells, parallel paths, mixers and feedback loops.
 - **Built for playing live:**
   - eight scenes per preset, and four channels per block;
   - modifiers driven by LFOs, envelopes, a sequencer or MIDI controllers;
   - a Perform page with big controls;
   - MIDI control and footswitch layouts;
-  - a metronome and tap tempo.
+  - a tuner, a metronome and tap tempo.
 - **A library:**
   - presets with banks and setlists, snapshots and templates;
   - block presets;
