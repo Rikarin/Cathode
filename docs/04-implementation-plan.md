@@ -37,7 +37,7 @@ Each spike is a throwaway prototype with a written result in `docs/adr/`.
 
 - [x] Solution scaffold per [02 §3](02-architecture.md#3-repository-layout); CI on Windows, macOS and Linux (GitHub Actions); `Directory.Build.props` with analyzers and `TreatWarningsAsErrors`
 - [ ] Audio backends: **Offline** ✅, **Null** ✅, **Native** ✅ macOS CoreAudio, ✅ Windows WASAPI, ◐ Windows ASIO (tested against the SDK's sample driver only), ◐ Linux ALSA and JACK (no hardware run yet)
-- [x] `Cathode.Testing` analysis toolkit ([03 §2](03-testing-strategy.md#2-the-analysis-toolkit-build-this-first)) and the `cathode-render` CLI (the `Cathode.Analyze` CLI is still to do)
+- [x] `Cathode.Testing` analysis toolkit ([03 §2](03-testing-strategy.md#2-the-analysis-toolkit-build-this-first)) and the `cathode-render` CLI. The `Cathode.Analyze` CLI of the first plan was not built and is not planned for 1.0: the toolkit is a library, and `cathode-references match` reports the model metrics ([03 §2](03-testing-strategy.md#2-the-analysis-toolkit-build-this-first))
 - [x] `IDspBlock` contract, `ParamBank` + smoothers, `BlockDescriptor` + catalogue registry
 - [x] Grid model → DAG → **graph compiler**: topological sort, buffer colouring, implicit mixers, latency compensation
 - [x] SPSC command ring, RCU graph swap, retired-graph hand-back
@@ -147,7 +147,7 @@ Ordered by value to a guitarist:
   - Telemetry reaches all four on animation frames, never through change detection.
   - Storybook is set up the way xUI's is. Every story renders in Chromium and must pass axe in CI. Chromatic uploads when `CHROMATIC_PROJECT_TOKEN` is set.
 - [x] **Grid editor** (6×14, absolutely positioned cells plus an SVG cable layer):
-  - The ⌘K block palette (`@xui/omnibar`) opens on an empty cell or onto a shunt.
+  - The block picker opens with Q (add a block, or replace the selected one) or with Enter on an empty cell. It first opened with ⌘K, which now resets the clip lights (`shell/shortcuts.ts`).
   - Drag to move, ⌥-drag to copy. Drag from an outlet to the next column to cable.
   - Context menu: bypass, channel, copy/paste, remove. Keyboard: arrows, Enter, Delete, B, ⌘C/⌘V.
   - It is an ARIA grid with descriptive cell names.
@@ -277,10 +277,11 @@ This is the most important differentiator against "just a NAM host" and the hard
      - Power section: single-ended class A (−55 dB), ultralinear (−38 dB), triode strapping by a panel switch (−39 dB), Simul-Class (a triode-strapped pair beside the pentodes, −43 dB), separate cathode resistors (−40 dB), a cathodyne-driven pair (−53 dB); tube rectifiers (Child's law: GZ34, 5U4, 5Y3, EZ81) and AC mains with ripple at twice the line frequency, variac scaling; output transformer core saturation (low notes: +21 dB of THD at 42 Hz at full drive, none at 1 kHz); speaker impedance presets (open 1 × 12, 2 × 12, 4 × 10; closed 4 × 12, 8 × 10).
      - 38 parameters after Level, every one stock at its default (Axe-Fx parity, docs/06 §1.4: tubes, bright cap, preamp bias and sag, stack frequency, master trim, power amp off, transformer match, bandwidth and drive, speaker curve and its resonance, Q, amount, HF and impedance, presence and depth frequencies, variac, B+ time constant, supply type, rectifier, cathode time constant, input trim, select and low cut).
      - The R-type root solves one- and two-port devices with written-out Newton (the same arithmetic as the general solver), and the amp's stages start Newton from a linearised step instead of extrapolating: on loud noise a triode stage takes 2.2–4.5 iterations instead of 3.5–6.3. The Circuit Amp's worst case fell from 19.8 % to 14.1 % of a core (guitar 6.5–7.9 %); the first three models are within −143 dB of their earlier renders.
-     - *Not yet:* hysteresis, Miller capacitance, an unbypassed shared cathode resistor in the power stage, bias tremolo, op-amp and transistor clippers in a network stage, a rectifier switch on the panel.
+     - Since then: bias tremolo (`tremrate`, `tremdepth`: the amp's own tremolo circuit on the models that have one, a sine on the bias elsewhere), the rectifier and supply type as panel choices (`rectifier`, `supply`), and Miller capacitance in the models that need it. What each model leaves out is listed per model in [06](06-amp-modelling-spec.md) and [07](07-amp-catalogue.md).
+     - *Not yet:* transformer hysteresis.
 3. **R3 first complete amp** matched to its references: harmonic profile, frequency response per knob setting, ESR/MRSTFT dashboard.
-   - **Started:** the Circuit Amp block (`circuitamp`) with Blackface (2 x 6L6GC), Plexi (2 x EL34) and AC30 (4 x EL84, cathode bias, cut, no feedback) built from the schematics' values, everything at 2x the sample rate. Cost 8–11 % of one core on guitar, 19.8 % worst case (loud white noise). Not yet matched to references: that needs the R1 rig. A standalone **Tone Stack** block (`tonestack`) uses the same stacks.
-   - *Not modelled yet:* transformer hysteresis, Miller capacitance, the Blackface's reverb and vibrato and V4B mixer, Plexi channel jumpering (the stage library now has what they need; the first three models keep their sound).
+   - **As built:** the Circuit Amp block (`circuitamp`) has 88 types, each built from its schematic's values; [07](07-amp-catalogue.md) lists them with their sources and what each leaves out. It began with a Blackface, a Plexi and an AC30. A standalone **Tone Stack** block (`tonestack`) uses the same stacks.
+   - **Matching:** the models are compared with other people's captures through the reference harness below (`ReferenceMatchTests`, nightly), each against a target in the manifest; only the Prometheus clean channel reaches the spec's ESR target, and most models have no free capture and rest on their schematics alone ([07](07-amp-catalogue.md)). None is matched to captures of our own, which needs the R1 rig.
    - **Reference harness** (docs/06 §4.3): a manifest of real-amp captures (GPL ones fetched by `cathode-references fetch`, T3K ones by hand), NAM and GuitarML LSTM runners, calibrated input in volts, ESR/MRSTFT/harmonic/response report (`cathode-references match --html`) and a tolerance fit. First numbers against GPL captures of a Twin, JCM900, Laney GH, AC15 and Matchless SC30: ESR (pre-emphasised) 0.5–1.5, MRSTFT 0.8–2.3, before any family work.
 4. **R4 "expert" parameters** (bias, sag, transformer, tube types, negative feedback, presence/depth), mirroring the Axe-Fx III depth the users expect.
 5. **R5 hybrid tier:** neural preamp capture with a parametric power amp, so master, presence and depth respond on captures.
@@ -302,10 +303,12 @@ Gate for each model: ESR/MRSTFT within target across a knob sweep, plus an ABX p
   - picker tags, favourites and pin, Perform pages, and footswitch views, links and per-preset overrides.
 - [x] Editor workflow on top of the PS stream: ⌘L opens Preset Leveling, ⌘I resets the selected block's channel, and the preset picker, Go to, ⌘PgUp/PgDn, F5 and New from template ask before discarding unsaved edits (`PresetSwitcher`).
 
-- [ ] Factory content: 50+ presets, factory IRs (our own captures or properly licensed), factory NAM captures (own or licensed)
+- [x] Factory presets: 70 ship, embedded in the Server and levelled to one loudness ([02 §7.5](02-architecture.md#75-editor-workflow-as-built))
+- [ ] Factory IRs (our own captures or properly licensed) and factory NAM captures (own or licensed): none ship
 - [ ] Installers (signed and notarised), auto-update, crash reporting (opt-in), telemetry-free by default
-- [ ] User docs: block guide generated from descriptors, plus how-tos
-- [ ] Performance pass: CPU estimator in the grid (from benchmark data), low-power mode
+- [x] User docs: the manual on the website (`website/src/app/manual`), with a page per block whose parameter tables are generated from the descriptors, and 21 guide chapters. CI fails when the generated tables are stale or a knob has no description (`website.yml`)
+- [x] CPU estimate in the editor ("Est. n %" beside the meters), from the block costs `Cathode.Bench` records in the catalog
+- [ ] Low-power mode
 - [ ] HIL release suite and latency table published per interface
 
 ## Phase 9 (optional): plugin build
