@@ -113,6 +113,7 @@ export const AMP_MODELS: Record<string, { family: AmpFamily; basedOn: string }> 
   SVT: { family: 'bass', basedOn: 'Ampeg SVT (1970, 6550)' },
   'Portaflex B-15N': { family: 'bass', basedOn: 'Ampeg B-15-N Portaflex (1968)' },
   'Bassman 135': { family: 'bass', basedOn: 'Fender Bassman 135 (bass)' },
+  'Thunderbolt S6420': { family: 'bass', basedOn: 'Supro Thunderbolt S6420 (1966)' },
   'Bass 400': { family: 'bass', basedOn: 'Mesa/Boogie Bass 400' },
   'JC-120': { family: 'bass', basedOn: 'Roland JC-120 Jazz Chorus' },
   'Valvestate 8080': { family: 'bass', basedOn: 'Marshall Valvestate 8080' }

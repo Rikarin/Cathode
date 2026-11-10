@@ -88,9 +88,9 @@ The JC-120 is a glassy, very clean transistor amp: no breakup, so effects stay p
 
 ### Bass and others
 
-**SVT**, **Portaflex B-15N**, **Bassman 135**, **Bass 400**, and the small Gibson **Scout GA-17RVT**.
+**SVT**, **Portaflex B-15N**, **Bassman 135**, **Bass 400**, **Thunderbolt S6420**, and the small Gibson **Scout GA-17RVT**.
 
-Bass amps work on guitar too: the SVT and Bass 400 make thick, heavy crunch; the Portaflex is warm and round.
+Bass amps work on guitar too: the SVT and Bass 400 make thick, heavy crunch; the Portaflex is warm and round. The Thunderbolt S6420 is a Supro bass combo with one 15-inch speaker that found its players among guitarists: it has only **Volume** and **Tone**, no feedback and a cathode-biased pair of 6L6s, so it is fat and loose and breaks up early. Its input rolls off below about 100 Hz, so the low end stays clear under a guitar.
 
 ## The front panel
 
