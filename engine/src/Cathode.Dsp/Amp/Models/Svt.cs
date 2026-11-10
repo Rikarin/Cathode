@@ -74,7 +74,13 @@ public static class Svt {
 
     public static AmpDesign Design { get; } = new(
         "SVT",
-        [InputStage(), FollowerStage(), VolumeStage(), ToneStack(), MidrangeLoop(), OutputStage(), ClampStage()],
+        [
+            InputStage(), FollowerStage(), VolumeStage(),
+            // The tapers are not marked (taken as linear, as a Baxandall's usually are).
+            AmpegParts.Baxandall(47e-12, 470e-12, 120e3, PotTaper.Linear), MidrangeLoop(), OutputStage(),
+            // The follower's 0.1 µF and 100k, then 1k into the diodes.
+            AmpegParts.Clamp(100e3, 1e3, NewtonTolerance)
+        ],
         new(
             "6 x 6550",
             PentodeModel.SixtyFiveFifty,
@@ -167,7 +173,8 @@ public static class Svt {
     ///     820k + 68k from its middle, a high-pass) and Ultra Lo (<see cref="SwitchRole.Switch2" />: the 150k - 150k
     ///     arm with 2 nF to ground beside the bridge, its 820k shorted, a twin-T notch near 500 Hz); otherwise a wire.
     ///     The two are one three-position rocker on the amp, so this stage never sees both on
-    ///     (<see cref="AmpPanel.ThreeWay" />: Bass Cut wins). The 1M linear volume with the 500 pF Ultra Hi cap (<see cref="SwitchRole.Switch1" />), and V3A (12AU7 half,
+    ///     (<see cref="AmpPanel.ThreeWay" />: Bass Cut wins). The 1M linear volume with the 500 pF Ultra Hi cap
+    ///     (<see cref="SwitchRole.Switch1" />), and V3A (12AU7 half,
     ///     47k, 1.5k unbypassed); out at its plate.
     /// </summary>
     static NetworkStageDesign VolumeStage() {
@@ -197,29 +204,6 @@ public static class Svt {
         net.Triode(plate, wiper, cathode, TriodeModel.Ecc82);
         net.Output = plate;
         return new("V3A", net) { Tolerance = NewtonTolerance };
-    }
-
-    /// <summary>
-    ///     The passive Baxandall: 0.1 µF in, 220k to the bass pot's top and 47 pF to the treble pot's, the 1M bass pot
-    ///     with 1 nF and 10 nF from its wiper, 22k to ground, 470 pF to the 1M treble pot's bottom, 120k between the
-    ///     wipers; out at the treble wiper. The tapers are not marked (taken as linear, as a Baxandall's usually are).
-    /// </summary>
-    static NetworkStageDesign ToneStack() {
-        var net = new StageNetlist();
-        var (input, bassTop, bassBottom, trebleTop, trebleBottom) = (net.Node(), net.Node(), net.Node(), net.Node(),
-            net.Node());
-        net.Capacitor(net.Input, input, 0.1e-6);
-        net.Resistor(input, bassTop, 220e3);
-        net.Capacitor(input, trebleTop, 47e-12, CapacitorRole.Stack);
-        var bass = net.Pot(bassTop, bassBottom, new(1e6, PotTaper.Linear), PotRole.Bass);
-        net.Capacitor(bassTop, bass, 1e-9, CapacitorRole.Stack);
-        net.Capacitor(bass, bassBottom, 10e-9, CapacitorRole.Stack);
-        net.Resistor(bassBottom, StageNetlist.Ground, 22e3);
-        net.Capacitor(StageNetlist.Ground, trebleBottom, 470e-12, CapacitorRole.Stack);
-        var treble = net.Pot(trebleTop, trebleBottom, new(1e6, PotTaper.Linear), PotRole.Treble);
-        net.Resistor(bass, treble, 120e3);
-        net.Output = treble;
-        return new("Baxandall", net);
     }
 
     /// <summary>
@@ -288,22 +272,6 @@ public static class Svt {
         net.Triode(rail, grid, cathode, TriodeModel.Ecc82);
         net.Output = cathode;
         return new("V5", net) { MaxIterations = 64, Tolerance = NewtonTolerance };
-    }
-
-    /// <summary>
-    ///     The follower's 0.1 µF out with 100k, and the power amp's input: 1k into antiparallel silicon diodes to
-    ///     ground and its 470k leak. Out at the power amp's first grid.
-    /// </summary>
-    static NetworkStageDesign ClampStage() {
-        var net = new StageNetlist();
-        var (output, clamp) = (net.Node(), net.Node());
-        net.Capacitor(net.Input, output, 0.1e-6);
-        net.Resistor(output, StageNetlist.Ground, 100e3);
-        net.Resistor(output, clamp, 1e3);
-        net.Diodes(clamp, StageNetlist.Ground, DiodeModel.Silicon, 1, 1);
-        net.Resistor(clamp, StageNetlist.Ground, 470e3);
-        net.Output = clamp;
-        return new("Clamp", net) { Tolerance = NewtonTolerance };
     }
 
     /// <summary>The capacitance that resonates with <see cref="MidInductor" /> at <paramref name="hertz" />.</summary>

@@ -13,7 +13,9 @@ namespace Cathode.Dsp.Tests;
 /// </summary>
 public partial class AmpStageTests {
     public static TheoryData<string, double, double> BassChains =>
-        new() { { "SVT", 0.001, -30 }, { "Portaflex B-15N", 0.01, -30 }, { "JC-120", 0.02, -40 } };
+        new() {
+            { "SVT", 0.001, -30 }, { "SVT-CL", 0.001, -30 }, { "Portaflex B-15N", 0.01, -30 }, { "JC-120", 0.02, -40 }
+        };
 
     [Theory]
     [MemberData(nameof(BassChains))]

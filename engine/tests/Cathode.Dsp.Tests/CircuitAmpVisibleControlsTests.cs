@@ -56,6 +56,7 @@ public class CircuitAmpVisibleControlsTests(ITestOutputHelper output) {
         // 300 W of 6550s behind direct-coupled followers: the test's drive never pulls grid current through the
         // coupling caps Excursion Time scales.
         ["SVT: ptbiastime"] = "the power grids do not conduct at any drive the test reaches",
+        ["SVT-CL: ptbiastime"] = "the power grids do not conduct at any drive the test reaches",
         // A cathode-biased class-A pair on one cathode: its plates stay above it even driven flat out.
         ["Scout GA-17RVT: suppressor"] = "the plates never swing below the cathode",
         // No master, and the loop return's divider (10k and 33k into 15k + 22k) ahead of the inverter: its grid
@@ -117,6 +118,7 @@ public class CircuitAmpVisibleControlsTests(ITestOutputHelper output) {
 
         var input = Stimulus();
         var baselines = new float[contexts.Count][];
+
         float[] Render(Dictionary<int, float> settings) {
             using var block = TestBlocks.Create<CircuitAmpBlock>([..settings.Select(static s => (s.Key, s.Value))]);
             return BlockRender.Stereo(block, input, input, static _ => 64).Left;
