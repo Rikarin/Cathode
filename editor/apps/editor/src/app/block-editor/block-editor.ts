@@ -157,6 +157,15 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
               <ng-icon xui name="matMoreHorizRound" size="sm" />
             </button>
           </div>
+          @if (solverFaults(); as faults) {
+            <p
+              class="text-warning text-xs"
+              data-testid="block-solver-faults"
+              title="What this block's circuit solver has given up on since the block was made: samples that did not converge (a click at worst), samples with a value that is not a number, and control changes that left a network unsolvable (a control that stops responding). Quote these numbers in a bug report."
+            >
+              Solver faults: {{ faults }}
+            </p>
+          }
           @if (globalBlock(); as shared) {
             <xui-tag minimal color="primary" icon="matPublicRound" class="-mt-2 self-start">
               Global: {{ shared.name }}
@@ -531,6 +540,11 @@ export class BlockEditor {
   private readonly events = inject(EventStream);
   /** The selected block's measured CPU share as text, from its `cpu` meter; empty while there is none. */
   protected readonly cpu = signal('');
+  /**
+   * What the selected block's circuit solvers have given up on (the Amp, Drive and Wah blocks' fault meters) as text;
+   * empty on a healthy block, which is nearly always.
+   */
+  protected readonly solverFaults = signal('');
   private readonly catalog = inject(CatalogStore);
 
   private readonly globals = inject(GlobalStore);
@@ -618,6 +632,11 @@ export class BlockEditor {
       const text = id ? blockCpuText(this.events.blockMeter(id, 'cpu')) : '';
       if (text !== this.cpu()) {
         this.cpu.set(text);
+      }
+
+      const faults = id ? this.events.solverFaults(id) : '';
+      if (faults !== this.solverFaults()) {
+        this.solverFaults.set(faults);
       }
     });
     afterRenderEffect(onCleanup => {

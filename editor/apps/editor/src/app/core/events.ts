@@ -42,6 +42,36 @@ export function blockCpuText(percent: number | undefined): string {
 }
 
 /**
+ * What a block's circuit solvers have given up on since the block was made, as text for the block editor: the Amp,
+ * Drive and Wah blocks' `solverUnconverged`, `solverNonFinite` and `solverFailedRecomputes` meters, which are counts
+ * (0 on a healthy rig), for example "12 unconverged · 1 failed recompute". Empty while every count is 0, for a block
+ * without the meters and before telemetry arrives; a count that is 0 is left out.
+ */
+export function solverFaultsText(frame: Telemetry | null | undefined, block: string): string {
+  const count = (meter: string) => {
+    const value = blockMeter(frame, block, meter);
+    return value !== undefined && Number.isFinite(value) && value > 0 ? Math.round(value) : 0;
+  };
+  const parts: string[] = [];
+  const unconverged = count('solverUnconverged');
+  const nonFinite = count('solverNonFinite');
+  const failed = count('solverFailedRecomputes');
+  if (unconverged > 0) {
+    parts.push(`${unconverged} unconverged`);
+  }
+
+  if (nonFinite > 0) {
+    parts.push(`${nonFinite} non-finite`);
+  }
+
+  if (failed > 0) {
+    parts.push(`${failed} failed ${failed === 1 ? 'recompute' : 'recomputes'}`);
+  }
+
+  return parts.join(' · ');
+}
+
+/**
  * The live value of block `block`'s parameter `param` while a modifier drives it, or undefined when none does (or
  * before telemetry arrives).
  */
@@ -103,6 +133,11 @@ export class EventStream {
    */
   blockMeter(block: string, meter: string): number | undefined {
     return blockMeter(this.latest, block, meter);
+  }
+
+  /** Block `block`'s solver fault counts from the latest telemetry frame as text; empty when it has none. */
+  solverFaults(block: string): string {
+    return solverFaultsText(this.latest, block);
   }
 
   /**

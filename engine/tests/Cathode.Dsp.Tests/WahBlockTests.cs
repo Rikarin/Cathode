@@ -1,4 +1,5 @@
 using Cathode.Dsp.Blocks;
+using Cathode.Dsp.Wdf;
 using Cathode.Testing;
 
 namespace Cathode.Dsp.Tests;
@@ -230,6 +231,41 @@ public class WahBlockTests(ITestOutputHelper output) {
         }
 
         return peak;
+    }
+
+    /// <summary>
+    ///     The Wah reports its inductor circuits' solver faults as the Amp and Drive blocks do (#278): the generic
+    ///     solver's counts of both channels under the three meter ids, nothing on a healthy sweep and nothing on a
+    ///     filter type.
+    /// </summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(WahBlock.FirstCircuit)]
+    public void Solver_faults_are_the_wahs_meters(int type) {
+        using var wah = Create(type, 30f);
+        IBlockMeters meters = wah;
+        Assert.Equal(["solverUnconverged", "solverNonFinite", "solverFailedRecomputes"], meters.MeterIds);
+        BlockRender.Mono(wah, Signals.Noise(9_600, 5, 0.3f), 64);
+        var values = new float[] { -1, -1, -1 };
+        meters.ReadMeters(values);
+        Assert.Equal([0f, 0f, 0f], values);
+        Assert.Equal(default, wah.Faults);
+    }
+
+    /// <summary>A wah circuit's faults are its generic solver's counters, the ones a bug report quotes.</summary>
+    [Fact]
+    public void A_wah_circuits_faults_are_its_generic_solvers() {
+        var circuit = new WahCircuit(WahBlock.Circuits[0], 96_000);
+        circuit.Newton.MaxIterations = 1;
+        for (var n = 0; n < 9_600; n++) {
+            circuit.Tick(3 * Math.Sin(2 * Math.PI * 440 * n / 96_000)); // far past what the specialised solve takes
+        }
+
+        output.WriteLine(
+            $"{circuit.Fallbacks} samples handed to the generic solver, {circuit.Faults.Unconverged} unconverged"
+        );
+        Assert.Equal(SolverFaults.Of(circuit.Newton), circuit.Faults);
+        Assert.Equal(circuit.Newton.Unconverged, circuit.Faults.Unconverged);
     }
 
     static WahBlock Create(int type, float position) {

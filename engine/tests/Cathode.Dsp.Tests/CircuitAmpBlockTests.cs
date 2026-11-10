@@ -441,11 +441,13 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         var second = BlockRender.Mono(block, chord, 64);
         Assert.Equal(first, second); // the same samples from the operating points kept as from those solved
 
-        // Away to another amp and back.
+        // Away to another amp and back, the host refreshing the block after each change as it does.
         block.Params.SetTarget(CircuitAmpBlock.Type, plexi);
+        block.Refresh();
         BlockRender.Mono(block, new float[64], 64);
         Assert.Same(Plexi.Design, block.Channel.Design);
         block.Params.SetTarget(CircuitAmpBlock.Type, type);
+        block.Refresh();
         BlockRender.Mono(block, new float[64], 64);
         Assert.Same(channel, block.Channel);
         var again = Steps() - before;
@@ -466,6 +468,141 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         Assert.True(built > 0, "no network stage");
         Assert.Equal(0, again);
         Assert.Equal(supply, channel.Power.Supply);
+    }
+
+    /// <summary>
+    ///     A type change to a channel whose settings have moved since it last played (#274): the control thread's
+    ///     refresh settles that channel for the parameters' targets, so the audio thread's switch solves no operating
+    ///     point, where it took a preamp's worth of Newton steps and, at these power settings, the supply's bisection.
+    ///     Until the refresh the audio thread plays the amp it has.
+    /// </summary>
+    [Theory]
+    [InlineData("SVT")]
+    [InlineData("JVM410H Clean/Crunch")]
+    [InlineData("AC30")] // cathode-biased: its supply is solved from the cathode voltage of the moment
+    public void The_control_thread_settles_the_channel_a_type_change_switches_to(string name) {
+        var plexi = AmpDesign.All.ToList().IndexOf(Plexi.Design);
+        var type = AmpDesign.All.ToList().FindIndex(d => d.Name == name);
+        using var block = Create(type);
+        block.Refresh();
+        var chord = Chord(4_800, 0.25f);
+        BlockRender.Mono(block, chord, 64); // the amp plays, so its supply and cathode are away from rest
+        var channel = block.Channel;
+
+        block.Params.SetTarget(CircuitAmpBlock.Type, plexi);
+        block.Refresh();
+        BlockRender.Mono(block, chord, 64);
+        Assert.Same(Plexi.Design, block.Channel.Design);
+
+        // Back, with everything a reset solves from moved meanwhile: a tube, a pot, the supply's knobs.
+        block.Params.SetTarget(CircuitAmpBlock.Type, type);
+        block.Params.SetTarget(CircuitAmpBlock.PreampTube, 2);
+        block.Params.SetTarget(CircuitAmpBlock.Gain, 9);
+        block.Params.SetTarget(CircuitAmpBlock.Bias, 95);
+        block.Params.SetTarget(CircuitAmpBlock.Sag, 10);
+        block.Params.SetTarget(CircuitAmpBlock.Variac, 130);
+        var before = block.OperatingPointSolves;
+        BlockRender.Mono(block, new float[64], 64);
+        Assert.Same(Plexi.Design, block.Channel.Design); // not yet: the control thread has not settled it
+        Assert.Equal(before, block.OperatingPointSolves);
+
+        block.Refresh(); // the host, on the control thread
+        var settled = block.OperatingPointSolves;
+        Assert.True(settled > before, "the refresh solved nothing");
+        var left = new float[64];
+        var right = new float[64];
+        var allocated = GC.GetAllocatedBytesForCurrentThread();
+        block.Process(new(left, right), new(Rate, 120, 0)); // the switch, on the audio thread
+        Assert.Equal(allocated, GC.GetAllocatedBytesForCurrentThread());
+        Assert.Same(channel, block.Channel);
+        output.WriteLine($"{name}: {settled - before} operating-point steps at the refresh, none at the switch");
+        Assert.Equal(settled, block.OperatingPointSolves);
+        Assert.True(Analysis.AllFinite(BlockRender.Mono(block, chord, 64)));
+    }
+
+    /// <summary>
+    ///     A setting that resets the playing channel (a tube swap, Tonestack Location) on a block the host refreshes
+    ///     (#274): the audio thread plays on with the settings it has until the control thread has settled a second
+    ///     channel of the type for the new ones, then swaps it in and solves nothing. The swap sounds as the reset in
+    ///     place does on a block nobody refreshes.
+    /// </summary>
+    [Theory]
+    [InlineData("SVT", CircuitAmpBlock.PreampTube, 2f)]
+    [InlineData("Subway Blues", CircuitAmpBlock.PowerTube, 1f)] // 6L6GC in place of its EL84
+    [InlineData("Plexi", CircuitAmpBlock.StackPlace, 3f)]
+    [InlineData("AC30", CircuitAmpBlock.PowerTube, 1f)] // cathode-biased
+    public void A_resetting_setting_swaps_in_a_channel_the_control_thread_settled(string name, int setting, float to) {
+        var type = AmpDesign.All.ToList().FindIndex(d => d.Name == name);
+        var chord = Chord(9_600, 0.25f);
+
+        using var plain = Create(type); // nobody refreshes this one: the reset is in place, at once
+        BlockRender.Mono(plain, chord, 64);
+        BlockRender.Mono(plain, new float[64], 64); // the block the other one waits through
+        var same = plain.Channel;
+        plain.Params.SetTarget(setting, to);
+        var expected = BlockRender.Mono(plain, chord, 64);
+        Assert.Same(same, plain.Channel);
+
+        using var block = Create(type);
+        block.Refresh();
+        BlockRender.Mono(block, chord, 64);
+        var playing = block.Channel;
+        block.Params.SetTarget(setting, to);
+        var before = block.OperatingPointSolves;
+        BlockRender.Mono(block, new float[64], 64); // the audio thread sees the setting first
+        Assert.Same(playing, block.Channel);
+        Assert.Equal(before, block.OperatingPointSolves); // and solves nothing: it waits
+
+        block.Refresh();
+        var settled = block.OperatingPointSolves;
+        Assert.True(settled > before, "the refresh settled no spare");
+        var actual = BlockRender.Mono(block, chord, 64);
+        Assert.NotSame(playing, block.Channel);
+        Assert.Same(playing.Design, block.Channel.Design);
+        Assert.Equal(settled, block.OperatingPointSolves);
+        var residual = Analysis.NullResidualDb(expected, actual);
+        output.WriteLine(
+            $"{name}: {settled - before} operating-point steps at the refresh, none on the audio thread; the swap "
+            + $"against the reset in place: {residual:0.0} dB"
+        );
+        Assert.True(residual < -60, $"{name}: the swapped channel is {residual:0.0} dB from the one reset in place");
+
+        // Back again: the first channel is now the spare, and is settled and swapped in the same way.
+        block.Params.SetTarget(setting, block.Descriptor.Params[setting].Default);
+        block.Refresh();
+        var again = block.OperatingPointSolves;
+        BlockRender.Mono(block, new float[64], 64);
+        Assert.Same(playing, block.Channel);
+        Assert.Equal(again, block.OperatingPointSolves);
+    }
+
+    /// <summary>
+    ///     A block the host has refreshed once and then stops refreshing still takes a type change and a tube swap:
+    ///     after a quarter of a second without the control thread, the audio thread does the work in place.
+    /// </summary>
+    [Fact]
+    public void Without_the_control_thread_a_change_takes_effect_after_the_hold() {
+        var plexi = AmpDesign.All.ToList().IndexOf(Plexi.Design);
+        var afd = AmpDesign.All.ToList().IndexOf(MarshallAfd100.Design);
+        using var block = Create(plexi);
+        block.Params.SetTarget(CircuitAmpBlock.Type, afd);
+        block.Refresh();
+        BlockRender.Mono(block, new float[64], 64);
+        var playing = block.Channel;
+        Assert.Same(MarshallAfd100.Design, playing.Design);
+
+        block.Params.SetTarget(CircuitAmpBlock.PreampTube, 2);
+        BlockRender.Mono(block, new float[(int)(0.2 * Rate)], 64);
+        var before = block.OperatingPointSolves;
+        BlockRender.Mono(block, new float[(int)(0.1 * Rate)], 64);
+        Assert.Same(playing, block.Channel);
+        Assert.True(block.OperatingPointSolves > before, "the tube swap was never applied");
+
+        block.Params.SetTarget(CircuitAmpBlock.Type, plexi);
+        BlockRender.Mono(block, new float[(int)(0.2 * Rate)], 64);
+        Assert.Same(MarshallAfd100.Design, block.Channel.Design);
+        BlockRender.Mono(block, new float[(int)(0.1 * Rate)], 64);
+        Assert.Same(Plexi.Design, block.Channel.Design);
     }
 
     /// <summary>

@@ -171,6 +171,13 @@ public class PreampSupplyTests {
     [InlineData("Savage 120")]
     [InlineData("SLO-100")] // #296: B+ is the drawing's 497 V, so B2, B4 and B3 rest at its 378, 359 and 350 V
     [InlineData("Powerball")] // #296: the rails are the chain's nodes, not 400 V on three of them
+    [InlineData(
+        "Mark IIC+"
+    )] // #296: C and V1's node rest at the factory sheets' 397 and 392 V (once 404 V under 408 to 433 V)
+    [InlineData("Mark IIC+ Rhythm")]
+    [InlineData("Mark IV")] // the same supply: its sheets name the nodes and print no voltages
+    [InlineData("Mark IV Rhythm 1")]
+    [InlineData("Mark IV Rhythm 2")]
     public void Assumed_rails_are_the_chains_rest_voltages(string type) {
         var design = AmpDesign.All.Single(a => a.Name == type);
         var channel = new AmpChannel(design, 2 * Rate);

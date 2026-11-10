@@ -136,8 +136,20 @@ public sealed class CircuitRoot<TSource, TDevice>
     /// <summary>Samples solved since the last <see cref="ResetStatistics" />.</summary>
     public long Samples { get; private set; }
 
-    /// <summary>Samples that ran out of iterations and kept their best (or the previous) solution.</summary>
+    /// <summary>Samples that ran out of iterations and kept their best solution.</summary>
     public long Unconverged { get; private set; }
+
+    /// <summary>
+    ///     Samples no finite residual was found on (a device returned a non-finite value), the previous solution
+    ///     repeated. Counted since the root was built.
+    /// </summary>
+    public long NonFinite { get; private set; }
+
+    /// <summary>
+    ///     What the root gave up on: <see cref="Unconverged" />, <see cref="NonFinite" /> and the recomputes that left
+    ///     the network singular (<see cref="RTypeScattering.Failures" />).
+    /// </summary>
+    public SolverFaults Faults => new(Unconverged, NonFinite, Scattering.Failures);
 
     public double MeanIterations => Samples == 0 ? 0 : (double)iterations / Samples;
 
@@ -493,7 +505,13 @@ public sealed class CircuitRoot<TSource, TDevice>
         }
 
         hasFactors = false;
-        Record(count, false);
+        if (double.IsFinite(bestNorm)) {
+            Record(count, false);
+        } else {
+            Samples++;
+            iterations += count;
+            NonFinite++;
+        }
     }
 
     /// <summary>

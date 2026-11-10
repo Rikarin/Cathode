@@ -178,12 +178,8 @@ public static class MarkV {
     /// </summary>
     static StageNetlist LeadReturn() {
         var net = new StageNetlist();
-        var (coupled, grid, supply, plate, cathode, extreme, notIv) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        MesaParts.LeadDivider(net, net.Input, coupled, grid, 680e3 * 100e3 / (680e3 + 100e3), 547e-12);
-        net.Supply(supply, 410);
-        net.Resistor(supply, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
+        var (grid, plate, cathode) = MesaParts.LeadReturn(net, 680e3 * 100e3 / (680e3 + 100e3), 410);
+        var (extreme, notIv) = (net.Node(), net.Node());
         net.SwitchedCapacitor(cathode, StageNetlist.Ground, 2.2e-6, SwitchRole.Switch2);
         net.Capacitor(cathode, extreme, 100e-6);
         net.SwitchedResistor(extreme, notIv, 1, 0, SwitchRole.Switch1);

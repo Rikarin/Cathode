@@ -42,6 +42,9 @@ public sealed partial class EngineConnection(
     /// <summary>The block and meter id of each block meter of the graph last loaded.</summary>
     MeterMap meterMap = new(-1, [], []);
 
+    /// <summary>Logs a block whose circuit solver gives up on something (the meter loop feeds it).</summary>
+    readonly SolverFaultLog solverFaults = new(logger);
+
     /// <summary>The block and parameter each modifier of the graph last loaded drives.</summary>
     ModifierMap modifierMap = new(-1, []);
 
@@ -425,6 +428,8 @@ public sealed partial class EngineConnection(
             return;
         }
 
+        var blocks = BlockMeters(source);
+        solverFaults.Observe(blocks);
         hub.PublishFrame(
             "telemetry",
             new(
@@ -437,7 +442,7 @@ public sealed partial class EngineConnection(
                 Tuner(LastTelemetry),
                 LastTelemetry?.Tempo ?? 120,
                 Looper(LastTelemetry),
-                BlockMeters(source),
+                blocks,
                 Loudness(source.LoudnessMomentary),
                 Loudness(source.LoudnessShortTerm),
                 OutputPeaks(LastTelemetry),

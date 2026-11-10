@@ -21,7 +21,12 @@ namespace Cathode.Dsp.Amp;
 /// </param>
 /// <remarks>
 ///     The capacitance and core loss matter: pentodes are current sources, and when both cut off (blocking, deep class
-///     B) the leakage inductance's current needs somewhere to go; without them the flyback would be unbounded.
+///     B) the leakage inductance's current needs somewhere to go; without them the flyback would be unbounded. With
+///     them it is bounded but not small: the defaults are typical values, not read from any transformer's data, and
+///     nothing else clamps the plates, so a cranked amp's speaker voltage flies back up to 5 dB past the swing into a
+///     resistive load for a few samples, and a single-ended plate reaches several times B+ (the Champ's about 2 kV
+///     on 340 V). Whether a real winding's capacitance, its core loss at high frequency or an arc would hold that
+///     lower is not known from anything read so far; <c>AmpFullScaleTests</c> pins what the model does.
 /// </remarks>
 public sealed record OutputTransformerDesign(
     double PlateToPlate,

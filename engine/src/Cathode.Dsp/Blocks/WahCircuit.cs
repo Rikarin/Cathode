@@ -201,6 +201,12 @@ public sealed class WahCircuit {
     /// <summary>Statistics of the generic solver, which only sees the samples the specialised one hands over.</summary>
     public NewtonSolver Newton => root.Newton;
 
+    /// <summary>
+    ///     What the circuit gave up on since it was built: the generic solver's counts (a sample the specialised
+    ///     solver hands over is not a fault; one the generic solver cannot finish either is).
+    /// </summary>
+    public SolverFaults Faults => SolverFaults.Of(root.Newton);
+
     /// <summary>Samples solved by the generic four-port solver since the last Configure.</summary>
     public long Fallbacks { get; private set; }
 

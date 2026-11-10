@@ -41,8 +41,30 @@ namespace Cathode.Dsp.Amp.Models;
 ///         more presence is more resistance, less feedback everywhere and less of the 4.7 nF's treble feedback, so the
 ///         knob is brighter turned up. Guessed: the rheostat's taper (linear; the drawings do not say).
 ///         On the Simul-Class the triode-strapped EL34 pair is fed through about 220k with its own grid leak (less
-///         drive than the pentodes); here both pairs share the pentodes' grid network. Guessed: B+ 465 V, 40 mA
-///         idle, the 2.5k primary.
+///         drive than the pentodes); here both pairs share the pentodes' grid network. Guessed: 40 mA idle, the
+///         2.5k primary.
+///     </para>
+///     <para>
+///         The supply, from the same power page ("High Voltage Supply") and the preamp page: A 480 V (the reservoir
+///         and the plates' centre tap), a choke to B (the screens, through 470 Ω each), 5.6k 2 W to C (30 µF) and 1k
+///         2 W from C to D (30 µF). The preamp page prints C 397 V over V2 and D 392 V over V1, and puts the lead
+///         circuit on C; the power page feeds the inverter's 82k and 91k from C. In the el34world scan the power
+///         page's numbers are too coarse to read alone; a sharper copy of the same sheet (© 1985) is page 2 of
+///         <c>Boogie_mkiii.pdf</c>, the Mark III's set, where they read A 480 V, C 397 V and D 392 V. B+ is that
+///         480 V and the preamp node is C: 5.6k into 30 µF. The choke's resistance is not printed (100 Ω here), so
+///         C's draw is not taken from B's printed voltage: it is the current that drops the model's screen node to
+///         the drawn 397 V across the 5.6k (14.5 mA for the inverter, the triodes and the reverb, which is not
+///         modelled).
+///     </para>
+///     <para>
+///         <b>Assumed, not drawn:</b> below C the model keeps the generic chain's two filters, 10k into 22 µF for the
+///         lead circuit and 10k into 22 µF more for V1, in place of the drawn 1k into 30 µF to D. With the lead
+///         circuit on C and V1 one 1k below it, as drawn, the model motorboats flat out (every gain and master at 10:
+///         -13 dB two seconds after a chord stops, and still with 220 µF at D), as the Powerball's does on its drawn
+///         chain. The two nodes draw a nominal 0.17 mA each, so that V1's rests at the drawn D, 392 V, and the lead
+///         circuit's two thirds of the way up to C, 393.7 V: the stages are built for the sheet's voltages, within
+///         4 V. Not taken from the sheet: its filter caps at A and B (two 220 µF in series, doubled on the
+///         Simul-Class, and 30 µF); the reservoir and screen caps here are still the first guesses.
 ///     </para>
 ///     <para>
 ///         Panel: the real amp's two Shift pulls (Treble, on the treble pot: the 750 pF; Bass, on the bass pot: V1A's
@@ -62,13 +84,54 @@ namespace Cathode.Dsp.Amp.Models;
 ///     </para>
 /// </remarks>
 public static class MarkIIC {
+    /// <summary>
+    ///     The supply's node C, in volts as the factory sheets print it: the inverter, V2B and V4A (the preamp node).
+    /// </summary>
+    internal const double RailC = 397;
+
+    /// <summary>The factory sheets' node D, where V1A and V1B run: the second assumed node's rest voltage.</summary>
+    internal const double RailD = 392;
+
+    /// <summary>
+    ///     The first assumed node, the lead circuit's: a third of the way from <see cref="RailC" /> down to
+    ///     <see cref="RailD" /> (the two 10k carry two and one of the nodes' equal draws).
+    /// </summary>
+    internal const double RailLead = RailC - 2 * (RailC - RailD) / 3;
+
+    /// <summary>
+    ///     What the preamp draws through the 5.6k: the current that rests C at <see cref="RailC" /> below the screen
+    ///     node (the remarks).
+    /// </summary>
+    const double PreampDraw = 14.5e-3;
+
+    /// <summary>
+    ///     The preamp's supply below C (the remarks): two assumed nodes, each the generic chain's 10k into 22 µF, node
+    ///     1 for the lead circuit and node 2 below it for V1, drawing the nominal current that rests node 2 at
+    ///     <see cref="RailD" />.
+    /// </summary>
+    internal static PreampSupplyDesign Supply { get; } = new(
+        [
+            new(
+                AmpChannel.GenericResistance,
+                AmpChannel.GenericCap,
+                (RailC - RailD) / (3 * AmpChannel.GenericResistance)
+            ),
+            new(
+                AmpChannel.GenericResistance,
+                AmpChannel.GenericCap,
+                (RailC - RailD) / (3 * AmpChannel.GenericResistance),
+                1
+            )
+        ]
+    );
+
     public static AmpDesign Design { get; } = new(
         "Mark IIC+",
         [
-            new NetworkStageDesign("V1A", InputAndStack()),
-            new TriodeStageDesign("V1B", TriodeModel.Ecc83, 408, 100e3, 1.5e3, 15e-6),
-            new NetworkStageDesign("V3A", LeadDrive()),
-            new NetworkStageDesign("V3B", LeadStage()),
+            new NetworkStageDesign("V1A", InputAndStack()) { SupplyNode = 2 },
+            new TriodeStageDesign("V1B", TriodeModel.Ecc83, RailD, 100e3, 1.5e3, 15e-6) { SupplyNode = 2 },
+            new NetworkStageDesign("V3A", LeadDrive()) { SupplyNode = 1 },
+            new NetworkStageDesign("V3B", LeadStage()) { SupplyNode = 1 },
             new NetworkStageDesign("V2B", LeadReturn()),
             new NetworkStageDesign("V4A", Recovery(true)),
             new CouplingStageDesign("Master", 47e-9, new(1e6, PotTaper.Audio), PotRole.Master, 15e3),
@@ -78,14 +141,14 @@ public static class MarkIIC {
             "2 x 6L6GC + 2 x EL34 (Simul-Class)",
             PentodeModel.SixL6GC,
             1,
-            465,
+            480,
             470,
             0.04,
             false,
             0,
             75,
             // The 22k tail stands on the feedback shunt, 3.3k over 1.5k: 26.8k from the bias junction to ground.
-            new LongTailPairDesign(TriodeModel.Ecc83, 427, 82.5e3, 90.9e3, 26.8e3, 470),
+            new LongTailPairDesign(TriodeModel.Ecc83, RailC, 82.5e3, 90.9e3, 26.8e3, 470),
             0.1e-6,
             220e3,
             2.2e3,
@@ -95,7 +158,8 @@ public static class MarkIIC {
             true,
             new(2.5e3),
             SpeakerDesign.Closed4x12,
-            new(30, 120e-6, 100, 47e-6, 10e3, 22e-6, 6e-3),
+            // 5.6k 2 W from the screens to C's 30 µF; the draw rests C at the drawn 397 V (see the remarks).
+            new(30, 120e-6, 100, 47e-6, 5.6e3, 30e-6, PreampDraw),
             Strapped: PentodeModel.EL34,
             StrappedPerSide: 1
         ),
@@ -111,7 +175,8 @@ public static class MarkIIC {
             Switch2 = "Deep",
             Switch3 = "Bass Shift",
             Equalizer = ["80", "240", "750", "2200", "6600"]
-        }
+        },
+        PreampSupply = Supply
     };
 
     /// <summary>
@@ -121,8 +186,8 @@ public static class MarkIIC {
     public static AmpDesign Rhythm { get; } = Design with {
         Name = "Mark IIC+ Rhythm",
         Preamp = [
-            new NetworkStageDesign("V1A", InputAndStack()),
-            new TriodeStageDesign("V1B", TriodeModel.Ecc83, 408, 100e3, 1.5e3, 15e-6),
+            new NetworkStageDesign("V1A", InputAndStack()) { SupplyNode = 2 },
+            new TriodeStageDesign("V1B", TriodeModel.Ecc83, RailD, 100e3, 1.5e3, 15e-6) { SupplyNode = 2 },
             new NetworkStageDesign("V2B", RhythmReturn()),
             new NetworkStageDesign("V4A", Recovery(false)),
             new CouplingStageDesign("Master", 47e-9, new(1e6, PotTaper.Audio), PotRole.Master, 15e3),
@@ -139,14 +204,8 @@ public static class MarkIIC {
     /// </summary>
     static StageNetlist InputAndStack() {
         var net = new StageNetlist();
-        var (supply, plate, cathode, shift, slope, trebleTop, middle) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Resistor(net.Input, StageNetlist.Ground, 1e6);
-        net.Supply(supply, 408);
-        net.Resistor(supply, plate, 150e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 0.47e-6);
-        net.Capacitor(cathode, shift, 15e-6);
+        var (plate, cathode, shift) = MesaParts.FrontStage(net, RailD);
+        var (slope, trebleTop, middle) = (net.Node(), net.Node(), net.Node());
         net.SwitchedResistor(shift, StageNetlist.Ground, 15e3, 1, SwitchRole.Switch3);
         net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
 
@@ -186,7 +245,7 @@ public static class MarkIIC {
             680e3,
             new(1e6, PotTaper.Audio),
             PotRole.Control1,
-            425,
+            RailLead,
             20e-9,
             gridStopper: 10e3
         );
@@ -202,7 +261,7 @@ public static class MarkIIC {
         net.Output = MesaParts.LeadStage(
             net,
             net.Input,
-            425,
+            RailLead,
             SwitchRole.Bright,
             15e3,
             gridStopper: 10e3,
@@ -245,7 +304,7 @@ public static class MarkIIC {
     /// </summary>
     static int ReturnTriode(StageNetlist net, int grid) {
         var (supply, plate, cathode) = (net.Node(), net.Node(), net.Node());
-        net.Supply(supply, 425);
+        net.Supply(supply, RailC);
         net.Resistor(supply, plate, 100e3);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
         net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
@@ -270,7 +329,7 @@ public static class MarkIIC {
         net.Resistor(master, grid, 150e3);
         net.Resistor(grid, StageNetlist.Ground, 4.7e3 * 47e3 / (4.7e3 + 47e3));
         net.Capacitor(grid, cathode, 120e-12);
-        net.Supply(supply, 425);
+        net.Supply(supply, RailC);
         net.Resistor(supply, plate, 120e3);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1e3);
         net.Capacitor(cathode, StageNetlist.Ground, 0.47e-6);

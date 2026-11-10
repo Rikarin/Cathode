@@ -201,13 +201,8 @@ public static class TriAxis {
     /// </summary>
     static StageNetlist StackStage(Mode mode) {
         var net = new StageNetlist();
-        var (rail, plate, cathode, boost, x) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Resistor(net.Input, StageNetlist.Ground, 1e6);
-        net.Supply(rail, FrontSupply);
-        net.Resistor(rail, plate, 150e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 0.47e-6);
-        net.Capacitor(cathode, boost, 15e-6);
+        var (plate, cathode, boost) = MesaParts.FrontStage(net, FrontSupply);
+        var x = net.Node();
         switch (mode) {
             case Mode.Rhythm:
                 // LDR12 lit in Rhythm Green (Yellow, Switch 1, leaves the 22k in).

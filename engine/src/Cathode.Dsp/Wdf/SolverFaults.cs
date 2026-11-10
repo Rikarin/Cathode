@@ -10,7 +10,21 @@ namespace Cathode.Dsp.Wdf;
 ///     Component changes that left the network singular, the previous matrix kept.
 /// </param>
 public readonly record struct SolverFaults(long Unconverged, long NonFinite, long FailedRecomputes) {
+    /// <summary>
+    ///     The ids a block reports the three counts under as its own meters (<see cref="IBlockMeters" />), in the
+    ///     order <see cref="Write" /> writes them. They are counts, not dB, and 0 on a healthy rig.
+    /// </summary>
+    public static IReadOnlyList<string> MeterIds { get; } =
+        ["solverUnconverged", "solverNonFinite", "solverFailedRecomputes"];
+
     public long Total => Unconverged + NonFinite + FailedRecomputes;
+
+    /// <summary>The three counts as a block's meter values, in the order of <see cref="MeterIds" />.</summary>
+    public void Write(Span<float> values) {
+        values[0] = Unconverged;
+        values[1] = NonFinite;
+        values[2] = FailedRecomputes;
+    }
 
     /// <summary>A root's counters (<see cref="NewtonSolver" />); nothing for a stage without one.</summary>
     public static SolverFaults Of(NewtonSolver? newton) =>

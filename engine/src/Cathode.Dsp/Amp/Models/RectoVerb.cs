@@ -48,9 +48,12 @@ namespace Cathode.Dsp.Amp.Models;
 ///         a 330k to ground there); the 120 pF across each inverter plate resistor and the 75 pF between the plates are
 ///         left out, and the 10M beside each of RY5's 2 nF caps (it keeps them charged). Not on the drawing: the idle
 ///         current (40 mA), the primary (4k, a typical value for two 6L6) and the Series II changes. The Solo 50's
-///         Modern / Vintage switch (the feedback's LDR) is not on the panel here: the feedback stays in. The stock
-///         speaker load is the closed 4 × 12 preset, as on the other Rectifiers: the head on a closed cabinet. There
-///         is no closed 1 × 12 or 2 × 12 curve for the combo; Speaker load: Follow Cab gives one.
+///         Modern / Vintage switch (the feedback's LDR) is not on the panel here: the feedback stays in. The model is
+///         the head, and its stock speaker load the closed 4 × 12 preset, as on the other Rectifiers: the drawing set
+///         is the Solo 50 head's, and nothing in it is the combo's. The combo is not given a load of its own: its
+///         owner's manual says only that it has a single 12-inch 8 Ω Celestion Custom 90, not what the cabinet's back
+///         is, so neither the open-back 1 × 12 preset nor a closed curve would be a read fact. Speaker load: Follow
+///         Cab takes the load from whatever cabinet the Cab block has.
 ///     </para>
 ///     <para>
 ///         One set of knobs plays the channel that is on, as on the other two-channel models: Gain, Bass, Middle,
