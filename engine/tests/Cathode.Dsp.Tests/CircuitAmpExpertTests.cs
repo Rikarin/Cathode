@@ -542,6 +542,118 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         Assert.InRange(between, -0.5, 0.5);
     }
 
+    [Fact]
+    public void Depth_and_presence_frequency_hide_where_there_is_nothing_for_them_to_move() {
+        var parameters = CircuitAmpBlock.Info.Params;
+        var depth = parameters[CircuitAmpBlock.DepthFrequency].TypeLabels!;
+        var presence = parameters[CircuitAmpBlock.PresenceFrequency].TypeLabels!;
+        for (var type = 0; type < AmpDesign.All.Count; type++) {
+            var design = AmpDesign.All[type];
+            var feedback = design.Power.Feedback;
+            // Depth Freq: a Depth knob, or a fixed low shelf in the feedback network (the BE-100).
+            var hasDepth = design.Panel.HasTubes && (design.Panel.Depth is not null || feedback.LowFeedback != 1);
+            Assert.True(hasDepth == (depth[type] == "Depth Freq"), $"{design.Name}: Depth Freq '{depth[type]}'");
+            // Presence Freq: a presence cap in a tube power amp's feedback network, with a knob on it or not.
+            var hasPresence = design.Panel.HasTubes && feedback.PresenceCap >= 1e-9;
+            Assert.True(
+                hasPresence == (presence[type] == "Presence Freq"),
+                $"{design.Name}: Presence Freq '{presence[type]}'"
+            );
+            if (design.Panel.Presence is not null && !design.Power.Brilliance && design.Panel.HasTubes) {
+                Assert.True(hasPresence, $"{design.Name} has a Presence knob");
+            }
+        }
+
+        string Label(string model, IReadOnlyList<string> labels) =>
+            labels[AmpDesign.All.ToList().FindIndex(a => a.Name == model)];
+
+        Assert.Equal(string.Empty, Label("Mark IIC+", depth));
+        Assert.Equal(string.Empty, Label("SVT", depth));
+        Assert.Equal("Depth Freq", Label("SLO-100", depth));
+        Assert.Equal(string.Empty, Label("SVT", presence));
+        Assert.Equal(string.Empty, Label("Portaflex B-15N", presence));
+        Assert.Equal(string.Empty, Label("Bass 400", presence));
+        Assert.Equal(string.Empty, Label("Legacy VL100", presence));
+        Assert.Equal("Presence Freq", Label("Dual Rectifier", presence));
+    }
+
+    [Fact]
+    public void Expert_controls_hide_on_models_without_the_part_they_act_on() {
+        var parameters = CircuitAmpBlock.Info.Params;
+        string[] Hidden(string id) {
+            var labels = parameters.Single(p => p.Id == id).TypeLabels!;
+            return [..AmpDesign.All.Where((_, type) => labels[type] == string.Empty).Select(static a => a.Name)];
+        }
+
+        // Cathode Time Const: the bypass cap of a cathode-biased output stage.
+        Assert.Equal(
+            AmpDesign.All.Where(static a => !a.Power.CathodeBias || !a.Panel.HasTubes).Select(static a => a.Name),
+            Hidden("katc")
+        );
+        // Master Trim: a master to trim.
+        Assert.Equal(
+            AmpDesign.All.Where(static a => a.Panel.Master is null).Select(static a => a.Name),
+            Hidden("mvtrim")
+        );
+        // Preamp Sag: not a rack preamp on its own supply, nor a solid-state amp's regulated rails.
+        Assert.Equal(
+            ["JC-120", "TriAxis Rhythm", "TriAxis Lead 1", "TriAxis Lead 2", "Valvestate 8080", "JMP-1"],
+            Hidden("presag")
+        );
+        // Preamp Tube: a 12AX7 to replace (the B-15N runs 6SL7s on the 5751's curves, the Scout 6EU7s).
+        Assert.Equal(["Portaflex B-15N", "JC-120", "Scout GA-17RVT"], Hidden("pretube"));
+        // Bright Cap: a bright cap that is not across a master.
+        Assert.Contains("Champ 5F1", Hidden("brightcap"));
+        Assert.Contains("Hot Rod Deluxe", Hidden("brightcap"));
+        Assert.Contains("Mark IV", Hidden("brightcap"));
+        Assert.DoesNotContain("Plexi", Hidden("brightcap"));
+        Assert.DoesNotContain("Blackface", Hidden("brightcap"));
+        // The generic Overdrive: a gain stage to drive.
+        Assert.Contains("JC-120", Hidden("overdrive"));
+        // The B-15N's Baxandall has no middle control.
+        Assert.Contains("Portaflex B-15N", Hidden("middle"));
+    }
+
+    [Fact]
+    public void Preamp_tube_replaces_paralleled_twelve_ax7s_with_both_halves_of_the_chosen_tube() {
+        var paralleled = TriodeModel.Ecc83.Paralleled(2);
+        Assert.Equal(2, paralleled.SectionsOf(TriodeModel.Ecc83));
+        Assert.Equal(1, TriodeModel.Ecc83.SectionsOf(TriodeModel.Ecc83));
+        Assert.Equal(0, TriodeModel.Ecc81.SectionsOf(TriodeModel.Ecc83));
+        Assert.Equal(0, TriodeModel.Ecc81.Paralleled(2).SectionsOf(TriodeModel.Ecc83));
+
+        var swap = new PreampSettings(TriodeModel.TwelveAY7);
+        Assert.Equal(TriodeModel.TwelveAY7, swap.TubeFor(TriodeModel.Ecc83));
+        Assert.Equal(TriodeModel.TwelveAY7.Paralleled(2), swap.TubeFor(paralleled));
+        Assert.Equal(TriodeModel.Ecc81, swap.TubeFor(TriodeModel.Ecc81));
+        Assert.Equal(paralleled, PreampSettings.Stock.TubeFor(paralleled));
+    }
+
+    [Theory]
+    [InlineData("Chieftain")] // both preamp triodes are paralleled 12AX7s
+    [InlineData("18 W 1974X")] // the Normal channel's only preamp stage is one
+    public void Preamp_tube_reaches_a_stage_of_paralleled_twelve_ax7s(string model) {
+        var type = AmpDesign.All.ToList().FindIndex(a => a.Name == model);
+        Assert.True(type >= 0, model);
+        float[] Render(float tube) {
+            using var block = TestBlocks.Create<CircuitAmpBlock>(
+                (CircuitAmpBlock.Type, type),
+                (CircuitAmpBlock.PreampTube, tube)
+            );
+            return BlockRender.Mono(block, CircuitAmpBlockTests.Chord(9_600, 0.1f), 64);
+        }
+
+        var stock = Render(0);
+        Assert.Equal(stock, Render(1)); // a 12AX7 for a 12AX7
+        for (var tube = 2; tube <= 5; tube++) {
+            var changed = Render(tube);
+            var difference = Analysis.NullResidualDb(stock, changed) - Analysis.ToDb(Analysis.Rms(stock));
+            output.WriteLine($"{model}, tube {tube}: {difference:0.0} dB from stock");
+            Assert.True(Analysis.AllFinite(changed));
+            Assert.True(difference > -30, $"tube {tube}: {difference:0.0} dB");
+        }
+    }
+
     /// <summary>
     ///     Whether an expert parameter reaches a solid-state amp: not where its panel hides it (the tube parameters);
     ///     the supply's (Variac, B+ Time Const) only once the rails are loaded hard, which this test's chord does not
@@ -624,10 +736,10 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
 
     static bool HasTwelveAX7(AmpStageDesign stage) =>
         stage switch {
-            TriodeStageDesign triode => triode.Tube == TriodeModel.Ecc83,
-            ToneStackStageDesign stack => stack.Tube == TriodeModel.Ecc83,
+            TriodeStageDesign triode => triode.Tube.SectionsOf(TriodeModel.Ecc83) > 0,
+            ToneStackStageDesign stack => stack.Tube.SectionsOf(TriodeModel.Ecc83) > 0,
             NetworkStageDesign network => network.Netlist.Elements.Any(static e =>
-                e.Kind == ElementKind.Triode && e.Triode == TriodeModel.Ecc83
+                e.Kind == ElementKind.Triode && e.Triode.SectionsOf(TriodeModel.Ecc83) > 0
             ),
             _ => false
         };

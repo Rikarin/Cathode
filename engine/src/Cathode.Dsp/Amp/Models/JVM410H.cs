@@ -344,7 +344,7 @@ public static class JVM410H {
         net.Resistor(junction, plate, 22e3);
         net.Capacitor(junction, held, 1e-6);
         net.Resistor(held, StageNetlist.Ground, lowGain ? Closed : 1e6);
-        net.Capacitor(plate, rail, 1e-9);
+        net.Capacitor(plate, rail, 1e-9, CapacitorRole.Plate);
         net.Resistor(cathode, StageNetlist.Ground, 10e3);
         net.Triode(plate, b, cathode, TriodeModel.Ecc83);
         net.Capacitor(plate, c, 22e-9);

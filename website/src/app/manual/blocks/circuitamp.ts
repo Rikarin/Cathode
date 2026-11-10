@@ -206,13 +206,14 @@ the power amp, which a cab-block EQ after the amp cannot do. Hidden on the JC-12
     overdrive: `An extra gain stage's worth of drive for models that have no drive knob of their own: up to 20 dB more
 swing into the last gain stage at 10; 0 is off. It turns a crunch amp into a lead amp without changing the tone stack,
 and the extra distortion comes from the amp's own tubes. Hidden on models that already have an overdrive or lead
-drive control.`,
+drive control, and where the preamp has no gain stage to drive (the JC-120).`,
 
     presshift: `Moves the presence control's frequency down an octave, for a broader, lower-reaching presence lift. Shown
-on models that have no shift switch of their own (the Mark IIC+ has its real *Shift*).`,
+on models whose power amp has a presence circuit in its feedback loop, whether or not the panel has a Presence knob;
+hidden on solid-state amps and on tube amps without one (the SVT, the blackface Fenders).`,
 
     fatsw: `Moves the tone stack's frequencies down (to 0.6 times stock): fuller lows and low mids, as the "Fat" switch
-does on amps that have one. Hidden where the model has its own Fat switch.`,
+does on amps that have one. Hidden where the model has its own Fat switch, and where its preamp has no tone stack.`,
 
     cutsw: `A 150 Hz high-pass at the input (if *Low Cut* is set higher, the higher one wins). Tightens a boomy amp or a
 dark guitar and keeps the low end from smearing high-gain sounds. Hidden on the SVT, which has its own *Bass Cut*.`,
@@ -234,13 +235,14 @@ distortion. Around 80 to 120 Hz is a good start for chugging rhythm; push it hig
     pretube: `Replaces every 12AX7 in the preamp with another triode: 12AX7 (the usual high-gain tube), 12AY7 (much
 lower gain, the original tweed tube), 5751 (about 30 % less gain than a 12AX7, smoother), 12AT7 (lower gain, more
 current) or 12AU7 (lowest gain). Lower-gain tubes give a cleaner, more open amp with more headroom. Stages that are not
-12AX7s in the original (a 12AT7 phase inverter or reverb driver) keep their own tube. Stock keeps the schematic's
+12AX7s in the original (a 12AT7 phase inverter or reverb driver) keep their own tube; a stage that runs both halves of a
+12AX7 in parallel gets both halves of the chosen tube. Hidden on models whose preamp has no 12AX7. Stock keeps the schematic's
 tubes.`,
 
     brightcap: `The value of the model's bright caps, as a percentage of stock. A larger cap lets lower frequencies
 bypass the pot too, so the bright boost reaches down into the upper mids; a smaller one leaves only the highest treble.
 It affects every bright cap of the model (fixed ones across a volume pot, and switchable ones while the Bright switch
-is on).`,
+is on), but not a cap across the master. Hidden on models without a bright cap.`,
 
     prebias: `The bias of the last preamp gain stage: its cathode resistor from twice stock (-100 %, colder) to half
 stock (+100 %, hotter). Moving the operating point off-centre makes that stage clip one side earlier than the other,
@@ -248,14 +250,16 @@ which changes its balance of even and odd harmonics and how its distortion feels
 
     presag: `How much of the power supply's sag reaches the preamp: 100 % is the circuit as built, 0 % gives the preamp a
 stiff supply of its own, 200 % doubles the effect. With more preamp sag the preamp's gain and headroom drop with the
-supply on hard notes, adding to the bloom and compression.`,
+supply on hard notes, adding to the bloom and compression. Hidden on rack preamps with a supply of their own (the
+JMP-1, the TriAxis).`,
 
     stackfreq: `Shifts all the tone stack's frequencies, by dividing its caps by this percentage: above 100 % the stack's
-response moves up (brighter, mids higher), below it moves down (fuller, darker).`,
+response moves up (brighter, mids higher), below it moves down (fuller, darker). Hidden on models whose preamp has no
+tone stack.`,
 
     mvtrim: `Scales the Master knob's travel. At 200 % the master reaches full at 5 and stays there; at 50 % it never gets
-past halfway. Use it to fine-tune where the power amp starts to break up without changing your Master setting. Does
-nothing on models without a master.`,
+past halfway. Use it to fine-tune where the power amp starts to break up without changing your Master setting. Hidden
+on models without a master.`,
 
     poweramp: `Turns the power amp simulation off. The block then outputs the preamp's signal as it arrives at the phase
 inverter, for driving a real tube power amp. The supply, bias and speaker load no longer apply; everything up to and
@@ -307,10 +311,11 @@ clip and how strongly the amp's response follows the speaker's curve. Real amps 
 of two without harm; here you can hear what it does.`,
 
     presfreq: `The presence control's frequency, as a percentage of stock (its cap divided by it). Higher moves the lift
-up into the upper treble, lower brings it down into the upper mids.`,
+up into the upper treble, lower brings it down into the upper mids. Shown on models whose power amp has a presence
+circuit, also where it is a fixed one with no knob (the Dual Rectifier, whose panel Presence is in the preamp).`,
 
     depthfreq: `The depth control's corner frequency, as a percentage of stock. Higher makes Depth reach higher into the
-low mids; lower keeps it down in the deep bass.`,
+low mids; lower keeps it down in the deep bass. Shown on models that have a Depth (or Resonance) control.`,
 
     variac: `The mains voltage, as a percentage of normal: it scales every supply voltage (and a fixed bias with them).
 Below 100 % the amp has less headroom and breaks up earlier and softer, the "brown sound" trick of running an amp on a
@@ -331,7 +336,8 @@ the softest (the tweed sound), *EZ81* the small one of EL84 amps. Panel switches
 Rectifier* apply as on the real amp; a choice here applies on top.`,
 
     katc: `On cathode-biased power amps, the cathode bypass cap as a percentage of stock. It sets how fast the bias
-shifts when the amp is driven hard: larger is slower, so the amp keeps pumping and recovering over a longer time.`,
+shifts when the amp is driven hard: larger is slower, so the amp keeps pumping and recovering over a longer time. Hidden
+on fixed-bias amps.`,
 
     boost: `A drive pedal built into the amp's input, run inside the amp's own oversampled circuit. *TS808 OD* is an
 Ibanez Tube Screamer, *Super OD* a Boss SD-1, *Chiron OD* a Klon Centaur, *Treble Booster* a Dallas Rangemaster,
@@ -434,8 +440,8 @@ before the first tube (the stack shapes what the whole preamp distorts: tighter 
 after the first gain stage, *Post* after the last preamp stage (the stack shapes the finished distortion, more like
 an EQ). *Stock* is where the schematic has it.`,
 
-    t2plate: `The corner of the plate-bypass cap on the last preamp stage that has one (the SLO-100's cold clipper, the
-5150III, the Quick Rod), as a percentage of stock. This cap rolls off that stage's treble: above 100 % the roll-off
+    t2plate: `The corner of the plate-bypass cap on the last preamp stage that has one (the cold clipper of the SLO-100
+and the Rectifiers, the Mark IIC+'s lead stage, the 5150III, the Quick Rod), as a percentage of stock. This cap rolls off that stage's treble: above 100 % the roll-off
 moves up (more fizz and edge), below it the distortion gets smoother and darker.`,
 
     cfcomp: `How much grid current the cathode follower driving the tone stack draws, as a percentage of stock. When the
@@ -470,7 +476,8 @@ its hardest distortion.`,
 
     mvloc: `Moves the master volume. *Stock* is where the circuit has it; *Post PI* makes it a divider after the phase
 inverter, so the inverter is driven fully whatever the Master, and turning the master down keeps the inverter's own
-distortion. Shown on push-pull amps that have a master.`,
+distortion. Shown on push-pull amps that have a master; where the master belongs to one channel, it acts while that
+channel plays.`,
 
     outmode: `What the amp's output feeds. *FRFR* is for headphones, studio monitors and full-range speakers through a
 Cab block. *SS Power Amp + Cab* is for a solid-state power amp into a real guitar cabinet: it turns off Speaker Drive,

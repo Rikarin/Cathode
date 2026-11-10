@@ -216,7 +216,7 @@ public static class Dsl100 {
             (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
         net.Supply(rail, V1Rail);
         net.Resistor(rail, plate, 100e3);
-        net.Capacitor(plate, rail, 470e-12);
+        net.Capacitor(plate, rail, 470e-12, CapacitorRole.Plate);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.8e3);
         net.Capacitor(cathode, bypass, 1e-6);
         net.Resistor(bypass, StageNetlist.Ground, 10e3);

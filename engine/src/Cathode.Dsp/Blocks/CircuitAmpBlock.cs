@@ -175,7 +175,8 @@ namespace Cathode.Dsp.Blocks;
 ///         </item>
 ///         <item>
 ///             Generic switches where a model has no circuit of its own: <b>Presence Shift</b> (the presence
-///             frequency an octave down), <b>Fat</b> (the stack's frequencies down by 0.6), <b>Input Cut</b> (a 150 Hz
+///             frequency an octave down, on a model whose power amp has a presence network), <b>Fat</b> (the stack's
+///             frequencies down by 0.6, on a model with a tone stack in its preamp), <b>Input Cut</b> (a 150 Hz
 ///             input high-pass at least), <b>High Treble</b> (5 flat: a ±12 dB shelf at 3 kHz before the power amp)
 ///             and <b>Overdrive</b> (0: up to 20 dB more swing into the last gain stage).
 ///         </item>
@@ -201,7 +202,8 @@ namespace Cathode.Dsp.Blocks;
 ///             over all three, and <b>Plate Suppressor Diodes</b>.
 ///         </item>
 ///         <item>
-///             <b>Master Location</b> (Stock, or Post PI: the master as a divider after the phase inverter).
+///             <b>Master Location</b> (Stock, or Post PI: the master as a divider after the phase inverter; where
+///             the master belongs to one channel, while that channel plays).
 ///         </item>
 ///         <item>
 ///             <b>Output Mode</b> (FRFR; SS Power Amp + Cab leaves the speaker stages to the real cab), Speaker load
@@ -359,14 +361,7 @@ public sealed partial class CircuitAmpBlock
     const double PreampFullScale = 50;
 
     /// <summary>The Preamp Tube choice after Stock.</summary>
-    static readonly TriodeModel?[] PreampTubes = [
-        null,
-        TriodeModel.Ecc83,
-        TriodeModel.TwelveAY7,
-        TriodeModel.FiveSevenFiveOne,
-        TriodeModel.Ecc81,
-        TriodeModel.Ecc82
-    ];
+    static readonly TriodeModel?[] PreampTubes = [null, ..PreampSettings.Substitutes];
 
     /// <summary>
     ///     Per model, which generic advanced controls act on it (<see cref="AmpFeatures" />), looked up here once so
@@ -468,12 +463,9 @@ public sealed partial class CircuitAmpBlock
 
     static CircuitAmpBlock() {
         // Every tube table a setting can ask for, built here (control thread), so that changing one on the audio
-        // thread only looks it up.
-        foreach (var tube in PreampTubes) {
-            if (tube is { } model) {
-                TriodeTables.For(model);
-            }
-        }
+        // thread only looks it up. A stage of paralleled triodes builds its own as it is built
+        // (PreampSettings.Prepare).
+        PreampSettings.Prepare(TriodeModel.Ecc83);
 
         foreach (var tube in PowerTubes) {
             if (tube is { } model) {
@@ -734,12 +726,14 @@ public sealed partial class CircuitAmpBlock
         static double Hardness(float value) => Math.Pow(2, (value - 5) / 2.5);
 
         var design = Channel.Design;
-        var postInverter = (int)Params.Current(MasterLocation) == MasterPostInverter && features.PostMaster;
-        var masterRotation =
-            Math.Min(Knob(Params.Advance(Master, frames)) * Percent(Params.Advance(MasterTrim, frames)), 1);
         var switch1 = Params.Current(Switch1) >= 0.5f;
         var switch2 = Params.Current(Switch2) >= 0.5f;
         var switch3 = Params.Current(Switch3) >= 0.5f;
+        // The master moves after the inverter only while the playing channel has one to move.
+        var postInverter = (int)Params.Current(MasterLocation) == MasterPostInverter
+            && features.HasPostMaster(switch1, switch2, switch3);
+        var masterRotation =
+            Math.Min(Knob(Params.Advance(Master, frames)) * Percent(Params.Advance(MasterTrim, frames)), 1);
         var preamp = new AmpControls(
             Knob(Params.Advance(Gain, frames)),
             Knob(Params.Advance(Bass, frames)),
@@ -790,6 +784,13 @@ public sealed partial class CircuitAmpBlock
             postInverter ? postMaster.Fraction(masterRotation) : 1
         );
 
+        // Presence Freq and Presence Shift move a presence network: stock on a model without one.
+        var presenceFrequency = Percent(Params.Advance(PresenceFrequency, frames))
+            * (Params.Current(PresenceShift) >= 0.5f ? PresenceShiftFactor : 1);
+        if (!features.Presence) {
+            presenceFrequency = 1;
+        }
+
         var excursion = Percent(Params.Current(MasterExcursion));
         var fat = Params.Current(Fat) >= 0.5f && features.Fat;
         var stackType = (int)Params.Current(StackType);
@@ -831,8 +832,7 @@ public sealed partial class CircuitAmpBlock
             Percent(Params.Current(SpeakerPeak)),
             Percent(Params.Current(SpeakerHigh)),
             Percent(Params.Current(SpeakerImpedance)),
-            Percent(Params.Advance(PresenceFrequency, frames))
-            * (Params.Current(PresenceShift) >= 0.5f && features.PresenceShift ? PresenceShiftFactor : 1),
+            presenceFrequency,
             Percent(Params.Advance(DepthFrequency, frames)),
             variac,
             Percent(Params.Current(SupplyTime)),
@@ -966,22 +966,28 @@ public sealed partial class CircuitAmpBlock
 
 /// <summary>
 ///     Which of the Circuit Amp's generic advanced controls a model takes (<see cref="AmpFeatures.Has" />).
+///     <c>PostMaster</c> says under which settings of Switch 1 to 3 Master Location acts
+///     (<see cref="AmpFeatures.MasterPaths" />), 0 where the model does not take it.
 /// </summary>
 readonly record struct AdvancedFeatures(
-    bool PostMaster,
+    int PostMaster,
     bool Fat,
-    bool PresenceShift,
+    bool Presence,
     bool InputCut,
     bool Overdrive,
     bool HighTreble
 ) {
     public static AdvancedFeatures Of(AmpDesign design) =>
         new(
-            AmpFeatures.Has(design, "mvloc"),
+            AmpFeatures.Has(design, "mvloc") ? AmpFeatures.MasterPaths(design) : 0,
             AmpFeatures.Has(design, "fatsw"),
             AmpFeatures.Has(design, "presshift"),
             AmpFeatures.Has(design, "cutsw"),
             AmpFeatures.Has(design, "overdrive"),
             AmpFeatures.Has(design, "hitreble")
         );
+
+    /// <summary>Whether Master Location acts with the switches as given: the playing channel has a master.</summary>
+    public bool HasPostMaster(bool switch1, bool switch2, bool switch3) =>
+        (PostMaster >> ((switch1 ? 1 : 0) | (switch2 ? 2 : 0) | (switch3 ? 4 : 0)) & 1) != 0;
 }

@@ -139,7 +139,7 @@ public static class SilverJubilee {
         net.Resistor(grid, relay, 220e3);
         net.Supply(rail, PreampSupply);
         net.Resistor(rail, plate, 100e3);
-        net.Capacitor(rail, plate, 470e-12);
+        net.Capacitor(rail, plate, 470e-12, CapacitorRole.Plate);
         net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
         net.Capacitor(cathode, StageNetlist.Ground, 10e-6);

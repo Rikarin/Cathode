@@ -173,9 +173,19 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
 
     [Fact]
     public void Generic_switches_hide_where_the_model_has_its_own() {
-        var labels = CircuitAmpBlock.Info.Params.Single(static p => p.Id == "fatsw").TypeLabels!;
+        // The generic Fat stands in where the model has no Fat switch, and needs a tone stack in the preamp to move
+        // (the Major's sits in its power amp's loop stage, out of reach).
+        string[] noStack = ["AC15", "Champ 5F1", "JMP-1", "Major 1967", "Tiny Terror"];
+        var fat = CircuitAmpBlock.Info.Params.Single(static p => p.Id == "fatsw").TypeLabels!;
+        var stack = CircuitAmpBlock.Info.Params.Single(static p => p.Id == "stackfreq").TypeLabels!;
         for (var type = 0; type < AmpDesign.All.Count; type++) {
-            Assert.Equal(AmpDesign.All[type].Panel.HasSwitch("Fat"), labels[type] == string.Empty);
+            var design = AmpDesign.All[type];
+            var stackless = noStack.Contains(design.Name);
+            Assert.True(stackless == (stack[type] == string.Empty), $"{design.Name}: Stack Freq '{stack[type]}'");
+            Assert.True(
+                (design.Panel.HasSwitch("Fat") || stackless) == (fat[type] == string.Empty),
+                $"{design.Name}: Fat '{fat[type]}'"
+            );
         }
     }
 
@@ -198,6 +208,36 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
         var stock = Render(type, input);
         Assert.True(Residual(stock, Render(type, input, (CircuitAmpBlock.Fat, 1f))) > -40);
         Assert.True(Residual(stock, Render(type, input, (CircuitAmpBlock.PresenceShift, 1f))) > -60);
+    }
+
+    [Theory]
+    [InlineData("JC-120", false)] // a solid-state power amp
+    [InlineData("SVT", false)] // no presence circuit: a placeholder cap
+    [InlineData("Portaflex B-15N", false)]
+    [InlineData("Bass 400", false)] // no feedback either
+    [InlineData("Legacy VL100", false)]
+    [InlineData("Twin Reverb", false)]
+    [InlineData("Subway Blues", false)]
+    [InlineData("Mark IIC+", true)] // its Treble Shift and Bass Shift are not presence shifts
+    [InlineData("Dual Rectifier", true)] // a fixed presence network, no knob on it
+    [InlineData("AC30", true)] // once the Feedback knob puts the loop in
+    public void Presence_shift_shows_where_the_power_amp_has_a_presence_network(string model, bool shown) {
+        var design = AmpDesign.All.Single(a => a.Name == model);
+        var type = Index(design);
+        var parameter = CircuitAmpBlock.Info.Params[CircuitAmpBlock.PresenceShift];
+        Assert.Equal(shown ? "Presence Shift" : string.Empty, parameter.TypeLabels![type]);
+        Assert.Equal(shown, AmpFeatures.Has(design, "presshift"));
+
+        // Shown, it is heard (with the loop closed and driven); hidden, it does nothing at all.
+        var input = CircuitAmpBlockTests.Chord(9_600, 0.1f);
+        (int, float)[] driven = [(CircuitAmpBlock.Master, 10f), (CircuitAmpBlock.Feedback, 10f)];
+        var stock = Render(type, input, driven);
+        var shifted = Render(type, input, [..driven, (CircuitAmpBlock.PresenceShift, 1f)]);
+        if (shown) {
+            Assert.True(Residual(stock, shifted) > -70, $"{Residual(stock, shifted):0.0}");
+        } else {
+            Assert.Equal(stock, shifted);
+        }
     }
 
     [Fact]
@@ -238,6 +278,74 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
         var opened = SteadyDb(Render(type, tone, (CircuitAmpBlock.Gain, 3f), (CircuitAmpBlock.Triode2Plate, 400f)));
         Assert.True(opened > stock + 0.5, $"{opened:0.0} against {stock:0.0} dB");
         Assert.False(AmpFeatures.Has(Blackface.Design, "t2plate"));
+    }
+
+    [Fact]
+    public void Every_cap_across_a_gain_stages_plate_resistor_takes_the_plate_frequency() {
+        // A cap from a triode's plate to its supply rail, on a stage whose plate drives something (a follower's is
+        // decoupling), is a plate-bypass cap: tagged, so that Triode 2 Plate Freq shows on the model and scales it.
+        static IEnumerable<NetworkStageDesign> Networks(IEnumerable<AmpStageDesign> stages) =>
+            stages.SelectMany(static s => s switch {
+                    NetworkStageDesign network => [network],
+                    ChannelSwitchStageDesign channels => Networks(channels.Off.Concat(channels.On)),
+                    _ => []
+                }
+            );
+
+        var found = new List<string>();
+        foreach (var design in AmpDesign.All) {
+            foreach (var network in Networks(design.Preamp)) {
+                var net = network.Netlist;
+                var rails = net.Elements.Where(static e => e.Kind == ElementKind.Supply).Select(static e => e.A);
+                var plates = net.Elements.Where(static e => e.Kind == ElementKind.Triode).Select(static e => e.A);
+                foreach (var cap in net.Elements.Where(static e => e.Kind == ElementKind.Capacitor)) {
+                    var plate = plates.Contains(cap.A) ? cap.A : cap.B;
+                    var rail = plate == cap.A ? cap.B : cap.A;
+                    if (!plates.Contains(plate) || !rails.Contains(rail)) {
+                        continue;
+                    }
+
+                    var drives = net.Output == plate
+                        || net.Elements.Any(e =>
+                            e.Kind is ElementKind.Resistor or ElementKind.Capacitor
+                            && (e.A == plate || e.B == plate)
+                            && !rails.Contains(e.A)
+                            && !rails.Contains(e.B)
+                        );
+                    if (!drives) {
+                        Assert.Equal(CapacitorRole.Plain, cap.CapacitorRole);
+                        continue;
+                    }
+
+                    found.Add(design.Name);
+                    Assert.True(
+                        cap.CapacitorRole == CapacitorRole.Plate,
+                        $"{design.Name}, {network.Name}: {cap.Value:0.##e0} F across the plate resistor"
+                    );
+                    Assert.True(AmpFeatures.Has(design, "t2plate"), design.Name);
+                }
+            }
+        }
+
+        string[] expected = [
+            "Dual Rectifier", "Dual Rectifier 3-Ch", "Triple Rectifier", "Rect-o-Verb", "Mark IIC+", "Mark IV",
+            "Legacy VL100", "Prometheus", "Quick Rod"
+        ];
+        Assert.Empty(expected.Except(found));
+    }
+
+    [Theory]
+    [InlineData("Dual Rectifier")] // the cold clipper's 1 nF
+    [InlineData("Mark IIC+")] // 1 nF across the lead stage's 270k
+    [InlineData("Legacy VL100")]
+    [InlineData("Prometheus")]
+    public void Plate_frequency_acts_on_a_network_stages_plate_cap(string model) {
+        var type = Index(AmpDesign.All.Single(a => a.Name == model));
+        Assert.NotEqual(string.Empty, CircuitAmpBlock.Info.Params[CircuitAmpBlock.Triode2Plate].TypeLabels![type]);
+        var input = CircuitAmpBlockTests.Chord(9_600, 0.1f);
+        var stock = Render(type, input);
+        var opened = Render(type, input, (CircuitAmpBlock.Triode2Plate, 400f));
+        Assert.True(Residual(stock, opened) > -50, $"{Residual(stock, opened):0.0}");
     }
 
     [Fact]
@@ -319,6 +427,36 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
         var post = Render(type, input, [..quietMaster, (CircuitAmpBlock.MasterLocation, 1f)]);
         Assert.True(Residual(pre, post) > -40, $"{Residual(pre, post):0.0}");
         Assert.True(Analysis.AllFinite(post));
+    }
+
+    [Theory]
+    [InlineData("Bassman 135")] // both channels end on the Master
+    [InlineData("Hot Rod Deluxe")] // the drive channel's
+    [InlineData("ODS 97")]
+    [InlineData("Hot Cat 30")]
+    public void Post_inverter_master_follows_a_master_inside_a_channel_switch(string model) {
+        var design = AmpDesign.All.Single(a => a.Name == model);
+        var type = Index(design);
+        Assert.True(AmpFeatures.Has(design, "mvloc"));
+        Assert.NotEqual(string.Empty, CircuitAmpBlock.Info.Params[CircuitAmpBlock.MasterLocation].TypeLabels![type]);
+        var paths = AmpFeatures.MasterPaths(design);
+        var input = CircuitAmpBlockTests.Chord(9_600, 0.5f);
+        // Post PI acts in a channel that has the master and leaves one without it alone.
+        for (var channel = 0; channel < 2; channel++) {
+            (int, float)[] quietMaster = [
+                (CircuitAmpBlock.Gain, 8f), (CircuitAmpBlock.Master, 3f), (CircuitAmpBlock.Switch1, channel)
+            ];
+            var pre = Render(type, input, quietMaster);
+            var post = Render(type, input, [..quietMaster, (CircuitAmpBlock.MasterLocation, 1f)]);
+            Assert.True(Analysis.AllFinite(post));
+            var has = (paths >> channel & 1) != 0;
+            output.WriteLine($"{model}, Switch 1 at {channel}: master {has}, {Residual(pre, post):0.0} dB");
+            if (has) {
+                Assert.True(Residual(pre, post) > -40, $"Switch 1 at {channel}: {Residual(pre, post):0.0}");
+            } else {
+                Assert.Equal(pre, post);
+            }
+        }
     }
 
     [Fact]

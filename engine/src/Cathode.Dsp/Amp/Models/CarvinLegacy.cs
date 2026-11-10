@@ -192,7 +192,7 @@ public static class CarvinLegacy {
             (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
         net.Supply(supply, Rail);
         net.Resistor(supply, plate, 220e3);
-        net.Capacitor(supply, plate, 560e-12);
+        net.Capacitor(supply, plate, 560e-12, CapacitorRole.Plate);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
         net.Capacitor(cathode, StageNetlist.Ground, 1e-6);
         net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
@@ -212,7 +212,7 @@ public static class CarvinLegacy {
         var (supply, plate, cathode) = (net.Node(), net.Node(), net.Node());
         net.Supply(supply, Rail);
         net.Resistor(supply, plate, 150e3);
-        net.Capacitor(supply, plate, 1.12e-9);
+        net.Capacitor(supply, plate, 1.12e-9, CapacitorRole.Plate);
         net.CathodeResistor(cathode, StageNetlist.Ground, 3.3e3);
         net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
         net.Output = plate;
@@ -240,7 +240,7 @@ public static class CarvinLegacy {
         net.Resistor(grid, StageNetlist.Ground, 470e3);
         net.Supply(supply, Rail);
         net.Resistor(supply, plate, 220e3);
-        net.Capacitor(supply, plate, 560e-12);
+        net.Capacitor(supply, plate, 560e-12, CapacitorRole.Plate);
         net.CathodeResistor(cathode, StageNetlist.Ground, 2.2e3);
         net.Capacitor(cathode, StageNetlist.Ground, 47e-6);
         net.Triode(plate, grid, cathode, TriodeModel.Ecc83);

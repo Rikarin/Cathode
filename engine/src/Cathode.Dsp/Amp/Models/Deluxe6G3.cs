@@ -125,7 +125,7 @@ public static class Deluxe6G3 {
         net.Supply(rail, Preamp);
         net.Resistor(rail, plate, 220e3);
         if (normal) {
-            net.Capacitor(rail, plate, 0.003e-6);
+            net.Capacitor(rail, plate, 0.003e-6, CapacitorRole.Plate);
         }
 
         net.CathodeResistor(cathode, StageNetlist.Ground, 2 * 1.5e3);

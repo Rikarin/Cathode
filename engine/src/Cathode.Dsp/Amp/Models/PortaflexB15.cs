@@ -62,6 +62,7 @@ public static class PortaflexB15 {
     ) {
         Panel = new() {
             Gain = "Volume",
+            Middle = null,
             Presence = null,
             Depth = null,
             Cut = null,

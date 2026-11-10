@@ -183,7 +183,7 @@ public static class Prometheus {
         net.Supply(supply, Preamp);
         net.Resistor(supply, plate, plateResistor);
         if (plateBypass > 0) {
-            net.Capacitor(supply, plate, plateBypass);
+            net.Capacitor(supply, plate, plateBypass, CapacitorRole.Plate);
         }
 
         net.CathodeResistor(cathode, StageNetlist.Ground, cathodeResistor);

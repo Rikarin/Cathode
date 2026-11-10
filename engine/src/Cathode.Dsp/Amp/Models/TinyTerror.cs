@@ -110,7 +110,7 @@ public static class TinyTerror {
         net.Capacitor(top, gain, 100e-12, CapacitorRole.Bright);
         net.Supply(rail, PreampSupply);
         net.Resistor(rail, plate, 100e3);
-        net.Capacitor(rail, plate, 470e-12);
+        net.Capacitor(rail, plate, 470e-12, CapacitorRole.Plate);
         net.Triode(plate, gain, cathode, TriodeModel.Ecc83);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
         net.Capacitor(cathode, StageNetlist.Ground, 22e-6);

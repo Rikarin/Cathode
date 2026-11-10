@@ -193,7 +193,7 @@ static class MesaParts {
         net.Supply(rail, supply);
         net.Resistor(rail, plate, 270e3);
         if (plateCap > 0) {
-            net.Capacitor(rail, plate, plateCap);
+            net.Capacitor(rail, plate, plateCap, CapacitorRole.Plate);
         }
 
         net.CathodeResistor(cathode, StageNetlist.Ground, 3.3e3);
