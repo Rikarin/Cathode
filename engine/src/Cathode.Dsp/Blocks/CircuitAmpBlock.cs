@@ -233,6 +233,15 @@ namespace Cathode.Dsp.Blocks;
 ///         parameters are set and periodically for modifiers). The audio thread never builds one: until the chosen
 ///         type's channel exists it plays the one it has. A channel built stays built, as all of them used to be.
 ///     </para>
+///     <para>
+///         The same refresh puts the channel the audio thread is about to switch to at its operating point
+///         (<see cref="Settle(int)" />): the chosen type's while another plays, and, when a setting that resets the
+///         playing channel moves (Preamp Tube, Power Tube, the triode switch, Tonestack Location), a second channel
+///         of the playing type, which the audio thread swaps in. On a block the host refreshes, the audio thread
+///         waits for that (it plays on as it is, up to a quarter of a second) and then switches without solving an
+///         operating point; a type change puts the knobs at their targets, since the new amp starts from rest
+///         anyway. A block nobody refreshes switches and resets at once, solving on the calling thread, as before.
+///     </para>
 /// </remarks>
 public sealed partial class CircuitAmpBlock
     : DspBlock, IOversampledBlock, ICabFollower, IControlRefresh, IBlockMeters {
@@ -401,7 +410,19 @@ public sealed partial class CircuitAmpBlock
         PentodeModel.SixtyFiveFifty
     ];
 
+    const int Free = 0; // settling: no thread is switching or settling a channel
+    const int Control = 1; // the control thread is settling a channel that is not playing
+    const int Audio = 2; // the audio thread is switching channels
+    const long NoKey = -1;
+
+    /// <summary>How long the audio thread waits for the control thread to settle a channel, in seconds.</summary>
+    const double HoldSeconds = 0.25;
+
     readonly AmpChannel?[] channels = new AmpChannel?[AmpDesign.All.Count]; // built on first use (control thread)
+
+    // A second channel per type, built by the control thread when a setting that resets the playing channel moves
+    // (a tube, the output tubes' wiring, Tonestack Location): it is settled there and swapped in.
+    readonly AmpChannel?[] spares = new AmpChannel?[AmpDesign.All.Count];
     readonly Lock building = new();
     readonly Oversampler2x oversampler = new(1);
     readonly Oversampler4x oversampler4 = new(1);
@@ -420,6 +441,15 @@ public sealed partial class CircuitAmpBlock
     OutputStage output;
     int activeType = -1;
     bool prepared;
+    int settling; // Free, Control or Audio: who may touch the channels that are not playing
+    int refreshed; // 1 once Refresh has run: a control thread settles channels for the audio thread
+    int liveType = -1; // (audio to control) the playing type
+    long liveKey = NoKey; // (audio to control) the reset key the playing channel runs with
+    int settledType = -1; // (control to audio) the type whose idle channel is settled for the present targets
+    long spareKey = NoKey; // (control to audio) the reset key the playing type's spare is settled for
+    int heldType; // frames a type change has waited for the control thread
+    int heldSpare; // frames a resetting setting has waited for it
+    int holdFrames = 12_000;
     int phase; // position on the sub-block grid
     double tremoloPhase;
     double outputScale = 1;
@@ -653,6 +683,10 @@ public sealed partial class CircuitAmpBlock
                 if (Volatile.Read(ref channels[i]) is { } channel) {
                     faults += channel.Faults;
                 }
+
+                if (Volatile.Read(ref spares[i]) is { } spare) {
+                    faults += spare.Faults;
+                }
             }
 
             return faults;
@@ -661,14 +695,39 @@ public sealed partial class CircuitAmpBlock
 
     public void ReadMeters(Span<float> values) => Faults.Write(values);
 
+    /// <summary>
+    ///     The DC operating-point work every channel of the block has done since it was made
+    ///     (<see cref="AmpChannel.OperatingPointSolves" />, the spares' included), whichever thread did it; for tests
+    ///     and diagnostics: the audio thread's switch to a channel the control thread has settled adds nothing.
+    /// </summary>
+    public long OperatingPointSolves {
+        get {
+            var solves = 0L;
+            for (var i = 0; i < channels.Length; i++) {
+                solves += (Volatile.Read(ref channels[i])?.OperatingPointSolves ?? 0)
+                    + (Volatile.Read(ref spares[i])?.OperatingPointSolves ?? 0);
+            }
+
+            return solves;
+        }
+    }
+
     /// <summary>The counts stay while the block is bypassed.</summary>
     public void ReadRestingMeters(Span<float> values) => ReadMeters(values);
 
     /// <summary>The Cab block whose cabinet the Auto speaker load follows (<see cref="ICabFollower" />).</summary>
     public void FollowCab(CabBlock? cab) => this.cab = cab;
 
-    /// <summary>Control thread: builds the channel of the type the parameters now ask for, if it is new.</summary>
-    public void Refresh() => Build(TypeIndex(Params.GetTarget(Type)));
+    /// <summary>
+    ///     Control thread: builds the channel of the type the parameters now ask for, if it is new, and settles the
+    ///     channel the audio thread will switch to (<see cref="Settle(int)" />), so that the switch solves nothing.
+    /// </summary>
+    public void Refresh() {
+        var type = TypeIndex(Params.GetTarget(Type));
+        Build(type);
+        Volatile.Write(ref refreshed, 1);
+        Settle(type);
+    }
 
     /// <summary>
     ///     Control thread: the channel of <paramref name="type" />, built (and set to the block's rate once it is
@@ -680,30 +739,159 @@ public sealed partial class CircuitAmpBlock
                 return built;
             }
 
-            var channel = new AmpChannel(AmpDesign.All[type], 96_000);
-            if (prepared) {
-                channel.SetSampleRate(Spec.SampleRate * Oversampling);
-            }
-
+            var channel = Create(type);
             Volatile.Write(ref channels[type], channel);
             return channel;
+        }
+    }
+
+    /// <summary>A new channel of <paramref name="type" /> at the block's rate (control thread, locked).</summary>
+    AmpChannel Create(int type) {
+        var channel = new AmpChannel(AmpDesign.All[type], 96_000);
+        if (prepared) {
+            channel.SetSampleRate(Spec.SampleRate * Oversampling);
+        }
+
+        return channel;
+    }
+
+    /// <summary>
+    ///     Control thread: puts the channel the audio thread is about to switch to at its operating point for the
+    ///     parameters' targets, so that the audio thread's own reset finds every operating point already solved
+    ///     (<see cref="AmpChannel.Reset" /> keeps each with what it was solved from) and costs microseconds, not the
+    ///     half millisecond and more of a supply bisection or a preamp's worth of Newton solves.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         A type change: the target type's channel, while it is not the one playing. A setting that resets the
+    ///         playing channel (Preamp Tube, Power Tube, the triode switch, Tonestack Location): a second channel of
+    ///         the playing type, the spare, built here the first time, which the audio thread swaps in. A swap is a
+    ///         reset: both start the channel from its operating point with every state cleared.
+    ///     </para>
+    ///     <para>
+    ///         The two threads never touch a channel together. The audio thread owns the playing channel; every
+    ///         other channel belongs to whoever holds <c>settling</c>, which the control thread takes for the length
+    ///         of a settle and the audio thread for the few microseconds of a switch. If the audio thread finds it
+    ///         taken it plays on and tries again at the next block; if the control thread does, it leaves the settle
+    ///         to the next refresh.
+    ///     </para>
+    /// </remarks>
+    void Settle(int type) {
+        if (Interlocked.CompareExchange(ref settling, Control, Free) != Free) {
+            return;
+        }
+
+        try {
+            lock (building) {
+                if (!prepared || channels[type] is not { } channel) {
+                    return;
+                }
+
+                // The playing type cannot change while this thread holds the claim.
+                var snapshot = Compute(channel, Features[type], 0, true);
+                if (Volatile.Read(ref liveType) != type) {
+                    Settle(channel, snapshot);
+                    Volatile.Write(ref settledType, type);
+                    return;
+                }
+
+                Volatile.Write(ref settledType, -1);
+                if (snapshot.ResetKey == Volatile.Read(ref liveKey)
+                    || snapshot.ResetKey == Volatile.Read(ref spareKey)) {
+                    return;
+                }
+
+                if (spares[type] is not { } spare) {
+                    spare = Create(type);
+                    Volatile.Write(ref spares[type], spare);
+                }
+
+                Settle(spare, snapshot);
+                Volatile.Write(ref spareKey, snapshot.ResetKey);
+            }
+        } finally {
+            Volatile.Write(ref settling, Free);
+        }
+    }
+
+    /// <summary>
+    ///     <paramref name="channel" /> with <paramref name="snapshot" />'s knobs and settings, at its operating point.
+    ///     Reset until the supply's solve has nothing left to do (a cathode-biased amp's starts from the last one's
+    ///     answer, so its second reset solves once more): the audio thread's reset then finds it all as kept.
+    /// </summary>
+    static void Settle(AmpChannel channel, in AmpSnapshot snapshot) {
+        channel.Apply(snapshot.PreampSettings, snapshot.PowerSettings, snapshot.ChannelSettings);
+        channel.Configure(snapshot.Preamp, snapshot.Power);
+        for (var pass = 0; pass < 4; pass++) {
+            var solves = channel.OperatingPointSolves;
+            channel.Reset();
+            if (channel.OperatingPointSolves == solves) {
+                break;
+            }
         }
     }
 
     static int TypeIndex(float type) => Math.Clamp((int)type, 0, AmpDesign.All.Count - 1);
 
     /// <summary>
-    ///     Switches to amp <paramref name="type" />, which starts at its operating point; until its channel is built
-    ///     (on the control thread) the amp stays as it is and the next block tries again.
+    ///     Whether the audio thread may switch to <paramref name="type" /> now: at once on a block no control thread
+    ///     refreshes, else once that thread has settled the type's channel for the present targets, or after
+    ///     <see cref="HoldSeconds" /> without it (the switch then solves what moved here, as it always did).
     /// </summary>
-    void Select(int type) {
-        if (Volatile.Read(ref channels[TypeIndex(type)]) is not { } channel) {
+    bool Settled(int type, int frames) {
+        if (Volatile.Read(ref refreshed) == 0 || Volatile.Read(ref settledType) == TypeIndex(type)) {
+            heldType = 0;
+            return true;
+        }
+
+        heldType += frames;
+        if (heldType < holdFrames) {
+            return false;
+        }
+
+        heldType = 0;
+        return true;
+    }
+
+    /// <summary>
+    ///     The claim on the channels that are not playing, for a switch. The audio thread does not wait for it
+    ///     (<paramref name="wait" /> false: the control thread is settling a channel, a millisecond or so); a reset
+    ///     does.
+    /// </summary>
+    bool Claim(bool wait) {
+        var spin = new SpinWait();
+        while (Interlocked.CompareExchange(ref settling, Audio, Free) != Free) {
+            if (!wait) {
+                return false;
+            }
+
+            spin.SpinOnce();
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    ///     Switches to amp <paramref name="type" />, which starts at its operating point; until its channel is built
+    ///     (on the control thread), and while that thread is settling a channel, the amp stays as it is and the next
+    ///     block tries again.
+    /// </summary>
+    void Select(int type, bool wait = false) {
+        var index = TypeIndex(type);
+        if (Volatile.Read(ref channels[index]) is null || !Claim(wait)) {
             return;
         }
 
+        if (activeType >= 0) {
+            // A switch while playing: the new amp starts with its knobs where they are going, not gliding there from
+            // the previous amp's positions. Its channel starts from rest either way, and the control thread settled
+            // it for these targets, so the reset below finds every operating point as it was kept.
+            Params.SnapToTargets();
+        }
+
         activeType = type;
-        Channel = channel;
-        features = Features[TypeIndex(type)];
+        Channel = channels[index]!;
+        features = Features[index];
         var design = Channel.Design;
         var power = design.Power;
         var trim = Decibels.ToGain(design.OutputTrimDb);
@@ -715,8 +903,63 @@ public sealed partial class CircuitAmpBlock
         // With the power amp off, full scale is its input's: 50 V at a tube amp's inverter, a solid-state amp's swing
         // over its gain.
         preampScale = design.SolidState is { } input ? trim * input.Gain / input.Swing : trim / PreampFullScale;
-        Configure(0);
-        Channel.Reset();
+        Volatile.Write(ref liveType, index);
+        Volatile.Write(ref liveKey, NoKey);
+        Volatile.Write(ref spareKey, NoKey);
+        Volatile.Write(ref settledType, -1);
+        heldSpare = 0;
+        try {
+            Configure(0, true);
+            Channel.Reset();
+        } finally {
+            Volatile.Write(ref settling, Free);
+        }
+    }
+
+    /// <summary>What a setting that resets the playing channel does on the audio thread this sub-block.</summary>
+    enum SpareAction {
+        /// <summary>Reset the playing channel in place: nobody settles a spare, or it did not come in time.</summary>
+        InPlace,
+
+        /// <summary>Play on with the settings as they were: the control thread is settling the spare.</summary>
+        Wait,
+
+        /// <summary>The spare, settled for these settings, is now the playing channel.</summary>
+        Swapped
+    }
+
+    /// <summary>
+    ///     A setting that resets the playing channel has moved (<paramref name="key" /> is the new settings' reset
+    ///     key): swaps in the spare if the control thread has settled it for that key, waits for it on a block that
+    ///     thread refreshes, and gives up after <see cref="HoldSeconds" />.
+    /// </summary>
+    SpareAction TakeSpare(long key, int frames) {
+        if (Volatile.Read(ref refreshed) == 0) {
+            return SpareAction.InPlace;
+        }
+
+        if (Volatile.Read(ref spareKey) == key && Claim(false)) {
+            var index = TypeIndex(activeType);
+            if (Volatile.Read(ref spareKey) == key && spares[index] is { } spare) {
+                Volatile.Write(ref spares[index], Channel);
+                Volatile.Write(ref channels[index], spare);
+                Channel = spare;
+                Volatile.Write(ref spareKey, NoKey);
+                Volatile.Write(ref settling, Free);
+                heldSpare = 0;
+                return SpareAction.Swapped;
+            }
+
+            Volatile.Write(ref settling, Free);
+        }
+
+        heldSpare += frames;
+        if (heldSpare < holdFrames) {
+            return SpareAction.Wait;
+        }
+
+        heldSpare = 0;
+        return SpareAction.InPlace;
     }
 
     /// <summary>
@@ -738,65 +981,103 @@ public sealed partial class CircuitAmpBlock
         return Math.Clamp(bias + 0.5 * depth * Math.Sin(tremoloPhase), 0, 1);
     }
 
-    /// <summary>The knobs, advanced over <paramref name="frames" />, applied to the active amp.</summary>
-    void Configure(int frames) {
+    /// <summary>
+    ///     The knobs, advanced over <paramref name="frames" />, applied to the playing amp. A setting that resets the
+    ///     channel (<see cref="AmpChannel.NeedsReset" />) goes through the spare the control thread settles
+    ///     (<see cref="TakeSpare" />) unless this is the switch to a channel itself (<paramref name="switching" />).
+    /// </summary>
+    void Configure(int frames, bool switching = false) {
+        var snapshot = Compute(Channel, features, frames, false);
+        lineMaster = snapshot.LineMaster;
+        var swapped = false;
+        if (!switching
+            && Channel.NeedsReset(snapshot.PreampSettings, snapshot.PowerSettings, snapshot.ChannelSettings)) {
+            var action = TakeSpare(snapshot.ResetKey, frames);
+            if (action == SpareAction.Wait) {
+                Channel.Configure(snapshot.Preamp, snapshot.Power);
+                return;
+            }
+
+            swapped = action == SpareAction.Swapped;
+        } else {
+            heldSpare = 0;
+        }
+
+        Channel.Apply(snapshot.PreampSettings, snapshot.PowerSettings, snapshot.ChannelSettings);
+        Channel.Configure(snapshot.Preamp, snapshot.Power);
+        if (swapped) {
+            Channel.Reset(); // the spare starts from the operating point the control thread solved
+        }
+
+        Volatile.Write(ref liveKey, snapshot.ResetKey);
+    }
+
+    /// <summary>
+    ///     Every knob and setting of the block as <paramref name="channel" /> takes them: the parameters advanced
+    ///     over <paramref name="frames" /> on the audio thread, or (<paramref name="targets" />) their targets, for
+    ///     the control thread to settle a channel with, which then reads nothing of the audio thread's state.
+    /// </summary>
+    AmpSnapshot Compute(AmpChannel channel, in AdvancedFeatures has, int frames, bool targets) {
+        float Now(int id) => targets ? Params.GetTarget(id) : Params.Current(id);
+        float Glide(int id) => targets ? Params.GetTarget(id) : Params.Advance(id, frames);
+
         static double Knob(float value) => value / 10.0;
         static double Percent(float value) => value / 100.0;
 
         static double Hardness(float value) => Math.Pow(2, (value - 5) / 2.5);
 
-        var design = Channel.Design;
-        var switch1 = Params.Current(Switch1) >= 0.5f;
-        var switch2 = Params.Current(Switch2) >= 0.5f;
-        var switch3 = Params.Current(Switch3) >= 0.5f;
+        var design = channel.Design;
+        var switch1 = Now(Switch1) >= 0.5f;
+        var switch2 = Now(Switch2) >= 0.5f;
+        var switch3 = Now(Switch3) >= 0.5f;
         // The master moves after the inverter only while the playing channel has one to move.
         var masterLocation =
-            features.HasPostMaster(switch1, switch2, switch3) ? (int)Params.Current(MasterLocation) : 0;
+            has.HasPostMaster(switch1, switch2, switch3) ? (int)Now(MasterLocation) : 0;
         var postInverter = masterLocation == MasterPostInverter;
-        var preTriode = masterLocation == MasterPreTriode && Channel.HasGainStage;
+        var preTriode = masterLocation == MasterPreTriode && channel.HasGainStage;
         var masterRotation =
-            Math.Min(Knob(Params.Advance(Master, frames)) * Percent(Params.Advance(MasterTrim, frames)), 1);
+            Math.Min(Knob(Glide(Master)) * Percent(Glide(MasterTrim)), 1);
         // A three-position switch of the amp is two switches here: the panel settles a pair that is on on both sides.
         var preamp = design.Panel.Settle(
             new(
-                Knob(Params.Advance(Gain, frames)),
-                Knob(Params.Advance(Bass, frames)),
-                Knob(Params.Advance(Middle, frames)),
-                Knob(Params.Advance(Treble, frames)),
+                Knob(Glide(Gain)),
+                Knob(Glide(Bass)),
+                Knob(Glide(Middle)),
+                Knob(Glide(Treble)),
                 postInverter || preTriode ? 1 : masterRotation,
-                Params.Current(Bright) >= 0.5f,
-                Knob(Params.Advance(Control1, frames)),
-                Knob(Params.Advance(Control2, frames)),
+                Now(Bright) >= 0.5f,
+                Knob(Glide(Control1)),
+                Knob(Glide(Control2)),
                 switch1,
                 switch2,
                 switch3,
                 new(
-                    Params.Advance(Eq1, frames),
-                    Params.Advance(Eq1 + 1, frames),
-                    Params.Advance(Eq1 + 2, frames),
-                    Params.Advance(Eq1 + 3, frames),
-                    Params.Advance(Eq1 + 4, frames)
+                    Glide(Eq1),
+                    Glide(Eq1 + 1),
+                    Glide(Eq1 + 2),
+                    Glide(Eq1 + 3),
+                    Glide(Eq1 + 4)
                 ),
-                Presence: Knob(Params.Current(Presence))
+                Presence: Knob(Now(Presence))
             )
         );
         // The tremolo: the model's own oscillator where it has one (Speed in hertz, Intensity as the knob's rotation),
         // else the generic bias tremolo.
-        double tremoloRate = Params.Advance(TremoloRate, frames);
-        var tremoloDepth = Percent(Params.Advance(TremoloDepth, frames));
-        var ownTremolo = Channel.HasTremolo;
+        double tremoloRate = Glide(TremoloRate);
+        var tremoloDepth = Percent(Glide(TremoloDepth));
+        var ownTremolo = channel.HasTremolo;
         if (ownTremolo) {
             preamp = preamp with { TremoloRate = tremoloRate, TremoloDepth = tremoloDepth };
         }
 
-        lineMaster = features.PreampMaster && !postInverter ? postMaster.Fraction(masterRotation) : 1;
-        var feedback = Knob(Params.Advance(Feedback, frames));
+        var line = has.PreampMaster && !postInverter ? postMaster.Fraction(masterRotation) : 1;
+        var feedback = Knob(Glide(Feedback));
         if (design.Power.FeedbackOffSwitch is { } off && preamp.IsOn(off)) {
             feedback = 0;
         }
 
         // The feedback's presence pot: the Presence knob, or the model control its relays put there.
-        var presence = Knob(Params.Advance(Presence, frames));
+        var presence = Knob(Glide(Presence));
         if (design.Power.PresencePot is { } presencePot) {
             presence = preamp.Rotation(presencePot);
         }
@@ -807,12 +1088,13 @@ public sealed partial class CircuitAmpBlock
 
         var power = new PowerControls(
             presence,
-            Knob(Params.Advance(Depth, frames)),
-            Knob(Params.Advance(Cut, frames)),
-            Knob(Params.Advance(Sag, frames)),
-            ownTremolo
-                ? Params.Advance(Bias, frames) / 100.0
-                : Tremolo(Params.Advance(Bias, frames) / 100.0, tremoloRate, tremoloDepth, frames),
+            Knob(Glide(Depth)),
+            Knob(Glide(Cut)),
+            Knob(Glide(Sag)),
+            // The generic bias tremolo's phase is the audio thread's: a channel is settled at the knob's own bias.
+            ownTremolo || targets
+                ? Glide(Bias) / 100.0
+                : Tremolo(Glide(Bias) / 100.0, tremoloRate, tremoloDepth, frames),
             feedback,
             preamp.Master,
             ownTremolo ? tremoloRate : 0,
@@ -823,33 +1105,33 @@ public sealed partial class CircuitAmpBlock
 
         // Presence Freq and Presence Shift move a presence network: stock on a model without one.
         // Presence Shift is the model's own pull shift where its presence has one, else the generic octave.
-        var presenceShift = Params.Current(PresenceShift) >= 0.5f && features.Presence;
+        var presenceShift = Now(PresenceShift) >= 0.5f && has.Presence;
         var ownShift = design.Power.Feedback.Series is { ShiftCap: > 0 };
-        var presenceFrequency = Percent(Params.Advance(PresenceFrequency, frames))
+        var presenceFrequency = Percent(Glide(PresenceFrequency))
             * (presenceShift && !ownShift ? PresenceShiftFactor : 1);
-        if (!features.Presence) {
+        if (!has.Presence) {
             presenceFrequency = 1;
         }
 
-        var excursion = Percent(Params.Current(MasterExcursion));
-        var fat = Params.Current(Fat) >= 0.5f && features.Fat;
-        var stackType = (int)Params.Current(StackType);
+        var excursion = Percent(Now(MasterExcursion));
+        var fat = Now(Fat) >= 0.5f && has.Fat;
+        var stackType = (int)Now(StackType);
         var preampSettings = new PreampSettings(
-            PreampTubes[Math.Clamp((int)Params.Current(PreampTube), 0, PreampTubes.Length - 1)],
-            Percent(Params.Current(BrightCap)),
-            Percent(Params.Current(StackFrequency)) * (fat ? FatFactor : 1),
-            Math.Pow(2, -Percent(Params.Current(PreampBias))),
-            Hardness(Params.Current(PreampHardness)),
-            Percent(Params.Current(PreampExcursion)) * excursion,
+            PreampTubes[Math.Clamp((int)Now(PreampTube), 0, PreampTubes.Length - 1)],
+            Percent(Now(BrightCap)),
+            Percent(Now(StackFrequency)) * (fat ? FatFactor : 1),
+            Math.Pow(2, -Percent(Now(PreampBias))),
+            Hardness(Now(PreampHardness)),
+            Percent(Now(PreampExcursion)) * excursion,
             1,
-            Percent(Params.Current(FollowerCompression)),
-            Percent(Params.Current(FollowerHarmonics)),
+            Percent(Now(FollowerCompression)),
+            Percent(Now(FollowerHarmonics)),
             stackType > 0 ? AmpStacks.All[Math.Min(stackType, AmpStacks.All.Count) - 1] : null
         );
-        var speaker = (int)Params.Current(SpeakerCurve);
+        var speaker = (int)Now(SpeakerCurve);
         var speakerDesign = LoadFor(speaker, speaker == SpeakerAuto && cab is not null ? cab.DynaCab : (-1, -1));
-        var rectifier = (int)Params.Current(Rectifier);
-        var variac = Percent(Params.Advance(Variac, frames));
+        var rectifier = (int)Now(Rectifier);
+        var variac = Percent(Glide(Variac));
         var switched = default(RectifierModel);
         if (design.Power.SupplySwitches is { } supplySwitches) {
             for (var i = 0; i < supplySwitches.Count; i++) {
@@ -861,55 +1143,60 @@ public sealed partial class CircuitAmpBlock
         }
 
         var powerSettings = new PowerSettings(
-            PowerTubes[Math.Clamp((int)Params.Current(PowerTube), 0, PowerTubes.Length - 1)],
-            Percent(Params.Current(TransformerMatch)),
-            Percent(Params.Current(TransformerLow)),
-            Percent(Params.Current(TransformerHigh)),
-            Params.Current(TransformerDrive),
+            PowerTubes[Math.Clamp((int)Now(PowerTube), 0, PowerTubes.Length - 1)],
+            Percent(Now(TransformerMatch)),
+            Percent(Now(TransformerLow)),
+            Percent(Now(TransformerHigh)),
+            Now(TransformerDrive),
             speakerDesign,
-            Percent(Params.Current(SpeakerResonance)),
-            Percent(Params.Current(SpeakerQ)),
-            Percent(Params.Current(SpeakerPeak)),
-            Percent(Params.Current(SpeakerHigh)),
-            Percent(Params.Current(SpeakerImpedance)),
+            Percent(Now(SpeakerResonance)),
+            Percent(Now(SpeakerQ)),
+            Percent(Now(SpeakerPeak)),
+            Percent(Now(SpeakerHigh)),
+            Percent(Now(SpeakerImpedance)),
             presenceFrequency,
-            Percent(Params.Advance(DepthFrequency, frames)),
+            Percent(Glide(DepthFrequency)),
             variac,
-            Percent(Params.Current(SupplyTime)),
-            (SupplyMode)Math.Clamp((int)Params.Current(SupplyType), 0, 3),
+            Percent(Now(SupplyTime)),
+            (SupplyMode)Math.Clamp((int)Now(SupplyType), 0, 3),
             rectifier > 0 ? RectifierModel.All[Math.Min(rectifier, RectifierModel.All.Count) - 1] : switched,
-            Percent(Params.Current(CathodeTime)),
+            Percent(Now(CathodeTime)),
             design.Power.TriodeSwitch is { } role && preamp.IsOn(role),
-            Hardness(Params.Current(PowerTubeHardness)),
-            Percent(Params.Current(PowerTubeExcursion)) * excursion,
-            Percent(Params.Current(ExcursionTime)),
-            Percent(Params.Current(RecoveryTime)),
-            Percent(Params.Current(InverterExcursion)) * excursion,
-            Params.Current(Suppressor) >= 0.5f,
-            Percent(Params.Current(ScreenFrequency)),
-            Params.Current(ScreenQ),
+            Hardness(Now(PowerTubeHardness)),
+            Percent(Now(PowerTubeExcursion)) * excursion,
+            Percent(Now(ExcursionTime)),
+            Percent(Now(RecoveryTime)),
+            Percent(Now(InverterExcursion)) * excursion,
+            Now(Suppressor) >= 0.5f,
+            Percent(Now(ScreenFrequency)),
+            Now(ScreenQ),
             presenceShift && ownShift
         );
-        var lowCut = Params.Advance(LowCut, frames);
-        if (Params.Current(InputCut) >= 0.5f && features.InputCut) {
+        var lowCut = Glide(LowCut);
+        if (Now(InputCut) >= 0.5f && has.InputCut) {
             lowCut = Math.Max(lowCut, (float)InputCutHz);
         }
 
-        var overdrive = Params.Advance(Overdrive, frames);
+        var overdrive = Glide(Overdrive);
         var channelSettings = new ChannelSettings(
             lowCut,
-            Percent(Params.Advance(PreampSag, frames)),
-            Params.Current(PowerAmpModel) >= 0.5f,
-            (StackLocation)Math.Clamp((int)Params.Current(StackPlace), 0, 3),
-            overdrive > 0 && features.Overdrive ? Decibels.ToGain(overdrive * OverdriveDb / 10) : 1,
-            Percent(Params.Current(Triode2Plate)),
+            Percent(Glide(PreampSag)),
+            Now(PowerAmpModel) >= 0.5f,
+            (StackLocation)Math.Clamp((int)Now(StackPlace), 0, 3),
+            overdrive > 0 && has.Overdrive ? Decibels.ToGain(overdrive * OverdriveDb / 10) : 1,
+            Percent(Now(Triode2Plate)),
             preTriode ? postMaster.Fraction(masterRotation) : 1,
-            Params.Current(PreampModel) >= 0.5f
+            Now(PreampModel) >= 0.5f
         );
 
-        Channel.Apply(preampSettings, powerSettings, channelSettings);
-        Channel.Configure(preamp, power);
+        // What a reset of the channel follows from (AmpChannel.NeedsReset), as one number the two threads compare.
+        var key = (long)Math.Max((int)Now(PreampTube), 0)
+            | ((long)Math.Max((int)Now(PowerTube), 0) << 16)
+            | ((long)channelSettings.StackLocation << 32)
+            | (powerSettings.Triode ? 1L << 40 : 0);
+        return new(preamp, power, preampSettings, powerSettings, channelSettings, line, key);
     }
+
 
     protected override void OnPrepare(in ProcessSpec spec) {
         Oversampling = OversamplingFor(spec.SampleRate, Params.GetTarget(OversamplingSetting) >= 0.5f);
@@ -930,6 +1217,12 @@ public sealed partial class CircuitAmpBlock
             foreach (var channel in channels) {
                 channel?.SetSampleRate(spec.SampleRate * Oversampling);
             }
+
+            foreach (var spare in spares) {
+                spare?.SetSampleRate(spec.SampleRate * Oversampling);
+            }
+
+            holdFrames = (int)(HoldSeconds * spec.SampleRate);
 
             prepared = true;
         }
@@ -952,7 +1245,8 @@ public sealed partial class CircuitAmpBlock
         phase = 0;
         tremoloPhase = 0;
         activeType = -1;
-        Select((int)Params.Current(Type));
+        (heldType, heldSpare) = (0, 0);
+        Select((int)Params.Current(Type), true);
         output.Reset(Params.Current(Level), Params.Current(Balance));
     }
 
@@ -971,7 +1265,9 @@ public sealed partial class CircuitAmpBlock
 
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var type = (int)Params.Current(Type);
-        if (type != activeType) {
+        if (type == activeType) {
+            heldType = 0;
+        } else if (activeType < 0 || Settled(type, io.Length)) {
             Select(type);
         }
 
@@ -1006,6 +1302,21 @@ public sealed partial class CircuitAmpBlock
         output.Apply(io, Params.Advance(Level, io.Length), Params.Advance(Balance, io.Length));
     }
 }
+
+/// <summary>
+///     Everything the Circuit Amp's parameters make of a channel at one moment: its knobs, its expert settings, the
+///     Master as a line volume with the preamp off, and the reset key (the settings a change of which resets the
+///     channel, as one number).
+/// </summary>
+readonly record struct AmpSnapshot(
+    AmpControls Preamp,
+    PowerControls Power,
+    PreampSettings PreampSettings,
+    PowerSettings PowerSettings,
+    ChannelSettings ChannelSettings,
+    double LineMaster,
+    long ResetKey
+);
 
 /// <summary>
 ///     Which of the Circuit Amp's generic advanced controls a model takes (<see cref="AmpFeatures.Has" />).

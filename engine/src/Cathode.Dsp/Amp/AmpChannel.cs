@@ -100,7 +100,9 @@ public sealed class AmpChannel {
     ChannelSettings channelSettings = ChannelSettings.Stock;
     PowerSettings powerSettings = PowerSettings.Stock;
     PowerControls powerControls;
-    bool powerMoved; // the Power Amp switch, a power setting or a power knob moved since the supply was last put at rest
+
+    bool
+        powerMoved; // the Power Amp switch, a power setting or a power knob moved since the supply was last put at rest
 
     public AmpDesign Design { get; }
     public IReadOnlyList<AmpStage> Stages => stages;
@@ -147,6 +149,23 @@ public sealed class AmpChannel {
             }
 
             return faults;
+        }
+    }
+
+    /// <summary>
+    ///     The DC operating-point work the channel has done since it was built: its stages' Newton steps
+    ///     (<see cref="AmpStage.OperatingPointSteps" />) and the supply's solves
+    ///     (<see cref="PowerAmp.OperatingPointSolves" />). A reset that finds every operating point as it was kept
+    ///     adds nothing. Allocation-free; for tests and diagnostics.
+    /// </summary>
+    public long OperatingPointSolves {
+        get {
+            var solves = Power.OperatingPointSolves;
+            foreach (var stage in stages) {
+                solves += stage.OperatingPointSteps;
+            }
+
+            return solves;
         }
     }
 
@@ -291,7 +310,8 @@ public sealed class AmpChannel {
         Power.Configure(power);
         Power.ConfigureLoop(preamp);
         SolidState?.Configure(power);
-        powerMoved |= power.Bias != powerControls.Bias || power.Sag != powerControls.Sag; // the knobs the supply follows
+        powerMoved |= power.Bias != powerControls.Bias
+            || power.Sag != powerControls.Sag; // the knobs the supply follows
         powerControls = power;
         if (powerMoved && !channelSettings.PowerAmp) {
             RestPowerAmp();
@@ -361,6 +381,16 @@ public sealed class AmpChannel {
             Retune();
         }
     }
+
+    /// <summary>
+    ///     Whether <see cref="Apply" /> with these settings would reset the channel: another preamp or power tube, the
+    ///     output tubes' wiring or the stack's location. Changes nothing; the Circuit Amp asks before it applies, to
+    ///     switch to a channel the control thread has settled instead of solving the operating points here.
+    /// </summary>
+    public bool NeedsReset(in PreampSettings preamp, in PowerSettings power, in ChannelSettings channel) =>
+        preamp.SwapsTube(preampSettings)
+        || Power.SwapsTube(power)
+        || channel.StackLocation != channelSettings.StackLocation;
 
     /// <summary>
     ///     Every stage's operating point recomputed in signal order (<see cref="AmpStage.Retune" />) for a continuous

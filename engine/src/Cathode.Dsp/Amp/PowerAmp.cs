@@ -252,6 +252,13 @@ public sealed class PowerAmp {
     /// <summary>B+ at the centre tap, in volts.</summary>
     public double Supply { get; private set; }
 
+    /// <summary>
+    ///     How many times the supply's idle operating point has been solved (<see cref="SolveOperatingPoint" />, each
+    ///     a fixed-point iteration and now and then a bisection) rather than found as it was kept; for tests and
+    ///     diagnostics.
+    /// </summary>
+    public long OperatingPointSolves { get; private set; }
+
     public double ScreenSupply { get; private set; }
 
     public double PreampVoltage { get; private set; }
@@ -521,6 +528,13 @@ public sealed class PowerAmp {
     }
 
     /// <summary>
+    ///     Whether <see cref="Apply" /> with <paramref name="next" /> would move the operating point and so reset the
+    ///     channel: another tube, or the triode strapping.
+    /// </summary>
+    public bool SwapsTube(in PowerSettings next) =>
+        (next.Tube ?? Design.Tube) != tube || next.Triode != settings.Triode;
+
+    /// <summary>
     ///     Applies the expert settings; recomputes only what changed (allocation-free). Returns true when the operating
     ///     point moved (a new tube or triode strapping), after which the caller resets the channel.
     /// </summary>
@@ -599,6 +613,8 @@ public sealed class PowerAmp {
     ///     The operating point for the current knobs: supply nodes, bias and every state at rest. Allocation-free. The
     ///     audio thread calls it (a type change, a tube swap): a few microseconds when the supply's operating point is
     ///     the one last solved, and what <see cref="SolveOperatingPoint" /> costs when a knob or setting has moved it.
+    ///     The Circuit Amp has the control thread reset the channel first, for the settings the switch will find, so
+    ///     that the audio thread's call is the cheap one.
     /// </summary>
     public void Reset() {
         var supply = Design.PowerSupply;
@@ -643,11 +659,18 @@ public sealed class PowerAmp {
     ///     (a type change back to this amp, Tonestack Location, the Power Amp switch) costs a comparison and returns
     ///     the same voltages to the last bit: the solve itself is tens of microseconds, and half a millisecond and
     ///     more where the fixed point does not settle and the bisection takes over (the SVT and the Subway Blues as
-    ///     they come, some thirty models with Bias, Sag and the Variac at their ends). A cathode-biased amp's solve
-    ///     starts from the cathode voltage of the moment, which is then part of what it was solved from: after
-    ///     playing it is solved again.
+    ///     they come, some thirty models with Bias, Sag and the Variac at their ends). A cathode-biased amp's secant
+    ///     starts from the cathode voltage the last solve left (the first from none), which is part of what it was
+    ///     solved from: a second reset solves once more from the first one's answer, and from then on, the answer
+    ///     having stopped moving, nothing. The playing does not enter: the cathode voltage it left is put back first.
     /// </summary>
     void SolveOperatingPoint() {
+        if (Design.CathodeBias && solvedFor is not null) {
+            // The secant starts from the cathode voltage the last solve left, never from where the playing has taken
+            // it: the operating point is then a function of the knobs and settings alone, whichever thread asks.
+            (CathodeVoltage, cathodeB) = (solvedPoint.Cathode, solvedPoint.CathodeB);
+        }
+
         var inputs = new OperatingInputs(
             unloadedSupply * variac,
             sagScale,
@@ -663,6 +686,8 @@ public sealed class PowerAmp {
             (Supply, ScreenSupply, CathodeVoltage, cathodeB) = solvedPoint;
             return;
         }
+
+        OperatingPointSolves++;
 
         Supply = Design.Supply;
         ScreenSupply = Design.Supply;
