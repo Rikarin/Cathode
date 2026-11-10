@@ -59,6 +59,7 @@ export const AMP_MODELS: Record<string, { family: AmpFamily; basedOn: string }> 
   'JCM900 4100': { family: 'british', basedOn: 'Marshall JCM900 4100 (100 W)' },
   'JCM900 4502': { family: 'british', basedOn: 'Marshall JCM900 4502 (50 W)' },
   DSL100: { family: 'british', basedOn: 'Marshall DSL100' },
+  TSL100: { family: 'british', basedOn: 'Marshall TSL100' },
   'JVM410H OD': { family: 'british', basedOn: 'Marshall JVM410H, OD channels' },
   'JVM410H Clean/Crunch': { family: 'british', basedOn: 'Marshall JVM410H, Clean and Crunch channels' },
   AFD100: { family: 'british', basedOn: 'Marshall AFD100' },

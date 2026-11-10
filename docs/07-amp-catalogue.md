@@ -72,6 +72,7 @@ Last updated: 2026-11-10 (88 types, through the Quick Rod, AFD100, DSL100 and JM
 | Marshall 18 W (1974X) | ✅ Done (PedalMonkey rev 5 drawing with voltages; the tremolo: V3B oscillating in the channel's netlist, Speed and Depth) | 18 W 1974X | — | Both channels, volume sweep | 1x12 open, Greenback G12M |
 | Marshall Major 1967 | ✅ Done (Unicord drawing 70-02-12, July 1970, DrTube `1967u.gif`; both channels, V2A and its tone stack inside the feedback loop via `LoopStageDesign`, cathodyne plus ECC82 push-pull driver via `CathodyneDriverDesign`, ultralinear KT88s; B+, idle, OT and UL tap guessed. No redistributable capture found: GuitarML ToneLibrary and pelennor2170/NAM_models have none) | Major 1967 | — | Any capture | 4x12 closed |
 | Marshall DSL / JCM2000 | ✅ Done, DSL100 both channels with Clean/Crunch and Lead 1/Lead 2, Tone Shift and Deep (DrTube JCM2-60-02 iss 9 main board and JCM2-61-00 iss 5 front panel, vector; the boards' wiring traced from the connector cross-references printed on both sheets, confirmed by JCM2-60-00 iss 1 of 1997; JCM2-68-02 was not needed) | DSL100 | GPL: pelennor "Tim R JCM2000 Clean / Crunch / L2 G6 / L2 G8" (DSL or TSL not stated; not added) | A DSL direct-out capture with stated settings | 4x12 closed |
+| Marshall JCM2000 TSL100 | ✅ Done, Clean, Crunch and Lead with Mid Boost, Tone Shift and Deep (DrTube TL10-60-02 iss 7 main board, TL10-61-02 iss 4 overdrive front board, TL10-65-02 iss 4 Clean board, TL10-66-01 iss 2 Crunch board, TL10-62-02 iss 6 rear board, TL10-63-02 iss 4 reverb board, vector, and the 2004 handbook; these sheets print no connector cross-references, so the wiring between the boards is inferred from pin counts, grounds and function; no voltages printed, the rails derived from the drawn supply chain under a guessed 470 V B+; #368) | TSL100 | GPL: pelennor "Tim R JCM2000" captures (DSL or TSL not stated; not added) | A TSL direct-out capture with stated settings | 4x12 closed |
 | Marshall Bluesbreaker 1962 | ✅ Done (reissue drawing "1962 STD" issues 3 and 4, DrTube `1962ri89.gif` and `1962ri93.gif`: both channels and the jumper; the tremolo channel with the tremolo at rest, its load modelled; the tremolo itself (a J174 FET on the Intensity wiper, its gate drive set by the RV2 preset, whose setting the drawing does not give) is not built; presence pot as the tail's shunt) | Bluesbreaker 1962 | — | Any capture (no GPL one found) | 2x12 open |
 | Hiwatt Custom 50 / DR504 | ✅ Done (the DR103's four-input preamp redraw with hiwatt.org's 50 W output and supply redraws; `DR504OL.gif` is a complete 1983 two-input DR504 with voltages, a later circuit with an extra gain stage, used only for the rails) | Hiwatt DR504 | — | Normal/Brilliant, jumpered | 4x12 closed, Fane |
 
@@ -232,6 +233,7 @@ The Circuit Amp block has 91 types. The "Cathode type" column above names them; 
 | 28 | Hot Cat 30 | 58 | 1987X | 88 | Mark IIC+ Rhythm |
 | 29 | ODS 97 | 59 | 1959T Tremolo | 89 | Mark IV Rhythm 1 |
 |  |  |  |  | 90 | Mark IV Rhythm 2 |
+|  |  |  |  | 92 | TSL100 |
 
 Types 81 to 90, the newest, are:
 
@@ -247,6 +249,7 @@ Types 81 to 90, the newest, are:
 | 88 | Mark IIC+ Rhythm | Mesa/Boogie | Mesa/Boogie Mark IIC+, the rhythm channel (the lead channel is type 21) |
 | 89 | Mark IV Rhythm 1 | Mesa/Boogie | Mesa/Boogie Mark IV, Rhythm 1, the clean channel (the lead channel is type 25) |
 | 90 | Mark IV Rhythm 2 | Mesa/Boogie | Mesa/Boogie Mark IV, Rhythm 2, the crunch channel |
+| 92 | TSL100 | Marshall | Marshall JCM2000 TSL100 (Triple Super Lead), Clean, Crunch and Lead with Mid Boost, Tone Shift and Deep |
 
 Match quality against the references is in `docs/06-amp-modelling-spec.md` (as-built notes per family) and in the
 manifest's targets. Only the Prometheus clean channel reaches the spec's ESR target; captures with stated knob settings

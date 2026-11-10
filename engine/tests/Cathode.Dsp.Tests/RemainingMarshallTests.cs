@@ -31,6 +31,12 @@ public partial class AmpStageTests {
             { "DSL100", 1, 0.001, -30 },
             { "DSL100", 3, 0.0005, -30 },
             { "DSL100", 7, 0.0005, -30 },
+            // The TSL100: Clean, Clean with Mid Boost, Crunch, Lead, Lead with Tone Shift.
+            { "TSL100", 0, 0.01, -30 },
+            { "TSL100", 4, 0.01, -30 },
+            { "TSL100", 1, 0.002, -30 },
+            { "TSL100", 3, 0.0005, -30 },
+            { "TSL100", 7, 0.0005, -30 },
             { "JMP-1", 0, 0.005, -30 },
             { "JMP-1", 2, 0.002, -30 },
             { "JMP-1", 4, 0.005, -30 },
@@ -127,6 +133,7 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
         ("JVM410H OD", [0, 2, 4, 1, 3, 5]),
         ("JVM410H Clean/Crunch", [0, 2, 4, 1, 3, 5]),
         ("DSL100", [0, 2, 1, 3, 4]),
+        ("TSL100", [0, 4, 1, 3, 7]),
         ("JMP-1", [0, 2, 1, 3, 4]),
         ("AFD100", [0, 1, 2, 3])
     ];
@@ -171,6 +178,16 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
         Assert.Equal("Deep", Label("bright", "DSL100"));
         Assert.Empty(Label("depth", "DSL100"));
         Assert.Empty(Label("control1", "DSL100"));
+
+        Assert.Equal(
+            ["Overdrive", "Lead", "Mid Boost / Tone Shift"],
+            new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "TSL100"))
+        );
+        Assert.Equal("Volume", Label("master", "TSL100"));
+        Assert.Equal("Deep", Label("bright", "TSL100"));
+        foreach (var id in new[] { "depth", "cut", "control1", "control2" }) {
+            Assert.Empty(Label(id, "TSL100"));
+        }
 
         Assert.Equal(
             ["OD", "Clean II / OD II", "Bass Shift"],
@@ -324,6 +341,115 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
     }
 
     /// <summary>
+    ///     The TSL100's channels below clipping, at the same knob settings: Crunch has more gain than Clean and Lead
+    ///     "a lot more" than Crunch (the handbook); Mid Boost lifts the Clean channel's middle (500 Hz) against its
+    ///     treble (4 kHz), and Tone Shift scoops the overdrive channels' middle (750 Hz) against the treble (3 kHz).
+    ///     Switch 2 does nothing in Clean, as the amp's second mode switch does nothing there.
+    /// </summary>
+    [Fact]
+    public void Tsl100_channels_and_voicing_switches_do_what_the_handbook_says() {
+        static double Level(float hz, params (int, float)[] switches) {
+            using var block = Create("TSL100", [(CircuitAmpBlock.Gain, 5f), (CircuitAmpBlock.Master, 3f), ..switches]);
+            var rendered = BlockRender.Mono(block, Signals.Sine(hz, Rate, 24_000, 0.0002f), 64);
+            return Analysis.ToDb(Analysis.MagnitudeAt(rendered.AsSpan(12_000).ToArray(), hz, Rate));
+        }
+
+        (int, float) overdrive = (CircuitAmpBlock.Switch1, 1f);
+        (int, float) lead = (CircuitAmpBlock.Switch2, 1f);
+        (int, float) voicing = (CircuitAmpBlock.Switch3, 1f);
+        var levels = (Clean: Level(440), Crunch: Level(440, overdrive), Lead: Level(440, overdrive, lead));
+        output.WriteLine($"clean {levels.Clean:0.0}, crunch {levels.Crunch:0.0}, lead {levels.Lead:0.0} dB");
+        Assert.True(levels.Crunch > levels.Clean + 3);
+        Assert.True(levels.Lead > levels.Crunch + 6);
+        Assert.Equal(levels.Clean, Level(440, lead), 1e-9);
+
+        var middle = Level(500) - Level(4_000);
+        var boosted = Level(500, voicing) - Level(4_000, voicing);
+        output.WriteLine($"clean, 500 Hz against 4 kHz: {middle:0.0} dB, with Mid Boost {boosted:0.0} dB");
+        Assert.True(boosted > middle + 2);
+
+        foreach (var channel in new[] { new[] { overdrive }, [overdrive, lead] }) {
+            var scoop = Level(750, channel) - Level(3_000, channel);
+            var shifted = Level(750, [..channel, voicing]) - Level(3_000, [..channel, voicing]);
+            output.WriteLine($"750 Hz against 3 kHz: {scoop:0.0} dB, with Tone Shift {shifted:0.0} dB");
+            Assert.True(shifted < scoop - 2);
+        }
+    }
+
+    /// <summary>
+    ///     The TSL100's rails are not printed on its drawings: they follow from the guessed 470 V B+ down the chain
+    ///     TL10-60-02 draws (270 Ω to the screens, 4k7 to the inverter, 1k to V3, 4k7 to V2A, from there 10k to V1B,
+    ///     and 10k to V2B with 2k2 on to V1A). Each stage's idle current at its rail, taken down that chain from the
+    ///     inverter's node, gives the rails the model uses to within 5 V; the inverter's node itself is 4k7 times
+    ///     the preamp's and the inverter's current (about 2.7 mA) under the screens' 465 V.
+    /// </summary>
+    [Fact]
+    public void Tsl100_rails_follow_from_the_drawn_supply_chain() {
+        var design = Tsl100.Design;
+
+        double Rail(string stage, bool overdrive = false) =>
+            AmpStageTests.Playing(design.Preamp, new(0.5, 0.5, 0.5, 0.5, 0.5, false, Switch1: overdrive))
+                .OfType<NetworkStageDesign>()
+                .Single(d => d.Name == stage)
+                .Netlist.Elements.Single(static e => e.Kind == ElementKind.Supply)
+                .Value;
+
+        static double Current(double rail, double cathodeResistor) =>
+            OperatingPoint.CommonCathode(TriodeModel.Ecc83, 0, rail, 100e3, cathodeResistor).Current;
+
+        var rails = (V1B: Rail("V1B Clean"), V1A: Rail("V1A", true), V2B: Rail("V2B"), V2A: Rail("V2A"),
+            V3: Rail("V3B"), Inverter: design.Power.PhaseInverter.Supply);
+        Assert.Equal(rails.V1B, Rail("V1B Overdrive", true));
+        Assert.Equal(rails.V3, Rail("V3A"));
+
+        var mixer = OperatingPoint.CommonCathode(TriodeModel.Ecc83, 0, rails.V3, 100e3, 1e3);
+        var currents = (V1B: Current(rails.V1B, 1.8e3), V1A: Current(rails.V1A, 1.8e3),
+            V2B: Current(rails.V2B, 4.7e3), V2A: Current(rails.V2A, 2.2e3),
+            // V3B, and the follower whose 100k cathode resistor sits about at V3B's plate voltage.
+            V3: mixer.Current + mixer.Plate / 100e3);
+        var early = currents.V1B + currents.V1A + currents.V2B + currents.V2A;
+        var preamp = early + currents.V3;
+        output.WriteLine(
+            $"preamp {preamp * 1e3:0.0} mA; rails {rails.Inverter:0} / {rails.V3:0} / {rails.V2A:0} / "
+            + $"{rails.V2B:0} / {rails.V1A:0} / {rails.V1B:0} V"
+        );
+
+        var v3 = rails.Inverter - 1e3 * preamp;
+        var v2a = v3 - 4.7e3 * early;
+        var v2b = v2a - 10e3 * (currents.V2B + currents.V1A);
+        var inverter = 470 - 270 * 0.02 - 4.7e3 * (preamp + 2.7e-3);
+        output.WriteLine(
+            $"from the chain {inverter:0} / {v3:0} / {v2a:0} / {v2b:0} / {v2b - 2.2e3 * currents.V1A:0} / "
+            + $"{v2a - 10e3 * currents.V1B:0} V"
+        );
+        Assert.Equal(v3, rails.V3, 5.0);
+        Assert.Equal(v2a, rails.V2A, 5.0);
+        Assert.Equal(v2a - 10e3 * currents.V1B, rails.V1B, 5.0);
+        Assert.Equal(v2b, rails.V2B, 5.0);
+        Assert.Equal(v2b - 2.2e3 * currents.V1A, rails.V1A, 5.0);
+        Assert.Equal(inverter, rails.Inverter, 5.0);
+    }
+
+    /// <summary>
+    ///     The TSL100's feedback as drawn: 47k from the 4 Ω tap (TL10-62-02) onto the inverter tail's 4k7, a 5k
+    ///     Presence with 220 nF, and the DSL100's Deep network (10k, shorted by the switch, and 10 µF into the
+    ///     gyrator's 270 Ω + 330 Ω and 0.891 H, resonant at 53 Hz) on the block's Bright switch (TL10-61-02).
+    /// </summary>
+    [Fact]
+    public void Tsl100_feedback_is_the_drawn_network() {
+        var feedback = Tsl100.Design.Power.Feedback;
+        Assert.Equal(
+            (47e3, 4.7e3, 0.22e-6, 5e3),
+            (feedback.FeedbackResistor, feedback.ShuntResistor, feedback.PresenceCap, feedback.Presence.Ohms)
+        );
+        Assert.Equal(Dsl100.Design.Power.Feedback.Deep, feedback.Deep);
+        Assert.Equal(SwitchRole.Bright, feedback.Deep!.Switch);
+        Assert.Equal(53.3, feedback.Deep.Resonance, 0.1);
+        // The same divider as the DSL100's, from the 4 Ω tap instead of the 16 Ω one: half the voltage.
+        Assert.Equal(Dsl100.Design.Power.Feedback.TapGain / 2, feedback.TapGain, 1e-12);
+    }
+
+    /// <summary>
     ///     The DSL100's Deep network from the drawing (JCM2-61-00): 10k (shorted by the switch) and 10 µF into the
     ///     gyrator, 270 Ω + 330 Ω and 10 µF × 270 Ω × 330 Ω = 0.891 H, across the 4k7 shunt beside the 5k presence pot
     ///     and its 100 nF. Its series resonance is 53 Hz; the feedback filter's two sections equal Z / (R_f + Z)
@@ -352,7 +478,10 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
                     var s = new System.Numerics.Complex(0, 2 * Math.PI * frequency);
                     var z = 1 / (1 / rx + s * c / (1 + s * rp * c) + 1 / (r + 1 / (s * cs) + s * ls));
                     var circuit = z / (rf + z);
-                    var model = t.Gain * (1 + s * t.Zero) / (1 + s * t.Pole) * (1 + s * t.N1 + s * s * t.N2)
+                    var model = t.Gain
+                        * (1 + s * t.Zero)
+                        / (1 + s * t.Pole)
+                        * (1 + s * t.N1 + s * s * t.N2)
                         / (1 + s * t.D1 + s * s * t.D2);
                     Assert.True(
                         (circuit - model).Magnitude < 1e-9 * circuit.Magnitude,
@@ -469,7 +598,8 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
     /// <summary>
     ///     Every control on the panel changes the sound in the given channel and mode: a knob from 0 to 10 or a switch
     ///     on moves the level or the spectrum of a two-tone signal by more than a fraction of a decibel somewhere. The
-    ///     Clean Green mode's Volume is out of circuit, as on the amp, and is skipped there.
+    ///     Clean Green mode's Volume is out of circuit, as on the amp, and is skipped there; so is the TSL100's Middle
+    ///     in Clean with Mid Boost on, which "disconnects the Mid control from the circuit" (the handbook).
     /// </summary>
     [Theory]
     [MemberData(nameof(Settings))]
@@ -492,7 +622,8 @@ public class RemainingMarshallTests(ITestOutputHelper output) {
 
         foreach (var control in Controls(type)) {
             if (IsSwitch(control)
-                || (type == "JVM410H Clean/Crunch" && setting == 0 && control == CircuitAmpBlock.Control1)) {
+                || (type == "JVM410H Clean/Crunch" && setting == 0 && control == CircuitAmpBlock.Control1)
+                || (type == "TSL100" && setting == 4 && control == CircuitAmpBlock.Middle)) {
                 continue;
             }
 

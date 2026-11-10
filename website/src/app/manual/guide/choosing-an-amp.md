@@ -35,9 +35,9 @@ The sound of 1960s and 1970s rock. No master volume: the volume controls drive t
 
 ### Marshall: master volume and later
 
-**JCM800 2203**, **JCM800 2204**, **Silver Jubilee**, **JCM900 4100**, **JCM900 4502**, **DSL100**, **JVM410H OD**, **JVM410H Clean/Crunch**, **JMP-1**, **AFD100**, and the solid-state **Valvestate 8080**.
+**JCM800 2203**, **JCM800 2204**, **Silver Jubilee**, **JCM900 4100**, **JCM900 4502**, **DSL100**, **TSL100**, **JVM410H OD**, **JVM410H Clean/Crunch**, **JMP-1**, **AFD100**, and the solid-state **Valvestate 8080**.
 
-A master volume and more preamp gain: hard rock, classic metal, punk. The JCM800 is the reference crunch-to-lead amp of the 1980s; it loves a boost in front. The Silver Jubilee has a smoother, more compressed lead (**Boost**, **Rhythm Clip**). The AFD100 is a hot-rodded 1980s Marshall voice (its **AFD** switch picks the mode). The JMP-1 is a preamp into a 100 W power amp.
+A master volume and more preamp gain: hard rock, classic metal, punk. The JCM800 is the reference crunch-to-lead amp of the 1980s; it loves a boost in front. The Silver Jubilee has a smoother, more compressed lead (**Boost**, **Rhythm Clip**). The AFD100 is a hot-rodded 1980s Marshall voice (its **AFD** switch picks the mode). The TSL100 is the three-channel JCM2000: its **Overdrive** switch leaves the Clean channel for Crunch, and **Lead** picks the Lead channel from there. The JMP-1 is a preamp into a 100 W power amp.
 
 ### Other British amps
 
