@@ -101,6 +101,32 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
         Assert.Equal("After", (await Post("/api/v1/live/undo")).Preset.Name);
     }
 
+    [Fact]
+    public async Task The_unlocked_bypass_read_is_already_current_in_a_change_event() {
+        // Footswitch LEDs read it from the event's handler, without the rig's lock.
+        var rig = server.Services.GetRequiredService<LiveRig>();
+        var seen = new List<(string, bool)>();
+        rig.Changes += change => {
+            if (change.Type is "bypassChanged" or "undo" or "sceneChanged" or "blockRemoved") {
+                lock (seen) {
+                    seen.Add((change.Type, rig.IsBypassed("delay1")));
+                }
+            }
+        };
+
+        await Put("/api/v1/live/blocks/delay1/bypass", new BypassRequest(true));
+        await Post("/api/v1/live/undo");
+        await Put("/api/v1/live/scenes/1/blocks/delay1", new SceneBlockState(true, "B"));
+        await Put("/api/v1/live/scenes/active", new SceneSelectRequest(1));
+        using var removed = await client.DeleteAsync("/api/v1/live/blocks/delay1", Token);
+
+        Assert.Equal(
+            [("bypassChanged", true), ("undo", false), ("sceneChanged", true), ("blockRemoved", false)],
+            seen
+        );
+        Assert.False(rig.IsBypassed("no such block"));
+    }
+
     async Task<Preset> Stored(string id) => (await client.GetFromJsonAsync<Preset>($"/api/v1/presets/{id}", Token))!;
 
     async Task<float> StoredTime(string id) =>

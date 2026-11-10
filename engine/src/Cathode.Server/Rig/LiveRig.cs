@@ -47,7 +47,7 @@ public sealed partial class LiveRig(
 
     /// <summary>
     ///     Scene Ignore: blocks whose live bypass and channel differ from the active scene's, because their channel
-    ///     ignored the last scene change. Concurrent: footswitch LEDs read it without the lock.
+    ///     ignored the last scene change.
     /// </summary>
     readonly ConcurrentDictionary<string, SceneBlockState> held = new(StringComparer.Ordinal);
 
@@ -75,12 +75,29 @@ public sealed partial class LiveRig(
 
     public void Dispose() => gate.Dispose();
 
-    /// <summary>Whether a block is bypassed in the active scene (unlocked read for LED feedback).</summary>
-    public bool IsBypassed(string block) => Live(block).Bypassed;
+    /// <summary>
+    ///     Every block's live state as of the last change, for readers that must not wait for the lock (footswitch
+    ///     LEDs, the MIDI bypass toggle). Never changed once published: each change swaps in a new one
+    ///     (<see cref="PublishLive" />). The scenes' own dictionaries are written under the lock and are not safe to
+    ///     read outside it.
+    /// </summary>
+    Dictionary<string, SceneBlockState> published = new(StringComparer.Ordinal);
 
-    /// <summary>What a block is running now: its held state (Scene Ignore) or the active scene's.</summary>
-    public SceneBlockState Live(string block) =>
-        held.TryGetValue(block, out var state) ? state : Volatile.Read(ref preset).Scenes[ActiveScene].StateOf(block);
+    /// <summary>
+    ///     Whether a block is bypassed now (unlocked read for LED feedback): as of the last change, which a listener
+    ///     to <see cref="Changes" /> already sees.
+    /// </summary>
+    public bool IsBypassed(string block) =>
+        Volatile.Read(ref published).TryGetValue(block, out var state) && state.Bypassed;
+
+    /// <summary>
+    ///     What a block is running now: its held state (Scene Ignore) or the active scene's. Inside the lock only.
+    /// </summary>
+    SceneBlockState Live(string block) =>
+        held.TryGetValue(block, out var state) ? state : preset.Scenes[activeScene].StateOf(block);
+
+    /// <summary>Publishes the live states for the unlocked readers (<see cref="IsBypassed" />).</summary>
+    void PublishLive() => Volatile.Write(ref published, LiveStates());
 
     public Task<LiveState> StateAsync() => Locked(() => Task.FromResult(State()));
 
@@ -893,6 +910,7 @@ public sealed partial class LiveRig(
     }
 
     void Publish(RigEvent change) {
+        PublishLive(); // listeners read the live states from their handlers (footswitch LEDs)
         hub.Publish(change, ContractsJsonContext.Default.RigEvent);
         Changes?.Invoke(change);
     }
@@ -1017,7 +1035,11 @@ public sealed partial class LiveRig(
         try {
             return await operation();
         } finally {
-            gate.Release();
+            try {
+                PublishLive(); // also after an operation that raised no event, or failed and rolled back
+            } finally {
+                gate.Release();
+            }
         }
     }
 
