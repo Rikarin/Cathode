@@ -14,15 +14,25 @@ namespace Cathode.EngineHost;
 public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage>> forward) : IDisposable {
     const int TicksPerBeat = 24;
     const byte Clock = 0xF8;
+    const byte ClockStart = 0xFA;
+    const byte ClockContinue = 0xFB;
+    const byte ClockStop = 0xFC;
     const byte ActiveSensing = 0xFE;
     const int AllSoundOff = 120;
     const int AllNotesOff = 123;
+
+    /// <summary>
+    ///     Longer than the tick interval of the slowest tempo followed (30 BPM: 83 ms), so a longer silence is the
+    ///     clock pausing, not a tempo.
+    /// </summary>
+    const ulong ClockGapNs = 100_000_000;
 
     readonly List<MidiMessage> received = [];
     readonly Queue<ulong> ticks = new();
     Thread? thread;
     volatile bool running;
     volatile bool followClock;
+    ulong lastTick;
     int knownPorts = -1;
 
     public void SetFollowClock(bool enabled) {
@@ -90,6 +100,10 @@ public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage
                 continue;
             }
 
+            if (message.Status is ClockStart or ClockContinue or ClockStop) {
+                ResetClock(); // forwarded too: the Server may map transport
+            }
+
             Notes(message);
             var age = now > message.TimeNs ? (now - message.TimeNs) * rate / 1e9 : 0;
             batch ??= new(messages.Count);
@@ -123,6 +137,13 @@ public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage
         }
 
         lock (ticks) {
+            // The tempo comes from an unbroken run of ticks only: one measured against a tick from before a pause
+            // would read as a very slow beat.
+            if (ticks.Count > 0 && timeNs > lastTick && timeNs - lastTick > ClockGapNs) {
+                ticks.Clear();
+            }
+
+            lastTick = timeNs;
             ticks.Enqueue(timeNs);
             if (ticks.Count > TicksPerBeat + 1) {
                 ticks.Dequeue();
@@ -132,6 +153,13 @@ public sealed class MidiInput(CathodeEngine engine, Action<List<MidiEventMessage
                 double beatNs = timeNs - ticks.Peek();
                 engine.Tempo = Math.Clamp(60e9 / beatNs, 30, 300);
             }
+        }
+    }
+
+    /// <summary>Start, Continue and Stop begin a new run of ticks: the tempo holds until a beat of them is in.</summary>
+    void ResetClock() {
+        lock (ticks) {
+            ticks.Clear();
         }
     }
 }
