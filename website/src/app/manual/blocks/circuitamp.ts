@@ -82,8 +82,8 @@ low end gets flubby, turn Bass down before reaching for an EQ.`,
 scoop: at 0 the mids are scooped hardest, at 10 the stack is closest to flat and loudest. Many Fender and Vox amps have
 no middle knob; there the stack's mid resistor is fixed at the stock value.
 
-On the Powerball this is *Mid Open*, the middle pot that works with the Focused switch off (see Control 1 and
-Switch 1).`,
+On the Powerball this is *Mid Open*, the lead channel's middle pot that works with the Focused switch off (see
+Control 1 and Switch 1); in its channel 1 it is the one middle knob.`,
 
     treble: `The tone stack's treble control. It sets how much high end passes the stack's treble cap and, on most stacks,
 also moves the balance between treble and the rest. On amps with a single tone knob (the Tweed Deluxe, the 18 W, the
@@ -152,8 +152,8 @@ own name and meaning: *Brilliance* (AC15), *Brilliant* (Prometheus Clean), *Thic
 and the Lead Master's. On the DSL100 it is the amp's *Deep* switch, which is not a bright at all: it puts the amp's
 resonant network (a simulated inductor, tuned to about 53 Hz) across the feedback, for a broad lift in the bass. On the
 three-channel Dual Rectifier and the Triple Rectifier, *Raw* and *Modern* (Switch 1) are the amp's one Raw / Vintage /
-Modern switch: both off is Vintage, and with both on the model is in Modern. The value of the cap is on the Advanced
-page as *Bright Cap*.`,
+Modern switch: both off is Vintage, and with both on the model is in Modern. On the Powerball it is channel 1's Bright
+and does nothing in the lead channel. The value of the cap is on the Advanced page as *Bright Cap*.`,
 
     level: `The block's output level in dB, after everything else. A clean digital volume: it does not change the amp's
 drive or tone. Use it to balance this amp against other presets or the other amp. See
@@ -169,8 +169,8 @@ Each switches the real components on the model's schematic. Some worth knowing:
 - **Rect-o-Verb, *Rhythm* and *Pushed*:** *Rhythm* plays the clean rhythm channel in place of the lead channel, with
   the same knobs; it is much quieter at the same settings, so turn *Master* up. *Pushed* drives the rhythm channel
   harder and does nothing on the lead channel. *Presence* is the playing channel's.
-- **Powerball, *Focused*:** swaps the open middle pot for the focused one (*Mid Focused*, Control 1) and doubles the
-  treble cap.
+- **Powerball, *Focused*:** in the lead channel it swaps the open middle pot for the focused one (*Mid Focused*,
+  Control 1) and doubles the treble cap; in channel 1 it doubles the treble cap and makes the middle's cap smaller.
 - **Mark V, *IIC+ Mode*:** with *Mark IV Mode* (Switch 2), selects the channel-3 mode; both off is Extreme. The amp
   has one three-position switch, so with both on the model is in Mark IV mode.
 - **TriAxis, *Yellow*:** with *Red* (Switch 2), the preamp's mode switches.
@@ -181,7 +181,8 @@ Each switches the real components on the model's schematic. Some worth knowing:
 
     switch2: `A model's second switch, where it has one: for example *Tube Rectifier* on the Rectifiers (5U4 tube
 rectifiers instead of silicon: more sag), *Crunch* on the SLO-100's normal channel, *Deep* on the Mark IIC+
-(a bass boost), *Bite Up* on the Prometheus, *Hi Lead* on the Powerball (the hotter Hi lead mode), *Mark IV Mode* on
+(a bass boost), *Bite Up* on the Prometheus, *Gain Hi* on the Powerball (the amp's Gain Lo/Hi button: the hotter Hi Lead in the lead channel, Crunch in place of
+Clean in channel 1), *Mark IV Mode* on
 the Mark V, *C45* on the BE-100, *Rhythm Clip* on the Silver Jubilee, *Ultra Lo* on the SVT and B-15. It switches the
 same parts the real switch does.
 
@@ -193,9 +194,12 @@ once, so with both on the model takes the second of each pair as named here and 
     switch3: `A model's third switch, where it has one: *Spongy* on the Rectifiers (a lower supply voltage, modelled as
 90 % mains, for a softer, saggier feel), *Bass Shift* on the Mark IIC+, *Bite Down* on the Prometheus, *Mid Gain*
 on the Mark IV (the amp's Harmonics / Mid Gain switch; off is Harmonics), *Bright* on the Mark V, *Bass Cut* on the
-SVT, *Voice* on the BE-100, *Low Power* on the Silver Jubilee, *Tone Shift* on the DSL100, *3rd Gear* on the Quick Rod.
-*Bite Down* and *Bass Cut* are the other side of the switch that *Bite Up* and *Ultra Lo* (Switch 2) belong to, and
-win when both are on.`,
+SVT, *Voice* on the BE-100, *Low Power* on the Silver Jubilee, *Tone Shift* on the DSL100, *3rd Gear* on the Quick Rod,
+*Smooth* on the Savage 120 (its second lead voice: less gain into the tone stack and one more tube stage after it, so
+the sound is rounder and the tone knobs do less; off is Rough), *Channel 1* on the Powerball (its Clean and Crunch
+channel, chosen by *Gain Hi*, with its own gain, tone stack and *Bright*; off is the lead channel). *Bite Down* and
+*Bass Cut* are the other side of the switch that *Bite Up* and *Ultra Lo* (Switch 2) belong to, and win when both are
+on.`,
 
     control1: `A model's own extra knob, where it has one: a second volume (*Normal Vol* on Plexis and Bassmans,
 *Mic Vol* on the Tweed Deluxe, *Loudness 2*, *Volume II*), a lead drive (*Lead Drive* on the Mark IIC+ and IV,
@@ -206,7 +210,8 @@ Plexi-style amps the two volumes blend the bright and normal channels. On the Qu
 starts at 0: the boost is off there, as on the amp until you press its footswitch; turn it up for the solo lift.`,
 
     control2: `A model's second extra knob, where it has one: *Lead Master* on the Mark IIC+ and IV, *Presence* on the
-Rectifiers (a preamp presence control there), *Lead Volume* on the Powerball and Savage, *OD Level* on the ODS,
+Rectifiers (a preamp presence control there), *Lead Volume* on the Savage, *Channel Volume* on the Powerball (the volume of the mode that plays: Lo or Hi Lead,
+Clean or Crunch), *OD Level* on the ODS,
 *Dynamic Voice* on the TriAxis, the 4 kHz band of the Bass 400's EQ, *Distortion* on the JC-120 (the gain ahead of its
 diode clipper, from about 2× to 48×; it acts only with its *Distortion* switch on).`,
 
@@ -571,8 +576,8 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'Triple Rectifier':
         'Mesa/Boogie Triple Rectifier: built as the three-channel Dual Rectifier with six 6L6s, as no schematic was found.',
       Powerball:
-        'Engl Powerball channel 2 (lead), Lo and Hi modes, with its Open and Focused middle. Tight modern metal. Two supply filter nodes are assumed (not on the drawing) to stop it motorboating.',
-      'Savage 120': 'Engl Savage 120 lead channel: aggressive, mid-forward high gain.',
+        'Engl Powerball: channel 2 (lead), Lo and Hi modes, with its Open and Focused middle, and on Switch 3 channel 1, Clean and Crunch. Tight modern metal. Two supply filter nodes are assumed (not on the drawing) to stop it motorboating.',
+      'Savage 120': 'Engl Savage 120 lead channel, Rough and (Switch 3) Smooth: aggressive, mid-forward high gain.',
       SVT: 'Ampeg SVT: the classic tube bass amp, with Ultra Hi, Ultra Lo and Bass Cut.',
       'Portaflex B-15N': 'Ampeg B-15N Portaflex: warm, round vintage bass.',
       'JC-120':

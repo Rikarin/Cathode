@@ -84,7 +84,8 @@ public class PreampSupplyTests {
 
     /// <summary>
     ///     The nine at the settings that showed it (gain 10, master 8, 0.1 V), and the user's 5150 settings; the
-    ///     Powerball also at gain 1 and master 5 after a 0.4 V chord, where its drawn supply latched.
+    ///     Powerball also at gain 1 and master 5 after a 0.4 V chord, where its drawn supply latched, and in its
+    ///     channel 1.
     /// </summary>
     [Theory]
     [MemberData(nameof(Motorboating))]
@@ -94,6 +95,15 @@ public class PreampSupplyTests {
         if (type == "Powerball") {
             var low = TailDb(type, new() { ["gain"] = 1, ["master"] = 5 }, 0.4, 0.5);
             Assert.True(low < -120, $"Powerball at gain 1, master 5: {low:0.0} dB two seconds after the stop");
+
+            // Its channel 1 (Switch 3) runs three of the same stages on the same nodes: Crunch at full gain.
+            var crunch = TailDb(
+                type,
+                new() { ["gain"] = 10, ["master"] = 8, ["switch2"] = 1, ["switch3"] = 1 },
+                0.1,
+                0.5
+            );
+            Assert.True(crunch < -120, $"Powerball channel 1, Crunch: {crunch:0.0} dB two seconds after the stop");
         }
 
         if (type == "5150") {
