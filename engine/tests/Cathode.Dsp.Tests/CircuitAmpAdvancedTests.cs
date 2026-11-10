@@ -200,6 +200,36 @@ public class CircuitAmpAdvancedTests(ITestOutputHelper output) {
         Assert.True(Residual(stock, Render(type, input, (CircuitAmpBlock.PresenceShift, 1f))) > -60);
     }
 
+    [Theory]
+    [InlineData("JC-120", false)] // a solid-state power amp
+    [InlineData("SVT", false)] // no presence circuit: a placeholder cap
+    [InlineData("Portaflex B-15N", false)]
+    [InlineData("Bass 400", false)] // no feedback either
+    [InlineData("Legacy VL100", false)]
+    [InlineData("Twin Reverb", false)]
+    [InlineData("Subway Blues", false)]
+    [InlineData("Mark IIC+", true)] // its Treble Shift and Bass Shift are not presence shifts
+    [InlineData("Dual Rectifier", true)] // a fixed presence network, no knob on it
+    [InlineData("AC30", true)] // once the Feedback knob puts the loop in
+    public void Presence_shift_shows_where_the_power_amp_has_a_presence_network(string model, bool shown) {
+        var design = AmpDesign.All.Single(a => a.Name == model);
+        var type = Index(design);
+        var parameter = CircuitAmpBlock.Info.Params[CircuitAmpBlock.PresenceShift];
+        Assert.Equal(shown ? "Presence Shift" : string.Empty, parameter.TypeLabels![type]);
+        Assert.Equal(shown, AmpFeatures.Has(design, "presshift"));
+
+        // Shown, it is heard (with the loop closed and driven); hidden, it does nothing at all.
+        var input = CircuitAmpBlockTests.Chord(9_600, 0.1f);
+        (int, float)[] driven = [(CircuitAmpBlock.Master, 10f), (CircuitAmpBlock.Feedback, 10f)];
+        var stock = Render(type, input, driven);
+        var shifted = Render(type, input, [..driven, (CircuitAmpBlock.PresenceShift, 1f)]);
+        if (shown) {
+            Assert.True(Residual(stock, shifted) > -70, $"{Residual(stock, shifted):0.0}");
+        } else {
+            Assert.Equal(stock, shifted);
+        }
+    }
+
     [Fact]
     public void Stack_type_substitution_changes_the_stack_and_its_own_stack_is_stock() {
         var type = Index(Plexi.Design);

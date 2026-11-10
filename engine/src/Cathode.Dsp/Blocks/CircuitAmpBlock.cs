@@ -173,7 +173,7 @@ namespace Cathode.Dsp.Blocks;
 ///         </item>
 ///         <item>
 ///             Generic switches where a model has no circuit of its own: <b>Presence Shift</b> (the presence
-///             frequency an octave down), <b>Fat</b> (the stack's frequencies down by 0.6), <b>Input Cut</b> (a 150 Hz
+///             frequency an octave down, on a model whose power amp has a presence network), <b>Fat</b> (the stack's frequencies down by 0.6), <b>Input Cut</b> (a 150 Hz
 ///             input high-pass at least), <b>High Treble</b> (5 flat: a ±12 dB shelf at 3 kHz before the power amp)
 ///             and <b>Overdrive</b> (0: up to 20 dB more swing into the last gain stage).
 ///         </item>

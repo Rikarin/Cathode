@@ -5,7 +5,8 @@ namespace Cathode.Dsp.Amp;
 /// <summary>
 ///     Which of the Circuit Amp's advanced controls mean something on a model (docs/08 §4): most act on a component the
 ///     model may not have (a plate-bypass cap, a cathode follower, the phase inverter's input network, a cap across the
-///     master), and a generic switch stands in only where the model has no circuit of its own for it. A control a model
+///     master, a presence network), and a generic switch stands in only where the model has no circuit of its own for
+///     it. A control a model
 ///     lacks is hidden on its panel (<see cref="AmpPanel.Label" />) and does nothing.
 /// </summary>
 public static class AmpFeatures {
@@ -26,7 +27,7 @@ public static class AmpFeatures {
                 && design.Power.ShuntMaster is null
                 && design.Power.Topology == PowerTopology.PushPull,
             "fatsw" => !panel.HasSwitch("Fat"),
-            "presshift" => !panel.HasSwitch("Shift") && !panel.HasSwitch("Presence Shift"),
+            "presshift" => HasPresenceNetwork(design),
             "overdrive" => !panel.HasSwitch("Overdrive")
                 && panel.Control1 is not ("Overdrive" or "Drive" or "Lead Drive")
                 && panel.Control2 is not ("Overdrive" or "Drive" or "Lead Drive"),
@@ -35,6 +36,14 @@ public static class AmpFeatures {
             _ => true
         };
     }
+
+    /// <summary>
+    ///     Whether <paramref name="design" /> has a presence network whose frequency can move: a tube power amp whose
+    ///     feedback network has a presence cap (<see cref="FeedbackDesign.HasPresenceCap" />). An amp without global
+    ///     feedback (the AC30) counts while it has the cap: its Feedback knob past noon puts the network in.
+    /// </summary>
+    static bool HasPresenceNetwork(AmpDesign design) =>
+        design.Panel.HasTubes && design.Power.Feedback.HasPresenceCap;
 
     /// <summary>
     ///     Whether <paramref name="design" /> has at least <paramref name="count" /> top-level stages with a

@@ -146,8 +146,21 @@ public sealed record FeedbackDesign(
     double DepthFrequency = 90,
     double LowFeedback = 1
 ) {
+    /// <summary>
+    ///     The smallest <see cref="PresenceCap" /> that counts as a presence circuit. A model without one writes a
+    ///     placeholder of a picofarad or less, whose corner lies far above the audio band; the smallest real one is the
+    ///     Mark IIC+'s 4.7 nF.
+    /// </summary>
+    public const double SmallestPresenceCap = 100e-12;
+
     /// <summary>The feedback fraction at mid frequencies, with presence off.</summary>
     public double Beta => ShuntResistor / (FeedbackResistor + ShuntResistor);
+
+    /// <summary>
+    ///     Whether the network has a presence cap for the presence frequency to move: false for a model that only
+    ///     writes a placeholder (the SVT, the blackface Fenders, the Legacy).
+    /// </summary>
+    public bool HasPresenceCap => PresenceCap >= SmallestPresenceCap;
 
     /// <summary>
     ///     The 5F6-A's wiring: the presence pot (<see cref="ShuntResistor" />, its track) runs from the tail's foot to

@@ -209,7 +209,8 @@ and the extra distortion comes from the amp's own tubes. Hidden on models that a
 drive control.`,
 
     presshift: `Moves the presence control's frequency down an octave, for a broader, lower-reaching presence lift. Shown
-on models that have no shift switch of their own (the Mark IIC+ has its real *Shift*).`,
+on models whose power amp has a presence circuit in its feedback loop, whether or not the panel has a Presence knob;
+hidden on solid-state amps and on tube amps without one (the SVT, the blackface Fenders).`,
 
     fatsw: `Moves the tone stack's frequencies down (to 0.6 times stock): fuller lows and low mids, as the "Fat" switch
 does on amps that have one. Hidden where the model has its own Fat switch.`,
