@@ -4,6 +4,8 @@ An audio product fails in ways most apps don't. It can **sound wrong** while eve
 
 Confidence notes: anything marked *(verify)* came from research that could not be confirmed against a primary source. Check it before you adopt it.
 
+Each section says which of its parts are **not built**. Nothing listed as not built gates a change today.
+
 ---
 
 ## 1. Test pyramid
@@ -11,9 +13,11 @@ Confidence notes: anything marked *(verify)* came from research that could not b
 | Tier | Runs | Contents | Budget |
 |---|---|---|---|
 | **T1 Fast** | every commit/PR | DSP unit and property tests, golden renders (short), preset schema and migration, API integration (null backend), Vitest units | < 5 min |
-| **T2 Medium** | every PR | Playwright Electron E2E, Storybook interaction and visual tests (Chromatic), zero-allocation assertions, OpenAPI drift check, relative perf (PR vs base) | < 15 min |
-| **T3 Nightly** | dedicated runner | parameter fuzzing, long property runs, full golden corpus, model-accuracy (ESR/MRSTFT) on all captures, BenchmarkDotNet + callback p99.9, 1 h soak under REST/WS load | hours |
+| **T2 Medium** | every PR | Playwright Electron E2E, Storybook interaction and visual tests (Chromatic), zero-allocation assertions, OpenAPI drift check | < 15 min |
+| **T3 Nightly** | dedicated runner | parameter fuzzing, long property runs, full golden corpus, model-accuracy (ESR/MRSTFT) on all captures, 1 h soak under REST/WS load with the callback p99.9 | hours |
 | **T4 Release** | HIL rig + humans | loopback round-trip latency, 30–60 min xrun soak at the smallest buffer per OS × interface, hot-plug and sample-rate change, ABX/MUSHRA listening | per release |
+
+Not built: a performance comparison of a PR against its base, and any benchmark run in CI (§7). T1 holds one golden render per block, not a corpus (§4).
 
 The foundation for everything else is the **OfflineBackend**. It renders a preset or block over a WAV file as fast as possible with a fixed sample rate and block size. It is deterministic and needs no sound card, so it works on any CI runner.
 
@@ -21,7 +25,7 @@ The foundation for everything else is the **OfflineBackend**. It renders a prese
 
 ## 2. The analysis toolkit (build this first)
 
-`engine/tests/Cathode.Testing` is a shared library, also exposed as the `Cathode.Analyze` CLI:
+`engine/tests/Cathode.Testing` is a shared library that the test projects and `cathode-references` use:
 
 | Stimuli | Analysers |
 |---|---|
@@ -32,7 +36,12 @@ The foundation for everything else is the **OfflineBackend**. It renders a prese
 | pink/white noise (seeded), full-scale square | null residual (dBFS) after cross-correlation alignment |
 | **DI corpus**: ~20 guitar and bass DI loops (single-coil, humbucker, 7-string, palm-mute, chords, clean arpeggio) | **ESR** with 1 − 0.95 z⁻¹ pre-emphasis; **MRSTFT** (512/1024/2048); LUFS; latency (impulse delay) |
 
-Everything goes through **one** implementation, so tests, benchmarks and the model-quality pipeline measure the same way.
+Everything goes through **one** implementation, so tests and the model-quality pipeline measure the same way.
+
+Not built:
+- A `Cathode.Analyze` CLI. The toolkit is a library only. `cathode-render` renders a graph over a WAV, and `cathode-references match` reports ESR, MRSTFT, harmonic profile and response against the amp references.
+- The DI corpus. There are no recorded guitar or bass DI files in the repository: tests use the synthetic stimuli above and a synthesised guitar-like phrase (`FactoryPresetLevelTests`, `LegacyCorpusTests`).
+- From the table: phase response, THD+N, the separated harmonic IRs of the sweep, and a log chirp. MRSTFT uses 256/1024/4096 windows and lives with the reference harness (`Cathode.Testing.References.MatchMetrics`), as does the harmonic profile; loudness is the engine's own `LoudnessMeter`.
 
 ---
 
@@ -48,7 +57,7 @@ Every `IDspBlock` gets a parametrised suite generated from its descriptor (`Bloc
    - The passive tone stacks are compared against SPICE/ACME.jl reference curves for the same component values.
 2. **Step and DC:** DC gain, overshoot and settling (compressors, envelope follower), and that DC blocking works where the block should block DC.
 3. **Harmonic profile snapshot:** nonlinear blocks (drives, amp stages) store a table of the harmonic profile at three drive levels. A change beyond tolerance fails the test, and the snapshot is updated deliberately.
-4. **Aliasing floor:** the 1, 2.5, 5 and 8 kHz tones at maximum drive must give a signal-to-aliasing ratio of at least the target, for example **≥ 60 dB with 4× oversampling + ADAA**. A spectrogram PNG is attached as a CI artifact.
+4. **Aliasing floor:** the 1, 2.5, 5 and 8 kHz tones at maximum drive must give a signal-to-aliasing ratio of at least the target, for example **≥ 60 dB with 4× oversampling + ADAA** (`DriveBlockTests`). Not built: a spectrogram PNG attached as a CI artifact. The test's failure message carries the measured ratios instead.
 5. **Null tests:**
    - bypass and dry must be bit-identical
    - mix 0 % against dry, including latency compensation
@@ -84,10 +93,16 @@ Not covered yet: storms of scene, channel and bypass changes, and preset swaps e
 
 ## 4. Golden renders and tone stability
 
-- `assets/test-corpus/` holds the DI files. `tests/golden/` holds short reference renders as float32 WAV, plus JSON summaries.
-- Comparison is **tolerance-based**, never byte-equal across operating systems and CPUs, because FMA and JIT codegen differ. The test fails if the **null residual** is above −90 dBFS for linear and time-based effects, or above −60 dBFS for nonlinear ones.
-- [Verify](https://github.com/VerifyTests/Verify) handles approval of the JSON summaries and preset files. A custom comparer applies the tolerance to `.wav`.
-- Every **factory preset** gets a golden render. Any tone change in a PR is visible and must be acknowledged on purpose. This is how you avoid "the update changed my sound" reports.
+**As built.**
+- **One golden render per block** (`GoldenRenderTests`): every registered block at its defaults renders a fixed stereo stimulus (a noise burst, a decaying tone, then silence for the tail) that must match `engine/tests/assets/golden/<typeId>.wav`, float32.
+- Comparison is **tolerance-based**, never byte-equal across operating systems and CPUs, because FMA and JIT codegen differ. The test fails if the **null residual** is above −90 dBFS, for every block.
+- An intended change is accepted by regenerating with `CATHODE_UPDATE_GOLDEN=1 dotnet test` and reviewing the diff.
+- **Factory presets are gated on loudness, not on a render** (`FactoryPresetLevelTests`): every planned scene of every factory preset is rendered with a guitar-like phrase and must be finite, stay below −1 dBFS and sit within 1.5 LU of the bank's loudness plus the scene's lift. The legacy corpus (§9) checks the loudness of the presets it holds, within 0.5 LU.
+
+Not built:
+- `assets/test-corpus/` with DI files, and JSON summaries beside the renders.
+- [Verify](https://github.com/VerifyTests/Verify) for approving summaries and preset files, and a looser −60 dBFS tolerance for nonlinear blocks.
+- **A golden render per factory preset.** A change that alters a factory preset's tone but keeps its loudness within 1.5 LU passes every test today. The only "tone didn't change" check is the listening pass of §11.
 
 ---
 
@@ -115,16 +130,18 @@ Reference measurements must be **ours**, made on amps we have access to.
 .NET has no RealtimeSanitizer, so we build our own equivalents:
 
 1. **Zero-allocation assertion:** warm up for 1 000 blocks, read `GC.GetAllocatedBytesForCurrentThread()`, run 10 000 blocks, and assert the delta is 0. Run this for every block and for the full graph (T2).
-2. **Debug guard:** a `[ThreadStatic] IsAudioThread` flag. In Debug builds the engine checks the allocation counter per callback and logs a stack hint when it moves.
-3. **Static analysis:**
+2. **Debug guard (not built):** a `[ThreadStatic] IsAudioThread` flag, with the engine checking the allocation counter per callback in Debug builds and logging a stack hint when it moves. What exists instead: the host reports its allocated bytes and GC counts in telemetry, and `cathode-host --self-test` fails on any allocation during a render.
+3. **Static analysis (not built):**
    - a Roslyn analyzer such as ClrHeapAllocationAnalyzer *(verify maintenance)*, or our own
-   - it applies to `Cathode.Dsp` and to methods marked `[RealtimeSafe]`
-   - it bans `lock`, `Monitor`, `async`/`Task`, LINQ, closures, boxing, `params`, string formatting and logging
+   - it would apply to `Cathode.Dsp` and to methods marked `[RealtimeSafe]` (there is no such attribute)
+   - it would ban `lock`, `Monitor`, `async`/`Task`, LINQ, closures, boxing, `params`, string formatting and logging
+
+   Until then an allocation on the audio path is caught at run time only, by item 1, on the paths the tests exercise.
 4. **Native code (Clang RealtimeSanitizer):** the `rtsan` job in [`nightly.yml`](../.github/workflows/nightly.yml) runs every night and on pull requests that touch `engine/native`. It builds the shim with Clang 20 and `-DCTH_RTSAN=ON`, then runs `cth_rtsan_check` (`engine/native/rtsan`), which is linked with `-fsanitize=realtime`. Code in RTSan's real-time context aborts with a report on any allocation, free, lock or blocking system call. Two paths are checked:
    - every upstream example `.nam` model through `cth_nam_process` at block sizes from 1 to one past the reset size, called from a `[[clang::nonblocking]]` function
    - the ALSA backend's real cycle on ALSA's `null` PCM: conversion, the process call and a NAM model in the callback. Here the context is entered by `CTH_REALTIME_ENTER`/`EXIT` in `cth_audio_alsa.c`, which compile to nothing outside that build
 
-   Two canaries run first, an allocation in a nonblocking function and one in an unmarked stream callback, and the job fails unless RTSan catches both, so a build where the sanitizer does nothing cannot pass. Not covered: the CoreAudio, WASAPI and JACK backends, and the managed audio path. Checking it would mean preloading RTSan into the .NET process, whose runtime does its own locking and allocation outside our control, so items 1 to 3 cover that path instead. There is no ASan or UBSan build yet.
+   Two canaries run first, an allocation in a nonblocking function and one in an unmarked stream callback, and the job fails unless RTSan catches both, so a build where the sanitizer does nothing cannot pass. Not covered: the CoreAudio, WASAPI and JACK backends, and the managed audio path. Checking it would mean preloading RTSan into the .NET process, whose runtime does its own locking and allocation outside our control, so item 1 covers that path instead (items 2 and 3 are not built). There is no ASan or UBSan build yet.
 5. **GC soak (T3):**
    - run the engine for 1 h with an **aggressive REST and WebSocket load generator** hammering the server: knob storms, preset loads and IR uploads
    - assert **zero gen0 or gen2 collections in the Host process during steady state**, zero xruns on the NullBackend, and a callback p99.9 below 50 % of budget
@@ -135,9 +152,15 @@ Reference measurements must be **ours**, made on amps we have access to.
 
 ## 7. Performance
 
-- **BenchmarkDotNet** with `[MemoryDiagnoser]` per block and for reference presets: "clean", "crunch", "high-gain + 2 delays + reverb", and "worst case: 4 amps, 4 cabs, everything".
-- Results are reported as **% of the real-time budget** (64 / 48 000 = 1.33 ms), with history tracked through github-action-benchmark or a similar tool. Alert on a regression above 10 %.
-- **CPU meter parity:** the engine's own CPU % (callback time divided by budget) is validated against the benchmark numbers. Users will trust this number the way they trust the Axe-Fx CPU meter, so it must be right.
+**As built.**
+- **`Cathode.Bench`** (`engine/tools/Cathode.Bench`), a console tool, measures every registered block at 48 kHz in 64-frame blocks on noise: its defaults, and the worst value of its type or mode choice. Results are a **% of one core in real time**. `--write` regenerates `Cathode.Dsp/BlockCosts.cs`, which the catalog serves to the editor's CPU estimate; `--amps` times the Circuit Amp models one by one. It is run by hand; no workflow runs it.
+- `cathode-host --bench-nam` times a NAM model or a whole example graph through the engine, and `--self-test` (run in CI on the NativeAOT build) fails on any allocation and reports the real-time headroom of one rig.
+- A few tests hold a CPU bound: `DriveCpuTests` (every drive type runs in real time on one core, which only catches a runaway), `FactoryPresetTests` (every factory preset's estimate under 80 %), and `BlockConformanceTests` checks that every block has a recorded cost.
+- **CPU meter parity:** the engine's own CPU % (callback time divided by budget) should agree with the bench numbers. Users will trust this number the way they trust the Axe-Fx CPU meter, so it must be right. No test compares the two yet.
+
+Not built:
+- **BenchmarkDotNet** with `[MemoryDiagnoser]`, and benchmarks of reference presets ("clean", "crunch", "high-gain + 2 delays + reverb", "worst case: 4 amps, 4 cabs, everything").
+- Benchmark history (github-action-benchmark or a similar tool) and an alert on a regression above 10 %. A change that makes a block slower is noticed only when someone runs the bench again, or when it breaks one of the budgets above.
 
 ---
 
@@ -152,10 +175,10 @@ Reference measurements must be **ours**, made on amps we have access to.
   - `TwoProcessTests` start the real `cathode-host --serve --null-audio` as a second process and point a Server at its socket. Through the Server's API they add blocks, load a factory preset, change parameters, and play a test tone that must reach a WebSocket client's telemetry from the host's shared-memory meters. Then they kill the host, start a new one, and check that the Server resends the rig: the same preset with the edit plays and is metered again. A host watching its stdin also stops cleanly when its launcher goes.
 - **OpenAPI drift:**
   - the build regenerates `openapi.json`, and a test diffs it against the committed copy
-  - **oasdiff** fails PRs on breaking changes unless the API version is bumped
-  - the **TypeScript client** in `editor/libs/api-client` is regenerated in CI (openapi-typescript + openapi-fetch, wrapped in Angular services), and the build fails if the committed client is stale
-- **WebSocket tests:** subscribe and unsubscribe, event ordering (a REST mutation is followed by its `paramChanged` event), throttle (≤ 60 Hz), reconnect and resync from `revision`, and multiple clients in sync.
-- **Concurrency:** two clients PATCH with a stale `If-Match`, so one gets `412`, and live state is never corrupted.
+  - not built: **oasdiff** failing PRs on breaking changes unless the API version is bumped. A breaking change to the API passes CI as long as `openapi.json` and the client are regenerated with it
+  - the **TypeScript client** in `editor/libs/api-client` is regenerated in CI (`nx run api-client:check-generated`), and the build fails if the committed client is stale
+- **WebSocket tests:** event ordering (a REST mutation is followed by its `paramChanged` event), a slow client's `resync`, reconnect and resync from `revision`, and multiple clients in sync. `/ws` has no subscriptions to test ([02 §6](02-architecture.md#6-rest-api-cathodeserver)).
+- **Concurrency** (`ConcurrencyApiTests`): an edit with a stale `If-Match` gets `412` and changes nothing, on the working copy and on the global settings; an `If-Match` that is not one revision gets `400`; a knob value made on an earlier preset load gets `412`.
 - Pact is optional. It becomes worthwhile once third-party clients (mobile app, controller bridges) consume the API.
 
 ---
@@ -185,12 +208,12 @@ Reference measurements must be **ours**, made on amps we have access to.
 |---|---|---|
 | Unit and component | **Vitest** (Angular CLI default since v21) + Angular Testing Library; zoneless, so `await fixture.whenStable()` | stores, reducers (event → state), knob math (taper, fine-drag), throttling |
 | Component library | **Storybook** stories for `cth-knob`, `cth-meter`, `cth-grid` and others; interaction tests through `play`; **Chromatic** visual diffs in light and dark (the same setup xUI already uses) | visual regressions, states |
-| Accessibility | Storybook a11y addon + `@axe-core/playwright` | knobs need `role="slider"`, `aria-valuenow`, `aria-valuetext` ("−6.0 dB") and arrow, PageUp/Down and Home/End keys |
+| Accessibility | Storybook a11y addon, which fails a story's test on a violation | knobs need `role="slider"`, `aria-valuenow`, `aria-valuetext` ("−6.0 dB") and arrow, PageUp/Down and Home/End keys |
 | E2E | **Playwright `_electron.launch`**: real Electron + real Host/Server sidecars on the NullBackend; `xvfb-run` on Linux | build a preset from scratch, scenes and channels, modifier assignment, save, reload, undo/redo, IR upload, a remote-server connection |
 | Packaged app | The same Playwright suite with `CATHODE_PACKAGED=1`, which launches the app `pnpm dist` left unpacked in `dist/release` (`e2e/target.ts`); `desktop.yml` and `release.yml` run `packaged.spec.ts` and `sidecars.spec.ts` on macOS, Windows and Linux after packaging | the packaged app runs the engine in `resources/engine`, the Server serves the editor from `app.asar.unpacked`, quitting leaves no sidecar; the sidecar tests on each OS |
-| Perf | Playwright trace + a custom FPS probe | the grid at 6×14 full with meters at 60 Hz stays ≥ 55 fps; no CD cycles triggered by telemetry |
+| Perf (not built) | Playwright trace + a custom FPS probe | the grid at 6×14 full with meters at 60 Hz stays ≥ 55 fps; no CD cycles triggered by telemetry |
 
-*(verify)* that the Storybook Vitest addon supports Angular. If it does not, use the Storybook test-runner (Playwright).
+Not built: `@axe-core/playwright` over the running app (accessibility is checked on the `audio-ui` stories only, not on the editor's pages), and the FPS probe with its 55 fps gate. Chromatic runs only when its project token is configured.
 
 ---
 

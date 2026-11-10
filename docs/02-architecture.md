@@ -32,7 +32,7 @@ This document turns the feature audit ([01](01-axe-fx-iii-audit.md)) and the DSP
 │ Renderer:     Angular 22 (zoneless, signals) + Tailwind 4 + xUI        │
 │               └─ generated TS API client (OpenAPI) + WS telemetry      │
 └──────────────┬───────────────────────────────────────────────────────┘
-               │ HTTP/REST (JSON)  +  WebSocket (binary telemetry, JSON events)
+               │ HTTP/REST (JSON)  +  WebSocket (JSON events and telemetry)
 ┌──────────────▼──────────── Cathode.Server (ASP.NET Core) ───────────┐
 │ REST controllers · OpenAPI · auth (LAN token) · preset library (disk) │
 │ IR/NAM file store · validation · undo/redo journal · event fan-out   │
@@ -42,12 +42,12 @@ This document turns the feature audit ([01](01-axe-fx-iii-audit.md)) and the DSP
 ┌──────────────▼──────────── Cathode.Host (NativeAOT engine) ─────────┐
 │ Control thread: command handling, graph compiler, model/IR loading,  │
 │                 modifier config, MIDI input, tempo                   │
-│        │  SPSC command ring ▼        ▲ retired-graph / event ring    │
+│        │  SPSC command ring ▼        ▲ retired-graph list            │
 │ Audio thread (owned by OS driver):                                    │
 │   drain commands → evaluate modifiers → run compiled graph → meters   │
 │ Analysis thread: tuner (YIN/MPM), RTA FFT, looper disk I/O            │
 │ Native shim (C/C++): CoreAudio HAL · WASAPI · ASIO · ALSA · JACK      │
-│                      NAM core · RTNeural · FTZ/DAZ · RT thread prio   │
+│                      MIDI · NAM core · FTZ/DAZ · RT thread prio       │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -72,37 +72,52 @@ A user who runs no editor (a "headless rig on a mini-PC") starts only Host + Ser
 
 ```
 cathode/
-├─ engine/                                  # .NET 10 solution
+├─ engine/                                  # .NET 10 solution (Cathode.slnx)
 │  ├─ src/
-│  │  ├─ Cathode.Dsp/                      # pure DSP: blocks, filters, oversampling, convolution
-│  │  │                                     #   no I/O, no threads, no allocation after Prepare()
-│  │  ├─ Cathode.Dsp.Native/               # P/Invoke: NAM core, RTNeural, FTZ/DAZ, vDSP FFT
-│  │  ├─ Cathode.Engine/                   # graph model + compiler, scheduler, params, modifiers,
-│  │  │                                     #   scenes/channels runtime, spillover, telemetry writer
-│  │  ├─ Cathode.Audio/                    # IAudioBackend + Offline/Null/Native backends
-│  │  ├─ Cathode.Contracts/                # preset schema, REST DTOs, migrations (no references)
+│  │  ├─ Cathode.Dsp/                      # pure DSP: blocks, filters, oversampling, convolution, the
+│  │  │                                     #   managed AIDA-X models; no I/O, no threads, no allocation
+│  │  │                                     #   after Prepare()
+│  │  ├─ Cathode.Dsp.Native/               # P/Invoke: the NAM capture amp block over cth_nam
+│  │  ├─ Cathode.Engine/                   # graph compiler, real-time loop, command ring, modifiers,
+│  │  │                                     #   the rig (controllers, looper, global EQ), spillover,
+│  │  │                                     #   telemetry region
+│  │  ├─ Cathode.Audio/                    # offline renderer, null backend, native device and MIDI
+│  │  │                                     #   sessions (cth_audio), latency probe
+│  │  ├─ Cathode.Contracts/                # preset schema and REST DTOs (no references)
 │  │  ├─ Cathode.Ipc/                      # Host<->Server protocol: messages, the graph as sent (no references)
-│  │  ├─ Cathode.EngineHost/               # the host's IPC handler and socket server
+│  │  ├─ Cathode.EngineHost/               # the host's IPC handler and socket server, MIDI input
 │  │  ├─ Cathode.Host/                     # engine executable (NativeAOT)
-│  │  └─ Cathode.Server/                   # ASP.NET Core REST + WS gateway
+│  │  └─ Cathode.Server/                   # ASP.NET Core REST + WS gateway: the live rig, the stores and
+│  │                                        #   preset migrations (Stores/), the MIDI router (Midi/), the
+│  │                                        #   factory presets (Factory/), openapi.json
 │  ├─ native/
-│  │  ├─ cth_audio/                          # C ABI shim over CoreAudio / WASAPI / ASIO / ALSA / JACK
-│  │  └─ cth_nam/                            # extern "C" wrapper of NeuralAmpModelerCore + RTNeural
+│  │  ├─ cth_audio/                          # C ABI shim over CoreAudio / WASAPI / ASIO / ALSA / JACK, MIDI
+│  │  │                                     #   (CoreMIDI / WinMM / ALSA sequencer) and the FTZ/DAZ helper
+│  │  ├─ cth_nam/                            # extern "C" wrapper of NeuralAmpModelerCore
+│  │  └─ rtsan/                              # the native real-time paths under RealtimeSanitizer
 │  ├─ tests/                                # see 03-testing-strategy.md
-│  ├─ bench/                                # BenchmarkDotNet + callback-timing soak harness
-│  └─ tools/
-│     ├─ Cathode.Render/                   # CLI: render preset × DI file → wav (offline)
-│     └─ Cathode.Analyze/                  # CLI: THD, alias ratio, ESR, MRSTFT, null residual
+│  │  ├─ Cathode.Testing/                  # stimuli and analysers: FFT, THD, null residual, ESR, MRSTFT
+│  │  ├─ Cathode.*.Tests/                  # xUnit suites per project, and the amp reference suite
+│  │  └─ assets/                           # golden renders, the legacy preset corpus, NAM and amp references
+│  ├─ tools/
+│  │  ├─ Cathode.Render/                   # CLI: render a graph over a DI file to a WAV (offline)
+│  │  ├─ Cathode.Bench/                    # CLI: CPU cost per block; writes Cathode.Dsp/BlockCosts.cs
+│  │  ├─ Cathode.References/               # CLI: fetch the amp references, match and fit circuit amps
+│  │  └─ Cathode.Soak/                     # CLI: drive a live server and host as a gig would, count overloads
+│  ├─ examples/                             # two example graphs and a synthetic cab IR
+│  └─ spikes/                               # the GC-load spike behind ADR-0001
 ├─ editor/                                  # Nx workspace (same tooling as xUI)
-│  ├─ apps/desktop/                         # Electron main + preload
-│  ├─ apps/editor/                          # Angular renderer app
+│  ├─ apps/desktop/                         # Electron main + preload; e2e/ holds the Playwright tests
+│  ├─ apps/editor/                          # Angular renderer app: shell, grid, block-editor, pages, state
 │  ├─ libs/api-client/                      # generated from engine OpenAPI (committed)
-│  ├─ libs/audio-ui/                        # knob, meter, VU, tuner, EQ curve, grid... (xUI-styled)
-│  ├─ libs/features/*                       # grid, block-editor, scenes, modifiers, library, setup
-│  └─ e2e/                                  # Playwright _electron
-├─ assets/                                  # factory presets, factory IRs (own captures), test DI corpus
+│  └─ libs/audio-ui/                        # knob, meter, tuner, scope, RTA, block tile... (xUI-styled)
+├─ website/                                 # the landing page and the manual (Angular, prerendered); its
+│                                           #   parameter tables are generated from the engine's catalog
+├─ packaging/headless/                      # the Linux headless package: install script, systemd units
 └─ docs/
 ```
+
+There is no top-level assets folder. The factory presets are embedded in the Server (`engine/src/Cathode.Server/Factory`); no factory IRs or captures ship yet. Test audio lives in `engine/tests/assets`.
 
 ### Project dependencies
 
@@ -261,8 +276,9 @@ Other optional interfaces a block may add:
 
 - Each block instance has a `ParamBank`: `float target[]`, `float current[]`, and a smoother kind per parameter (one-pole, linear ramp, or step for enums).
 - Continuous knob changes **don't use the queue at all**: the control thread writes the target with `Volatile.Write`. Aligned 32-bit writes are atomic.
-- Discrete events go through the **SPSC command ring** of unmanaged structs: bypass, channel change, scene change, tap tempo, looper transport, graph swap. The audio thread drains it at the start of each block.
-- **Modifiers** (1 or 2 sources per knob, combined with Scale/Operation; min/max, start/mid/end, slope, offset, attack/release damping, auto-engage, PC reset, per-channel enable — the Axe-Fx III surface) are evaluated at **control rate**: the engine cuts each device buffer into sub-blocks of at most 64 frames (`CathodeEngine.ControlBlockSize`; a smaller buffer is its own sub-block) and advances the controllers and modifiers once per sub-block, so modulation is as fine and as prompt at a 1,024-frame buffer as at 64. They are applied as `target = base + depth·curve(source)` with a per-assignment min, max, slew and curve.
+- Discrete events go through the **SPSC command ring** of unmanaged structs (`EngineCommand`): block bypass, tap tempo, looper transport, MIDI note on/off and all-notes-off, and turning a modifier on or off. The audio thread drains it at the start of each callback. A channel or scene change is not a command of its own: the Server sends it as parameter targets and bypass commands. A new graph does not travel through the ring either; it is published through an `Interlocked.Exchange` slot (§5.5).
+- **Modifiers.** The target is the Axe-Fx III surface: 1 or 2 sources per knob combined with Scale/Operation, min/max, start/mid/end, slope, offset, attack/release damping, auto-engage, PC reset and per-channel enable, evaluated at control rate.
+- **Modifiers as built:** a parameter has **one** modifier with **one** source (the compiler rejects a second: "has more than one modifier"). A modifier (`ModifierDefinition`, compiled to a `ModifierBinding`) holds its source, min and max in the parameter's units (following a log taper where the parameter has one), a curve (linear, exp, log or scurve) and attack and release damping in ms. It sets the parameter's target to `min..max` of `curve(source)`, slewed. Scale/Operation, start/mid/end, slope, offset and PC reset are not built. Auto-engage is a modifier on the block's `engage` pseudo-parameter, with a mode (`position` or `moving`), a threshold and an off delay. Modifiers are evaluated at control rate: the engine cuts each device buffer into sub-blocks of at most 64 frames (`CathodeEngine.ControlBlockSize`; a smaller buffer is its own sub-block) and advances the controllers and modifiers once per sub-block, so modulation is as fine and as prompt at a 1,024-frame buffer as at 64.
 - A modifier may be **scoped to one channel** of its block. The compiler is told which modifiers start enabled; when the block changes channel the server sends `setModifier`, and the audio thread turns the binding on, or off with the channel's value restored, so a modulated value still in flight cannot win (`EngineCommandKind.SetModifier`).
 - Filters smooth the **parameter** (cutoff), then recompute coefficients per sub-block. Any filter whose parameters can move uses a TPT/ZDF state-variable filter. *Confirmed in Phase 1:* the property suite found a direct-form biquad emitting +63 dBFS transients during a fast cutoff and Q sweep, and the SVF, which has the same magnitude response, fixed it.
 - RBJ shelves are limited to Q ≤ 1. Above that they develop a large resonant bump at the corner.
@@ -276,7 +292,7 @@ Other optional interfaces a block may add:
 | Block bypass | 5–20 ms crossfade. All six bypass modes: THRU, MUTE, MUTE IN, MUTE OUT, MUTE FX IN, MUTE FX OUT (the "IN" modes give per-block spillover). A block with latency keeps it while bypassed (its dry signal runs through a delay of the same length), so the compiler's alignment of parallel paths and outputs holds | Click-free |
 | Channel | Crossfade between two param sets on the same instance. For amp/cab, double-buffer the state where needed | Gapless |
 | Scene | Batch of bypass, channel and level changes applied atomically in one audio block | Gapless; delays and reverbs spill over naturally |
-| Preset | New `CompiledGraph` is built and pre-rolled off-thread, then **RCU swap** via `Interlocked.Exchange`, then a 10–30 ms crossfade. The old graph's delay and reverb tails keep running muted at their input until they drop below −90 dB or hit a time cap (**spillover**). Retired graphs return through a ring to the control thread for disposal | Gapless, with tails |
+| Preset | New `CompiledGraph` is built and pre-rolled off-thread, then **RCU swap** via `Interlocked.Exchange`, then a 10–30 ms crossfade. The old graph's delay and reverb tails keep running muted at their input until they drop below −90 dB or hit a time cap (**spillover**). Retired graphs return to the control thread for disposal on a list linked through the graphs themselves (`CathodeEngine.Retire`, `CollectRetired`), so retiring one never allocates and the list has no fixed size | Gapless, with tails |
 
 Budget for **two graphs alive at once** during a preset change, and three for one 20 ms fade when presets change faster than tails decay (the graph still spilling from the change before fades out instead of being cut).
 
@@ -293,7 +309,7 @@ Budget for **two graphs alive at once** during a preset change, and three for on
 - **Looper:** one core (`Cathode.Dsp.Looping.Looper`) serves the rig looper and the `looper` grid block. While the running graph holds a Looper block (`ILooperBlock`, found by `CompiledGraph.Looper`), the looper commands, telemetry and WAV export go to it; otherwise to the rig looper. A grid loop belongs to its preset: a swap stops the outgoing graph's looper (it fades out in the spillover), and a preset that brings a Looper block stops the rig looper. The loop memory (up to 300 s) is zeroed lazily by the OS, so only what is recorded is committed.
 - **Spillover:** the old graph retires after 4.1 s of silence (longer than any delay repeat), or 12 s. With the rig's `spillover` off (global *Preset spillover*) it fades out over the 20 ms swap instead, a clean cut. A grid loop is handed over to the next preset's Looper block when it has one (`ILooperBlock.TakeLoop`: the two blocks swap loopers, no allocation).
 - **Scenes and Scene Ignore** (server): the live state of a block is the active scene's, unless its channel has Scene Ignore on, in which case a scene change leaves it held (`LiveState.held`). Manual changes write the active scene and release the hold. Scene Revert recalls a scene from the last-saved copy on selection; a preset loads on its saved scene or the global default scene.
-- **MIDI** is read by the host (CoreMIDI), stamped with engine sample time, and routed by the Server's `MidiRouter`. The router owns learn, mappings and footswitches, and drives LEDs.
+- **MIDI** is read by the host through the shim, stamped with engine sample time, and routed by the Server's `MidiRouter`. The router owns learn, mappings and footswitches, and drives LEDs (§5.10).
 
 ### 5.6 Audio I/O ⚠
 
@@ -317,8 +333,9 @@ On every backend the shim enables flush-to-zero on the callback thread, splits c
 
 ### 5.7 Neural and native DSP ⚠
 
-- **NAM** (`.nam` A1 and A2) runs through `native/cth_nam`, an `extern "C"` wrapper around NeuralAmpModelerCore with calls such as `nam_load`, `nam_process`, `nam_reset` and `nam_free`. Hosting the reference core gives exact compatibility with the 700k+ models on Tone3000, and new architectures for free.
-- **RTNeural** covers AIDA-X and Proteus LSTM/GRU models.
+- **NAM** (`.nam` A1 and A2) runs through `native/cth_nam`, an `extern "C"` wrapper around NeuralAmpModelerCore with calls such as `cth_nam_load`, `cth_nam_process`, `cth_nam_reset` and `cth_nam_free` ([ADR-0003](adr/0003-nam-hosting.md)). Hosting the reference core gives exact compatibility with the 700k+ models on Tone3000, and new architectures for free.
+- **AIDA-X** models (`.aidax` or `.json`, the RTNeural Keras JSON format) run in managed code: `AidaModel` in Cathode.Dsp evaluates the stacked LSTM or GRU layers and the dense head, with its weights in native memory. **RTNeural itself is not a dependency**; the first plan was to host it beside the NAM core, and the managed runner made that unnecessary. The capture amp block (`NamAmpBlock`) picks the runner by file type.
+- Proteus/GuitarML LSTM files are not loaded by the amp block. A managed runner for them exists in the test harness only (`Cathode.Testing.References.GuitarMlLstmModel`), for the amp reference captures.
 - **ONNX Runtime is not used on the audio path.** Its per-call overhead, allocations and lack of streaming state make it unsuitable.
 - Long native calls use normal P/Invoke, **never** `SuppressGCTransition`, so a GC can still proceed while the native code runs.
 
@@ -326,7 +343,7 @@ On every backend the shim enables flush-to-zero on the callback thread, splits c
 
 Three tiers ship together, in one Amp block:
 
-1. **Capture amps (NAM / RTNeural)**: user-loaded or bundled, snapshot accuracy. These give fast time-to-value.
+1. **Capture amps (NAM and AIDA-X models, §5.7)**: user-loaded, snapshot accuracy. These give fast time-to-value.
 2. **Cathode "Circuit" amps**: our own white- and grey-box models. This is the long-term differentiator and the closest analogue to Fractal's Cygnus approach:
    - preamp triode stages via WDF or DK-method with ADAA plus 2–8× IIR polyphase oversampling *only around the nonlinearities*
    - an exact passive tone-stack model (FMV, Vox, Marshall, …)
@@ -388,9 +405,16 @@ Still to come: RMS, per-block CPU, scene state, and binary frames.
 
 ### 5.10 MIDI and controllers
 
-- MIDI is read in the native shim (RtMidi, or JACK MIDI on Linux). Events are timestamped, then converted to **sample offsets** and pushed into the command ring. That gives sample-accurate tap tempo and CC ramps.
+- **Input.** The `cth_audio` shim reads MIDI with a backend per platform, written against the OS API: CoreMIDI on macOS, WinMM on Windows, the ALSA sequencer on Linux. There is no RtMidi and no JACK MIDI. It queues channel messages and system real-time messages from every input port with the OS timestamp; SysEx is dropped.
 - The host connects every input and scans every two seconds for changes: the port count, and the shim's `cth_midi_generation`, which the OS's device notifications bump (CoreMIDI's setup-changed notification, the ALSA sequencer's announce port, Configuration Manager device-interface events on Windows). A device plugged in later, swapped, or unplugged and back between two scans is connected at the next scan. On macOS the shim creates its CoreMIDI client on a thread of its own that runs a run loop: without one, CoreMIDI never updates the process's list of devices.
-- Mappings cover preset and scene change, block bypass and channel, modifier sources, tap tempo, tuner and looper. They live in global settings, and presets can override them.
+- **Host** (`MidiInput`, Cathode.EngineHost): a thread of its own drains the queue every millisecond and gives each message the engine sample time it arrived at. Three things are handled there and then:
+  - MIDI clock, when following it is on: the tempo is set from the last 24 tick intervals. Clock ticks and active sensing go no further.
+  - Note on/off, All Notes Off and All Sound Off are posted to the engine's command ring (`EngineCommand.Note`, `AllNotesOff`), so blocks that follow a keyboard see the held notes without a trip through the Server.
+  - Everything else, the notes included, is forwarded to the Server over IPC in batches (`IpcTypes.Midi`, a list of `MidiEventMessage` with status, data and sample time).
+- **Server** (`MidiRouter`): applies the MIDI channel filter, MIDI learn, the global mappings and the active footswitch layout, and runs the actions one at a time in the order the MIDI arrived, through the same `LiveRig` calls the REST API uses, so the editor sees every change. It also publishes each message to `/ws` as MIDI monitor activity.
+- **What is sample-accurate.** A tap keeps its sample time all the way: the router passes it to the engine as `EngineCommand.TapTempo(sampleTime)`. Nothing else is placed on a sample. A CC bound to an External or Manual controller reaches the engine as an ordinary `setParams` on the rig bank, at whatever callback follows the IPC round trip, and the modifier's damping smooths it.
+- **Output.** The Server sends footswitch LED states and Scene MIDI to the host (`midiOut`), which writes them to the chosen output port, or to every one (`GET /midi/outputs` lists them; the global `midiOutPort` picks).
+- Mappings cover preset and scene change, block bypass and channel, modifier sources, tap tempo, tuner and looper. They live in the global settings (`GlobalSettings.MidiMappings`), and a preset cannot override them. Only footswitch actions have a per-preset override (`PUT /live/footswitch-overrides`, §7.5).
 - Foot-controller support (generic MIDI controllers in v1) uses an Axe-Fx-like **layout/view model**: layouts, per-switch tap/hold functions, LED colours sent via MIDI where the controller supports it.
 
 ---
@@ -401,7 +425,11 @@ Still to come: RMS, per-block CPU, scene state, and binary frames.
 - Base path `/api/v1`.
 - JSON via System.Text.Json source generation.
 - **OpenAPI is generated and committed.**
-- Resources carry a `revision` (ETag) for optimistic concurrency; `If-Match` is required on mutations.
+- The working copy and the global settings carry a `revision`, answered as the ETag, for optimistic concurrency. **`If-Match` is optional.**
+  - An edit to the working copy (the grid, blocks, channels, scenes, modifiers, controllers, tempo, info, save, revert, clear) and `PUT /global` read it: with `If-Match: "<revision>"`, a stale revision is refused with 412; without it, or with `*`, the edit applies to whatever the state is.
+  - A value that is not one revision (a weak tag, a list, anything else) is refused with 400, so an edit a client meant to guard is never applied unguarded.
+  - The other mutations never read it: undo and redo, loading or starting a preset (`/live/new`, `/live/preset/{id}`, a setlist entry or bank slot, a template), selecting a scene, mute, tap, the Manual and External knobs, the tuner, scope, RTA and looper, and everything in the library (presets, banks, setlists, block presets, snapshots, templates, assets). Banks and setlists have no revision.
+  - A parameter change can also carry `?load=` (`LiveState.load`) and is refused with 412 once another preset is loaded.
 - Errors are RFC 9457 problem+json.
 - There is no job queue: IR and model uploads and Tone Match are plain requests that answer when they finish.
 - **Auth:** the server binds to localhost by default. LAN access is opt-in, protected by a pairing token, so phones and tablets can act as remote editors. The editor page the Server serves carries a Content-Security-Policy (only the build's own scripts, no framing by another page), `X-Content-Type-Options: nosniff` and `Referrer-Policy: no-referrer`, as the desktop app's copy does.
@@ -410,19 +438,19 @@ Still to come: RMS, per-block CPU, scene state, and binary frames.
 |---|---|
 | System | `GET /system` (version, engine status), `GET /system/latency` (the device's input and output latency, the buffer and the graph's latency per block). There is no audio-setup route: the device, sample rate and buffer are chosen in the desktop app or through `cathode.env` |
 | Catalog | `GET /catalog/blocks` (every descriptor above), `GET /catalog/rig` |
-| Live state | `GET /live` (the full working copy), `PUT /live` (replace it), `POST /live/new`, `PUT /live/preset/{id}` (load), `PUT /live/setlists/{id}/entries/{index}`, `PUT /live/banks/{id}/slots/{slot}` (both remembered as `LiveState.position`), `GET /live/neighbour?step=1` (what preset next/previous load: bank order, on into the next bank, presets in no bank last by name; through the active setlist instead), `POST /live/save`, `GET /live/export` (the working copy as a package, saved or not), `POST /live/undo`, `POST /live/redo`, `POST /live/revert`, `POST /live/clear`, `PATCH /live/info` (name, tempo, notes), `PUT /live/mute`, `PUT /live/tempo`, `POST /live/tap`, `PUT /live/perform` |
+| Live state | `GET /live` (the full working copy), `PUT /live` (replace it), `POST /live/new`, `PUT /live/preset/{id}` (load), `PUT /live/setlists/{id}/entries/{index}`, `PUT /live/banks/{id}/slots/{slot}` (both remembered as `LiveState.position`), `GET /live/neighbour?step=1` (what preset next/previous load: bank order, on into the next bank, presets in no bank last by name; through the active setlist instead), `POST /live/save`, `GET /live/export` (the working copy as a package, saved or not), `POST /live/undo`, `POST /live/redo`, `POST /live/revert`, `POST /live/clear`, `PATCH /live/info` (name, author, tags, description), `PUT /live/mute`, `PUT /live/tempo` (the tempo), `POST /live/tap`, `PUT /live/perform` |
 | Grid | `POST /live/blocks` (place a block), `DELETE /live/blocks/{id}`, `PUT /live/blocks/{id}/position`, `POST /live/blocks/{id}/drop`, `POST /live/grid/move`, `PUT /live/blocks/{id}/type`, `POST /live/cables`, `DELETE /live/cables?from=&to=`, `DELETE /live/blocks/{id}/cables` |
-| Blocks | `PATCH /live/blocks/{id}/params?channel=B` (batch), `PUT /live/blocks/{id}/bypass`, `PUT /live/blocks/{id}/bypass-mode`, `PUT /live/blocks/{id}/channel`, `PUT /live/blocks/{id}/settings`, `POST /live/blocks/{id}/preset`, `POST /live/blocks/{id}/reset`, `PUT /live/blocks/{id}/assets/{slot}`, `GET/POST /live/blocks/{id}/ir`, `GET /live/blocks/{id}/cab/align`, `GET /live/blocks/{id}/speaker-resonance`, `PUT /live/blocks/{id}/test-tone`, `POST /live/blocks/{id}/tonematch`, `POST /live/blocks/{id}/global`, `PUT/DELETE /live/blocks/{id}/global/{globalId}`, `DELETE /live/globals/{globalId}`, `PUT /live/manual/{index}`, `PUT /live/external/{index}` |
+| Blocks | `PATCH /live/blocks/{id}/params?channel=B` (batch), `PUT /live/blocks/{id}/bypass`, `PUT /live/blocks/{id}/bypass-mode`, `PUT /live/blocks/{id}/channel`, `PUT /live/blocks/{id}/settings`, `POST /live/blocks/{id}/preset`, `POST /live/blocks/{id}/reset`, `PUT /live/blocks/{id}/assets/{slot}`, `GET/POST /live/blocks/{id}/ir`, `GET /live/blocks/{id}/cab/align`, `GET /live/blocks/{id}/speaker-resonance`, `GET /live/blocks/{id}/response` (the frequency response of a block's graphic EQ), `PUT /live/blocks/{id}/test-tone`, `POST /live/blocks/{id}/tonematch`, `POST /live/blocks/{id}/global` (make it a global block), `PUT /live/blocks/{id}/global/{globalId}` (link it to one), `DELETE /live/blocks/{id}/global` (unlink), `DELETE /live/globals/{globalId}`, `PUT /live/manual/{index}`, `PUT /live/external/{index}` |
 | Channels | `POST /live/blocks/{id}/channels/copy`, `POST /live/blocks/{id}/channels/swap`, `POST /live/blocks/{id}/channels/{channel}/reset`, `PUT /live/blocks/{id}/channels/{channel}/scene-ignore` |
 | Scenes | `PUT /live/scenes/active` (select), `PATCH /live/scenes/{scene}`, `PUT /live/scenes/{scene}/blocks/{id}` (Scene Manager), `PUT /live/blocks/{id}/all-scenes`, `POST /live/scenes/copy`, `POST /live/scenes/swap` |
 | Modifiers | `PUT /live/modifiers`, `PATCH /live/controllers`, `PUT /live/footswitch-overrides` |
 | Library | `GET /presets`, `GET/DELETE /presets/{id}` (presets are written by `/live/save` and imports only), `PATCH /presets/{id}/metadata`, `POST /presets/{id}/duplicate`, `POST /presets/import`, `GET /presets/{id}/export`, `GET /presets/list.txt`, `POST /presets/reset-amps`, `POST /presets/batch-set`; setlists (`/setlists`, `/setlists/{id}`), banks (`/banks`, `/banks/{id}`), block presets (`/block-presets`, `/block-presets/{id}`, `/block-presets/export`, `/block-presets/import`, `POST /live/block-presets`), snapshots (`/snapshots`, `POST /live/snapshots`, `POST /live/snapshots/{id}/load`) and templates (`/templates`, `POST /live/templates`, `POST /live/templates/{id}/new`) |
-| Global | `GET/PUT /global`: one document holding the global settings, the global blocks, the global EQ, the MIDI mappings and the footswitch layouts. `GET/PUT/DELETE /midi/learn` (what is armed, 204 when nothing is; arm, with an optional modifier the Server adds to the loaded preset once something is learnt; cancel) |
-| Assets | `GET/POST /assets` (IRs and NAM/AIDA-X models: upload, list), `GET/DELETE /assets/{reference}`, `GET /assets/{reference}/content`, `PATCH /assets/{reference}/metadata`, `GET /assets/usage`, `POST /assets/mix` |
+| Global | `GET/PUT /global`: one document holding the global settings, the global blocks, the global EQ, the MIDI mappings and the footswitch layouts. `GET/PUT/DELETE /midi/learn` (what is armed, 204 when nothing is; arm, with an optional modifier the Server adds to the loaded preset once something is learnt; cancel), `GET /midi/outputs` (the host's MIDI output ports, for the global `midiOutPort`) |
+| Assets | `GET/POST /assets` (IRs and NAM/AIDA-X models: upload, list), `DELETE /assets/{reference}`, `GET /assets/{reference}/content` (the file; there is no `GET /assets/{reference}`, the list carries each asset's details), `PATCH /assets/{reference}/metadata`, `GET /assets/usage`, `POST /assets/mix` |
 | Utilities | `PUT /tuner`, `PUT /scope`, `PUT /rta` (counted per client, below), `POST /looper/{action}` (transport, undo), `GET /looper/export` |
-| Stream | `GET /ws`: binary telemetry channels (meters, tuner, RTA, scope, CPU) plus JSON events (`paramChanged`, `sceneChanged`, `presetLoaded`, `xrun`), with subscriptions per channel |
+| Stream | `GET /ws`: JSON text frames only, each with a `type`. `connected` first; then an event per change (`paramChanged`, `sceneChanged`, `presetLoaded`, `blockAdded`, `globalChanged`, … below); `telemetry` at 30 Hz (meters, tuner, tempo, looper, CPU and the overload counts; there is no `xrun` event); `scope` and `rta` frames while a client has them on; `midi` monitor activity; `resync` for a client that fell behind. Every client gets everything: there are no subscriptions per channel |
 
-> **As built (Phase 3):** the domain lives in the Server ([ADR-0004](adr/0004-state-ownership.md)). Some routes differ from the sketch above: `PUT /live/blocks/{id}/position` moves a block, `DELETE /live/cables?from=&to=` removes a cable, and parameters are `PATCH /live/blocks/{id}/params?channel=B` with a `{ paramId: value }` body. `/ws` sends JSON text, starting with `{"type":"connected"}`. A client waits for it before reading `GET /live`. The tuner, scope and RTA (`PUT /tuner`, `/scope`, `/rta`) are rig-wide but counted per client: an editor sends its own `?client=` id on those requests and on `/ws`, each runs while any client has it on, and what a client left on is released when its last socket closes (it turns it on again after a reconnect). The committed `engine/src/Cathode.Server/openapi.json` is the source of truth.
+> **As built (Phase 3):** the domain lives in the Server ([ADR-0004](adr/0004-state-ownership.md)). The table above is the API as built; parameters are `PATCH /live/blocks/{id}/params?channel=B` with a `{ paramId: value }` body. The original sketch of `/ws` had binary telemetry channels (meters, tuner, RTA, scope, CPU) with a subscription per channel, and an `xrun` event; none of that was built. `/ws` sends JSON text, starting with `{"type":"connected"}`. A client waits for it before reading `GET /live`. The tuner, scope and RTA (`PUT /tuner`, `/scope`, `/rta`) are rig-wide but counted per client: an editor sends its own `?client=` id on those requests and on `/ws`, each runs while any client has it on, and what a client left on is released when its last socket closes (it turns it on again after a reconnect). The committed `engine/src/Cathode.Server/openapi.json` is the source of truth.
 
 > **Audio I/O:** `GET /system/latency` reports the device's input and output latency, the buffer, and the graph's latency along its longest path, block by block. `PUT /live/blocks/{id}/test-tone` (`{ enabled, frequency, level }`) plays the cab resonance helper's sine in place of a block's output, and `GET /live/blocks/{id}/speaker-resonance` gives a Circuit Amp's speaker load resonance at Load resonance 100 % (with Follow Cab, the followed Cab speaker's). The global settings gained `outputs` (mode, Boost/Pad and EQ per output), `copyOutput1To2`, `inputs` (full-scale volts and gain per input) and `oversampling`; the device channel mapping stays with the desktop app's audio settings (host arguments).
 
@@ -553,7 +581,7 @@ The editor's software-editor features, built in the ED stream. They follow Fract
 - Licences:
   - **ASIO SDK**: used under its GPLv3 option ([THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md)); a closed-source fork would need Steinberg's proprietary agreement
   - **NAM core**: MIT
-  - **RTNeural**: BSD-3
+  - **RTNeural**: not used. AIDA-X models, which are in its JSON format, run in our own managed code
   - **JUCE**: not used, to avoid GPL or commercial licensing
   - Study the GPL code in chowdsp and other projects for ideas only, unless the licence fits.
 
