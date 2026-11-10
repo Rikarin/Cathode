@@ -29,8 +29,8 @@ for re-amping a recorded DI.`,
     type: `The noise gate's type. See the options below. **Off** (the default) means no gate.`,
 
     threshold: `Gate page: the level below which the gate starts turning the signal down. Raise it until the noise between
-notes goes away; if it starts eating the ends of notes, back it off. A global gate offset, if your setup uses one, is
-added to this value.`,
+notes goes away; if it starts eating the ends of notes, back it off. The global [Gate offset](/manual/live-performance#adjusting-to-the-room) (Global page, 0 unless
+you change it) is added to this value.`,
 
     ratio: `Gate page: how hard the gate turns down below the threshold. Each dB the input falls below the threshold takes
 ratio − 1 dB more off: 2 is a gentle downward expander, 10 or more acts like a hard gate (to at most −100 dB).`,

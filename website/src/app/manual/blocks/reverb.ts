@@ -203,7 +203,7 @@ shifters back into themselves (kept below unity), which stacks octaves on the sh
 
     pitchPosition: `Where the pitch section sits. See the options below.`,
 
-    globalMix: `When on, the global Effects Mix offset is added to this block's Mix, so one global control makes every such
+    globalMix: `When on, the global [Effects Mix](/manual/live-performance#adjusting-to-the-room) offset is added to this block's Mix, so one global control makes every such
 block wetter or drier for the room you're playing in.`,
 
     killDry: `Mutes the block's dry signal, so Mix sets only the reverb level. For parallel paths that already carry the

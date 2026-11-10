@@ -1,4 +1,4 @@
-This chapter is about using Cathode on stage and in rehearsal: the Perform page, preparing and playing a setlist, the tuner, global mute, the looper, keeping presets at the same loudness, and a checklist for the gig.
+This chapter is about using Cathode on stage and in rehearsal: the Perform page, preparing and playing a setlist, the tuner, global mute, the looper, keeping presets at the same loudness, adjusting the whole rig to a room, and a checklist for the gig.
 
 ## The Perform page
 
@@ -160,6 +160,30 @@ Presets built on different days rarely play at the same loudness, and a jump in 
 
 Use **Scene Level** (on the Controllers page) for differences between scenes, such as a lift for the solo. [Gain staging and levels](/manual/gain-staging) explains loudness in more detail.
 
+## Adjusting to the room
+
+A stage is not your practice room: a hall with a long echo of its own needs less reverb and delay than you set at home, the lights and the wiring add hum, and the PA has its own tone. Four settings on the **Global** page change every preset at once, so you can adjust at sound check without editing or saving a single preset, and set them back afterwards.
+
+### Effects Mix
+
+**Global ▸ Mix and gate offsets ▸ Effects Mix** (−50 to +50 %, 0 by default) is added to the **Mix** of every block whose **Global Mix** switch is on. At −10 %, a delay saved at 30 % plays at 20 %; the result never goes below 0 % or above 100 %.
+
+Global Mix is a switch on the Chorus, Flanger, Phaser, Delay, Multitap Delay, Megatap Delay, Reverb, Pitch, Resonator and Synth blocks. It is off unless you turn it on, and it is saved with the preset, per channel, like any other knob. So first decide which effects should follow the room, usually the reverbs and the delays, and turn Global Mix on for them in your presets. Leave it off where the mix is part of the sound, such as a chorus at 50 % or a fully wet effect on a parallel row.
+
+Then, in a room that rings, turn Effects Mix down until the notes stay clear; in a dry, heavily damped room, turn it up a little.
+
+### Noise gate offset
+
+**Global ▸ Mix and gate offsets ▸ Gate offset** (−20 to +20 dB, 0 by default) is added to the **Threshold** of the gate in every [Input](/manual/blocks/input) block. With a threshold of −60 dB in the preset and an offset of +6 dB, the gate works at −54 dB.
+
+Raise it when a venue is noisier than home (dimmers, neon signs, a long cable run) and the gates no longer close between notes. Lower it if they cut the ends of quiet notes. It does nothing in a preset whose Input gate is Off, and it does not change a separate Gate/Expander block.
+
+### The output's global EQ and Boost/Pad
+
+Under **Global ▸ Outputs**, each output has a ten-band **global EQ** and a **Boost/Pad** (−18 to +18 dB), applied after every preset. Use the EQ to take out what the room or the PA adds, such as a boomy low end or a harsh top, and Boost/Pad to give the mixer or power amp the level it wants. See [Outputs: Boost/Pad and global EQ](/manual/gain-staging#outputs-boostpad-and-global-eq).
+
+> **Tip:** These settings are global, so they stay as they are until you change them. Set Effects Mix and the gate offset back to 0 after the gig, or the next room starts from the last one's correction.
+
 ## Keeping it stable
 
 - **Use a safe buffer size.** If you hear a single click in a long rehearsal, go up one buffer size. A dropout on stage is worse than a millisecond of latency. Watch **Engine overruns** in Settings ▸ Audio setup.
@@ -185,5 +209,6 @@ At the venue:
 - [ ] Check the **OUT** meter: no **CLIP**. Set the output's **Boost/Pad** (Global ▸ Outputs) to give the sound engineer a sensible level, and **Sum L+R** if they give you one channel.
 - [ ] If you play into a guitar amp's power amp and cab, check that **Cab modeling off** is on; if into the PA, that it is off.
 - [ ] Tune (⌘T, then mute while you tune).
+- [ ] Listen to a preset with reverb and delay in the room, and set **Effects Mix** and the **Gate offset** (Global ▸ Mix and gate offsets) if the room needs it.
 - [ ] Run through each preset and each scene you will use, and every footswitch.
 - [ ] Load the first song.

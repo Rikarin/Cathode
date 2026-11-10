@@ -109,7 +109,7 @@ over this time, on a smooth S-curve. The dry isn't affected. 0 turns the swell o
     envelopeRelease: `How quickly the swell closes once your note falls 6 dB below the threshold. The next note starts a
 new swell from silence.`,
 
-    globalMix: `When on, the global Effects Mix offset is added to this block's Mix.`
+    globalMix: `When on, the global [Effects Mix](/manual/live-performance#adjusting-to-the-room) offset is added to this block's Mix.`
   },
 
   options: {

@@ -43,7 +43,7 @@ Compared with a flanger, a phaser's notches are fewer and spread unevenly, so it
     direction: `In Barberpole mode: whether the endless sweep rises or falls.`,
     filterQ: `In Barberpole mode: the sharpness of the second-order all-pass filters. Higher values give narrower, more pronounced notches.`,
     lfoReset: `When on, engaging the block restarts the sweep from the same point, so it always starts the same way.`,
-    globalMix: `When on, this block's Mix follows the global **Effects Mix** offset.`,
+    globalMix: `When on, this block's Mix follows the global **[Effects Mix](/manual/live-performance#adjusting-to-the-room)** offset.`,
     stereoSpread: `Widens or narrows the wet signal's stereo image. 100 % leaves it as it is, 0 % folds it to mono, negative swaps the sides, beyond ±100 % widens past the speakers.`
   },
 
