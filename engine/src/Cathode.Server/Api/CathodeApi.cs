@@ -25,17 +25,21 @@ public static class CathodeApi {
         AnalysisApi.Map(app, api, live);
     }
 
+    /// <summary>The preset's package (<see cref="PresetPackage" />) as a download named after the preset.</summary>
+    internal static Task<IResult> Export(Preset preset, PresetPackage package, CancellationToken cancellationToken) {
+        var name = string.Concat(preset.Name.Split(Path.GetInvalidFileNameChars())).Trim();
+        return ZipFile(
+            (name.Length > 0 ? name : "preset") + PresetPackage.Extension,
+            file => package.ExportAsync(preset, file, cancellationToken)
+        );
+    }
+
     /// <summary>
-    ///     Builds the package in a temporary file and streams that: ZipArchive writes some parts synchronously, which
+    ///     Builds a zip in a temporary file and streams that: ZipArchive writes some parts synchronously, which
     ///     Kestrel forbids on a response, and a file keeps large models out of memory. The file deletes itself on
     ///     close.
     /// </summary>
-    internal static async Task<IResult> Export(
-        Preset preset,
-        PresetPackage package,
-        CancellationToken cancellationToken
-    ) {
-        var name = string.Concat(preset.Name.Split(Path.GetInvalidFileNameChars())).Trim();
+    internal static async Task<IResult> ZipFile(string name, Func<Stream, Task> write) {
         var file = new FileStream(
             Path.GetTempFileName(),
             FileMode.Create,
@@ -45,9 +49,9 @@ public static class CathodeApi {
             FileOptions.DeleteOnClose | FileOptions.Asynchronous
         );
         try {
-            await package.ExportAsync(preset, file, cancellationToken);
+            await write(file);
             file.Position = 0;
-            return Results.File(file, "application/zip", (name.Length > 0 ? name : "preset") + PresetPackage.Extension);
+            return Results.File(file, "application/zip", name);
         } catch {
             await file.DisposeAsync();
             throw;

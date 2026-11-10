@@ -159,7 +159,7 @@ Presets, banks, block presets, IRs, captures and global settings belong to the e
 | Linux desktop   | `~/.config/Cathode`                     |
 | Headless server | `/var/lib/cathode`                      |
 
-Back this folder up to keep everything. Preferences, the recent presets list and remembered access tokens are kept by the editor itself, per computer and browser.
+Back this folder up to keep everything, or save it all as one file with **Library ▸ Backup** (see [Backing up and restoring the Library](/manual/library#backing-up-and-restoring-the-library)). Preferences, the recent presets list and remembered access tokens are kept by the editor itself, per computer and browser.
 
 ## The desktop app and the browser
 

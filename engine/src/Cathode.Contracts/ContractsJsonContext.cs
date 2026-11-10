@@ -37,6 +37,8 @@ namespace Cathode.Contracts;
 [JsonSerializable(typeof(Setlist))]
 [JsonSerializable(typeof(PackageManifest))]
 [JsonSerializable(typeof(ImportResult))]
+[JsonSerializable(typeof(BackupManifest))]
+[JsonSerializable(typeof(RestoreResult))]
 [JsonSerializable(typeof(Setlist[]))]
 [JsonSerializable(typeof(Bank))]
 [JsonSerializable(typeof(Bank[]))]

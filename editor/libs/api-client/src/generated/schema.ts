@@ -1308,6 +1308,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/library/backup': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** The whole library as one .cthbackup file: the global settings, the user's presets, block presets, templates, snapshots, setlists and banks, and every IR and capture. Factory content is not in it. */
+    get: operations['BackupLibrary'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/library/restore': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Puts a .cthbackup file into the library: an entry with the id of one already there replaces it, everything else stays, and the global settings are replaced. The working copy is not touched. Answers with what was restored and what was left out (and why). */
+    post: operations['RestoreLibrary'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/setlists': {
     parameters: {
       query?: never;
@@ -2633,6 +2667,29 @@ export interface components {
     /** @description Replaces a block with a new one of `Type` in the same cell, keeping its cables. */
     ReplaceBlockRequest: {
       type: string;
+    };
+    /**
+     * @description What a restore put into the library: how many of each kind it wrote (an entry with the id of one already
+     *     there replaced it), whether the global settings were replaced, and what it left out with the reason
+     *     (`Skipped`: a block preset of a block this Cathode does not have, a bank that points at a missing preset).
+     */
+    RestoreResult: {
+      /** Format: int32 */
+      presets: number;
+      /** Format: int32 */
+      blockPresets: number;
+      /** Format: int32 */
+      templates: number;
+      /** Format: int32 */
+      snapshots: number;
+      /** Format: int32 */
+      setlists: number;
+      /** Format: int32 */
+      banks: number;
+      /** Format: int32 */
+      assets: number;
+      settings: boolean;
+      skipped: string[];
     };
     /**
      * @description Turns the RTA on or off and sets how it analyses: `BandsPerOctave` 3, 6 or 12 (about 30, 60 or 120 bands),
@@ -4848,6 +4905,48 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  BackupLibrary: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  RestoreLibrary: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/zip': components['schemas']['Stream'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['RestoreResult'];
+        };
       };
     };
   };

@@ -229,8 +229,8 @@ static class ControlsApi {
         return TypedResults.Ok(settings);
     }
 
-    /// <summary>What a <c>PUT /global</c> stores: the settings sent, clamped.</summary>
-    static void Replace(GlobalSettings g, GlobalSettings settings) {
+    /// <summary>What a <c>PUT /global</c> (and a restored backup) stores: the settings sent, clamped.</summary>
+    internal static void Replace(GlobalSettings g, GlobalSettings settings) {
         g.TempoMode = settings.TempoMode;
         g.Tempo = Math.Clamp(settings.Tempo, 30, 300);
         g.Metronome = settings.Metronome;

@@ -18,7 +18,8 @@ import { XuiTextImports } from '@xui/text';
 import { Notify } from '../core/notify';
 import { BlockFileExtension, BlockPresetsStore } from '../state/block-presets.store';
 import { CatalogStore } from '../state/catalog.store';
-import { LibraryStore } from '../state/library.store';
+import { GlobalStore } from '../state/global.store';
+import { BackupFileExtension, LibraryStore, restoreSummary } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
 import { PresetSwitcher } from '../state/preset-switcher';
 import { AssetLibrary, AssetList, AssetToolbar } from './asset-library';
@@ -29,7 +30,8 @@ export const PresetRowHeight = 48;
 
 /**
  * The Library: presets (search by name, author or tag; show all, your own or the read-only factory bank's; double-click
- * or Load opens one in the editor; export, import, delete your own), the Block Library (folders of block and channel presets), the global blocks (rename, delete), and the NAM amps and IR cabs every Amp NAM, Cab
+ * or Load opens one in the editor; export, import, delete your own; back up the whole library to a file or restore
+ * one), the Block Library (folders of block and channel presets), the global blocks (rename, delete), and the NAM amps and IR cabs every Amp NAM, Cab
  * and IR Player block picks from (upload, rename, tag, delete; the IR tools). `?view=amps` or `?view=cabs` opens
  * those.
  */
@@ -105,6 +107,34 @@ export const PresetRowHeight = 48;
         >
           Export list…
         </button>
+        <button
+          xuiButton
+          type="button"
+          variant="outline"
+          size="sm"
+          data-testid="backup-menu"
+          [xuiMenuTriggerFor]="backupMenu"
+        >
+          Backup
+        </button>
+        <input
+          #restoreFile
+          type="file"
+          class="hidden"
+          data-testid="restore-file"
+          [accept]="backupExtension"
+          (change)="chooseBackup(restoreFile)"
+        />
+        <ng-template #backupMenu>
+          <xui-menu>
+            <button type="button" xuiMenuItem data-testid="backup-library" (click)="library.backup()">
+              Back up the library…
+            </button>
+            <button type="button" xuiMenuItem data-testid="restore-library" (click)="restoreFile.click()">
+              Restore from a backup…
+            </button>
+          </xui-menu>
+        </ng-template>
       } @else if (view() === 'blocks') {
         <div class="ml-auto flex items-center gap-2">
           <button xuiButton size="sm" variant="outline" type="button" (click)="saveAllBlocks()">
@@ -386,6 +416,38 @@ export const PresetRowHeight = 48;
       (confirmed)="delete()"
     />
 
+    <xui-alert-dialog
+      title="Restore this backup?"
+      [description]="
+        '“' +
+        (backupFile()?.name ?? '') +
+        '” will be put into the library. Presets, banks, setlists and other entries that are also in the backup ' +
+        'are replaced by its copies, and the global settings are replaced. Everything else stays, and the preset ' +
+        'you are editing is not touched.'
+      "
+      confirmText="Restore"
+      [(open)]="confirmRestore"
+      (confirmed)="restore()"
+    />
+
+    <xui-dialog
+      title="Some entries were left out"
+      [open]="leftOut().length > 0"
+      (openChange)="!$event && leftOut.set([])"
+    >
+      <xui-dialog-body class="flex flex-col gap-2">
+        <p xuiText>The rest of the backup was restored. These could not be:</p>
+        <ul class="list-disc ps-5 text-sm" data-testid="restore-skipped">
+          @for (entry of leftOut(); track $index) {
+            <li>{{ entry }}</li>
+          }
+        </ul>
+      </xui-dialog-body>
+      <xui-dialog-footer>
+        <button xuiButton type="button" (click)="leftOut.set([])">OK</button>
+      </xui-dialog-footer>
+    </xui-dialog>
+
     <xui-dialog title="This preset is in use" [(open)]="inUse">
       <xui-dialog-body class="flex flex-col gap-2">
         <p xuiText>
@@ -444,6 +506,13 @@ export class LibraryPage {
   /** Library entries chosen for export. */
   protected readonly chosen = signal<ReadonlySet<string>>(new Set());
   protected readonly dropping = signal(false);
+  protected readonly backupExtension = BackupFileExtension;
+  /** The backup file chosen to restore, which the confirmation names. */
+  protected readonly backupFile = signal<File | null>(null);
+  protected readonly confirmRestore = signal(false);
+  /** What the last restore could not put into the library, with the Server's reasons. */
+  protected readonly leftOut = signal<readonly string[]>([]);
+  private readonly global = inject(GlobalStore);
   protected readonly folderFor = signal<BlockPreset | null>(null);
   protected readonly folderName = signal('');
   private readonly assets = inject(AssetLibrary);
@@ -574,6 +643,25 @@ export class LibraryPage {
     const ids = [...this.chosen()];
     const first = this.blockPresets.presets().find(p => p.id === ids[0]);
     await this.blockPresets.export(ids, ids.length === 1 && first ? first.name : 'block-library');
+  }
+
+  /** Asks before restoring the chosen backup file: a restore replaces entries and the global settings. */
+  protected chooseBackup(input: HTMLInputElement): void {
+    const file = input.files?.[0] ?? null;
+    input.value = '';
+    this.backupFile.set(file);
+    this.confirmRestore.set(file !== null);
+  }
+
+  /** Restores the chosen backup, then reads again what it may have changed and says what was restored. */
+  protected async restore(): Promise<void> {
+    const file = this.backupFile();
+    const result = file ? await this.library.restore(file) : undefined;
+    if (result) {
+      await Promise.all([this.blockPresets.refresh(), this.global.refresh()]);
+      this.notify.success(restoreSummary(result));
+      this.leftOut.set(result.skipped);
+    }
   }
 
   protected async importBlocks(input: HTMLInputElement): Promise<void> {

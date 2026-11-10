@@ -6,7 +6,7 @@ import { EventStream } from '../core/events';
 import { Notify } from '../core/notify';
 import { BlockPresetsStore } from './block-presets.store';
 import { CatalogStore } from './catalog.store';
-import { LibraryStore, presetUses } from './library.store';
+import { LibraryStore, presetUses, restoreSummary } from './library.store';
 import { LiveStore } from './live.store';
 
 describe('LibraryStore.isStored', () => {
@@ -142,5 +142,62 @@ describe('presetUses', () => {
 
   it('is empty for a preset nothing uses', () => {
     expect(presetUses('c', banks, setlists)).toEqual([]);
+  });
+});
+
+describe('restoring a backup', () => {
+  const result = {
+    presets: 0,
+    blockPresets: 0,
+    templates: 0,
+    snapshots: 0,
+    setlists: 0,
+    banks: 0,
+    assets: 0,
+    settings: false,
+    skipped: []
+  };
+
+  it('sends the file to the Server and reads the library again', async () => {
+    const read: string[] = [];
+    const post = vi.fn((_path: string, _init: unknown) =>
+      Promise.resolve({ data: { ...result, presets: 3 }, response: new Response('{}') })
+    );
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: ConnectionService,
+          useValue: {
+            client: {
+              POST: post,
+              GET: (path: string) => {
+                read.push(path);
+                return Promise.resolve({ data: [], response: new Response('[]') });
+              }
+            }
+          }
+        },
+        { provide: EventStream, useValue: { events$: new Subject(), connected$: new Subject() } },
+        { provide: Notify, useValue: { run: (action: () => Promise<unknown>) => action(), error: () => undefined } }
+      ]
+    });
+    const file = new File(['zip'], 'rig.cthbackup');
+
+    const restored = await TestBed.inject(LibraryStore).restore(file);
+
+    expect(restored?.presets).toBe(3);
+    expect(post.mock.calls[0]?.[0]).toBe('/api/v1/library/restore');
+    expect((post.mock.calls[0]?.[1] as { body: unknown }).body).toBe(file);
+    expect(read).toEqual(
+      expect.arrayContaining(['/api/v1/presets', '/api/v1/assets', '/api/v1/banks', '/api/v1/setlists'])
+    );
+  });
+
+  it('says what was restored in one sentence', () => {
+    expect(restoreSummary({ ...result, presets: 1 })).toBe('Restored 1 preset.');
+    expect(restoreSummary({ ...result, presets: 12, banks: 2, assets: 3, settings: true })).toBe(
+      'Restored 12 presets, 2 banks, 3 new IRs and captures and the global settings.'
+    );
+    expect(restoreSummary(result)).toBe('The backup held nothing to restore.');
   });
 });

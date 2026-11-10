@@ -103,6 +103,7 @@ Ordered by value to a guitarist:
   - JSON per preset (atomic writes, safe ids)
   - **banks** (128 slots, for MIDI program change) and **setlists** (preset plus starting scene), with referential integrity
   - **`.cthpreset`** import/export: a zip of the preset and its assets, with hardened import (strict names, hash-verified assets, size limits enforced while reading, no overwrites)
+  - **`.cthbackup`** backup/restore: a zip of the whole library (global settings, presets, block presets, templates, snapshots, setlists, banks, marks on factory presets, assets and their index), read with the same hardening and put back through the stores (`Stores/LibraryBackup.cs`)
 - [x] Undo/redo (snapshots of the working copy; knob drags coalesce into one step)
 - [x] `/ws` events and telemetry as JSON text, with a `connected` handshake so clients never miss a change. *Changed:* binary frames and per-channel subscriptions are deferred (ADR-0004)
 - [x] Asset store for IRs and models: content-addressed (SHA-256), deduplicated, size-limited

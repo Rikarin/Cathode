@@ -159,7 +159,7 @@ Fractal's amp algorithm generations show the scale of the target. The Circuit ti
 | IR capture | Built in (flat SS power amp, or amp + load). Cab-Lab 3 for mixing | **IR capture utility** (sweep, deconvolve, trim) plus an IR mixer/export |
 | Global EQ and output | EQ and level per analog output, Global Mix offset, Noisegate offset, Global power-amp modelling off, output copy modes | Global settings resource |
 | Leveling | VU meters in grid zoom, Leveling panel in Axe-Edit | LUFS/peak meters per block and a **preset leveling** tool (auto-match loudness across scenes) |
-| Firmware and backup | Fractal-Bot backup and restore | Library export/import, auto-backup |
+| Firmware and backup | Fractal-Bot backup and restore | Library export/import; the whole library as one `.cthbackup` file (`GET /library/backup`, `POST /library/restore`). No automatic backup yet |
 
 ---
 

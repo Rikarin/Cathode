@@ -298,3 +298,23 @@ public sealed record PackageManifest(
 );
 
 public sealed record ImportResult(PresetSummary Preset, int AssetsAdded, bool Renamed);
+
+/// <summary><c>manifest.json</c> of a library backup (.cthbackup): when and by which Cathode it was made.</summary>
+public sealed record BackupManifest(string Format, int Version, DateTimeOffset Created, string App);
+
+/// <summary>
+///     What a restore put into the library: how many of each kind it wrote (an entry with the id of one already
+///     there replaced it), whether the global settings were replaced, and what it left out with the reason
+///     (<c>Skipped</c>: a block preset of a block this Cathode does not have, a bank that points at a missing preset).
+/// </summary>
+public sealed record RestoreResult(
+    int Presets,
+    int BlockPresets,
+    int Templates,
+    int Snapshots,
+    int Setlists,
+    int Banks,
+    int Assets,
+    bool Settings,
+    IReadOnlyList<string> Skipped
+);

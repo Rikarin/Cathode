@@ -1,10 +1,11 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import type { AssetInfo, PresetSummary } from '@cathode/api-client';
+import type { AssetInfo, PresetSummary, RestoreResult } from '@cathode/api-client';
 import { Notify } from '../core/notify';
 import { BlockPresetsStore } from '../state/block-presets.store';
 import { CatalogStore } from '../state/catalog.store';
+import { GlobalStore } from '../state/global.store';
 import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
 import { PresetSwitcher } from '../state/preset-switcher';
@@ -34,7 +35,9 @@ async function settle(fixture: { detectChanges(): void; whenStable(): Promise<un
 }
 
 describe('LibraryPage preset list', () => {
-  async function render(presets: PresetSummary[]) {
+  async function render(presets: PresetSummary[], restored?: RestoreResult) {
+    const success = vi.fn();
+    const refreshGlobal = vi.fn(() => Promise.resolve());
     const library = {
       presets: signal(presets),
       models: signal<AssetInfo[]>([]),
@@ -43,7 +46,8 @@ describe('LibraryPage preset list', () => {
       refreshPresets: () => Promise.resolve(),
       refreshAssets: () => Promise.resolve(),
       refreshUsage: () => Promise.resolve(),
-      setPresetMetadata: vi.fn(() => Promise.resolve(true))
+      setPresetMetadata: vi.fn(() => Promise.resolve(true)),
+      restore: vi.fn(() => Promise.resolve(restored))
     };
     TestBed.configureTestingModule({
       providers: [
@@ -54,16 +58,17 @@ describe('LibraryPage preset list', () => {
           useValue: { presets: signal([]), user: signal([]), folders: signal([]), refresh: () => Promise.resolve() }
         },
         { provide: CatalogStore, useValue: { info: () => undefined } },
+        { provide: GlobalStore, useValue: { refresh: refreshGlobal } },
         { provide: LiveStore, useValue: { preset: () => null } },
         { provide: PresetSwitcher, useValue: { mayReplace: () => false } },
-        { provide: Notify, useValue: { error: () => undefined, success: () => undefined } }
+        { provide: Notify, useValue: { error: () => undefined, success } }
       ]
     });
     const fixture = TestBed.createComponent(LibraryPage);
     await settle(fixture);
     const element = fixture.nativeElement as HTMLElement;
     const rows = () => [...element.querySelectorAll<HTMLElement>('[data-testid^="preset-row-"]')];
-    return { library, fixture, element, rows };
+    return { library, fixture, element, rows, success, refreshGlobal };
   }
 
   it('renders its rows through the virtual scroll viewport, only a window of a long list', async () => {
@@ -118,5 +123,39 @@ describe('LibraryPage preset list', () => {
     await settle(fixture);
     expect(rows()).toHaveLength(0);
     expect(element.textContent).toContain('No preset matches');
+  });
+
+  it('restores a chosen backup only once confirmed, then says what was restored and what was left out', async () => {
+    const { library, fixture, element, success, refreshGlobal } = await render([preset(0)], {
+      presets: 2,
+      blockPresets: 0,
+      templates: 0,
+      snapshots: 0,
+      setlists: 0,
+      banks: 0,
+      assets: 1,
+      settings: true,
+      skipped: ["Bank 'Gig': The bank refers to things that do not exist."]
+    });
+    const input = element.querySelector<HTMLInputElement>('[data-testid="restore-file"]');
+    if (!input) {
+      throw new Error('No backup file input');
+    }
+
+    const file = new File(['zip'], 'Cathode backup 2026-11-10.cthbackup');
+    Object.defineProperty(input, 'files', { value: [file], configurable: true });
+    input.dispatchEvent(new Event('change'));
+    await settle(fixture);
+
+    expect(library.restore).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain('Cathode backup 2026-11-10.cthbackup');
+    const confirm = [...document.body.querySelectorAll('button')].find(b => b.textContent.trim() === 'Restore');
+    confirm?.click();
+    await settle(fixture);
+
+    expect(library.restore).toHaveBeenCalledWith(file);
+    expect(refreshGlobal).toHaveBeenCalled();
+    expect(success).toHaveBeenCalledWith('Restored 2 presets, 1 new IR or capture and the global settings.');
+    expect(document.body.querySelector('[data-testid="restore-skipped"]')?.textContent).toContain("Bank 'Gig'");
   });
 });
