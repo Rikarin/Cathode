@@ -129,7 +129,7 @@ public static class Vibrolux6G11 {
         net.Supply(rail, Preamp);
         net.Resistor(rail, plate, 100e3);
         if (normal) {
-            net.Capacitor(rail, plate, 0.003e-6);
+            net.Capacitor(rail, plate, 0.003e-6, CapacitorRole.Plate);
         }
 
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);

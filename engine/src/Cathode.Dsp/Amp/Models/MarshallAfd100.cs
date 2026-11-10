@@ -265,7 +265,7 @@ public static class MarshallAfd100 {
         var (rail, plate, cathode, follower) = (net.Node(), net.Node(), net.Node(), net.Node());
         net.Supply(rail, Ht5);
         net.Resistor(rail, plate, 100e3);
-        net.Capacitor(rail, plate, 1e-9);
+        net.Capacitor(rail, plate, 1e-9, CapacitorRole.Plate);
         net.Resistor(cathode, StageNetlist.Ground, 820);
         net.Capacitor(cathode, StageNetlist.Ground, 680e-9);
         net.Triode(plate, grid7, cathode, TriodeModel.Ecc83);

@@ -434,8 +434,8 @@ before the first tube (the stack shapes what the whole preamp distorts: tighter 
 after the first gain stage, *Post* after the last preamp stage (the stack shapes the finished distortion, more like
 an EQ). *Stock* is where the schematic has it.`,
 
-    t2plate: `The corner of the plate-bypass cap on the last preamp stage that has one (the SLO-100's cold clipper, the
-5150III, the Quick Rod), as a percentage of stock. This cap rolls off that stage's treble: above 100 % the roll-off
+    t2plate: `The corner of the plate-bypass cap on the last preamp stage that has one (the cold clipper of the SLO-100
+and the Rectifiers, the Mark IIC+'s lead stage, the 5150III, the Quick Rod), as a percentage of stock. This cap rolls off that stage's treble: above 100 % the roll-off
 moves up (more fizz and edge), below it the distortion gets smoother and darker.`,
 
     cfcomp: `How much grid current the cathode follower driving the tone stack draws, as a percentage of stock. When the

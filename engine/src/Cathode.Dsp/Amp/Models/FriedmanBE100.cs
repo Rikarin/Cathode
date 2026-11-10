@@ -184,7 +184,7 @@ public static class FriedmanBE100 {
         net.Resistor(grid, StageNetlist.Ground, 470e3);
         net.Supply(rail, V3Supply);
         net.Resistor(rail, plate, 100e3);
-        net.Capacitor(rail, plate, 500e-12);
+        net.Capacitor(rail, plate, 500e-12, CapacitorRole.Plate);
         net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
         net.Capacitor(grid, plate, Ab763.GridPlate);
         net.CathodeResistor(cathode, StageNetlist.Ground, 820);
