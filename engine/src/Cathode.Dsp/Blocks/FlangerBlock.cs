@@ -20,9 +20,9 @@ namespace Cathode.Dsp.Blocks;
 ///             wet passes through zero delay relative to it; with Phase Reverse the two cancel there completely.
 ///         </item>
 ///         <item>
-///             Bass Focus high-passes what enters the line, so the lows stay dry and tight; Drive saturates it. The LFO
-///             can be quantised and smoothed (<see cref="LfoConditioner" />), and Auto Depth narrows the sweep at fast
-///             rates.
+///             Bass Focus high-passes what enters the line, so the lows stay dry and tight; Drive boosts and
+///             saturates it, and rounds the feedback off without adding gain to the loop. The LFO can be quantised and
+///             smoothed (<see cref="LfoConditioner" />), and Auto Depth narrows the sweep at fast rates.
 ///         </item>
 ///         <item>The wet signal has first-order low and high cuts, as in the guide, and Stereo Spread.</item>
 ///     </list>
@@ -271,8 +271,12 @@ public sealed class FlangerBlock() : DspBlock(Info), IEngageAware {
             var feedLeft = inLeft;
             var feedRight = inRight;
             focus.Tick(ref feedLeft, ref feedRight);
-            left.Write(SoftDrive.Apply(feedLeft + wetLeft * feedback, drive));
-            right.Write(SoftDrive.Apply(feedRight + wetRight * feedback, drive));
+
+            // Drive boosts and saturates the input only. The feedback is rounded off at the same ceiling by a curve
+            // whose gain never exceeds 1: the boost inside the loop would multiply the loop gain by up to 16 and the
+            // comb would oscillate by itself.
+            left.Write(SoftDrive.Apply(feedLeft, drive) + SoftDrive.Limit(wetLeft * feedback, drive));
+            right.Write(SoftDrive.Apply(feedRight, drive) + SoftDrive.Limit(wetRight * feedback, drive));
             cuts.Tick(ref wetLeft, ref wetRight);
             Stereo.Spread(ref wetLeft, ref wetRight, stereoSpread);
 

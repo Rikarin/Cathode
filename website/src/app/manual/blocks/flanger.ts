@@ -30,7 +30,7 @@ It also does thru-zero flanging, the tape-machine trick where the swept copy pas
     highCut: `A gentle (6 dB/octave) low-pass on the wet signal only. Lower it for a darker, less fizzy sweep.`,
     phaseReverse: `Flips the polarity of the wet signal on the left, right or both sides. With the wet inverted, the notches move to where the peaks were and the sweep sounds hollower; with **Thru-Zero** on, an inverted wet cancels the dry completely at the zero point.`,
     bassFocus: `A high-pass filter on what enters the delay, so the low end stays dry and tight while the mids and highs are flanged. Raise it when the flanger makes your bass notes wobble or thin out.`,
-    drive: `Saturates the signal going into the delay (and the feedback around it), for a dirtier, more aggressive flange.`,
+    drive: `Boosts and saturates the signal going into the delay, and rounds off the feedback around it, for a dirtier, more aggressive flange. It adds no gain to the feedback loop, so the flange still dies away when you stop playing.`,
     minTime: `The shortest delay the sweep is allowed to reach. If **Manual** is below it, the sweep is pushed up to start here.`,
     maxTime: `The longest delay the sweep is allowed to reach. If Manual plus the depth would go past it, the sweep stops here. Use Min and Max Time together to keep the sweep in a range you like.`,
     thruZero: `Delays the dry signal too, so the swept copy passes through zero delay relative to it: the sound of two tape machines flanged by hand. **Auto** delays the dry by the middle of the sweep; **Manual** delays it by **Dry Delay**. Off is a normal flanger.`,

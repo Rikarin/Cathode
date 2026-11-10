@@ -15,4 +15,11 @@ public static class SoftDrive {
         var gain = 1 + 15 * drive;
         return (1 - drive) * x + drive * MathF.Tanh(gain * x) / MathF.Tanh(gain);
     }
+
+    /// <summary>
+    ///     The same rounding at full scale without the small-signal gain, for a feedback path: the slope is 1 at zero
+    ///     and falls from there, so it never raises a loop's gain. <see cref="Apply" /> inside a loop multiplies the
+    ///     loop gain by up to 16.
+    /// </summary>
+    public static float Limit(float x, float drive) => drive <= 0 ? x : (1 - drive) * x + drive * MathF.Tanh(x);
 }

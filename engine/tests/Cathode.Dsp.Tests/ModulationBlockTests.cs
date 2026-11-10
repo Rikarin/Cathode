@@ -26,6 +26,28 @@ public class ModulationBlockTests {
         Assert.Equal(3.01, Analysis.ToDb(Analysis.MagnitudeAt(response, 1_000, Rate)), 0.05); // peaks in between
     }
 
+    [Theory]
+    [InlineData(30f, 50f)]
+    [InlineData(100f, 50f)]
+    [InlineData(10f, 95f)]
+    [InlineData(100f, 95f)]
+    [InlineData(100f, -95f)]
+    public void Flanger_with_drive_decays_to_silence_after_the_input_stops(float drive, float feedback) {
+        // Drive must not add gain to the feedback loop: a quiet burst (where the drive curve's gain is highest) dies
+        // away at any Drive and Feedback instead of building into a howl.
+        using var flanger = Create<FlangerBlock>(
+            (FlangerBlock.Drive, drive),
+            (FlangerBlock.Feedback, feedback),
+            (FlangerBlock.Mix, 100f)
+        );
+        var input = Signals.Concat(Signals.Noise(9_600, 3, 0.01f), new float[278_400]);
+
+        var output = BlockRender.Mono(flanger, input, 64);
+
+        var tail = Analysis.ToDb(Analysis.Peak(output.AsSpan(output.Length - 24_000)));
+        Assert.True(tail < -120, $"the tail is at {tail:0.0} dB");
+    }
+
     [Fact]
     public void Static_phaser_notches_where_the_chain_reaches_180_and_540_degrees() {
         // Four identical first-order allpasses at fc: phase = -8 atan(f / fc), so notches at fc tan(pi/8) and fc
