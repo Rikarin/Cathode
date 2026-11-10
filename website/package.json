@@ -22,7 +22,7 @@
     "@angular/platform-browser": "~22.2.0",
     "@angular/platform-server": "~22.2.0",
     "@angular/router": "~22.2.0",
-    "@angular/ssr": "~22.2.0",
+    "@angular/ssr": "~22.2.6",
     "@fontsource-variable/inter": "^5.2.8",
     "@ng-icons/core": "^35.1.0",
     "@ng-icons/material-icons": "^35.1.0",
@@ -31,8 +31,8 @@
     "tslib": "^2.3.0"
   },
   "devDependencies": {
-    "@angular/build": "~22.2.0",
-    "@angular/cli": "~22.2.0",
+    "@angular/build": "~22.2.6",
+    "@angular/cli": "~22.2.6",
     "@angular/compiler-cli": "~22.2.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^24.0.0",
@@ -43,7 +43,7 @@
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.3",
-    "wrangler": "^4.152.0"
+    "wrangler": "^4.158.0"
   },
   "packageManager": "pnpm@12.9.1"
 }

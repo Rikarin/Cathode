@@ -81,6 +81,21 @@ field. For such a change:
 Released steps are never edited. A preset from a newer release is refused on load and import with a message that
 says so.
 
+## Dependencies
+
+[Dependabot](../.github/dependabot.yml) opens the update pull requests every Monday: the editor's and the website's npm
+packages, the engine's NuGet packages and the actions the workflows pin by commit. Minor and patch updates of one
+ecosystem come in one pull request, a major update in its own, and Angular, Nx and Storybook each as a family. The
+test workflows run on each of them.
+
+[`audit.yml`](../.github/workflows/audit.yml) runs every night and on pull requests that change a manifest or
+lockfile. It fails on a known vulnerability in a package that ships (`pnpm audit --prod` in `editor/` and `website/`,
+`dotnet list package --vulnerable --include-transitive` in `engine/`). Advisories against the development tool chain
+(Storybook, Vite, Nx) are listed in the job's summary without failing it.
+
+The native libraries are not covered: NeuralAmpModelerCore and the ASIO SDK are pinned (by commit, by URL and hash) in
+`engine/native/*/CMakeLists.txt` and moved by hand ([ADR-0003](adr/0003-nam-hosting.md)).
+
 ## The headless rig
 
 [`packaging/headless`](../packaging/headless) holds the package: [`README.md`](../packaging/headless/README.md) is the
