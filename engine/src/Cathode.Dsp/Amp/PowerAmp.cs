@@ -579,8 +579,10 @@ public sealed class PowerAmp {
     }
 
     /// <summary>
-    ///     The operating point for the current knobs: supply nodes, bias and every state at rest. Allocation-free and
-    ///     a few tens of microseconds, so a type change can call it on the audio thread.
+    ///     The operating point for the current knobs: supply nodes, bias and every state at rest. Allocation-free, and
+    ///     tens of microseconds for the power amp alone (the supply's fixed point over the idle currents); the
+    ///     channel's reset around it (<see cref="AmpChannel.Reset" />) also solves every preamp stage and costs up to
+    ///     ten times that on the larger models.
     /// </summary>
     public void Reset() {
         var supply = Design.PowerSupply;
@@ -922,8 +924,8 @@ public sealed class PowerAmp {
     ///     <paramref name="load" /> amperes, charged through the design's own source resistance and rectifier (Schade's
     ///     picture: the rectifier conducts only near the mains peaks, so the same mean needs a higher peak than the DC
     ///     supply's open-circuit voltage, and the source resistance, which Sag scales, keeps its meaning). By bisection
-    ///     on a simulation of the reservoir alone at 60 Hz with the runtime's step (control thread, a few
-    ///     milliseconds).
+    ///     on a simulation of the reservoir alone at 60 Hz, stepped at a fixed 48 kHz whatever the runtime's rate
+    ///     (control thread, a few milliseconds, once per design).
     /// </summary>
     double CalibrateAc(double load) {
         lock (AcPeaks) {
@@ -1172,7 +1174,7 @@ public sealed class PowerAmp {
     /// </summary>
     (double Reservoir, double Screens) SideCurrents(double vg, double plate, double screen) {
         var tap = ScreenTap(settings.Triode);
-        var vs = tap > 0 ? plate : ScreenAtIdle(law, vg, screen);
+        var vs = tap > 0 ? plate : ScreenAtIdle(vg, screen);
         var ip = KorenPentode.Plate(law, vg, vs, plate);
         var ig2 = KorenPentode.Screen(law, vg, vs);
         var fromReservoir = Design.TubesPerSide * (ip + (tap > 0 ? ig2 : 0));
@@ -1194,7 +1196,7 @@ public sealed class PowerAmp {
     (double Plate, double Screen, double Cathode) IdlePerTube(double plate, double screen) {
         var tapped = ScreenTap(settings.Triode) > 0;
         if (!Design.CathodeBias) {
-            var vs = tapped ? plate : ScreenAtIdle(law, GridBias, screen);
+            var vs = tapped ? plate : ScreenAtIdle(GridBias, screen);
             return (KorenPentode.Plate(law, GridBias, vs, plate), KorenPentode.Screen(law, GridBias, vs), 0);
         }
 
@@ -1226,7 +1228,7 @@ public sealed class PowerAmp {
         }
 
         var bias = x1;
-        var screenVoltage = tapped ? plate - bias : ScreenAtIdle(law, -bias, screen - bias);
+        var screenVoltage = tapped ? plate - bias : ScreenAtIdle(-bias, screen - bias);
         return (
             KorenPentode.Plate(law, -bias, screenVoltage, plate - bias),
             KorenPentode.Screen(law, -bias, screenVoltage),
@@ -1241,17 +1243,18 @@ public sealed class PowerAmp {
             return Design.Sides * (fromReservoir + fromScreens) * CathodeResistor - vk;
         }
 
-        var vs = ScreenAtIdle(law, -vk, screen - vk);
+        var vs = ScreenAtIdle(-vk, screen - vk);
         var count = 2 * Design.TubesPerSide;
         var current = count * (KorenPentode.Plate(law, -vk, vs, plate - vk) + KorenPentode.Screen(law, -vk, vs));
         return current * CathodeResistor - vk;
     }
 
     /// <summary>
-    ///     The screen voltage (relative to the cathode) after the screen resistor's drop, by fixed-point iteration (a
-    ///     strong contraction: the screen resistor is small against the screen's slope resistance).
+    ///     The screen voltage (relative to the cathode) of the tube in use after the screen resistor's drop, by
+    ///     fixed-point iteration (a strong contraction: the screen resistor is small against the screen's slope
+    ///     resistance).
     /// </summary>
-    double ScreenAtIdle(PentodeModel tube, double grid, double node) {
+    double ScreenAtIdle(double grid, double node) {
         var vs = node;
         for (var i = 0; i < 30; i++) {
             var next = node - Design.ScreenResistor * KorenPentode.Screen(law, grid, vs);
@@ -1272,7 +1275,7 @@ public sealed class PowerAmp {
         var screenNode = Design.ScreenSupply > 0 ? Design.ScreenSupply : Design.Supply;
         for (var i = 0; i < 80; i++) {
             var bias = 0.5 * (low + high);
-            var vs = tapped ? Design.Supply : ScreenAtIdle(law, -bias, screenNode);
+            var vs = tapped ? Design.Supply : ScreenAtIdle(-bias, screenNode);
             if (KorenPentode.Plate(law, -bias, vs, Design.Supply) > Design.IdleCurrent) {
                 low = bias;
             } else {
@@ -1296,7 +1299,7 @@ public sealed class PowerAmp {
         var tapped = ScreenTap(settings.Triode) > 0;
         for (var i = 0; i < 80; i++) {
             var vk = 0.5 * (low + high);
-            var vs = tapped ? Design.Supply - vk : ScreenAtIdle(law, -vk, Design.Supply - vk);
+            var vs = tapped ? Design.Supply - vk : ScreenAtIdle(-vk, Design.Supply - vk);
             if (KorenPentode.Plate(law, -vk, vs, Design.Supply - vk) > Design.IdleCurrent) {
                 low = vk;
             } else {
@@ -1305,7 +1308,7 @@ public sealed class PowerAmp {
         }
 
         var bias = 0.5 * (low + high);
-        var screenVoltage = tapped ? Design.Supply - bias : ScreenAtIdle(law, -bias, Design.Supply - bias);
+        var screenVoltage = tapped ? Design.Supply - bias : ScreenAtIdle(-bias, Design.Supply - bias);
         var perTube = Design.IdleCurrent + KorenPentode.Screen(law, -bias, screenVoltage);
         return bias / (Design.Sides * Design.TubesPerSide * perTube);
     }

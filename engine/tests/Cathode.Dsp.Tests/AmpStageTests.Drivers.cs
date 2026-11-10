@@ -50,6 +50,30 @@ public partial class AmpStageTests {
         Assert.True(swing > 3, $"{name}: {swing:0.0} dB");
     }
 
+    /// <summary>
+    ///     The Major's loop stage rebuilds its network (a matrix inversion) only for a knob or switch one of its
+    ///     elements names: its tone stack's, not the Gain, the tremolo or an EQ band in motion.
+    /// </summary>
+    [Fact]
+    public void Loop_stage_rebuilds_only_for_a_control_its_network_uses() {
+        var loop = new LoopStage(MarshallMajor.Design.Power.Loop!, Rate);
+        var controls = new AmpControls(0.5, 0.5, 0.5, 0.5, 0.5, false);
+        loop.Configure(controls);
+        var built = loop.Builds;
+        var gain = loop.Gain;
+        for (var n = 1; n <= 20; n++) {
+            loop.Configure(
+                controls with { Gain = 0.5 + 0.02 * n, TremoloRate = n, TremoloDepth = 0.1 * n, Control2 = 0.04 * n }
+            );
+        }
+
+        Assert.Equal(built, loop.Builds);
+        Assert.Equal(gain, loop.Gain);
+        loop.Configure(controls with { Treble = 0.9 });
+        Assert.Equal(built + 1, loop.Builds);
+        Assert.NotEqual(gain, loop.Gain);
+    }
+
     [Fact]
     public void Cathodyne_driver_table_matches_the_reference_dc_sweep() {
         var design = (CathodyneDriverDesign)MarshallMajor.Design.Power.PhaseInverter;

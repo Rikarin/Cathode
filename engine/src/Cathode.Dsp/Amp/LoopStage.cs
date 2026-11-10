@@ -48,6 +48,7 @@ public sealed class LoopStage {
 
     readonly LoopTriode triode;
     readonly StageElement[] elements;
+    readonly double[] values; // each element's ohms or farads for the current knobs and switches
     readonly int nodes;
     readonly int input;
     readonly int output;
@@ -80,6 +81,9 @@ public sealed class LoopStage {
     /// <summary>The network's output for this sample per volt of plate (the slope Newton sees).</summary>
     public double Gain => gain;
 
+    /// <summary>How many times the network's matrix has been built and inverted (diagnostics).</summary>
+    public int Builds { get; private set; }
+
     public LoopStage(LoopStageDesign design, double sampleRate) {
         Design = design;
         triode = LoopTriode.For(design);
@@ -98,6 +102,7 @@ public sealed class LoopStage {
         }
 
         elements = [..net.Elements];
+        values = new double[elements.Length];
         capElements = [..net.Elements.Where(static e => e.Kind == ElementKind.Capacitor)];
         var count = capElements.Length;
         capA = [..capElements.Select(static e => e.A - 1)];
@@ -112,11 +117,13 @@ public sealed class LoopStage {
         inverse = new double[nodes, nodes];
         this.sampleRate = sampleRate;
         controls = new(0.5, 0.5, 0.5, 0.5, 0.5, false);
+        Evaluate();
         Build();
     }
 
     /// <summary>
-    ///     Applies the knobs and switches; rebuilds only when one the network uses moved. Allocation-free.
+    ///     Applies the knobs and switches; rebuilds only when an element's value moved, so a knob the network does not
+    ///     use (the Gain, the tremolo, an EQ band) costs a comparison per element. Allocation-free.
     /// </summary>
     public void Configure(in AmpControls controls) {
         if (configured && controls == this.controls) {
@@ -124,8 +131,38 @@ public sealed class LoopStage {
         }
 
         this.controls = controls;
+        var moved = Evaluate();
+        if (moved || !configured) {
+            Build();
+        }
+
         configured = true;
-        Build();
+    }
+
+    /// <summary>
+    ///     Every element's value for the current knobs and switches into <see cref="values" />; whether one moved.
+    /// </summary>
+    bool Evaluate() {
+        var moved = false;
+        for (var i = 0; i < elements.Length; i++) {
+            var e = elements[i];
+            double value;
+            if (e.Kind == ElementKind.Resistor) {
+                var on = e.Switch is not { } role || controls.IsOn(role);
+                value = !on ? e.OffValue : e.Switch is null || e.Value > 0 ? e.Value : 0;
+                if (e.Part != PotPart.None) {
+                    var fraction = e.Pot.Fraction(controls.Rotation(e.Role));
+                    value = (e.Part == PotPart.Upper ? 1 - fraction : fraction) * e.Pot.Ohms;
+                }
+            } else {
+                value = Math.Max(e.ValueAt(controls), 0);
+            }
+
+            moved |= value != values[i];
+            values[i] = value;
+        }
+
+        return moved;
     }
 
     public void SetSampleRate(double sampleRate) {
@@ -198,23 +235,19 @@ public sealed class LoopStage {
     ///     source's conductance at the input), its inverse, and the read-out rows.
     /// </summary>
     void Build() {
+        Builds++;
         Array.Clear(conductance);
         Stamp(input, -1, 1 / Math.Max(OutputResistance, Floor));
         var c = 0;
-        foreach (var e in elements) {
+        for (var i = 0; i < elements.Length; i++) {
+            var e = elements[i];
             if (e.Kind == ElementKind.Resistor) {
-                var on = e.Switch is not { } role || controls.IsOn(role);
-                var ohms = !on ? e.OffValue : e.Switch is null || e.Value > 0 ? e.Value : 0;
-                if (e.Part != PotPart.None) {
-                    var fraction = e.Pot.Fraction(controls.Rotation(e.Role));
-                    ohms = (e.Part == PotPart.Upper ? 1 - fraction : fraction) * e.Pot.Ohms;
-                }
-
+                var ohms = values[i];
                 if (ohms > 0 || e.Part != PotPart.None) {
                     Stamp(e.A - 1, e.B - 1, 1 / Math.Max(ohms, Floor));
                 }
             } else {
-                var farads = Math.Max(e.ValueAt(controls), 0);
+                var farads = values[i];
                 capConductance[c] = 2 * farads * sampleRate;
                 if (farads == 0) {
                     history[c] = 0;
