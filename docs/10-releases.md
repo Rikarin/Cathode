@@ -62,6 +62,10 @@ Without a tag, builds use the defaults in `editor/package.json` and `engine/Dire
 
 Before tagging, add the release's section to [`CHANGELOG.md`](../CHANGELOG.md).
 
+Also before tagging, move Electron to the newest patch of its line (`pnpm outdated electron` in `editor/`, then
+`pnpm update electron`): `package.mjs` packages the version the lockfile resolves, and Electron's patch releases are
+how Chromium and Node security fixes reach the app.
+
 ### The preset format
 
 Presets carry `schemaVersion` (`Preset.CurrentSchemaVersion`, 1 since 1.0). Every place that reads a stored preset
