@@ -22,7 +22,7 @@ import { CatalogStore } from '../state/catalog.store';
               [filterable]="false"
               [items]="options()"
               [value]="options()[value()] ?? null"
-              (valueChange)="changed.emit(Math.max(0, options().indexOf($event ?? '')))"
+              (valueChange)="choose(Math.max(0, options().indexOf($event ?? '')))"
             />
           </div>
         }
@@ -31,7 +31,7 @@ import { CatalogStore } from '../state/catalog.store';
             size="sm"
             [label]="label() ?? p.name"
             [checked]="value() >= 0.5"
-            (checkedChange)="changed.emit($event ? 1 : 0)"
+            (checkedChange)="choose($event ? 1 : 0)"
           />
         }
         @default {
@@ -45,6 +45,7 @@ import { CatalogStore } from '../state/catalog.store';
             [taper]="p.taper === 'log' ? 'log' : 'linear'"
             [value]="value()"
             (valueChange)="changed.emit($event)"
+            (committed)="committed.emit()"
           />
         }
       }
@@ -59,10 +60,18 @@ export class RigControl {
   /** The stored value, or undefined for the parameter's default. */
   readonly stored = input<number | undefined>();
   readonly changed = output<number>();
+  /** After a change is complete (a knob's drag ends, a choice is made): the end of one undo gesture. */
+  readonly committed = output();
 
   protected readonly param = computed(() => this.catalog.rigParams().get(this.id()));
   protected readonly value = computed(() => this.stored() ?? this.param()?.default ?? 0);
   // Labels rather than indices as items: xui-select treats a falsy value (index 0) as empty.
   protected readonly options = computed(() => this.param()?.options ?? []);
   protected readonly Math = Math;
+
+  /** A choice or a switch: one change, complete at once. */
+  protected choose(value: number): void {
+    this.changed.emit(value);
+    this.committed.emit();
+  }
 }
