@@ -258,6 +258,163 @@ public class LooperBlockTests {
         }
     }
 
+    [Fact]
+    public void Undo_on_a_long_loop_takes_effect_at_once_and_a_new_overdub_can_follow_it() {
+        // Long enough that Undo restores it over many slices, pressed where the first slice does not reach.
+        const int length = 25 * Looper.SliceSamples - 4_800;
+        const int at = 18 * Looper.SliceSamples;
+        var loop = Signals.Noise(length, 5, 0.25f);
+        var layer = Signals.Noise(length, 6, 0.25f);
+        using var looper = new Looper(48_000, 10);
+        looper.Configure(LooperSettings.Default with { OverdubLevel = 0.5f });
+        looper.Apply(LooperAction.Record);
+        foreach (var sample in loop) {
+            looper.Tick(sample, sample);
+        }
+
+        looper.Apply(LooperAction.Play);
+        looper.Apply(LooperAction.Overdub);
+        foreach (var sample in layer) {
+            looper.Tick(sample, sample);
+        }
+
+        looper.Apply(LooperAction.Play);
+        for (var i = 0; i < at; i++) {
+            Assert.Equal(loop[i] * 0.5f + layer[i], looper.Tick(0f, 0f).Left, 1e-6f);
+        }
+
+        // Undo: the very next samples are the loop without the pass.
+        looper.Apply(LooperAction.Undo);
+        Assert.True(looper.HasPendingWork);
+        for (var i = at; i < at + 100; i++) {
+            Assert.Equal(loop[i], looper.Tick(0f, 0f).Left, 1e-6f);
+        }
+
+        // A new pass straight after it, over the loop's end, lands on restored samples.
+        const int resumed = at + 100;
+        const int wrapped = 10_000;
+        looper.Apply(LooperAction.Overdub);
+        for (var i = resumed; i < length + wrapped; i++) {
+            Assert.Equal(loop[i % length], looper.Tick(0.25f, 0.25f).Right, 1e-6f);
+        }
+
+        looper.Apply(LooperAction.Play);
+        for (var i = wrapped; i < length + wrapped; i++) {
+            var index = i % length;
+            var expected = index is >= resumed or < wrapped ? loop[index] * 0.5f + 0.25f : loop[index];
+            Assert.Equal(expected, looper.Tick(0f, 0f).Left, 1e-6f);
+        }
+
+        looper.Apply(LooperAction.Undo);
+        for (var i = wrapped; i < length + wrapped; i++) {
+            Assert.Equal(loop[i % length], looper.Tick(0f, 0f).Left, 1e-6f);
+        }
+
+        Assert.False(looper.HasPendingWork);
+    }
+
+    [Fact]
+    public void Erasing_a_long_loop_leaves_none_of_it_in_the_next_recording() {
+        const int length = 20 * Looper.SliceSamples;
+        var old = Signals.Noise(length, 7, 0.25f);
+        using var looper = new Looper(48_000, 10);
+
+        void RecordOld() {
+            looper.Apply(LooperAction.Record);
+            foreach (var sample in old) {
+                looper.Tick(sample, sample);
+            }
+
+            looper.Apply(LooperAction.Overdub); // the layer holds samples too
+            foreach (var sample in old) {
+                looper.Tick(sample, sample);
+            }
+        }
+
+        // A shorter recording started on the sample after the erase.
+        var next = Signals.Noise(30_000, 8, 0.25f);
+        RecordOld();
+        looper.Apply(LooperAction.Clear);
+        Assert.Equal(LooperState.Empty, looper.State);
+        Assert.Equal(0, looper.Length);
+        looper.Apply(LooperAction.Record);
+        foreach (var sample in next) {
+            looper.Tick(sample, sample);
+        }
+
+        looper.Apply(LooperAction.Play);
+        for (var i = 0; i < 2 * next.Length; i++) {
+            var (left, right) = looper.Tick(0f, 0f);
+            Assert.Equal(next[i % next.Length], left);
+            Assert.Equal(left, right);
+        }
+
+        // A few samples that Loop Quantize pads to a beat, past where the erase has got to: the padding is silent.
+        looper.Apply(LooperAction.Clear);
+        RecordOld();
+        looper.Apply(LooperAction.Clear);
+        looper.Configure(LooperSettings.Default with { BeatSamples = 24_000 });
+        looper.Apply(LooperAction.Record);
+        for (var i = 0; i < 10; i++) {
+            looper.Tick(0.5f, 0.5f);
+        }
+
+        looper.Apply(LooperAction.Play);
+        Assert.Equal(24_000, looper.Length);
+        for (var i = 0; i < 24_000; i++) {
+            Assert.Equal(i < 10 ? 0.5f : 0f, looper.Tick(0f, 0f).Left);
+        }
+
+        // Erased twice in a row, the second before the first is done, then a longer loop than any before.
+        looper.Configure(LooperSettings.Default);
+        looper.Apply(LooperAction.Clear);
+        RecordOld();
+        looper.Apply(LooperAction.Clear);
+        looper.Apply(LooperAction.Record);
+        looper.Tick(0.5f, 0.5f);
+        looper.Apply(LooperAction.Clear);
+        var longer = Signals.Noise(length + 20_000, 9, 0.25f);
+        looper.Apply(LooperAction.Record);
+        foreach (var sample in longer) {
+            looper.Tick(sample, sample);
+        }
+
+        looper.Apply(LooperAction.Play);
+        foreach (var sample in longer) {
+            Assert.Equal(sample, looper.Tick(0f, 0f).Left);
+        }
+    }
+
+    [Fact]
+    public void An_erase_finishes_while_the_looper_stays_empty() {
+        const int length = 20 * Looper.SliceSamples;
+        using var looper = new Looper(48_000, 10);
+        looper.Apply(LooperAction.Record);
+        for (var i = 0; i < length; i++) {
+            looper.Tick(0.5f, 0.5f);
+        }
+
+        looper.Apply(LooperAction.Clear);
+        Assert.True(looper.HasPendingWork);
+        var silence = new float[64];
+        for (var block = 0; block < 20; block++) {
+            looper.Process(silence, silence); // empty: nothing ticks, the slices still run
+        }
+
+        Assert.False(looper.HasPendingWork);
+
+        // Loop Quantize pads a one-sample recording to the old loop's length: all of it is silent by now.
+        looper.Configure(LooperSettings.Default with { BeatSamples = length });
+        looper.Apply(LooperAction.Record);
+        looper.Tick(0.25f, 0.25f);
+        looper.Apply(LooperAction.Play);
+        Assert.Equal(length, looper.Length);
+        Assert.Equal(0.25f, looper.Tick(0f, 0f).Left);
+        for (var i = 1; i < length; i++) {
+            Assert.Equal(0f, looper.Tick(0f, 0f).Left);
+        }
+    }
+
     [Theory]
     [InlineData(0f, LooperState.Overdubbing)]
     [InlineData(1f, LooperState.Playing)]

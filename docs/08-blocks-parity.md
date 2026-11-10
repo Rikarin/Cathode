@@ -526,8 +526,8 @@ One core (`Cathode.Dsp.Looping.Looper`) serves both. The grid block takes the tr
 
 | Parameter | Cathode | Note | Effort |
 |---|---|---|---|
-| Record, Play, Undo, Reverse | ✅ | Toolbar, MIDI and footswitch actions; Undo also divides out the pass's overdub level |  |
-| Erase | ✅ |  |  |
+| Record, Play, Undo, Reverse | ✅ | Toolbar, MIDI and footswitch actions; Undo also divides out the pass's overdub level. It is heard at once; the samples are restored a slice at a time, so a minutes-long loop costs no dropout |  |
+| Erase | ✅ | The loop is empty at once and a new recording can start on the next sample; the old samples are zeroed a slice at a time, ahead of the recording |  |
 | Once (one-shot) | 🆕 ✅ | Playback stops at the end of the loop |  |
 | Trim Start, Trim End | 🆕 ✅ | % of the loop; playback, reverse and overdub stay inside the window |  |
 | Threshold recording | 🆕 ✅ | Record arms (state `armed`); the recording starts on the first sample above the level |  |
