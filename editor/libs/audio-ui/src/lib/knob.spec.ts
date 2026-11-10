@@ -128,6 +128,25 @@ describe('CthKnob', () => {
     expect(host.value()).toBe(12);
   });
 
+  it('cancels typing with Escape: the value stays, focus returns to the dial and the key goes no further', () => {
+    const { dial, host, element, fixture } = render();
+    const escapes: Event[] = [];
+    element.addEventListener('keydown', event => escapes.push(event));
+
+    dial.dispatchEvent(new MouseEvent('dblclick'));
+    fixture.detectChanges();
+    const editor = element.querySelector('input') as HTMLInputElement;
+    editor.value = '6';
+    editor.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(element.querySelector('input')).toBeNull();
+    expect(host.value()).toBe(0);
+    expect(host.commits).toHaveLength(0);
+    expect(document.activeElement).toBe(dial);
+    expect(escapes).toHaveLength(0);
+  });
+
   describe('while a modifier drives it', () => {
     it('points at and reads the modulated value, and marks the value set on the track', () => {
       const { host, fixture, readout, pointer, marker, dial } = render();

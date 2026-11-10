@@ -68,7 +68,7 @@ const SettleMs = 800;
         [value]="display()"
         [attr.aria-label]="label() + ' value'"
         (keydown.enter)="commitTyping(editor.value)"
-        (keydown.escape)="typing.set(false)"
+        (keydown.escape)="cancelTyping($event)"
         (blur)="commitTyping(editor.value)"
       />
     } @else {
@@ -385,6 +385,17 @@ export class CthKnob {
       this.committed.emit(this.value());
     }
 
+    this.dial().nativeElement.focus();
+  }
+
+  /**
+   * Escape in the typed-value field: the value stays, and focus goes back to the dial (the field leaves the page, and
+   * focus would fall to the document with it). The key stops here, so a dialog around the knob stays open.
+   */
+  protected cancelTyping(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.typing.set(false);
     this.dial().nativeElement.focus();
   }
 
