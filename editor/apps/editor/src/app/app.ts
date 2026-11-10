@@ -244,7 +244,7 @@ import { UiStore } from './state/ui.store';
               variant="ghost"
               size="sm"
               aria-label="Tuner"
-              [xuiTooltip]="'Tuner (' + ('tuner' | cthShortcut) + ')'"
+              [xuiTooltip]="'Tuner (' + (tunerShortcut | cthShortcut) + ')'"
               (click)="ui.tunerOpen.set(true)"
             >
               <ng-icon xui name="cthTuner" size="sm" />
@@ -466,6 +466,8 @@ export class App {
   protected readonly macWindow = window.cathode?.platform === 'darwin';
   /** The desktop app opens Settings from its app menu (⌘,); a plain browser has no menu, so it gets a button. */
   protected readonly settingsButton = !window.cathode;
+  /** The tuner key the tooltip names: a browser keeps ⌘T/Ctrl+T for a new tab, so there it is the bare T. */
+  protected readonly tunerShortcut = window.cathode ? 'tuner' : 'tunerAlias';
   private readonly fullScreen = signal(false);
   protected readonly trafficLights = computed(() => this.macWindow && !this.fullScreen());
   protected readonly scopeOpen = signal(false);
@@ -605,6 +607,7 @@ export class App {
       mute: () => this.toggleMute(),
       clearClips: () => resetClipLights(),
       tuner: () => ui.tunerOpen.update(open => !open),
+      tunerAlias: () => ui.tunerOpen.update(open => !open),
       settings: () => ui.settings.update(tab => (tab === null ? 'preferences' : null)),
       help: () => ui.settings.update(tab => (tab === 'shortcuts' ? null : 'shortcuts'))
     };

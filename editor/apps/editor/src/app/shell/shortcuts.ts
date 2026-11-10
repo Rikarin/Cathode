@@ -47,6 +47,9 @@ const channels: Shortcut[] = ['A', 'B', 'C', 'D'].map(c => ({
 /**
  * Every shortcut, in the order the help overlay lists them. They clash neither with each other (a test checks) nor
  * with the desktop app's menu, which is Electron's default (⌘C/⌘V/⌘X/⌘A edit, ⌘R reload, ⌘W, ⌘M, ⌘Q, ⌥⌘I).
+ *
+ * The editor also runs in a plain browser (a headless rig, an iPad), which keeps some keys for itself and never hands
+ * them to the page: ⌘T/Ctrl+T (new tab) for certain. A command bound to such a key needs an alias a browser delivers.
  */
 export const Shortcuts: readonly Shortcut[] = [
   { id: 'presetPicker', group: 'Presets', label: 'Open the preset picker (a name, or a bank slot number)', key: 'p' },
@@ -82,6 +85,8 @@ export const Shortcuts: readonly Shortcut[] = [
   { id: 'redo', group: 'Edit', label: 'Redo', key: 'z', mod: true, shift: true },
   { id: 'redoAlias', group: 'Edit', label: 'Redo (alias)', key: 'y', mod: true },
   { id: 'tuner', group: 'Other', label: 'Tuner', key: 't', mod: true },
+  // A browser keeps ⌘T/Ctrl+T for a new tab and never hands it to the page, so the tuner has a bare key as well.
+  { id: 'tunerAlias', group: 'Other', label: 'Tuner (alias; the one that works in a browser)', key: 't' },
   { id: 'mute', group: 'Other', label: 'Mute or unmute every output', key: 'm' },
   { id: 'clearClips', group: 'Other', label: 'Reset every clip light', key: 'k', mod: true },
   { id: 'settings', group: 'Other', label: 'Settings', key: ',', mod: true },
@@ -232,7 +237,7 @@ export function yieldsToControl(shortcut: Shortcut): boolean {
  * that never touch the preset (mute is the panic button). Every other shortcut acts on the rig behind the dialog, where
  * the user cannot see what it did, so it waits until the dialog is closed.
  */
-const WithDialogOpen: ReadonlySet<string> = new Set(['tuner', 'settings', 'help', 'mute', 'clearClips']);
+const WithDialogOpen: ReadonlySet<string> = new Set(['tuner', 'tunerAlias', 'settings', 'help', 'mute', 'clearClips']);
 
 /** Whether a modal dialog (Settings, the Tuner, a confirmation…) is open: xUI marks its overlay pane `aria-modal`. */
 export function isDialogOpen(target: EventTarget | null): boolean {

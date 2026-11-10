@@ -486,6 +486,7 @@ The editor's software-editor features, built in the ED stream. They follow Fract
   - ⌥ held, or F1, shows Block Info.
   - The grid is an ARIA grid (cells in rows, the focused cell as the active descendant) and works without a pointer: K starts a cable from the focused block, the arrows pick a block it can reach and Enter lands it (Escape cancels); ⇧K selects the block's cables in turn, and Delete removes the selected one. A polite live region says only what those keys did.
   - A, B, C and D pick the channel; bypass is Space only.
+  - In a plain browser ⌘T/Ctrl+T opens a new tab and never reaches the page, so the tuner also has the bare key T, and the toolbar tooltip names T when there is no desktop app (`window.cathode`).
   - A unit test checks that no two bindings collide and that none clashes with Electron's default menu, which is the only menu the desktop app has.
 - **Preferences** (`PreferencesStore`) are kept in local storage, per user and per machine: knob mode, wheel, tooltips, meter rate, and the default Circuit Amp view.
   - They reach `cth-knob` and `cth-meter` through audio-ui's `CTH_KNOB_PREFERENCES` and `CTH_METER_PREFERENCES` tokens.

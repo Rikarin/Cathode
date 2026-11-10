@@ -67,7 +67,7 @@ On Windows and Linux, read **⌘** as **Ctrl**, **⌥** as **Alt** and **⇧** a
 
 | Shortcut | Action                      |
 | -------- | --------------------------- |
-| ⌘T       | Tuner                       |
+| ⌘T or T  | Tuner                       |
 | M        | Mute or unmute every output |
 | ⌘K       | Reset every clip light      |
 | ⌘,       | Settings                    |
@@ -109,6 +109,10 @@ On Windows and Linux, read **⌘** as **Ctrl**, **⌥** as **Alt** and **⇧** a
 | Arrow keys | Move through the list (the block picker moves across its grid of tiles) |
 | ↵          | Add the highlighted block, or load the highlighted preset               |
 | Esc        | Close                                                                   |
+
+## In a browser
+
+A browser keeps some keys for itself and never passes them to the page. **⌘T** (Ctrl+T) opens a new browser tab, so press **T** for the tuner. A browser may also keep Ctrl+PgUp and Ctrl+PgDn for switching its own tabs; the arrows beside the preset name and the setlist's buttons step presets and songs there.
 
 ## In the desktop app's menus
 

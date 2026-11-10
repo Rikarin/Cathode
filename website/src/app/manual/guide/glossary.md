@@ -224,7 +224,7 @@ The words used in this manual and in amp and effects talk, in alphabetical order
 
 **Token (access token).** The password-like key a remote editor needs to control a headless rig.
 
-**Tuner.** Shows the pitch of the string you play, against the nearest note or a string of a tuning such as Drop D. Open it with ⌘T.
+**Tuner.** Shows the pitch of the string you play, against the nearest note or a string of a tuning such as Drop D. Open it with ⌘T or T.
 
 ## V
 

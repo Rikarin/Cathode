@@ -55,6 +55,7 @@ describe('keyboard shortcuts', () => {
     expect(findShortcut(key('q'))?.id).toBe('addBlock');
     expect(findShortcut(key('F1'))?.id).toBe('blockInfo');
     expect(findShortcut(key('t', { metaKey: true }))?.id).toBe('tuner');
+    expect(findShortcut(key('t'))?.id).toBe('tunerAlias');
     expect(findShortcut(key('y', { metaKey: true }))?.id).toBe('redoAlias');
     expect(findShortcut(key('z', { metaKey: true, shiftKey: true }))?.id).toBe('redo');
     expect(findShortcut(key('?', { shiftKey: true }))?.id).toBe('help');
@@ -71,6 +72,30 @@ describe('keyboard shortcuts', () => {
     expect(shortcutKeys(saveAs, true)).toEqual(['⌘', '⇧', 'S']);
     expect(shortcutKeys(saveAs, false)).toEqual(['Ctrl', 'Shift', 'S']);
     expect(shortcutKeys(scene8, true)).toEqual(['⌘', '8']);
+  });
+
+  it('gives the tuner a bare key as well, because a browser keeps ⌘T and Ctrl+T for a new tab', () => {
+    const service = new ShortcutService();
+    let toggled = 0;
+    service.register({ tuner: () => toggled++, tunerAlias: () => toggled++ });
+
+    const bare = key('t');
+    document.body.dispatchEvent(bare);
+    expect(service.dispatch(bare)).toBe(true);
+    expect(bare.defaultPrevented).toBe(true);
+    expect(service.dispatch(key('t', { ctrlKey: true }))).toBe(true);
+    expect(toggled).toBe(2);
+
+    // It is a letter like any other: typed into a field it is text.
+    const field = document.createElement('input');
+    document.body.append(field);
+    const typed = key('t');
+    field.dispatchEvent(typed);
+    expect(service.dispatch(typed)).toBe(false);
+    field.remove();
+
+    expect(shortcutHint('tunerAlias', true)).toBe('T');
+    expect(shortcutHint('tunerAlias', false)).toBe('T');
   });
 
   it('writes a hint for a tooltip or a menu item with the keys the keyboard has', () => {
