@@ -1,4 +1,5 @@
 using Cathode.Dsp.Amp;
+using Cathode.Dsp.Amp.Models;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Tests.Circuits;
 using Cathode.Testing;
@@ -195,6 +196,18 @@ public class HighGainAmpTests(ITestOutputHelper output) {
 
             Assert.True(levels[^1] - levels[0] > 10, $"{type}: knob {knob} spans only {levels[^1] - levels[0]:0.0} dB");
         }
+    }
+
+    /// <summary>
+    ///     The 5150III's presence network as the 100S redraw draws it: 39k into a 4.7k shunt, and across the shunt a
+    ///     10k audio pot in series with two 68 nF in parallel (136 nF).
+    /// </summary>
+    [Fact]
+    public void The_5150III_presence_cap_is_the_redraws_two_68_nF_in_parallel() {
+        var feedback = Evh5150III.Design.Power.Feedback;
+        Assert.Equal((39e3, 4.7e3), (feedback.FeedbackResistor, feedback.ShuntResistor));
+        Assert.Equal(new Pot(10e3, PotTaper.Audio), feedback.Presence);
+        Assert.Equal(2 * 68e-9, feedback.PresenceCap, 1e-15);
     }
 
     /// <summary>The Rectifier's tube rectifier and Spongy each lower B+ under load; together, more.</summary>

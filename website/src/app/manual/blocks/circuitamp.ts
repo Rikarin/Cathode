@@ -518,7 +518,8 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       '5150': 'Peavey 5150 lead channel: aggressive high gain, tight and bright.',
       'Dual Rectifier':
         'Mesa/Boogie Dual Rectifier (two-channel, 1993), red channel, with Modern, Tube Rectifier and Spongy switches. Thick, saturated modern high gain.',
-      '5150III': 'EVH 5150III red channel: tight, saturated high gain.',
+      '5150III':
+        'EVH 5150III red channel, modelled from the 100S (Stealth) version of the amp: tight, saturated high gain.',
       'Mark IV': 'Mesa/Boogie Mark IV lead channel with its five-band EQ.',
       'Legacy VL100': 'Carvin Legacy VL100 (the Steve Vai amp) lead channel; Switch 1 for the clean channel.',
       Chieftain: 'Matchless Chieftain: boutique EL34 class A, rich and chimey.',

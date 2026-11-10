@@ -218,7 +218,7 @@ Chosen from the amps Fractal models (the Axe-Fx III list is built on the same re
 | 15 | Mesa/Boogie Dual Rectifier | Mesa | 4 × 6L6, 5U4 or SS | Modern high gain | Medium |
 | 16 | Soldano SLO-100 | US high gain | 4 × 6L6GC, SS | Template for modern high gain | Good |
 | 17 | Peavey 5150 / 6505 | US high gain | 4 × 6L6 | Metal standard | Medium |
-| 18 | EVH 5150III | US high gain | 4 × 6L6GC | Modern metal standard | Medium (redraw only) |
+| 18 | EVH 5150III | US high gain | 4 × 6L6GC | Modern metal standard | Medium (redraw only, of the 100S Stealth) |
 | 19 | Friedman BE-100 | Marshall-derived | 4 × EL34, SS | Most-used modern hot-rodded Marshall | Medium (trace) |
 | 20 | Bogner Ecstasy (red/blue) | US high gain | 4 × EL34 | Popular, versatile | Low–medium |
 | 21 | Diezel VH4 (ch 3) | EU high gain | 4 × EL34 | Modern classic | Low–medium |
@@ -813,7 +813,7 @@ machine at a load average of 150–210, where the Plexi read 8.4–10.7 / 15.0�
 
 **Peavey 5150 / 6505 (lead)** — factory schematics https://www.thetubestore.com/peavey-5150evh-schematic, https://www.thetubestore.com/peavey-5150-ii-schematic; notes https://music-electronics-forum.com/forum/amplification/guitar-amps/theory-design/44578-high-gain-cold-bias, https://music-electronics-forum.com/forum/amplification/guitar-amps/theory-design/31446-peavey-6505-112-vs-5150-mk1. About five cascaded 12AX7 stages, then stack, CF and Post gain; cathodes 1.8k or 2.2k ‖ 1 µ except one **39k cold stage** (third of six); 0.002 µ into and 0.02 µ out of it [forum]. Stack values not found: read the factory scan. 4 × 6L6, B+ 485–500 V, fixed non-adjustable bias, 11–14 mA idle; resonance and presence values not found. The 6505 is electrically the 5150.
 
-**EVH 5150III** — MK `EVH 5150 III 100S Stealth` schx (preamp and power amp) *(all unverified)*. Red: V1 220k, 1.8k‖1 µ, bright network 270/470/560 pF; gain 1M; 100k/1.8k‖1 µ; **100k / 5.1k unbypassed (cold)**; then 220k/1.8k‖1 µ, 220k/2.2k, 220k/2.2k; CF. Red stack: treble 250k, mid 25k, bass 1M, slope 47k, 470 pF, **47n bass**, 22n mid. Blue: 220k/1.5k‖1 µ then three 100k/1.5k stages; stack 250k/25k/250k, slope 43k, 470 pF / 0.1 µ / 22n. Power: 4 × 6L6GC, −48.6 V, 476–485 V; 82k/100k PI; 1.5k stoppers, 100Ω screens; presence 10k with 6.8 nF; NFB 39k.
+**EVH 5150III** — MK `EVH 5150 III 100S Stealth` schx (preamp and power amp) *(all unverified)*. Red: V1 220k, 1.8k‖1 µ, bright network 270/470/560 pF; gain 1M; 100k/1.8k‖1 µ; **100k / 5.1k unbypassed (cold)**; then 220k/1.8k‖1 µ, 220k/2.2k, 220k/2.2k; CF. Red stack: treble 250k, mid 25k, bass 1M, slope 47k, 470 pF, **47n bass**, 22n mid. Blue: 220k/1.5k‖1 µ then three 100k/1.5k stages; stack 250k/25k/250k, slope 43k, 470 pF / 0.1 µ / 22n. Power: 4 × 6L6GC, −48.6 V, 476–485 V; 82k/100k PI; 1.5k stoppers, 100Ω screens; presence 10k with two 68 nF in parallel (136 nF); NFB 39k into 4.7k (the 6.8 nF are in the resonance network).
 
 **Bogner Ecstasy (red)** — no factory schematic; MK `Bogner Ecstasy 83K Mod` schx is a **modded** amp *(unverified)*: V1 100k, 820Ω‖0.68 µ; cascade with 4.7k / 10k / 1k cathodes; gain 500k; stack 250k/25k/1M, slope 33k, 470 pF, 22n, 22n. Stock 101B: 4 × EL34 [https://www.rig-talk.com/forum/threads/101b-preamp-tube-positions.144915/]. Depth control is inductive in the NFB loop (1 H / 0.5 H in the schx). Without a factory schematic this is a weak tier 1: consider swapping it for Hiwatt or the JCM900 if it stays unverified.
 

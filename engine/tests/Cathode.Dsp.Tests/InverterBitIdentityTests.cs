@@ -8,8 +8,8 @@ namespace Cathode.Dsp.Tests;
 ///     (49fe687). An intended change to an inverter or to <see cref="PowerAmp" /> regenerates the table from this
 ///     test's output (the power-amp renders of the Mesa, Soldano and Engl models were regenerated when their supplies
 ///     took their drawings' preamp draws and filter caps; their inverter tables did not move; the Powerball's render
-///     again when its inverter's grid leak was corrected to the drawing's 100k). The hashes are macOS ARM64 renders, so
-///     the test runs there only
+///     again when its inverter's grid leak was corrected to the drawing's 100k; the 5150III's when its presence cap
+///     became the redraw's two 68 nF in parallel). The hashes are macOS ARM64 renders, so the test runs there only
 ///     (<see cref="BaselinePlatform" />).
 /// </summary>
 public class InverterBitIdentityTests(ITestOutputHelper output) {
@@ -39,7 +39,7 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         { "Mark IIC+", (0x69AC6CE47CB13EA8, 0x091F0F7746FA78D3) },
         { "5150", (0x4D48EE5EA28519A1, 0xCA33CC27152AEE83) },
         { "Dual Rectifier", (0x626AC8FABA73BCDB, 0xFC58CA1C580ED32A) },
-        { "5150III", (0x4F811AEFF475696E, 0x9CF3048C46C2C9A7) },
+        { "5150III", (0x4F811AEFF475696E, 0x8F4C0EA33D7E7EE3) },
         { "Mark IV", (0x65C665B82CA5FABB, 0xBA861B2550A8724F) },
         { "Legacy VL100", (0x62CA6B505BCAA6A8, 0xCA558CC4597F3C55) },
         { "Chieftain", (0x6DC958B20D52CEBF, 0xD7205E0F637221E2) },
