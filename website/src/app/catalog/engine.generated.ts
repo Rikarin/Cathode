@@ -57,7 +57,9 @@ export const ENGINE = {
         'FB Comb',
         'Low Shelf 2',
         'High Shelf 2',
-        'Peaking 2'
+        'Peaking 2',
+        'Ladder LP 12',
+        'Ladder LP 24'
       ]
     },
     {
