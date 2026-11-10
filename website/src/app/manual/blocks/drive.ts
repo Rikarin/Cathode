@@ -53,6 +53,8 @@ Fuzz 10 to 50 dB.`,
   around noon.
 - On pedals with a three-band stack (Governor Dist, FET Preamp, Integral Pre) it is the treble pot; on the active EQs
   (M-Zone, Blackglass 7K, the Xotic types, Tube Drive 4-Knob) it is the treble band, cutting below 5 and boosting above.
+- On Heavy Metal it is the pedal's Color Mix H, which cuts or boosts two bands close together around 1.1 kHz (by up to
+  about 23 dB) and is flat at 5. It works the upper mids, not the treble.
 - On the Treble Booster it sweeps the input capacitor from 100 nF at 0 (full range) to the stock 5 nF at 10 (thin and
   cutting).
 - Pedals that have no tone knob of their own (the Fuzz Faces, Tone Bender, Octave Fuzz, OD-One, OD 250, Micro Boost
@@ -145,7 +147,8 @@ metallic, inharmonic aliasing.`,
 
     stackBass: `The pedal's bass control, on the types that have one: the bass pot of a three-band stack (Governor Dist, FET
 Preamp, Integral Pre), the low band of an active EQ (M-Zone, Blackglass 7K, Esoteric ACB, Esoteric Bass RCB, Tube Drive
-4-Knob), or the Bosom Boost's Bass, where it is a ±15 dB shelf at 100 Hz. 5 is the pedal as built.`,
+4-Knob), or the Bosom Boost's Bass, where it is a ±15 dB shelf at 100 Hz. On Heavy Metal it is the pedal's Color Mix
+L: a narrow band at 87 Hz, cut or boosted by up to about 20 dB and flat at 5. 5 is the pedal as built.`,
 
     stackMid: `The pedal's middle control, on the types that have one: the middle pot of a three-band stack, or the first
 mid band of an active EQ (the M-Zone's sweepable mid, the Blackglass 7K's Lo Mids at 500 Hz). 5 is the pedal as built.`,
@@ -334,6 +337,11 @@ octave up), a clipped output stage, and its Scoop/Flat switch in place of a Tone
 diodes to ground. Square-wave buzz.`,
       'Tape Distortion': `A reel-to-reel deck driven hot: treble pre-emphasis on record, tape saturation, then the matching
 de-emphasis on playback. Soft, warm compression and saturation rather than pedal grit.`,
+      'Heavy Metal': `Based on the Boss HM-2 Heavy Metal: two transistor gain stages, an op-amp with silicon diodes across
+its feedback, silicon diodes to ground, and the pedal's two-knob gyrator EQ. Tone is Color Mix H and the Bass Pot is
+Color Mix L; both at 10 with Drive at 10 is the "Swedish chainsaw" setting. It is fully distorted at any Drive
+setting, as the pedal is. Simplified: the transistor stages are ideal amplifiers, the germanium diode pair in series
+with the signal is left out, and low Drive settings have more gain than the pedal's.`,
       'Bit Crusher': `A digital lo-fi design: Drive takes the signal from 16 bits at the full rate down to 3 bits held at
 1.5 kHz.`,
       'SDD Preamp': `Based on the input preamp of the Korg SDD-3000 delay: a 4558 on ±15 V with treble emphasis, clipping on

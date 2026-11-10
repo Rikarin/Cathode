@@ -192,12 +192,15 @@ public sealed class HostAllocationTests : IDisposable {
         // overhead, now gone: an adaptor reads its netlist's topology from arrays the netlist builds once and shares
         // (the catalogue's netlists are static), a small adaptor solves its MNA in stack scratch instead of holding the
         // buffers, and a linear root (the tone networks) carries no Newton solver state. That took the Drive from about
-        // 130 KB to 74 KB and a load to 112,664 bytes, under a limit that leaves about 2 KB.
+        // 130 KB to 74 KB and a load to 112,664 bytes, under a limit that left about 2 KB. The Heavy Metal type then
+        // added 5,832 bytes: 4,432 for its gyrator EQ's network in the two channels' tone stages (a tone stage holds
+        // one network per tone kind) and 1,400 for its own stages. A load is 118,496 bytes, and the limit again
+        // leaves about 2 KB.
         var load = new IpcMessage { Type = IpcTypes.LoadGraph, Generation = 1, Graph = Rig() };
 
         var allocated = RoundTrip(load, 3);
 
-        Assert.True(allocated < 115_000, $"a preset load allocated {allocated} bytes");
+        Assert.True(allocated < 120_500, $"a preset load allocated {allocated} bytes");
     }
 
     [Fact]

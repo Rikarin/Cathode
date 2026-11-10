@@ -65,27 +65,7 @@ public sealed class BlockPresetStore(
             Folder = string.IsNullOrWhiteSpace(preset.Folder) ? null : preset.Folder.Trim(),
             Channels = channels,
             Modifiers = preset.Modifiers?.Where(m => descriptor.IndexOf(m.Param) >= 0 || m.Param == "engage")
-                .Select(static m => new PresetModifier {
-                        Param = m.Param,
-                        Source = m.Source,
-                        Min = m.Min,
-                        Max = m.Max,
-                        Curve = m.Curve,
-                        Source2 = m.Source2,
-                        Operation = m.Operation,
-                        Start = m.Start,
-                        Mid = m.Mid,
-                        End = m.End,
-                        Slope = m.Slope,
-                        Scale = m.Scale,
-                        Offset = m.Offset,
-                        AttackMs = m.AttackMs,
-                        ReleaseMs = m.ReleaseMs,
-                        Mode = m.Mode,
-                        Threshold = m.Threshold,
-                        OffDelayMs = m.OffDelayMs
-                    }
-                )
+                .Select(static m => m.CopyFor(string.Empty))
                 .ToList(),
             Assets = preset.Assets is { Count: > 0 } assets ? new(assets) : null
         };

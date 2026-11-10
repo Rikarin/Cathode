@@ -242,14 +242,8 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
                 errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown source '{modifier.Source}'.");
             } else if (!ModNames.TryParseCurve(modifier.Curve, out var curve)) {
                 errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown curve '{modifier.Curve}'.");
-            } else if (modifier.Source2 is { } second && !ModNames.TryParseSource(second, out _)) {
-                errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown source '{second}'.");
-            } else if (!ModNames.TryParseOperation(modifier.Operation, out _)) {
-                errors.Add(
-                    $"Modifier on '{modifier.Block}.{modifier.Param}': unknown operation '{modifier.Operation}'."
-                );
-            } else if (engage && !ModNames.TryParseEngageMode(modifier.Mode, out _)) {
-                errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown mode '{modifier.Mode}'.");
+            } else if (UnknownName(modifier, engage) is { } unknown) {
+                errors.Add($"Modifier on '{modifier.Block}.{modifier.Param}': unknown {unknown}.");
             } else if (HasModifier(modifiers, slot, index)) {
                 errors.Add($"Parameter '{modifier.Block}.{modifier.Param}' has more than one modifier.");
             } else {
@@ -258,6 +252,26 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         }
 
         return modifiers;
+    }
+
+    /// <summary>
+    ///     The first of a modifier's optional names the engine does not know (its second source, operation, update
+    ///     rate or, on an engage switch, mode), as "kind 'name'"; null when all are known.
+    /// </summary>
+    static string? UnknownName(ModifierDefinition modifier, bool engage) {
+        if (modifier.Source2 is { } second && !ModNames.TryParseSource(second, out _)) {
+            return $"source '{second}'";
+        }
+
+        if (!ModNames.TryParseOperation(modifier.Operation, out _)) {
+            return $"operation '{modifier.Operation}'";
+        }
+
+        if (!ModNames.TryParseUpdateRate(modifier.UpdateRate, out _)) {
+            return $"update rate '{modifier.UpdateRate}'";
+        }
+
+        return engage && !ModNames.TryParseEngageMode(modifier.Mode, out _) ? $"mode '{modifier.Mode}'" : null;
     }
 
     /// <summary>
@@ -286,56 +300,71 @@ public sealed class GraphCompiler(BlockRegistry registry, string? assetRoot = nu
         ModCurve curve,
         IDspBlock? block
     ) {
-        // The second source and the operation were checked by BindModifiers.
-        ModSource? source2 = modifier.Source2 is { } name && ModNames.TryParseSource(name, out var second)
-            ? second
-            : null;
-        _ = ModNames.TryParseOperation(modifier.Operation, out var multiply);
-        var shape = ModShape.From(
-            modifier.Start,
-            modifier.Mid,
-            modifier.End,
-            modifier.Slope,
-            modifier.Scale,
-            modifier.Offset
-        );
         if (block is null) {
             _ = ModNames.TryParseEngageMode(modifier.Mode, out var mode); // checked by BindModifiers
-            return new(
+            var threshold = modifier.Threshold ?? EngageSwitch.DefaultThreshold;
+            var offAbove = modifier.OffAbove == true;
+            return WithSources(
+                new(
+                    slot,
+                    index,
+                    source,
+                    curve,
+                    Math.Clamp(modifier.Min, 0f, 1f),
+                    Math.Clamp(modifier.Max, 0f, 1f),
+                    false,
+                    modifier.AttackMs,
+                    modifier.ReleaseMs
+                ) {
+                    OffAbove = offAbove,
+                    // Off above the threshold is the same switch on the mirrored value (ModifierBinding.UpdateSwitch).
+                    Switch = new(mode, offAbove ? 1f - threshold : threshold, modifier.OffDelayMs ?? 0f)
+                },
+                modifier
+            );
+        }
+
+        var param = block.Descriptor.Params[index];
+        return WithSources(
+            new(
                 slot,
                 index,
                 source,
                 curve,
-                Math.Clamp(modifier.Min, 0f, 1f),
-                Math.Clamp(modifier.Max, 0f, 1f),
-                false,
+                Math.Clamp(modifier.Min, param.Min, param.Max),
+                Math.Clamp(modifier.Max, param.Min, param.Max),
+                param.Taper == ParamTaper.Log,
                 modifier.AttackMs,
                 modifier.ReleaseMs
-            ) {
-                Enabled = modifier.Enabled,
-                Source2 = source2,
-                Multiply = multiply,
-                Shape = shape,
-                Switch = new(
-                    mode,
-                    modifier.Threshold ?? EngageSwitch.DefaultThreshold,
-                    modifier.OffDelayMs ?? 0f
-                )
-            };
-        }
+            ),
+            modifier
+        );
+    }
 
-        var param = block.Descriptor.Params[index];
-        return new(
-            slot,
-            index,
-            source,
-            curve,
-            Math.Clamp(modifier.Min, param.Min, param.Max),
-            Math.Clamp(modifier.Max, param.Min, param.Max),
-            param.Taper == ParamTaper.Log,
-            modifier.AttackMs,
-            modifier.ReleaseMs
-        ) { Enabled = modifier.Enabled, Source2 = source2, Multiply = multiply, Shape = shape };
+    /// <summary>
+    ///     <paramref name="binding" /> with what every modifier has beside its target and range: whether it starts
+    ///     enabled, its second source, operation and source scales, its response and its update rate. The names were
+    ///     checked by <see cref="BindModifiers" />.
+    /// </summary>
+    static ModifierBinding WithSources(ModifierBinding binding, ModifierDefinition modifier) {
+        _ = ModNames.TryParseOperation(modifier.Operation, out var operation);
+        _ = ModNames.TryParseUpdateRate(modifier.UpdateRate, out var rate);
+        return binding with {
+            Enabled = modifier.Enabled,
+            Source2 = modifier.Source2 is { } name && ModNames.TryParseSource(name, out var second) ? second : null,
+            Operation = operation,
+            Scale1 = ModNames.SourceScale(modifier.Scale1),
+            Scale2 = ModNames.SourceScale(modifier.Scale2),
+            UpdateMs = ModNames.UpdatePeriodMs(rate),
+            Shape = ModShape.From(
+                modifier.Start,
+                modifier.Mid,
+                modifier.End,
+                modifier.Slope,
+                modifier.Scale,
+                modifier.Offset
+            )
+        };
     }
 
     /// <summary>

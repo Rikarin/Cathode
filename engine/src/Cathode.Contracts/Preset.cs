@@ -289,10 +289,16 @@ public sealed class PresetModifier {
     public string? Source2 { get; set; }
 
     /// <summary>
-    ///     How <see cref="Source2" /> joins <see cref="Source" />: <c>add</c> (the sum, held within 0-1) or
-    ///     <c>multiply</c>. Null is <c>add</c>.
+    ///     How <see cref="Source2" /> joins <see cref="Source" />: <c>add</c> (the sum, held within 0-1),
+    ///     <c>multiply</c> or <c>subtract</c> (the first less the second, held at 0). Null is <c>add</c>.
     /// </summary>
     public string? Operation { get; set; }
+
+    /// <summary>Multiplies <see cref="Source" />'s value (0-1) before anything else. Null is 1.</summary>
+    public float? Scale1 { get; set; }
+
+    /// <summary>Multiplies <see cref="Source2" />'s value (0-1) before the operation. Null is 1.</summary>
+    public float? Scale2 { get; set; }
 
     /// <summary>
     ///     The response to the source, applied before <see cref="Curve" />: the output (0-1) with the source at
@@ -323,6 +329,22 @@ public sealed class PresetModifier {
     public float ReleaseMs { get; set; }
 
     /// <summary>
+    ///     How often the parameter is written: <c>fast</c> (every control sub-block, at most 64 frames),
+    ///     <c>medium</c> (at most every 5 ms) or <c>slow</c> (at most every 20 ms). A slower rate costs less on a
+    ///     parameter its block recomputes on, and steps more coarsely. Null is <c>fast</c>; engage modifiers ignore
+    ///     it.
+    /// </summary>
+    public string? UpdateRate { get; set; }
+
+    /// <summary>
+    ///     PC Reset: true holds the parameter (or the block's bypass, for an engage modifier) at the value the preset
+    ///     stores when the preset loads, until one of the modifier's external controllers (ext1-16) sends a value;
+    ///     then the modifier takes over. It does nothing on a modifier without an external source. Null is false: the
+    ///     modifier follows the controller's last value from the moment the preset loads.
+    /// </summary>
+    public bool? PcReset { get; set; }
+
+    /// <summary>
     ///     Engage modifiers only: <c>position</c> (engaged at or above the threshold) or <c>moving</c> (engaged as
     ///     soon as the value moves from where it rested, off again once it is back below the threshold). Null is
     ///     <c>position</c>.
@@ -339,8 +361,47 @@ public sealed class PresetModifier {
     public float? OffDelayMs { get; set; }
 
     /// <summary>
+    ///     Engage modifiers only: true puts the off region above <see cref="Threshold" /> instead of below it, so the
+    ///     block is engaged at or below the threshold (a pedal that switches its block off at the toe). Null is
+    ///     false.
+    /// </summary>
+    public bool? OffAbove { get; set; }
+
+    /// <summary>
     ///     The channel (A-D) the modifier applies on, or null for every channel of its block. On another channel the
     ///     parameter keeps that channel's own value.
     /// </summary>
     public string? Channel { get; set; }
+
+    /// <summary>
+    ///     A copy on block <paramref name="block" /> with every setting but the channel scope, which belongs to the
+    ///     block it was made on.
+    /// </summary>
+    public PresetModifier CopyFor(string block) =>
+        new() {
+            Block = block,
+            Param = Param,
+            Source = Source,
+            Min = Min,
+            Max = Max,
+            Curve = Curve,
+            Source2 = Source2,
+            Operation = Operation,
+            Scale1 = Scale1,
+            Scale2 = Scale2,
+            Start = Start,
+            Mid = Mid,
+            End = End,
+            Slope = Slope,
+            Scale = Scale,
+            Offset = Offset,
+            AttackMs = AttackMs,
+            ReleaseMs = ReleaseMs,
+            UpdateRate = UpdateRate,
+            PcReset = PcReset,
+            Mode = Mode,
+            Threshold = Threshold,
+            OffDelayMs = OffDelayMs,
+            OffAbove = OffAbove
+        };
 }

@@ -289,6 +289,85 @@ public static partial class DriveCircuits {
     ];
 
     /// <summary>
+    ///     The Boss HM-2 Heavy Metal, appended after every earlier circuit. Parts and connections are read from the
+    ///     Eagle schematic "Boss HM-2.sch" in github.com/xenocoder/BOSS-HM2 (its designators below). The parts list of
+    ///     a second drawing, github.com/mgm8/hs2 (after BYOC's "The Swede"), agrees on every value used here but two:
+    ///     it has 100 pF where this one has 10 pF across the two transistors' and the op-amp's feedback, and 50k
+    ///     linear EQ pots where this one has 10k. This model follows the first drawing.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         The signal path: a JFET follower (Q1); two transistor amplifiers with collector-to-base feedback, Q2
+    ///         (R5 22k and C2 47 nF in, R10 470k and C5 10 pF back) and Q3 (R13 22k and C4 47 nF in, R14 470k and
+    ///         C6 10 pF back); an op-amp (IC1) with R20 220k, C9 10 pF and two 1N4148 across its feedback, and R18
+    ///         47k, C8 47 nF and half of the 250k audio Dist pot in its ground leg; R21 10k, two germanium diodes in
+    ///         series with the signal, R23 10k, then two 1N4148 and C12 1 nF to ground; a follower; the EQ (IC3
+    ///         with R25 and R32 3.3k, the 10k linear Color Mix L and H pots and three gyrators); the 10k Level pot.
+    ///     </para>
+    ///     <para>
+    ///         Not modelled, or simplified: Q1 (unity gain); Q2 and Q3 are ideal inverting stages with the drawing's
+    ///         input and feedback parts, Q3 limited at the swing its collector has around its rest point (about
+    ///         3.5 V; the rest point is an estimate from the bias resistors, not a measurement); the other half of the
+    ///         Dist pot, which with R16 150 Ω and C7 10 µF loads Q2's collector at the bottom of its travel, so low
+    ///         Drive settings have more gain here than on the pedal; the germanium pair in series with the signal
+    ///         (D3, D4), which adds a dead zone around zero that the stage kinds cannot express.
+    ///     </para>
+    /// </remarks>
+    static DriveCircuit HeavyMetal() =>
+        new(
+            "Heavy Metal",
+            "Boss HM-2 Heavy Metal: two transistor gain stages, an op-amp with silicon diodes across its feedback, "
+            + "silicon to ground, two-knob gyrator EQ (Color Mix L on the Bass Pot, Color Mix H on Tone)"
+        ) {
+            InputHighPassHz = 0, // the first stage's leg (C2 into R5) is the coupling
+            Stages = [
+                HeavyMetalTransistor(0),
+                HeavyMetalTransistor(3.5),
+                new(StageKind.OpAmp) {
+                    Amplifier = OpAmpModel.TL072, // the drawing's symbol; the second list names the M5218L
+                    InputBias = 68e3, // R19
+                    SourceResistance = 10e3, // R15, Q3's collector load
+                    GroundResistance = 47e3, // R18
+                    GroundCapacitance = 47e-9, // C8
+                    GroundPot = 250e3, // Dist
+                    Feedback = 220e3, // R20
+                    FeedbackCapacitance = 10e-12, // C9
+                    Diodes = DiodeStacks.Pair(Si) // D1, D2
+                },
+                // R21 and R23 in series (the germanium pair between them is left out), D5 and D6 with C12.
+                new(StageKind.Clipper) { Series = 20e3, Shunt = 1e-9, Diodes = DiodeStacks.Pair(Si) }
+            ],
+            Tone = new(ToneKind.GyratorEq) {
+                Source = 10, // a follower's output
+                Resistor1 = 3.3e3, // R25
+                Resistor2 = 3.3e3, // R32
+                Pot = 10e3,
+                Shunts = [
+                    new(1.5e-6, 330, 68e-9, 100e3), // C17, R26, C14, R29: 87 Hz, Color Mix L
+                    new(150e-9, 330, 4.7e-9, 100e3), // C18, R27, C15, R30: 1.04 kHz, Color Mix H
+                    new(100e-9, 330, 6.8e-9, 82e3) // C19, R28, C16, R31: 1.17 kHz, Color Mix H
+                ],
+                Load = 20e3 // R33 into the Level pot
+            },
+            OutputDb = -6.8
+        };
+
+    /// <summary>
+    ///     One of the HM-2's two transistor amplifiers as an ideal inverting stage: 22k and 47 nF in, 470k and 10 pF
+    ///     back, limited at <paramref name="rail" /> volts (0 = not limited).
+    /// </summary>
+    static DriveStage HeavyMetalTransistor(double rail) =>
+        new(StageKind.Gain) {
+            GroundResistance = 22e3,
+            GroundCapacitance = 47e-9,
+            Feedback = 470e3,
+            FeedbackCapacitance = 10e-12,
+            GainBandwidth = 10e6,
+            Inverting = true,
+            Rail = rail
+        };
+
+    /// <summary>
     ///     The Suhr Riot's gain stage: a TL072 with the Distortion pot in its feedback and two legs to ground (the bass
     ///     cut and a mid push), driving the diodes to ground into its rails.
     /// </summary>

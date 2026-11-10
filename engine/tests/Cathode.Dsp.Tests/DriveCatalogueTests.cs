@@ -185,6 +185,12 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
     public void Tone_tilts_the_spectrum_towards_the_treble(int type) {
         var noise = Signals.Noise(48_000, 3, 0.05f);
 
+        // The band the knob works: the treble, but for the HM-2's Color Mix H, whose two gyrators sit at 1.04 and
+        // 1.17 kHz.
+        var (from, to) = DriveCircuits.All[type - DriveBlock.CircuitTypes].Tone.Kind == ToneKind.GyratorEq
+            ? (700, 2_000)
+            : (2_000, 8_000);
+
         double Tilt(float tone) {
             using var block = Create(type, 5f, tone);
             var rendered = BlockRender.Mono(block, noise, 64).AsSpan(8_192);
@@ -195,7 +201,7 @@ public class DriveCatalogueTests(ITestOutputHelper output) {
                 var energy = magnitudes[k] * magnitudes[k];
                 if (hz is > 100 and < 500) {
                     low += energy;
-                } else if (hz is > 2_000 and < 8_000) {
+                } else if (hz > from && hz < to) {
                     high += energy;
                 }
             }

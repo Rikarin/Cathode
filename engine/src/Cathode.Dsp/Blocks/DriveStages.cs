@@ -1014,20 +1014,29 @@ public sealed class ToneStage {
                 net.Port(shunt, Ground);
                 net.Probe(output);
                 break;
+            }
 
-                static int Band(WdfNetlist net, int plus, int minus) {
-                    var wiper = net.Node();
-                    net.Resistor(plus, wiper, 1e3); // pot, cut side
-                    net.Resistor(wiper, minus, 1e3); // pot, boost side
-                    return wiper;
-                }
+            case ToneKind.GyratorEq: {
+                var (source, plus, minus, output) = (net.Node(), net.Node(), net.Node(), net.Node());
+                net.Port(source, Ground);
+                net.Resistor(source, plus, 3.3e3); // Resistor1
+                net.Resistor(output, minus, 3.3e3); // Resistor2
+                net.Resistor(output, Ground, 1e6); // load
+                net.Vcvs(output, Ground, plus, minus, OpenLoopGain);
 
-                static void Gyrator(WdfNetlist net, int terminal) {
-                    var (input, follower) = (net.Node(), net.Node());
-                    net.Port(terminal, input);
-                    net.Resistor(input, Ground, GyratorResistance);
-                    net.Vcvs(follower, Ground, input, Ground, 1);
-                    net.Resistor(follower, terminal, 1e3); // the series resistance
+                // The low pot with one shunt on its wiper, then the high pot with two side by side.
+                Shunt(net, Band(net, plus, minus));
+                var high = Band(net, plus, minus);
+                Shunt(net, high);
+                Shunt(net, high);
+                net.Probe(output);
+                break;
+
+                // A series capacitor into a gyrator inductor.
+                static void Shunt(WdfNetlist net, int wiper) {
+                    var inductor = net.Node();
+                    net.Port(wiper, inductor);
+                    Gyrator(net, inductor);
                 }
             }
 
@@ -1036,6 +1045,26 @@ public sealed class ToneStage {
         }
 
         return net;
+    }
+
+    /// <summary>A band pot between an EQ amplifier's inputs; returns its wiper.</summary>
+    static int Band(WdfNetlist net, int plus, int minus) {
+        var wiper = net.Node();
+        net.Resistor(plus, wiper, 1e3); // pot, cut side
+        net.Resistor(wiper, minus, 1e3); // pot, boost side
+        return wiper;
+    }
+
+    /// <summary>
+    ///     A gyrator inductor from <paramref name="terminal" /> to ground: a capacitor into a follower's input (a
+    ///     resistor to ground there), the follower's output back to the terminal through the series resistance.
+    /// </summary>
+    static void Gyrator(WdfNetlist net, int terminal) {
+        var (input, follower) = (net.Node(), net.Node());
+        net.Port(terminal, input);
+        net.Resistor(input, WdfNetlist.Ground, GyratorResistance);
+        net.Vcvs(follower, WdfNetlist.Ground, input, WdfNetlist.Ground, 1);
+        net.Resistor(follower, terminal, 1e3); // the series resistance
     }
 
     /// <summary>
@@ -1141,6 +1170,11 @@ public sealed class ToneStage {
             return;
         }
 
+        if (n.Kind == ToneKind.GyratorEq) {
+            SetGyratorEq(root, n, tone, bass, rate);
+            return;
+        }
+
         var amount = n.AudioTaper ? DriveCircuits.AudioTaper(tone) : tone;
         root.Source.Value = n.Source;
         root.Capacitor(0).Configure(n.Capacitor1, rate);
@@ -1189,12 +1223,65 @@ public sealed class ToneStage {
                 root.SetResistance(4, n.Resistor3 * middle);
                 root.SetResistance(5, n.Load);
                 break;
-            case ToneKind.Range or ToneKind.ActiveEq:
-                // A Range has no tone network, and the active EQ was set above.
+            case ToneKind.Range or ToneKind.ActiveEq or ToneKind.GyratorEq:
+                // A Range has no tone network, and the active EQs were set above.
                 break;
         }
 
         root.Propagate();
+    }
+
+    /// <summary>The shunts a <see cref="ToneKind.GyratorEq" /> has: one on the low pot, two on the high pot.</summary>
+    public const int GyratorShunts = 3;
+
+    /// <summary>
+    ///     The gyrator EQ's components (see <see cref="ToneKind.GyratorEq" />), in netlist order: the amplifier's two
+    ///     resistors and load, the low pot (<paramref name="bass" />) and its shunt, the high pot
+    ///     (<paramref name="tone" />) and its two. Both pots are linear, and flat at noon.
+    /// </summary>
+    static void SetGyratorEq(
+        CircuitRoot<ResistiveVoltageSource, NoDevice> root,
+        ToneNetwork n,
+        double tone,
+        double bass,
+        double rate
+    ) {
+        if (n.Shunts.Count != GyratorShunts) {
+            throw new ArgumentException($"A gyrator EQ has {GyratorShunts} shunts.", nameof(n));
+        }
+
+        root.Source.Value = n.Source;
+        root.SetResistance(0, n.Resistor1);
+        root.SetResistance(1, n.Resistor2);
+        root.SetResistance(2, n.Load);
+        BandPot(root, 3, n.Pot, bass);
+        Shunt(root, 5, 0, n.Shunts[0], rate);
+        BandPot(root, 7, n.Pot, tone);
+        Shunt(root, 9, 2, n.Shunts[1], rate);
+        Shunt(root, 11, 4, n.Shunts[2], rate);
+        root.Propagate();
+
+        static void Shunt(
+            CircuitRoot<ResistiveVoltageSource, NoDevice> root,
+            int at,
+            int capacitor,
+            GyratorShunt shunt,
+            double rate
+        ) {
+            root.SetResistance(at, shunt.Resistance);
+            root.SetResistance(at + 1, shunt.SeriesResistance);
+            root.Capacitor(capacitor).Configure(shunt.SeriesCapacitance, rate);
+            root.Capacitor(capacitor + 1).Configure(shunt.Capacitance, rate);
+        }
+    }
+
+    /// <summary>
+    ///     A band pot's two halves at <paramref name="boost" /> (0..1): the shunt on its wiper cuts on the input side
+    ///     and boosts on the feedback side.
+    /// </summary>
+    static void BandPot(CircuitRoot<ResistiveVoltageSource, NoDevice> root, int at, double pot, double boost) {
+        root.SetResistance(at, pot * boost);
+        root.SetResistance(at + 1, pot * (1 - boost));
     }
 
     /// <summary>
@@ -1249,10 +1336,8 @@ public sealed class ToneStage {
             return absent;
         }
 
-        static void Pot(CircuitRoot<ResistiveVoltageSource, NoDevice> root, int at, double pot, double boost) {
-            root.SetResistance(at, pot * boost); // input side: the shunt there cuts
-            root.SetResistance(at + 1, pot * (1 - boost)); // feedback side: the shunt there boosts
-        }
+        static void Pot(CircuitRoot<ResistiveVoltageSource, NoDevice> root, int at, double pot, double boost) =>
+            BandPot(root, at, pot, boost);
 
         static void Mid(
             CircuitRoot<ResistiveVoltageSource, NoDevice> root,

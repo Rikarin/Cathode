@@ -106,7 +106,39 @@ public enum ToneKind {
     ///     Tone works the treble band, the Bass Pot the low band, the Middle Pot the first mid band (at the Middle Freq
     ///     where it sweeps); a band at 0 Hz is absent. See <see cref="ToneStage.Netlist" />.
     /// </summary>
-    ActiveEq
+    ActiveEq,
+
+    /// <summary>
+    ///     The Boss HM-2's two-knob EQ, by its parts: the same amplifier as <see cref="ActiveEq" />
+    ///     (<see cref="ToneNetwork.Resistor1" /> into the non-inverting input, <see cref="ToneNetwork.Resistor2" />
+    ///     from the output to the inverting input) with two pots (<see cref="ToneNetwork.Pot" />) between the inputs.
+    ///     Each wiper goes to ground through series-resonant shunts, a capacitor into a gyrator inductor
+    ///     (<see cref="ToneNetwork.Shunts" />): the first shunt on the low pot's wiper (the Bass Pot), the second and
+    ///     third side by side on the high pot's (Tone). Unlike <see cref="ActiveEq" /> the shunts are the drawing's
+    ///     components, not bands designed from a frequency.
+    /// </summary>
+    GyratorEq
+}
+
+/// <summary>
+///     One shunt of a <see cref="ToneKind.GyratorEq" />: <paramref name="SeriesCapacitance" /> from the pot's wiper
+///     into a gyrator, which is <paramref name="SeriesResistance" /> to a follower's output and
+///     <paramref name="Capacitance" /> to the follower's input, held to the reference by
+///     <paramref name="Resistance" />. The gyrator is an inductor of
+///     <c>
+///         SeriesResistance × Resistance ×
+///         Capacitance
+///     </c>
+///     henries in series with <paramref name="SeriesResistance" />.
+/// </summary>
+public readonly record struct GyratorShunt(
+    double SeriesCapacitance,
+    double SeriesResistance,
+    double Capacitance,
+    double Resistance
+) {
+    /// <summary>Where the shunt resonates, in hertz.</summary>
+    public double Hz => 1 / (2 * Math.PI * Math.Sqrt(SeriesResistance * Resistance * Capacitance * SeriesCapacitance));
 }
 
 /// <summary>
@@ -167,6 +199,11 @@ public sealed record ToneNetwork(ToneKind Kind) {
 
     /// <summary>ActiveEq: the first mid band follows the Middle Freq control (a semi-parametric mid).</summary>
     public bool MidSweep { get; init; }
+
+    /// <summary>
+    ///     GyratorEq: the three shunts, the low pot's first (<see cref="ToneStage.GyratorShunts" /> of them).
+    /// </summary>
+    public IReadOnlyList<GyratorShunt> Shunts { get; init; } = [];
 }
 
 /// <summary>
@@ -1094,7 +1131,8 @@ public static partial class DriveCircuits {
             },
             ..Round4Overdrives(),
             ..Round4Distortions(),
-            ..Round4Fuzz()
+            ..Round4Fuzz(),
+            HeavyMetal()
         ];
 
         foreach (var circuit in all.SelectMany(static c => c.Modes.Prepend(c))) {

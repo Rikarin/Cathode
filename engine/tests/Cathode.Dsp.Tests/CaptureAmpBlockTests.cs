@@ -212,6 +212,110 @@ public class CaptureAmpBlockTests : IDisposable {
         Assert.InRange(Analysis.ToDb(Analysis.MagnitudeAt(response, 650, 48_000)), 11.5, 12.5);
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void A_passive_stack_type_runs_the_tone_stack_blocks_network(int stack) {
+        // Bass +6 dB, Middle -6 dB and Treble +12 dB are the pots at 7.5, 2.5 and 10 on the Tone Stack block.
+        using var block = new CaptureAmpBlock();
+        block.Params.SetTarget(CaptureAmpBlock.Stack, stack);
+        block.Params.SetTarget(CaptureAmpBlock.Bass, 6f);
+        block.Params.SetTarget(CaptureAmpBlock.Middle, -6f);
+        block.Params.SetTarget(CaptureAmpBlock.Treble, 12f);
+        block.Prepare(new(48_000, 64));
+        using var reference = new ToneStackBlock();
+        reference.Params.SetTarget(ToneStackBlock.Type, stack - 1);
+        reference.Params.SetTarget(ToneStackBlock.Bass, 7.5f);
+        reference.Params.SetTarget(ToneStackBlock.Middle, 2.5f);
+        reference.Params.SetTarget(ToneStackBlock.Treble, 10f);
+        reference.Prepare(new(48_000, 64));
+        var impulse = Signals.Impulse(16_384);
+
+        var response = BlockRender.Mono(block, impulse, 64);
+        var expected = BlockRender.Mono(reference, impulse, 64);
+
+        foreach (var hz in new[] { 80.0, 400, 1_000, 3_000, 8_000 }) {
+            Assert.Equal(
+                Analysis.ToDb(Analysis.MagnitudeAt(expected, hz, 48_000)),
+                Analysis.ToDb(Analysis.MagnitudeAt(response, hz, 48_000)),
+                0.05
+            );
+        }
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void A_passive_stack_at_noon_is_unity_at_1_kHz_and_keeps_presence(int stack) {
+        using var block = new CaptureAmpBlock();
+        block.Params.SetTarget(CaptureAmpBlock.Stack, stack);
+        block.Params.SetTarget(CaptureAmpBlock.Presence, 12f);
+        block.Prepare(new(48_000, 64));
+        using var flat = new CaptureAmpBlock();
+        flat.Params.SetTarget(CaptureAmpBlock.Stack, stack);
+        flat.Prepare(new(48_000, 64));
+        var impulse = Signals.Impulse(16_384);
+
+        var response = BlockRender.Mono(block, impulse, 64);
+        var noon = BlockRender.Mono(flat, impulse, 64);
+
+        Assert.InRange(Analysis.ToDb(Analysis.MagnitudeAt(noon, 1_000, 48_000)), -0.1, 0.1);
+        Assert.InRange(
+            Analysis.ToDb(Analysis.MagnitudeAt(response, 5_000, 48_000))
+            - Analysis.ToDb(Analysis.MagnitudeAt(noon, 5_000, 48_000)),
+            11.5,
+            12.5
+        );
+    }
+
+    [Fact]
+    public void A_passive_stack_before_the_capture_changes_what_it_clips() {
+        // The Fender stack with Bass at 0 takes most of a 60 Hz sine away: before a capture that clips at 0.1 the
+        // sine no longer reaches the clip, after it the clipped sine is cut.
+        var input = Signals.Sine(60, 48_000, 24_000, 0.15f);
+
+        float[] Render(int location) {
+            using var block = new CaptureAmpBlock(static _ => new ClipModel(0.1f));
+            block.LoadAsset(CaptureAmpBlock.ModelSlot, "capture.nam");
+            block.Params.SetTarget(CaptureAmpBlock.Stack, 1);
+            block.Params.SetTarget(CaptureAmpBlock.Bass, -12f);
+            block.Params.SetTarget(CaptureAmpBlock.Location, location);
+            block.Prepare(new(48_000, 64));
+            return [..BlockRender.Mono(block, input, 64).Skip(12_000)];
+        }
+
+        static double ThirdToFirstDb(float[] x) =>
+            Analysis.ToDb(Analysis.MagnitudeAt(x, 180, 48_000)) - Analysis.ToDb(Analysis.MagnitudeAt(x, 60, 48_000));
+
+        Assert.True(ThirdToFirstDb(Render(CaptureAmpBlock.LocationPre)) < -60, "the cut sine stays under the clip");
+        Assert.True(ThirdToFirstDb(Render(CaptureAmpBlock.LocationPost)) > -30, "the clipped sine keeps its harmonics");
+    }
+
+    [Fact]
+    public void Bright_lifts_the_treble_by_6_dB_and_leaves_the_bass() {
+        using var block = new CaptureAmpBlock();
+        block.Params.SetTarget(CaptureAmpBlock.Bright, 1f);
+        block.Prepare(new(48_000, 64));
+
+        var response = BlockRender.Mono(block, Signals.Impulse(16_384), 64);
+
+        Assert.InRange(Analysis.ToDb(Analysis.MagnitudeAt(response, 12_000, 48_000)), 5.5, 6.5);
+        Assert.InRange(Analysis.ToDb(Analysis.MagnitudeAt(response, 200, 48_000)), -0.3, 0.3);
+    }
+
+    [Fact]
+    public void Stack_type_and_bright_default_to_the_block_as_it_was() {
+        var info = CaptureAmpBlock.Info;
+
+        Assert.Equal("stack", info.Params[CaptureAmpBlock.Stack].Id);
+        Assert.Equal(["Active", "Fender", "Marshall", "Vox"], info.Params[CaptureAmpBlock.Stack].Options);
+        Assert.Equal(0f, info.Params[CaptureAmpBlock.Stack].Default);
+        Assert.Equal("bright", info.Params[CaptureAmpBlock.Bright].Id);
+        Assert.Equal(0f, info.Params[CaptureAmpBlock.Bright].Default);
+    }
+
     [Fact]
     public void Flat_tone_without_a_model_is_bit_transparent() {
         using var block = new CaptureAmpBlock();

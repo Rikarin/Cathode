@@ -88,7 +88,7 @@
 | **Amp** | 300+ models, Cygnus X-3 component modelling, Authentic/Ideal knob tapers | Three tiers: **Capture** (NAM/AIDA-X), **Circuit** (own WDF/DK stage library), **Hybrid**. The amp parameter surface is in §4 |
 | **Cab** | 4 IRs per channel with a Cab-Lab-style mixer (level, pan, align, proximity, smoothing), mic-preamp sim, room, air. **DynaCab**: 2048-sample, phase-aligned IRs with continuous mic Position and Distance, 4 mic types | Partitioned convolution, 4 slots, alignment. **DynaCab equivalent** = a grid of our own phase-aligned captures per cab and mic, *interpolated* by position and distance |
 | **IR Player** | 2 IRs, series or parallel, FullRes (up to 1.37 s) | Same block. Long IRs use non-uniform partitioned convolution |
-| **Drive** | 65+ types. Clip type, diode type and count, bass response, dry level, expert params. HM-2 added in fw 32 | WDF circuit library with exposed "expert" components (diodes, caps) |
+| **Drive** | 65+ types. Clip type, diode type and count, bass response, dry level, expert params. HM-2 added in fw 32 | WDF circuit library with exposed "expert" components (diodes, caps); the HM-2 is the Heavy Metal type |
 | **Dynamic Distortion** | Frequency-dependent dynamic saturation for mastering | Multiband dynamic waveshaper |
 | **Delay** | 27+ types: digital, analog/BBD, tape, dual tape, reverse; up to 16 s; diffusion | Shared delay core with fractional interpolation, BBD/tape colouring, diffusion allpasses |
 | **Multi-Delay / Megatap / Plex / Ten-Tap** | 34+, 20, 44 and 2 types: multi-tap, rhythm, band, diffusors, 8-line feedback matrix with pitch | Built on the same delay-line core plus an FDN matrix (Plex) |
@@ -100,7 +100,7 @@
 | **EQ** | 16 GEQ types (incl. passive "Mark" 5-band, console 3-band); 5-band PEQ | Analytic-tested EQ family |
 | **Misc** | Enhancer, Ring Mod, Resonator (4 combs), 3-voice tracking Synth, 24-band Vocoder, Volume/Pan (width, mono, swap, phase) | Straightforward DSP, built in Phase 6 |
 | **Utility blocks** | **Looper** (stereo, 300 s, overdub/undo), **Tone Match**, **RTA**, **Scene MIDI** (up to 8 PC/CC messages per scene) | Same blocks. Tone Match = smoothed spectral-ratio FIR, exportable as an IR |
-| **NAM** (fw 33 beta) | Loads `.nam` files. Full and Lite (Full ≈ 6× the CPU of Lite). About a dozen tone-stack types Pre or Post; Bright. Max 2 NAM, or 1 Amp + 2 NAM | **This confirms our hybrid strategy:** even Fractal now hosts NAM next to its own modelling. We host NeuralAmpModelerCore natively (A1 and A2) and add tone stacks Pre/Post |
+| **NAM** (fw 33 beta) | Loads `.nam` files. Full and Lite (Full ≈ 6× the CPU of Lite). About a dozen tone-stack types Pre or Post; Bright. Max 2 NAM, or 1 Amp + 2 NAM | **This confirms our hybrid strategy:** even Fractal now hosts NAM next to its own modelling. We host NeuralAmpModelerCore natively (A1 and A2, Full and Lite) and add tone stacks Pre/Post: Amp NAM's Stack Type (its own ±12 dB bands, or the Fender, Marshall and Vox passive stacks of the Tone Stack block), EQ Location and Bright. Three passive stacks, not the Axe-Fx's dozen; Bright is a fixed +6 dB shelf above 3 kHz, our own voicing |
 
 ---
 
@@ -139,7 +139,7 @@ Fractal's amp algorithm generations show the scale of the target. The Circuit ti
 | Scene Ignore | Per channel, excludes a block from scene control (fw 19.05) | Same flag |
 | Gapless switching | Preset, scene and channel changes (fw 23, on by default) | Default behaviour. Graph pre-roll plus a crossfade |
 | Global blocks | 8 globals per block slot, stored in system memory; modifiers stay in the preset; not available for ~14 block types | Global block references in the preset, plus a global store |
-| **Modifiers** | 1 or 2 sources per knob (with Scale and Operation). Min/Max, Start/Mid/End, Slope, Scale, Offset, Damping or Attack/Release, Auto-Engage + Off Value, PC Reset, Update Rate, per-channel enable | Same parameter surface but PC Reset, Off Value, a per-source Scale and Update Rate. Control-rate evaluation, see [02 §5.4](02-architecture.md#54-parameters-smoothing-modifiers) |
+| **Modifiers** | 1 or 2 sources per knob (with Scale and Operation). Min/Max, Start/Mid/End, Slope, Scale, Offset, Damping or Attack/Release, Auto-Engage + Off Value, PC Reset, Update Rate, per-channel enable | Same parameter surface: two sources each with a Scale, Operation (add, multiply, subtract), the response, damping, Update Rate (fast, medium, slow), auto-engage with its threshold on either side (Off Value) and PC Reset. Control-rate evaluation; what Cathode defines itself (the update intervals, Slope's curve) is in [02 §5.4](02-architecture.md#54-parameters-smoothing-modifiers) |
 | Controllers | 2 LFOs (A/B outputs, phase), 2 ADSRs, Sequencer (2–32 steps), Pitch Detector, Envelope Follower, **4 Scene Controllers**, **5 Manual controllers**, Tempo, **16 External** (MIDI CC or pedal) | Same set, with the same counts: a 32-stage sequencer, Manual A–E, External 1–16. One output per LFO (no A/B outputs or phase) |
 | Tempo | Per preset, tap tempo, sync for delay and modulation | Plus MIDI clock in and out (out: ticks only, no Start/Stop) |
 | Performance Controls | 2 pages × 10 user-picked controls (global and per-preset) | A "Performance" panel in the editor and a REST resource |

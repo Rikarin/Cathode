@@ -92,8 +92,8 @@ public sealed class GraphDefinition {
 /// <summary>
 ///     One modified parameter: <c>value = min..max</c> (in parameter units, following a log taper where the parameter
 ///     has one) of <c>curve(response(source))</c>, slewed with separate rise and fall times. The source is one
-///     controller or two combined; the response is the Start/Mid/End, Slope, Scale and Offset shaping
-///     (Cathode.Engine.Rig.ModShape), which does nothing while those are null.
+///     controller or two combined, each times its own scale; the response is the Start/Mid/End, Slope, Scale and
+///     Offset shaping (Cathode.Engine.Rig.ModShape), which does nothing while those are null.
 /// </summary>
 public sealed class ModifierDefinition {
     public string Block { get; set; } = string.Empty;
@@ -115,8 +115,23 @@ public sealed class ModifierDefinition {
     /// <summary>A second source combined with <see cref="Source" /> by <see cref="Operation" />; null is none.</summary>
     public string? Source2 { get; set; }
 
-    /// <summary><c>add</c> or <c>multiply</c> (Cathode.Engine.Rig.ModNames.Operations); null is <c>add</c>.</summary>
+    /// <summary>
+    ///     <c>add</c>, <c>multiply</c> or <c>subtract</c> (Cathode.Engine.Rig.ModNames.Operations); null is
+    ///     <c>add</c>.
+    /// </summary>
     public string? Operation { get; set; }
+
+    /// <summary>Multiplies <see cref="Source" />'s value (0..1) before anything else; null is 1.</summary>
+    public float? Scale1 { get; set; }
+
+    /// <summary>Multiplies <see cref="Source2" />'s value (0..1) before the operation; null is 1.</summary>
+    public float? Scale2 { get; set; }
+
+    /// <summary>
+    ///     How often the parameter is written: <c>fast</c> (every control sub-block), <c>medium</c> or <c>slow</c>
+    ///     (Cathode.Engine.Rig.ModNames.UpdateRates); null is <c>fast</c>. Engage modifiers ignore it.
+    /// </summary>
+    public string? UpdateRate { get; set; }
 
     /// <summary>The response's output (0..1) with the source at 0; null is 0.</summary>
     public float? Start { get; set; }
@@ -158,8 +173,15 @@ public sealed class ModifierDefinition {
     public float? OffDelayMs { get; set; }
 
     /// <summary>
+    ///     Engage modifiers only: true puts the off region above <see cref="Threshold" /> (the block is engaged at or
+    ///     below it); null is false, off below.
+    /// </summary>
+    public bool? OffAbove { get; set; }
+
+    /// <summary>
     ///     Whether the modifier starts out driving its parameter. A modifier scoped to one channel is compiled
-    ///     disabled while its block is on another, and switched by <c>setModifier</c>.
+    ///     disabled while its block is on another, and one with PC Reset while it waits for its external controller
+    ///     to move; both are switched by <c>setModifier</c>.
     /// </summary>
     public bool Enabled { get; set; } = true;
 }

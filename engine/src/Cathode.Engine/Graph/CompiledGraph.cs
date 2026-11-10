@@ -256,34 +256,36 @@ public sealed class CompiledGraph : IDisposable {
                 continue;
             }
 
-            var source = modulation.Value(modifier.Source);
-            if (modifier.Source2 is { } second) {
-                source = Modulation.Combine(source, modulation.Value(second), modifier.Multiply);
-            }
-
-            var target = Modulation.Map(
-                source,
-                modifier.Shape,
-                modifier.Curve,
-                modifier.Min,
-                modifier.Max,
-                modifier.Log
-            );
+            var target = modifier.Target(modulation);
             var ms = target > modifier.Value ? modifier.AttackMs : modifier.ReleaseMs;
             modifier.Value = ms <= 0 || float.IsNaN(modifier.Value)
                 ? target
                 : modifier.Value + (target - modifier.Value) * (float)(1 - Math.Exp(-seconds / (ms * 0.001)));
-            if (modifier.ParamIndex == ModifierBinding.Engage) {
-                modifierValues[i] = float.NaN;
-                var bypassed = !modifier.UpdateSwitch(frames, Spec.SampleRate);
-                if (bypass[modifier.Slot].Target != bypassed) {
-                    SetBypass(modifier.Slot, bypassed);
-                }
-            } else {
-                modifierValues[i] = modifier.Value;
-                blocks[modifier.Slot].Params.Modulate(modifier.ParamIndex, modifier.Value, frames);
-            }
+            modifierValues[i] = Drive(ref modifier, frames);
         }
+    }
+
+    /// <summary>
+    ///     Audio thread: gives a modifier's slewed value to what it drives for the next <paramref name="frames" />,
+    ///     and returns what telemetry shows for it. An engage modifier switches its block's bypass and shows NaN; any
+    ///     other writes its parameter when its update rate says so (<see cref="ModifierBinding.Due" />) and shows the
+    ///     value.
+    /// </summary>
+    float Drive(ref ModifierBinding modifier, int frames) {
+        if (modifier.ParamIndex == ModifierBinding.Engage) {
+            var bypassed = !modifier.UpdateSwitch(frames, Spec.SampleRate);
+            if (bypass[modifier.Slot].Target != bypassed) {
+                SetBypass(modifier.Slot, bypassed);
+            }
+
+            return float.NaN;
+        }
+
+        if (modifier.Due(frames, Spec.SampleRate)) {
+            blocks[modifier.Slot].Params.Modulate(modifier.ParamIndex, modifier.Value, frames);
+        }
+
+        return modifier.Value;
     }
 
     /// <summary>Slot index of block instance <paramref name="instanceId" />, or -1.</summary>
@@ -640,6 +642,7 @@ public sealed class CompiledGraph : IDisposable {
         modifier.Enabled = enabled;
         modifier.Value = float.NaN;
         modifier.ResetSwitch();
+        modifier.ResetUpdate();
         modifierValues[index] = float.NaN;
         if (!enabled && modifier.ParamIndex != ModifierBinding.Engage) {
             blocks[modifier.Slot].Params.SetTarget(modifier.ParamIndex, baseValue);
@@ -701,8 +704,26 @@ public struct ModifierBinding(
     /// <summary>A second source combined with <see cref="Source" /> (<see cref="Modulation.Combine" />), or null.</summary>
     public ModSource? Source2 { get; init; }
 
-    /// <summary>Whether <see cref="Source2" /> multiplies <see cref="Source" />; otherwise it is added.</summary>
-    public bool Multiply { get; init; }
+    /// <summary>How <see cref="Source2" /> joins <see cref="Source" />.</summary>
+    public ModOperation Operation { get; init; }
+
+    /// <summary>Multiplies <see cref="Source" />'s value (0..1) before anything else.</summary>
+    public float Scale1 { get; init; } = 1f;
+
+    /// <summary>Multiplies <see cref="Source2" />'s value (0..1) before the operation.</summary>
+    public float Scale2 { get; init; } = 1f;
+
+    /// <summary>
+    ///     The least time between two writes of the parameter, in ms (<see cref="ModNames.UpdatePeriodMs" />); 0 is
+    ///     every sub-block. An engage modifier ignores it: its switch counts its off delay in sub-blocks.
+    /// </summary>
+    public float UpdateMs { get; init; }
+
+    /// <summary>
+    ///     Engage modifiers only: the block is off while the value is above the threshold, not below it. The switch
+    ///     then gets the mirrored value (1 less it) and was built with the mirrored threshold.
+    /// </summary>
+    public bool OffAbove { get; init; }
 
     /// <summary>The response applied to the source before <see cref="Curve" />.</summary>
     public ModShape Shape { get; init; } = ModShape.Identity;
@@ -723,8 +744,46 @@ public struct ModifierBinding(
 
     EngageSwitch engageSwitch = new();
 
-    /// <summary>Audio thread: <see cref="EngageSwitch.Update" /> with <see cref="Value" />.</summary>
-    internal bool UpdateSwitch(int frames, double sampleRate) => engageSwitch.Update(Value, frames, sampleRate);
+    /// <summary>Frames since the parameter was last written, or −1 before the first write.</summary>
+    int sinceUpdate = -1;
+
+    /// <summary>
+    ///     Audio thread: the value the sources ask for now, in parameter units, before the slew: each source times its
+    ///     scale, the two combined, then the response, the curve and the range.
+    /// </summary>
+    internal readonly float Target(Modulation modulation) {
+        var source = modulation.Value(Source) * Scale1;
+        if (Source2 is { } second) {
+            source = Modulation.Combine(source, modulation.Value(second) * Scale2, Operation);
+        }
+
+        return Modulation.Map(source, Shape, Curve, Min, Max, Log);
+    }
+
+    /// <summary>
+    ///     Audio thread: <see cref="EngageSwitch.Update" /> with <see cref="Value" />, mirrored when
+    ///     <see cref="OffAbove" />.
+    /// </summary>
+    internal bool UpdateSwitch(int frames, double sampleRate) =>
+        engageSwitch.Update(OffAbove ? 1f - Value : Value, frames, sampleRate);
 
     internal void ResetSwitch() => engageSwitch.Reset();
+
+    /// <summary>
+    ///     Audio thread, once per sub-block of <paramref name="frames" />: whether the parameter is written in this
+    ///     one. Always at <see cref="UpdateMs" /> 0; else on the first sub-block and then each time
+    ///     <see cref="UpdateMs" /> has passed since the last write.
+    /// </summary>
+    internal bool Due(int frames, double sampleRate) {
+        if (UpdateMs <= 0f) {
+            return true;
+        }
+
+        var due = sinceUpdate < 0 || sinceUpdate >= UpdateMs * 0.001 * sampleRate;
+        sinceUpdate = (due ? 0 : sinceUpdate) + frames;
+        return due;
+    }
+
+    /// <summary>The next sub-block writes the parameter, as the first one did (a re-enabled modifier).</summary>
+    internal void ResetUpdate() => sinceUpdate = -1;
 }

@@ -113,13 +113,17 @@ public sealed class Modulation(ParamBank rig, double sampleRate) {
     }
 
     /// <summary>
-    ///     Two sources as one (0..1): their sum held within 0..1, or their product
-    ///     (<see cref="ModNames.Operations" />).
+    ///     Two sources as one (0..1): their sum held within 0..1, their product, or the first less the second, held
+    ///     at 0 (<see cref="ModNames.Operations" />).
     /// </summary>
-    public static float Combine(float first, float second, bool multiply) {
+    public static float Combine(float first, float second, ModOperation operation) {
         var a = Math.Clamp(first, 0f, 1f);
         var b = Math.Clamp(second, 0f, 1f);
-        return multiply ? a * b : Math.Min(1f, a + b);
+        return operation switch {
+            ModOperation.Multiply => a * b,
+            ModOperation.Subtract => Math.Max(0f, a - b),
+            _ => Math.Min(1f, a + b)
+        };
     }
 
     /// <summary>

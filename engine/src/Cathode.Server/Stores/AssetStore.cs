@@ -1,4 +1,5 @@
 using Cathode.Contracts;
+using Cathode.Dsp.Capture;
 using Cathode.Dsp.Convolution;
 using Cathode.Dsp.IO;
 using Cathode.Server.Realtime;
@@ -51,6 +52,10 @@ public sealed partial class AssetStore {
                     index[entry.Ref] = entry;
                 }
             }
+
+            if (DescribeModels()) {
+                SaveIndex(); // an index written before captures recorded their sizes
+            }
         } catch (JsonException e) {
             // Rather than stop the Server: every asset is still there under its reference, only names, colours and
             // favourites are lost. The damaged index is kept beside the new one.
@@ -90,6 +95,24 @@ public sealed partial class AssetStore {
                 index[Prefix + hash] = new(Prefix + hash, file.Name, kind, file.Length, file.CreationTimeUtc);
             }
         }
+
+        DescribeModels();
+    }
+
+    /// <summary>
+    ///     Reads, for each NAM capture that does not record it yet, whether its file holds more than one size; true
+    ///     when an entry changed.
+    /// </summary>
+    bool DescribeModels() {
+        var changedAny = false;
+        foreach (var (reference, info) in index.ToArray()) {
+            if (info is { Kind: "nam", Slimmable: null }) {
+                index[reference] = info with { Slimmable = NamFile.IsSlimmable(FilePath(reference, info.Kind)) };
+                changedAny = true;
+            }
+        }
+
+        return changedAny;
     }
 
     public IReadOnlyList<AssetInfo> List() {
@@ -226,7 +249,9 @@ public sealed partial class AssetStore {
                 }
 
                 File.Move(temporary, FilePath(reference, kind), true);
-                var info = new AssetInfo(reference, Path.GetFileName(name), kind, size, DateTimeOffset.UtcNow);
+                var info = new AssetInfo(reference, Path.GetFileName(name), kind, size, DateTimeOffset.UtcNow) {
+                    Slimmable = kind == "nam" ? NamFile.IsSlimmable(FilePath(reference, kind)) : null
+                };
                 index[reference] = info;
                 SaveIndex();
                 return info;

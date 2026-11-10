@@ -449,6 +449,88 @@ public class RigTests {
     }
 
     [Theory]
+    [InlineData(0.75f, 0.25f, -20f)] // 0.75 less 0.25
+    [InlineData(0.25f, 0.75f, -40f)] // held at 0
+    public void Subtract_takes_the_second_source_from_the_first(float first, float second, float db) {
+        var modifier = Modifier("manualA", -40f, 0f);
+        modifier.Source2 = "manualB";
+        modifier.Operation = "subtract";
+        var engine = Engine(modifier);
+        Set(engine, "manualA", first);
+        Set(engine, "manualB", second);
+
+        var (left, _) = OfflineRenderer.Render(engine, Signals.Step(9_600), Signals.Step(9_600), 64);
+
+        Assert.Equal(MathF.Pow(10f, db / 20f), left[^1], 3);
+    }
+
+    [Theory]
+    [InlineData(0.5f, null, null, -20f)] // one source at full travel, scaled to half
+    [InlineData(null, 0.5f, "add", -10f)] // 0.5 + 0.5 x 0.5
+    [InlineData(0.5f, 0.5f, "add", -20f)] // 0.5 x 0.5 + 0.5 x 0.5
+    [InlineData(null, 0.5f, "multiply", -35f)] // 0.5 x (0.5 x 0.5) is an eighth of the 40 dB
+    public void Each_source_is_scaled_before_the_operation(float? scale1, float? scale2, string? operation, float db) {
+        var modifier = Modifier("manualA", -40f, 0f);
+        modifier.Scale1 = scale1;
+        modifier.Scale2 = scale2;
+        if (operation is not null) {
+            modifier.Source2 = "manualB";
+            modifier.Operation = operation;
+        }
+
+        var engine = Engine(modifier);
+        Set(engine, "manualA", operation is null ? 1f : 0.5f);
+        Set(engine, "manualB", 0.5f);
+
+        var (left, _) = OfflineRenderer.Render(engine, Signals.Step(9_600), Signals.Step(9_600), 64);
+
+        Assert.Equal(MathF.Pow(10f, db / 20f), left[^1], 3);
+    }
+
+    [Theory]
+    [InlineData(null, 64)]
+    [InlineData("fast", 64)]
+    [InlineData("medium", 256)] // 5 ms is 240 frames: every fourth sub-block of 64
+    [InlineData("slow", 960)] // 20 ms is 960 frames: every fifteenth
+    public void The_update_rate_spaces_the_writes_of_the_parameter(string? rate, int period) {
+        // A pedal that keeps moving: the level's target changes only in the sub-blocks that write the parameter.
+        var modifier = Modifier("manualA", -40f, 0f);
+        modifier.UpdateRate = rate;
+        var definition = Graph();
+        definition.Modifiers.Add(modifier);
+        var graph = Compiler.Compile(definition, Spec, 1);
+        var engine = new CathodeEngine(Spec);
+        engine.Publish(graph);
+        var bank = graph.Block(graph.SlotOf("vol")).Params;
+        var level = graph.Block(graph.SlotOf("vol")).Descriptor.IndexOf("level");
+        var writes = new List<int>();
+        var last = float.NaN;
+
+        for (var frame = 0; frame < 4_800; frame += 64) {
+            Set(engine, "manualA", (frame + 64) / 4_800f);
+            OfflineRenderer.Render(engine, Signals.Step(64), Signals.Step(64), 64);
+            if (bank.GetTarget(level) != last) {
+                writes.Add(frame);
+                last = bank.GetTarget(level);
+            }
+        }
+
+        Assert.Equal(0, writes[0]);
+        Assert.True(writes.Count > 3, "the parameter follows the pedal");
+        Assert.All(writes.Zip(writes.Skip(1), static (a, b) => b - a), gap => Assert.Equal(period, gap));
+    }
+
+    [Fact]
+    public void A_modifier_with_an_unknown_update_rate_is_rejected() {
+        var definition = Graph();
+        definition.Modifiers.Add(new() { Block = "vol", Param = "level", Source = "lfo1", UpdateRate = "warp" });
+
+        var error = Assert.Throws<GraphValidationException>(() => Compiler.Compile(definition, Spec, 1));
+
+        Assert.Contains("update rate", Assert.Single(error.Errors), StringComparison.Ordinal);
+    }
+
+    [Theory]
     [InlineData("manualE")]
     [InlineData("ext9")]
     [InlineData("ext16")]

@@ -21,7 +21,8 @@ public class DriveRound4FuzzTests(ITestOutputHelper output) {
             "Integral Pre", "Micro Boost", "Mid Boost", "Bosom Boost", "FAS Boost"
         ];
         var all = DriveCircuits.All.Select(static c => c.Name).ToArray();
-        Assert.Equal(names, all.TakeLast(names.Length));
+        // Types 52 to 63 (the catalogue follows the three original voicings): later types are appended after them.
+        Assert.Equal(names, all.Skip(52 - DriveBlock.CircuitTypes).Take(names.Length));
         Assert.Equal("NKT Face Fuzz", all[23]); // round 3's last type keeps its index
     }
 

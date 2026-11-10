@@ -387,29 +387,9 @@ public sealed partial class LiveRig {
                 && ModNames.TryParseCurve(m.Curve, out _)
                 && (m.Source2 is null || ModNames.TryParseSource(m.Source2, out _))
                 && ModNames.TryParseOperation(m.Operation, out _)
+                && ModNames.TryParseUpdateRate(m.UpdateRate, out _)
             )
-            .Select(m => new PresetModifier {
-                    Block = id,
-                    Param = m.Param,
-                    Source = m.Source,
-                    Min = m.Min,
-                    Max = m.Max,
-                    Curve = m.Curve,
-                    Source2 = m.Source2,
-                    Operation = m.Operation,
-                    Start = m.Start,
-                    Mid = m.Mid,
-                    End = m.End,
-                    Slope = m.Slope,
-                    Scale = m.Scale,
-                    Offset = m.Offset,
-                    AttackMs = m.AttackMs,
-                    ReleaseMs = m.ReleaseMs,
-                    Mode = m.Mode,
-                    Threshold = m.Threshold,
-                    OffDelayMs = m.OffDelayMs
-                }
-            );
+            .Select(m => m.CopyFor(id));
 
     /// <summary>
     ///     Replaces the working copy's content with <paramref name="next" />, keeping its identity, as one undoable
