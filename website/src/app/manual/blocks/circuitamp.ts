@@ -172,7 +172,9 @@ Each switches the real components on the model's schematic. Some worth knowing:
   real amp.
 - **Rect-o-Verb, *Rhythm* and *Pushed*:** *Rhythm* plays the clean rhythm channel in place of the lead channel, with
   the same knobs; it is much quieter at the same settings, so turn *Master* up. *Pushed* drives the rhythm channel
-  harder and does nothing on the lead channel. *Presence* is the playing channel's.
+  harder and does nothing on the lead channel. *Presence* is the playing channel's. *Output* (Control 1) is the
+  amp's Output Level, after both channels' masters and the effects loop's tube stage: the masters set how hard the
+  loop stage is driven, Output how hard the power amp is.
 - **Powerball, *Focused*:** in the lead channel it swaps the open middle pot for the focused one (*Mid Focused*,
   Control 1) and doubles the treble cap; in channel 1 it doubles the treble cap and makes the middle's cap smaller.
 - **Mark V, *IIC+ Mode*:** with *Mark IV Mode* (Switch 2), selects the channel-3 mode; both off is Extreme. The amp
@@ -208,7 +210,7 @@ on.`,
     control1: `A model's own extra knob, where it has one: a second volume (*Normal Vol* on Plexis and Bassmans,
 *Mic Vol* on the Tweed Deluxe, *Loudness 2*, *Volume II*), a lead drive (*Lead Drive* on the Mark IIC+ and IV,
 *Lead 1 Drive*, *Overdrive*, *Drive*), a channel master (*R1 Master* and *R2 Master* on the Mark IV's rhythm
-channels), or a tone control (*Edge* on the Hot Cat, *Mid Freq* on the SVT, *Hi Treble*
+channels), an output level after the masters (*Output* on the Rect-o-Verb), or a tone control (*Edge* on the Hot Cat, *Mid Freq* on the SVT, *Hi Treble*
 on the JC-120, *Mid Focused* on the Powerball, *Cut* on the Prometheus, a low cut before its gain stages). On jumped
 Plexi-style amps the two volumes blend the bright and normal channels. On the Quick Rod it is the *Solo Boost*, which
 starts at 0: the boost is off there, as on the amp until you press its footswitch; turn it up for the solo lift.`,
@@ -585,7 +587,7 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'Lone Star': 'Mesa/Boogie Lone Star, both channels: warm cleans and a smooth drive mode.',
       'Mark V': 'Mesa/Boogie Mark V channel 3 with its IIC+, Mark IV and Extreme modes.',
       'Rect-o-Verb':
-        'Mesa/Boogie Rect-o-Verb (first series), both channels: a smaller Rectifier. Its reverb is not built.',
+        'Mesa/Boogie Rect-o-Verb (first series), both channels with its Output Level: a smaller Rectifier. For its reverb, put a Reverb block (Spring) after the Cab.',
       'Triple Rectifier':
         'Mesa/Boogie Triple Rectifier: built as the three-channel Dual Rectifier with six 6L6s, as no schematic was found.',
       Powerball:

@@ -23,20 +23,104 @@ public partial class AmpStageTests {
     /// </summary>
     public static TheoryData<string, bool, int, double, double> MesaEnglChains =>
         new() {
-            { "Mark V", false, 4, 0.002, -16 },
-            { "Mark V", false, 4, 0.05, -16 },
-            { "Rect-o-Verb", false, 4, 0.002, -15 },
-            { "Rect-o-Verb", false, 4, 0.05, -9 },
-            { "Rect-o-Verb", true, 3, 0.002, -45 },
-            { "Rect-o-Verb", true, 3, 0.05, -45 },
-            { "Powerball", false, 4, 0.0005, -25 },
-            { "Powerball", false, 4, 0.05, -10 },
-            { "Powerball", true, 4, 0.002, -38 },
-            { "Powerball", true, 4, 0.05, -15 },
-            { "Savage 120", false, 4, 0.002, -80 },
-            { "Savage 120", false, 4, 0.05, -5 },
-            { "Savage 120", true, 5, 0.002, -35 },
-            { "Savage 120", true, 5, 0.05, -25 }
+            {
+                "Mark V",
+                false,
+                4,
+                0.002,
+                -16
+            },
+            {
+                "Mark V",
+                false,
+                4,
+                0.05,
+                -16
+            },
+            {
+                "Rect-o-Verb",
+                false,
+                4,
+                0.002,
+                -15
+            },
+            {
+                "Rect-o-Verb",
+                false,
+                4,
+                0.05,
+                -9
+            },
+            {
+                "Rect-o-Verb",
+                true,
+                3,
+                0.002,
+                -45
+            },
+            {
+                "Rect-o-Verb",
+                true,
+                3,
+                0.05,
+                -45
+            },
+            {
+                "Powerball",
+                false,
+                4,
+                0.0005,
+                -25
+            },
+            {
+                "Powerball",
+                false,
+                4,
+                0.05,
+                -10
+            },
+            {
+                "Powerball",
+                true,
+                4,
+                0.002,
+                -38
+            },
+            {
+                "Powerball",
+                true,
+                4,
+                0.05,
+                -15
+            },
+            {
+                "Savage 120",
+                false,
+                4,
+                0.002,
+                -80
+            },
+            {
+                "Savage 120",
+                false,
+                4,
+                0.05,
+                -5
+            },
+            {
+                "Savage 120",
+                true,
+                5,
+                0.002,
+                -35
+            },
+            {
+                "Savage 120",
+                true,
+                5,
+                0.05,
+                -25
+            }
         };
 
     /// <summary>
@@ -182,7 +266,6 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
 
     [Fact]
     public void Panels_name_the_real_controls() {
-
         Assert.Equal(
             ["Channel 2", "Drive Mode", "Tube Rectifier"],
             new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "Lone Star"))
@@ -198,6 +281,7 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         Assert.Equal("Output", Label("master", "Mark V"));
         Assert.Equal("80", Label("eq1", "Mark V"));
         Assert.Equal("Presence", Label("control2", "Rect-o-Verb"));
+        Assert.Equal("Output", Label("control1", "Rect-o-Verb"));
         Assert.Equal(
             ["Rhythm", "Pushed"],
             new[] { "switch1", "switch2" }.Select(static id => Label(id, "Rect-o-Verb"))
@@ -265,6 +349,40 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         Assert.Equal(lead, leadPushed);
         Assert.True(clean < lead - 15);
         Assert.True(pushed > clean + 6);
+    }
+
+    /// <summary>
+    ///     The Rect-o-Verb's loop stands between the masters and the inverter in both channels: the follower V4a, the
+    ///     gain stage V4b (120k, 2.2k ‖ 2.2 µF) and the 250k audio Output Level on Control 1, which is a volume (silent
+    ///     at 0) and at 10 leaves the loop with a gain of tens.
+    /// </summary>
+    [Theory]
+    [InlineData(0f)]
+    [InlineData(1f)]
+    public void Rect_o_Verb_loop_stage_and_output_level_follow_the_masters(float rhythm) {
+        var design = AmpDesign.All.Single(static a => a.Name == "Rect-o-Verb");
+        Assert.Equal(["Channel", "V4a", "V4b"], design.Preamp.Select(static s => s.Name));
+        var loop = ((NetworkStageDesign)design.Preamp[2]).Netlist.Elements;
+        Assert.Contains(loop, static e => e.Role == PotRole.Control1 && e.Pot.Ohms == 250e3);
+        Assert.Contains(loop, static e => e is { Kind: ElementKind.Resistor, Value: 120e3 });
+        Assert.Contains(loop, static e => e is { Cathode: true, Value: 2.2e3 });
+
+        double At(float level) {
+            using var block = Create(
+                "Rect-o-Verb",
+                [
+                    ..Switches(rhythm, 0, 0), (CircuitAmpBlock.Gain, 3f), (CircuitAmpBlock.Master, 2f),
+                    (CircuitAmpBlock.Control1, level)
+                ]
+            );
+            return Level(block, 1_000, 1e-6f);
+        }
+
+        var (off, noon, full) = (At(0f), At(5f), At(10f));
+        output.WriteLine($"1 kHz, Output Level 0 / 5 / 10: {off:0.0} / {noon:0.0} / {full:0.0} dB");
+        Assert.True(off < noon - 40);
+        // An audio taper: a tenth of the track at noon.
+        Assert.InRange(full - noon, 14, 24);
     }
 
     /// <summary>
@@ -348,7 +466,7 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         output.WriteLine($"Treble 0 to 10 on a driven note's highs: Rough {rough:0.0} dB, Smooth {smoothed:0.0} dB");
         Assert.InRange(small, -60, -20);
         Assert.InRange(driven, -12, 3);
-        Assert.True(smoothed < rough - 2,$"Smooth's treble reaches {smoothed:0.0} dB, Rough's {rough:0.0} dB");
+        Assert.True(smoothed < rough - 2, $"Smooth's treble reaches {smoothed:0.0} dB, Rough's {rough:0.0} dB");
     }
 
     /// <summary>

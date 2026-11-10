@@ -3,7 +3,8 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Mesa/Boogie Rect-o-Verb (first series, 50 W), both channels (Switch 1 Rhythm). The lead channel: V1A (220k,
+///     Mesa/Boogie Rect-o-Verb (first series, 50 W), both channels (Switch 1 Rhythm) and the loop's two stages
+///     with the Output Level (Control 1). The lead channel: V1A (220k,
 ///     1.8k ‖ 1 µF), 20 nF and 680k ‖ 2 nF into
 ///     the 250k audio lead gain (1 nF from its top to the wiper), 470k with 20 pF to ground and 150 Ω into V1B (100k,
 ///     1.8k ‖ 1 µF and 15 µF through 22k), 47 nF with 1.5M to ground and 475k into the V2B cold clipper (1M grid leak,
@@ -17,7 +18,10 @@ namespace Cathode.Dsp.Amp.Models;
 ///     100k ‖ 500 pF plate, 1.5k unbypassed), 47 nF and 330k into the 250k linear rhythm master; Pushed (Switch 2) puts
 ///     2 nF beside the 250 pF treble cap and 2 nF across the 3.3M. A long-tail pair (82k/100k, 470 Ω, 10k tail,
 ///     feedback 47k into 4.7k from the 8 Ω tap; across the 4.7k, 0.1 µF and 2.7k into the rhythm channel's 25k linear
-///     presence pot, or into 5.6k on the lead channel) and two 6L6GC at 454 V with 1k screens.
+///     presence pot, or into 5.6k on the lead channel) and two 6L6GC at 454 V with 1k screens. Between the masters and
+///     the inverter stands the effects loop: the cathode follower V4a (2.2M and 2.2M bias its grid from 331 V; 100k),
+///     0.68 µF to the send, the 25k linear mix pot and 470 Ω into V4b (47k grid leak; 120k from 415 V; 2.2k ‖ 2.2 µF),
+///     47 nF into the 250k audio Output Level (Control 1) with 5 nF and 56k from its wiper to ground.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -29,8 +33,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///     </para>
 ///     <para>
 ///         The supply's decoupling, from that sheet: the choke to B (30 µF), 5.6k to C (10 µF: V3, the inverter), and
-///         15k to D (10 µF: V1B, V2B), 22k to E (10 µF: V1A) and 47k to F (10 µF: the loop's V4, not modelled; its draw
-///         stays on C). The sheet draws two resistors side by side from B, only one labelled (5K6); the tree here is
+///         15k to D (10 µF: V1B, V2B), 22k to E (10 µF: V1A) and 47k to F (10 µF: the loop's follower V4a, whose draw
+///         stays on C here). The sheet draws two resistors side by side from B, only one labelled (5K6); the tree here
+///         is
 ///         the one the drawn voltages fit (D and E hang from C: 39 V across 15k and 21 V across 22k, which V1A's 220k
 ///         plate load draws). Each node's draw is what its voltage drops across its resistor (C 6.4 mA in all).
 ///     </para>
@@ -40,12 +45,22 @@ namespace Cathode.Dsp.Amp.Models;
 ///         between them (the middle's top), where the Dual Rectifier's drawing puts it on the middle pot's wiper.
 ///     </para>
 ///     <para>
+///         The loop (sheet "FX Loop") is in the path with nothing plugged in: the send jack's switch feeds the
+///         return, so both ends of the mix pot carry the same signal and its wiper sees the two halves of the track in
+///         parallel (6.25k at noon, where it is taken; the block has no control for it). V4b's gain makes up for the
+///         Output Level, which the masters' signal passes on its way to the inverter. Up to 1.0.0-rc.5 the model had
+///         neither, and the channel's master fed the inverter directly: about 15 dB less drive into the power amp
+///         with the Output Level at 5 than the amp has. The Solo control under the Output Level is shorted (solo
+///         off).
+///     </para>
+///     <para>
 ///         Guesses and simplifications, marked: the presence rheostat's value is not printed (250k linear here); the
-///         effects-loop stage V4 and the output level control are left out (the lead master feeds the inverter, here
-///         the Master knob, as the rhythm master does on its channel); the reverb (two NE5532 stages around the spring
+///         reverb (two NE5532 stages around the spring
 ///         tank, sent from the lead treble wiper through 475k or from V1B's plate on the rhythm channel) is left out
 ///         with its send and its return (a 330k from each master's top to the 100k reverb pot's wiper, which at zero is
-///         a 330k to ground there); the 120 pF across each inverter plate resistor and the 75 pF between the plates are
+///         a 330k to ground there): no amp model carries a spring tank, and the Reverb block's Spring type after the
+///         Cab is where this amp's reverb goes; the 120 pF across each inverter plate resistor and the 75 pF between
+///         the plates are
 ///         left out, and the 10M beside each of RY5's 2 nF caps (it keeps them charged). Not on the drawing: the idle
 ///         current (40 mA), the primary (4k, a typical value for two 6L6) and the Series II changes. The Solo 50's
 ///         Modern / Vintage switch (the feedback's LDR) is not on the panel here: the feedback stays in. The stock
@@ -93,7 +108,9 @@ public static class RectoVerb {
                     new NetworkStageDesign("Rhythm V1B", SecondStage(0)) { SupplyNode = 1 },
                     new NetworkStageDesign("Rhythm V2A", RhythmOutput()) { SupplyNode = 1 }
                 ]
-            )
+            ),
+            new NetworkStageDesign("V4a", LoopSend()),
+            new NetworkStageDesign("V4b", LoopReturn())
         ],
         new(
             "2 x 6L6GC",
@@ -129,6 +146,7 @@ public static class RectoVerb {
             Depth = null,
             Cut = null,
             Bright = null,
+            Control1 = "Output",
             Control2 = "Presence",
             Switch1 = "Rhythm",
             Switch2 = "Pushed"
@@ -136,6 +154,50 @@ public static class RectoVerb {
         // From C: 15k to D (V1B, V2B) and 22k to E (V1A), 10 µF each, drawing what the drawn voltages drop across them.
         PreampSupply = new([new(15e3, 10e-6, (415 - 376) / 15e3), new(22e3, 10e-6, (415 - 394) / 22e3)])
     };
+
+    /// <summary>
+    ///     The loop's send, V4a: 20 nF into the grid, which 2.2M to the 331 V rail and 2.2M to ground bias; a cathode
+    ///     follower with 100k to ground.
+    /// </summary>
+    static StageNetlist LoopSend() {
+        var net = new StageNetlist();
+        var (rail, grid, follower) = (net.Node(), net.Node(), net.Node());
+        net.Supply(rail, 331);
+        net.Capacitor(net.Input, grid, 20e-9);
+        net.Resistor(rail, grid, 2.2e6);
+        net.Resistor(grid, StageNetlist.Ground, 2.2e6);
+        net.Resistor(follower, StageNetlist.Ground, 100e3);
+        net.Triode(rail, grid, follower, TriodeModel.Ecc83);
+        net.Output = follower;
+        return net;
+    }
+
+    /// <summary>
+    ///     The loop's return, V4b, and the Output Level: 0.68 µF from the follower, the mix pot's two halves in
+    ///     parallel (6.25k at noon) and 470 Ω into the grid with 47k to ground; 120k plate; 2.2k ‖ 2.2 µF; 47 nF into
+    ///     the 250k audio Output Level, 5 nF and 56k from its wiper to ground.
+    /// </summary>
+    static StageNetlist LoopReturn() {
+        var net = new StageNetlist();
+        var (send, mixed, grid, rail, plate, cathode, top, shunt) = (
+            net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node()
+        );
+        net.Capacitor(net.Input, send, 0.68e-6);
+        net.Resistor(send, mixed, 25e3 / 4);
+        net.Resistor(mixed, grid, 470);
+        net.Resistor(grid, StageNetlist.Ground, 47e3);
+        net.Supply(rail, 415);
+        net.Resistor(rail, plate, 120e3);
+        net.CathodeResistor(cathode, StageNetlist.Ground, 2.2e3);
+        net.Capacitor(cathode, StageNetlist.Ground, 2.2e-6);
+        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
+        net.Capacitor(plate, top, 47e-9);
+        var wiper = net.Pot(top, StageNetlist.Ground, new(250e3, PotTaper.Audio), PotRole.Control1);
+        net.Capacitor(wiper, shunt, 5e-9);
+        net.Resistor(shunt, StageNetlist.Ground, 56e3);
+        net.Output = wiper;
+        return net;
+    }
 
     /// <summary>
     ///     V1A and the lead gain: 1M grid leak; 220k plate; 1.8k ‖ 1 µF; 20 nF, 680k ‖ 2 nF into the 250k audio gain
