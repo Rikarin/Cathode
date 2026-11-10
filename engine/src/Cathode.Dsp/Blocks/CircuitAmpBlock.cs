@@ -394,8 +394,6 @@ public sealed partial class CircuitAmpBlock
         PentodeModel.SixtyFiveFifty
     ];
 
-    static readonly string[] Meters = ["solverUnconverged", "solverNonFinite", "solverFailedRecomputes"];
-
     readonly AmpChannel?[] channels = new AmpChannel?[AmpDesign.All.Count]; // built on first use (control thread)
     readonly Lock building = new();
     readonly Oversampler2x oversampler = new(1);
@@ -545,6 +543,7 @@ public sealed partial class CircuitAmpBlock
             // Amp off puts out), whatever the interface's calibration. Input Trim still trims it.
             volts = lineMaster / (preampScale * inputVolts) * volts;
         }
+
         if (saturate || location == EqBeforePowerAmp || treble) {
             var eq = location == EqBeforePowerAmp;
             for (var i = 0; i < inner.Length; i++) {
@@ -634,7 +633,7 @@ public sealed partial class CircuitAmpBlock
     ///     its previous matrix kept (a control that stops responding). They are <see cref="Faults" />, the numbers to
     ///     quote in a bug report.
     /// </summary>
-    public IReadOnlyList<string> MeterIds => Meters;
+    public IReadOnlyList<string> MeterIds => SolverFaults.MeterIds;
 
     /// <summary>
     ///     Every built channel's <see cref="AmpChannel.Faults" />, the playing one's and those of the types played
@@ -653,12 +652,7 @@ public sealed partial class CircuitAmpBlock
         }
     }
 
-    public void ReadMeters(Span<float> values) {
-        var faults = Faults;
-        values[0] = faults.Unconverged;
-        values[1] = faults.NonFinite;
-        values[2] = faults.FailedRecomputes;
-    }
+    public void ReadMeters(Span<float> values) => Faults.Write(values);
 
     /// <summary>The counts stay while the block is bypassed.</summary>
     public void ReadRestingMeters(Span<float> values) => ReadMeters(values);

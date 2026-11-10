@@ -1585,6 +1585,12 @@ sealed class CircuitChannel {
         }
     }
 
+    /// <summary>
+    ///     What the channel's stages gave up on since it was built, whichever circuits it has played
+    ///     (<see cref="SolverFaults" />). Allocation-free.
+    /// </summary>
+    public SolverFaults Faults => opAmp.Faults + transistor.Faults + fuzz.Faults + triode.Faults + tone.Faults;
+
     /// <summary>Forgets the configured circuit, so the next <see cref="Configure" /> starts discharged.</summary>
     public void Release() => circuit = null;
 

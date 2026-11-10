@@ -384,6 +384,55 @@ public class DriveStageTests(ITestOutputHelper output) {
         return (c, output, junctions);
     }
 
+    /// <summary>
+    ///     A drive stage counts what its solver gives up on (#278): a sample Newton cannot finish (here it is never
+    ///     allowed to call a step converged) is <c>Unconverged</c>, one whose input is not a number is
+    ///     <c>NonFinite</c> and no longer counted as unconverged.
+    /// </summary>
+    [Fact]
+    public void A_drive_stage_counts_what_its_solver_gives_up_on() {
+        var stage = new FuzzPairStage();
+        stage.Configure(Circuit("Face Fuzz").Stages[0], 0.5, StageSource.Driven(8e3), 96_000);
+        for (var n = 0; n < 480; n++) {
+            stage.Tick(0.02 * Math.Sin(2 * Math.PI * 1_000 * n / 96_000));
+        }
+
+        Assert.Equal(default, stage.Faults);
+
+        (stage.Root.AbsoluteTolerance, stage.Root.RelativeTolerance) = (-1, -1);
+        for (var n = 0; n < 480; n++) {
+            stage.Tick(0.02 * Math.Sin(2 * Math.PI * 1_000 * n / 96_000));
+        }
+
+        Assert.Equal(new SolverFaults(480, 0, 0), stage.Faults);
+
+        stage.Tick(double.NaN);
+        Assert.Equal(new SolverFaults(480, 1, 0), stage.Faults);
+        Assert.Equal(stage.Root.Scattering.Failures, stage.Faults.FailedRecomputes);
+    }
+
+    /// <summary>
+    ///     The Drive block reports its circuits' fault counts as the Amp block does, under the same three meter ids,
+    ///     so they reach the telemetry: nothing on a healthy circuit type, and nothing on a type that is not a circuit.
+    /// </summary>
+    [Theory]
+    [InlineData("Face Fuzz")]
+    [InlineData("TS808 OD")]
+    [InlineData(null)]
+    public void Solver_faults_are_the_drive_blocks_meters(string? name) {
+        using var block = Create(name is null ? 0 : Type(name));
+        IBlockMeters meters = block;
+        Assert.Equal(["solverUnconverged", "solverNonFinite", "solverFailedRecomputes"], meters.MeterIds);
+        BlockRender.Mono(block, Signals.Noise(9_600, 3, 0.3f), 64);
+        var values = new float[] { -1, -1, -1 };
+        meters.ReadMeters(values);
+        Assert.Equal([0f, 0f, 0f], values);
+        Assert.Equal(default, block.Faults);
+        values.AsSpan().Fill(-1);
+        meters.ReadRestingMeters(values);
+        Assert.Equal([0f, 0f, 0f], values);
+    }
+
     static DriveCircuit Circuit(string name) => DriveCircuits.All.Single(c => c.Name == name);
 
     static int Type(string name) => DriveBlock.CircuitTypes + DriveCircuits.All.ToList().FindIndex(c => c.Name == name);

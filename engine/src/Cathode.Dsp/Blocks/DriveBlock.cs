@@ -95,7 +95,7 @@ namespace Cathode.Dsp.Blocks;
 ///         </item>
 ///     </list>
 /// </summary>
-public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
+public sealed partial class DriveBlock() : DspBlock(Info), IOversampledBlock {
     public const int Type = 0;
     public const int Drive = 1;
     public const int Tone = 2;
@@ -240,6 +240,7 @@ public sealed class DriveBlock() : DspBlock(Info), IOversampledBlock {
 
     readonly Channel left = new();
     readonly Channel right = new();
+
     readonly Oversampler4x dryLeft = new(1);
     readonly Oversampler4x dryRight = new(1);
     readonly HalfBandStage dryTwiceLeft = new(TwiceBranches);

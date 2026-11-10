@@ -219,8 +219,9 @@ export interface Telemetry {
    * `lowReduction`, `midReduction` and `highReduction`. Reductions are positive dB, 0 when the block takes nothing off
    * or is bypassed. The Compressor's `detector` and `output` place it on its transfer curve: the level its gain
    * computer reads and the level it lets out, -96 at rest. Each is the highest value since the previous frame.
-   * The Amp's `solverUnconverged`, `solverNonFinite` and `solverFailedRecomputes` are counts, not levels: what its
-   * circuit solvers gave up on since the block was made (0 on a healthy rig), for bug reports.
+   * The Amp's, Drive's and Wah's `solverUnconverged`, `solverNonFinite` and `solverFailedRecomputes` are counts, not
+   * levels: what the block's circuit solvers gave up on since it was made (0 on a healthy rig), for bug reports. The
+   * block editor shows them when one is not 0.
    */
   blocks?: Record<string, Record<string, number>>;
   /** The output's BS.1770 momentary (400 ms) and short-term (3 s) loudness, LUFS. */

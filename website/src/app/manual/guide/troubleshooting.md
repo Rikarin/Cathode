@@ -160,3 +160,5 @@ The token was typed wrong, or it changed. Read it on the rig with `sudo grep Cat
 ## Still stuck?
 
 Note what you did, what you expected and what happened, your system and interface, and Cathode's version. In the desktop app, **Help ▸ Show Logs** opens the folder with its log files: `main.log` for the app itself, and `host.log` and `server.log` for what the two engine processes printed (each also has an older `.1` file once it has grown past 2 MB). Attach them, and open an issue on the [project's GitHub page](https://github.com/Rikarin/cathode/issues).
+
+If an Amp, Drive or Wah block clicks, goes silent or stops following a control, select it and look for a **Solver faults** line under its id. Include its numbers and the preset: `server.log` has the same numbers by block id.

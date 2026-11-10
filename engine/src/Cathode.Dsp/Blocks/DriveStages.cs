@@ -97,6 +97,13 @@ public sealed class OpAmpStage {
     /// <summary>The Newton root of <see cref="OpAmpSolve.Device" />.</summary>
     public CircuitRoot<ResistiveVoltageSource, OpAmp> Device { get; }
 
+    /// <summary>
+    ///     What the stage's solvers gave up on: the Newton root's, and the recomputes that left one of the two linear
+    ///     networks singular (their diodes are solved in closed form).
+    /// </summary>
+    public SolverFaults Faults =>
+        Device.Faults + new SolverFaults(0, 0, diodes.Tree.Scattering.Failures + rails.Tree.Scattering.Failures);
+
     public OpAmpStage() {
         var amplifier = new OpAmp(OpAmpModel.JRC4558, -4.5, 4.5, 48_000);
         Device = new(DeviceNetlist, new(1e3), Capacitors(3), amplifier) {
@@ -411,6 +418,9 @@ public sealed class TransistorStage {
 
     public CircuitRoot<Series<ResistiveVoltageSource, Inductor>, Bjt> Root { get; }
 
+    /// <summary>What the stage's solver gave up on since it was built.</summary>
+    public SolverFaults Faults => Root.Faults;
+
     public TransistorStage() {
         Root = new(
             Circuit,
@@ -540,6 +550,9 @@ public sealed class FuzzPairStage {
     StageSource source;
 
     public CircuitRoot<Series<ResistiveVoltageSource, Inductor>, Devices<Bjt, Bjt>> Root { get; }
+
+    /// <summary>What the stage's solver gave up on since it was built.</summary>
+    public SolverFaults Faults => Root.Faults;
 
     public FuzzPairStage() {
         Root = new(
@@ -678,6 +691,9 @@ public sealed class DriveTriodeStage {
     double source = double.NaN;
 
     public CircuitRoot<ResistiveVoltageSource, Triode> Root { get; }
+
+    /// <summary>What the stage's solver gave up on since it was built.</summary>
+    public SolverFaults Faults => Root.Faults;
 
     public DriveTriodeStage() {
         Root = new(
@@ -852,6 +868,23 @@ public sealed class ToneStage {
     double lowHz;
     double highHz;
     double sign = 1;
+
+    /// <summary>
+    ///     The recomputes that left a tone network singular, over every kind's network (they are linear: nothing else
+    ///     can fail). Allocation-free.
+    /// </summary>
+    public SolverFaults Faults {
+        get {
+            var faults = default(SolverFaults);
+            for (var kind = 0; kind < roots.Length; kind++) {
+                if (roots[kind] is { } network) {
+                    faults += network.Faults;
+                }
+            }
+
+            return faults;
+        }
+    }
 
     public ToneStage() {
         roots = new CircuitRoot<ResistiveVoltageSource, NoDevice>?[Netlists.Length];

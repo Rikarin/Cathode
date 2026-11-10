@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import type { Telemetry } from '@cathode/api-client';
 import { Subject } from 'rxjs';
 import { ConnectionService } from './connection';
-import { EventStream, blockCpuText, blockMeter, modulatedValue } from './events';
+import { EventStream, blockCpuText, blockMeter, modulatedValue, solverFaultsText } from './events';
 
 describe('blockMeter', () => {
   const frame = {
@@ -22,6 +22,27 @@ describe('blockMeter', () => {
     expect(blockMeter(null, 'cab1', 'peak')).toBeUndefined();
     expect(blockMeter(frame, 'delay1', 'peak')).toBeUndefined();
     expect(blockMeter(frame, 'in1', 'preampIn')).toBeUndefined();
+  });
+});
+
+describe('solverFaultsText', () => {
+  const frame = (meters: Record<string, number>) =>
+    ({ type: 'telemetry', blocks: { amp1: { peak: 0.5, ...meters }, cab1: { peak: 0.4 } } }) as unknown as Telemetry;
+
+  it('is empty on a healthy block, on a block without the meters and before a frame', () => {
+    const healthy = frame({ solverUnconverged: 0, solverNonFinite: 0, solverFailedRecomputes: 0 });
+    expect(solverFaultsText(healthy, 'amp1')).toBe('');
+    expect(solverFaultsText(healthy, 'cab1')).toBe('');
+    expect(solverFaultsText(null, 'amp1')).toBe('');
+  });
+
+  it('names the counts that are not zero', () => {
+    expect(
+      solverFaultsText(frame({ solverUnconverged: 12, solverNonFinite: 0, solverFailedRecomputes: 1 }), 'amp1')
+    ).toBe('12 unconverged · 1 failed recompute');
+    expect(
+      solverFaultsText(frame({ solverUnconverged: 0, solverNonFinite: 3, solverFailedRecomputes: 2 }), 'amp1')
+    ).toBe('3 non-finite · 2 failed recomputes');
   });
 });
 

@@ -36,7 +36,7 @@ namespace Cathode.Dsp.Blocks;
 ///         <item>An 8-band octave graphic EQ (63 Hz to 8 kHz, ±12 dB) follows; flat bands cost nothing.</item>
 ///     </list>
 /// </remarks>
-public sealed class WahBlock() : DspBlock(Info) {
+public sealed class WahBlock() : DspBlock(Info), IBlockMeters {
     public const int Type = 0;
     public const int Position = 1;
     public const int Mix = 2;
@@ -279,6 +279,21 @@ public sealed class WahBlock() : DspBlock(Info) {
     /// </summary>
     public long OperatingPointSolves =>
         (circuitLeft?.OperatingPointSolves ?? 0) + (circuitRight?.OperatingPointSolves ?? 0);
+
+    /// <summary>
+    ///     What the inductor circuits' solvers gave up on since Prepare, as counts (not dB), 0 on a healthy rig and
+    ///     with a type that is not an inductor circuit: the Amp block's three meters
+    ///     (<see cref="SolverFaults.MeterIds" />), the numbers to quote in a bug report.
+    /// </summary>
+    public IReadOnlyList<string> MeterIds => SolverFaults.MeterIds;
+
+    /// <summary>Both channels' <see cref="WahCircuit.Faults" />. Allocation-free.</summary>
+    public SolverFaults Faults => (circuitLeft?.Faults ?? default) + (circuitRight?.Faults ?? default);
+
+    public void ReadMeters(Span<float> values) => Faults.Write(values);
+
+    /// <summary>The counts stay while the block is bypassed.</summary>
+    public void ReadRestingMeters(Span<float> values) => ReadMeters(values);
 
     /// <summary>
     ///     Whether <paramref name="type" /> is modelled at component level (an inductor or inductor-less circuit).
