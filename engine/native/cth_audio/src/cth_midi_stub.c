@@ -7,6 +7,7 @@
 int32_t cth_midi_port_count(void) { return 0; }
 int32_t cth_midi_port_info(int32_t index, cth_midi_port *port) { (void)index; (void)port; return -1; }
 int32_t cth_midi_open(void) { return -1; }
+uint32_t cth_midi_generation(void) { return 0; }
 int32_t cth_midi_read(cth_midi_event *events, int32_t max) { (void)events; (void)max; return 0; }
 int32_t cth_midi_send(const char *uid, const uint8_t *data, int32_t length) { (void)uid; (void)data; (void)length; return -1; }
 void cth_midi_close(void) { }
