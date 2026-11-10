@@ -318,6 +318,18 @@ The last per-pedal controls of docs/08 §6.5, appended as Drive parameters 44–
 | QR4 | CPU | ✅ | `Cathode.Bench --amps "Quick Rod"` | Within the high-gain budget (16 / 28 %) since the bit-identical solver speed-up: overdrive 14.7 / 27.5 %, 3rd gear with OD2 15.4 / 27.5 % (Plexi 7.8–8.0 / 13.4–13.6 %; before it, on the same machine, 16.6 / 34.3 and 17.4 / 34.8 %). Earlier: overdrive 17.6 / 35.0 %, 3rd gear with OD2 19.7 / 34.0 %, clean 11.1 / 24.3 % (Plexi 8.8 / 15.5 %); the three-triode cut fitted at 15.0 / 25.8 % but was −29 dB in 3rd gear |
 | QR5 | Splawn Nitro | ⏸ | — | the drawing is the Quick Rod only; no Nitro circuit on it |
 
+## RG: Randall RG100ES (#369)
+
+| ID | Item | Status | Evidence | Notes |
+|---|---|---|---|---|
+| RG1 | RG100ES from Randall's schematic PCB 2146B: both channels, Sustain Boost, tone stack, Presence, power amp | ✅ | Rg100es_operating_points_match_the_drawing; Rg100es_stage_gains_match_the_drawing_signal_voltages; Bass_and_solid_state_chains_match_the_reference (RG100ES, both channels, −37.5 dB); Rg100es_tone_controls_swing_as_the_manual_says | type `RG100ES`; rail 28 V from the printed stage voltages (labelled 24 V); one JFET sample fitted inside the 2N5484 datasheet's ranges |
+| RG2 | JFETs in stage netlists (`StageNetlist.Jfet`, `J` and `JJ`) | ✅ | WdfDeviceTests.Jacobian_matches_finite_differences (jfet, jfet reversed); Jfet_preset_is_inside_the_datasheet_ranges_and_symmetric | Shichman-Hodges with both gate junctions; junction step limiting in the operating-point solve for stages that hold one |
+| RG3 | Panel, sweeps, monotonic Gain and Master, clamps | ✅ | Rg100es_panel_names_the_real_controls; Knob_sweeps_at_full_drive_stay_finite_and_converge (RG100ES); Rg100es_sustain_boost_clips_the_red_channel_only; Rg100es_power_amp_clips_under_its_rails_and_the_volumes_are_monotonic | Channel 1 (Switch 1), Sustain Boost (Switch 2) |
+| RG3b | CPU | ✅ | `Cathode.Bench --amps RG100ES` (`--set 14=1` for channel 1) | channel 2 12.1 / 23.5 %, channel 1 9.9 / 17.8 % (Plexi 8.6 / 15.0 % on the same loaded machine): inside the high-gain budget |
+| RG4 | Current feedback against a real speaker load | ⬜ | — | modelled as the equal voltage feedback into 8 Ω (output impedance 3.8 Ω not applied to the speaker's impedance curve), as the Valvestate's |
+| RG5 | Channel 2's sensitivity | ⬜ | Rg100es_red_channel_has_the_bypassed_first_stage | the manual says 22 dB above channel 1 at 3 kHz, the drawing's values give 14 dB |
+| RG6 | Reverb, Low input, footswitch Both, RG100 Classic | ⏸ | — | the library has no spring tank; no RG100 Classic drawing read |
+
 ## Known open items from earlier rounds
 
 These were reported as left over or deliberately deferred, and are not assigned to a stream yet.

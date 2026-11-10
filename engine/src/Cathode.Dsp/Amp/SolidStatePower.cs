@@ -48,8 +48,18 @@ public sealed record SolidStatePowerDesign(
     double Load,
     double RatedPower
 ) {
-    /// <summary>The closed-loop gain in the midband, 1 + R_f / R_s.</summary>
-    public double Gain => 1 + FeedbackResistor / ShuntResistor;
+    /// <summary>
+    ///     The closed-loop gain in the midband: 1 + R_f / R_s, or <see cref="MidbandGain" /> where the loop is too
+    ///     weak to reach that.
+    /// </summary>
+    public double Gain => MidbandGain > 0 ? MidbandGain : 1 + FeedbackResistor / ShuntResistor;
+
+    /// <summary>
+    ///     The midband gain of an amp whose open-loop gain is not far above 1 + R_f / R_s (the Randall RG100ES's
+    ///     current feedback, with a loop gain under one): A / (1 + A β), stated by the model. 0 for the feedback
+    ///     divider's own figure.
+    /// </summary>
+    public double MidbandGain { get; init; }
 
     /// <summary>The swing at which the output clips at idle rails: the block's full scale.</summary>
     public double Swing => Rail - Headroom;

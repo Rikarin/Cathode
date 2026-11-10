@@ -115,5 +115,6 @@ export const AMP_MODELS: Record<string, { family: AmpFamily; basedOn: string }> 
   'Bassman 135': { family: 'bass', basedOn: 'Fender Bassman 135 (bass)' },
   'Bass 400': { family: 'bass', basedOn: 'Mesa/Boogie Bass 400' },
   'JC-120': { family: 'bass', basedOn: 'Roland JC-120 Jazz Chorus' },
-  'Valvestate 8080': { family: 'bass', basedOn: 'Marshall Valvestate 8080' }
+  'Valvestate 8080': { family: 'bass', basedOn: 'Marshall Valvestate 8080' },
+  RG100ES: { family: 'bass', basedOn: 'Randall RG100ES' }
 };

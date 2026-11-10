@@ -12,15 +12,28 @@ namespace Cathode.Dsp.Tests;
 ///     but for a gain of 10⁵, so the comparison stays below clipping).
 /// </summary>
 public partial class AmpStageTests {
-    public static TheoryData<string, double, double> BassChains =>
-        new() { { "SVT", 0.001, -30 }, { "Portaflex B-15N", 0.01, -30 }, { "JC-120", 0.02, -40 } };
+    public static TheoryData<string, bool, double, double> BassChains =>
+        new() {
+            { "SVT", false, 0.001, -30 },
+            { "Portaflex B-15N", false, 0.01, -30 },
+            { "JC-120", false, 0.02, -40 },
+            // The RG100ES's JFET stages, cut at the first stage's drain, the follower's source and the treble wiper:
+            // the red channel, then the green (Switch 1).
+            { "RG100ES", false, 0.0005, -30 },
+            { "RG100ES", true, 0.002, -30 }
+        };
 
     [Theory]
     [MemberData(nameof(BassChains))]
-    public void Bass_and_solid_state_chains_match_the_reference(string type, double amplitude, double limitDb) {
+    public void Bass_and_solid_state_chains_match_the_reference(
+        string type,
+        bool switch1,
+        double amplitude,
+        double limitDb
+    ) {
         var design = AmpDesign.All.Single(a => a.Name == type);
         var designs = design.Preamp.ToArray();
-        var controls = new AmpControls(0.5, 0.5, 0.7, 0.5, 1, false);
+        var controls = new AmpControls(0.5, 0.5, 0.7, 0.5, 1, false, Switch1: switch1);
 
         var stages = designs.Select(static d => d.Create(Rate)).ToArray();
         var (rest, resistance) = (0.0, 0.0);
@@ -98,12 +111,13 @@ public partial class AmpStageTests {
 ///     panels, knob sweeps without instability, monotonic volume, their switches doing what the manuals say, the JC-120
 ///     against Roland's signal-voltage annotations, and the solid-state power amp.
 /// </summary>
-public class BassAmpTests(ITestOutputHelper output) {
+public partial class BassAmpTests(ITestOutputHelper output) {
     const double Rate = 48_000;
 
     static readonly string[] Models = ["SVT", "Portaflex B-15N", "JC-120"];
 
-    public static TheoryData<string> Types => [..Models];
+    /// <summary><see cref="Models" /> and the RG100ES, whose panel is a guitar amp's (BassAmpTests.Randall.cs).</summary>
+    public static TheoryData<string> Types => [..Models, Randall];
 
     [Fact]
     public void Panels_name_the_real_controls_and_hide_the_rest() {

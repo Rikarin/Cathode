@@ -42,7 +42,10 @@ public enum ElementKind {
     OpAmp,
 
     /// <summary>An op-amp that never reaches its rails, as a linear voltage source inside the adaptor.</summary>
-    Amplifier
+    Amplifier,
+
+    /// <summary>A junction FET (after the kinds above: a device's place in a stage follows this order).</summary>
+    Jfet
 }
 
 /// <summary>
@@ -51,7 +54,7 @@ public enum ElementKind {
 ///     screen B, grid C, cathode D; a diode clipper anode A, cathode B; an op-amp non-inverting input A, inverting
 ///     input B, output C (its rails ± <see cref="Value" /> volts, about ground); a linear amplifier likewise, its
 ///     open-loop gain
-///     <see cref="Value" />.
+///     <see cref="Value" />; a JFET is drain A, gate B, source C.
 /// </summary>
 public sealed record StageElement(ElementKind Kind, int A, int B, double Value) {
     public int C { get; init; }
@@ -86,6 +89,8 @@ public sealed record StageElement(ElementKind Kind, int A, int B, double Value) 
 
     public OpAmpModel OpAmp { get; init; }
 
+    public JfetModel Jfet { get; init; }
+
     /// <summary>
     ///     A rotary selector's values (<see cref="StageNetlist.SelectedCapacitor" />), the first at the knob's zero and
     ///     the last at ten; null for none.
@@ -110,7 +115,8 @@ public sealed record StageElement(ElementKind Kind, int A, int B, double Value) 
 ///     (resistors, capacitors, inductors), pots turned by front-panel knobs, elements switched by front-panel switches,
 ///     supply rails that follow the preamp's sag, and up to five triodes, or a pentode, or one or two diode clippers (a
 ///     triode with one or two clippers, and two triodes with two, also work), or one or two op-amps (one op-amp with a
-///     diode clipper also works), besides any number of linear amplifiers. The source drives <see cref="Input" />
+///     diode clipper also works), or one or two JFETs, besides any number of linear amplifiers. The source drives
+///     <see cref="Input" />
 ///     through the previous stage's output resistance; the stage's output is the voltage at <see cref="Output" />.
 /// </summary>
 /// <remarks>
@@ -250,6 +256,10 @@ public sealed class StageNetlist {
     public void OpAmp(int nonInverting, int inverting, int output, OpAmpModel model, double rails) =>
         Add(new(ElementKind.OpAmp, nonInverting, inverting, rails) { C = output, OpAmp = model });
 
+    /// <summary>An N-channel JFET (<see cref="Wdf.Jfet" />).</summary>
+    public void Jfet(int drain, int gate, int source, JfetModel model) =>
+        Add(new(ElementKind.Jfet, drain, gate, 0) { C = source, Jfet = model });
+
     /// <summary>
     ///     An op-amp whose signal never reaches its rails (a return buffer, a summing stage, a stage's make-up gain),
     ///     as an ideal amplifier of open-loop gain <paramref name="gain" /> with its output referred to ground: a
@@ -325,6 +335,7 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
                     or ElementKind.Pentode
                     or ElementKind.Diodes
                     or ElementKind.OpAmp
+                    or ElementKind.Jfet
             )
             .OrderBy(static e => e.Kind)
             .ToArray();
@@ -339,6 +350,7 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
                     ElementKind.Triode => 'T',
                     ElementKind.Pentode => 'P',
                     ElementKind.Diodes => 'D',
+                    ElementKind.Jfet => 'J',
                     _ => 'O'
                 }
             )
@@ -422,9 +434,16 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
                 ),
                 sampleRate
             ),
+            "J" => new NetworkStage<Jfet>(this, devices, (_, _) => new(devices[0].Jfet), sampleRate),
+            "JJ" => new NetworkStage<Devices<Jfet, Jfet>>(
+                this,
+                devices,
+                (_, _) => new(new(devices[0].Jfet), new(devices[1].Jfet)),
+                sampleRate
+            ),
             _ => throw new NotSupportedException(
-                $"{Name}: a network stage takes T, TT, TTT, TTTT, P, D, DD, TD, TDD, TTDD, O, OO or DO "
-                + "(triodes, a pentode, diode clippers, op-amps)."
+                $"{Name}: a network stage takes T, TT, TTT, TTTT, P, D, DD, TD, TDD, TTDD, O, OO, DO, J or JJ "
+                + "(triodes, a pentode, diode clippers, op-amps, JFETs)."
             )
         };
     }
@@ -476,11 +495,13 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
     readonly double[] solution;
     readonly double[] portVoltages;
     readonly double[] portCurrents;
+    readonly double[] portSteps;
     readonly double[] jacobian;
     readonly int[] pivots;
     readonly int[] supplies; // the supply elements' indices: the preamp's sag moves them every sample
     readonly int amplifiers;
     readonly bool hasMemory; // a device with state of its own (an op-amp's pole)
+    readonly bool hasJunctions; // a device whose operating point needs its junctions' steps limited (a JFET's gate)
     RTypeRoot<NetworkPorts, TDevice> root;
     AmpControls controls;
     PreampSettings settings = PreampSettings.Stock;
@@ -526,6 +547,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         ];
         IsGainStage = elements.Any(static e => e.Cathode);
         hasMemory = devices.Any(static e => e.Kind == ElementKind.OpAmp);
+        hasJunctions = devices.Any(static e => e.Kind == ElementKind.Jfet);
         controls = new(0.5, 0.5, 0.5, 0.5, 1, false);
 
         var net = new WdfNetlist();
@@ -559,7 +581,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         var ports = new List<(int, int)>();
         foreach (var d in devices) {
             switch (d.Kind) {
-                case ElementKind.Triode:
+                case ElementKind.Triode or ElementKind.Jfet: // a JFET's ports are a triode's: drain, gate, source
                     net.Triode(d.A, d.B, d.C);
                     ports.Add((d.B, d.C));
                     ports.Add((d.A, d.C));
@@ -611,6 +633,7 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         var k = devicePorts.Length;
         portVoltages = new double[Math.Max(k, 1)];
         portCurrents = new double[Math.Max(k, 1)];
+        portSteps = new double[Math.Max(k, 1)];
         jacobian = new double[Math.Max(k * k, 1)];
         pivots = new int[size];
         Reset(0);
@@ -846,6 +869,10 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
                 }
 
                 var damping = largest > 25 ? 25 / largest : 1;
+                if (hasJunctions) {
+                    damping *= JunctionDamping(damping);
+                }
+
                 var converged = true;
                 for (var j = 0; j < size; j++) {
                     var next = solution[j] + damping * (vector[j] - solution[j]);
@@ -858,6 +885,39 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
                 }
             }
         }
+    }
+
+    /// <summary>
+    ///     How much of the operating point's Newton step (already scaled by <paramref name="damping" />) the devices'
+    ///     junctions allow (<see cref="INonlinearDevice.Limit" />), as a factor for the whole step: the smallest
+    ///     fraction any port's limit leaves of its own step. A gate on a megohm divider would otherwise step volts into
+    ///     conduction and never come back.
+    /// </summary>
+    double JunctionDamping(double damping) {
+        var k = devicePorts.Length;
+        var previous = portVoltages.AsSpan(0, k);
+        var proposed = portCurrents.AsSpan(0, k);
+        var steps = portSteps.AsSpan(0, k);
+        for (var p = 0; p < k; p++) {
+            var (plus, minus) = devicePorts[p];
+            previous[p] = Rest(plus) - Rest(minus);
+            var target = (plus > 0 ? vector[plus - 1] : 0) - (minus > 0 ? vector[minus - 1] : 0);
+            steps[p] = damping * (target - previous[p]);
+            proposed[p] = previous[p] + steps[p];
+        }
+
+        root.Device.Limit(previous, proposed);
+        var factor = 1.0;
+        for (var p = 0; p < k; p++) {
+            var limited = proposed[p] - previous[p];
+            // Only a step cut short in its own direction counts: a port moved because its neighbour was limited (a
+            // JFET's drain, kept in step with its gate) says nothing about the whole step.
+            if (Math.Abs(steps[p]) > 1e-9 && limited / steps[p] is > 0 and < 1 and var fraction) {
+                factor = Math.Min(factor, fraction);
+            }
+        }
+
+        return factor;
     }
 
     /// <summary>
@@ -927,7 +987,11 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
                     b[row] = dc ? e.Value * supplyScale * scale : 0;
                     break;
                 }
-                case ElementKind.Triode or ElementKind.Pentode or ElementKind.Diodes or ElementKind.OpAmp:
+                case ElementKind.Triode
+                    or ElementKind.Pentode
+                    or ElementKind.Diodes
+                    or ElementKind.OpAmp
+                    or ElementKind.Jfet:
                     // The devices: linearised through their ports below.
                     break;
             }

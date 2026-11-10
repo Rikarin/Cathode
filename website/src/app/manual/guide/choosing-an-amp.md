@@ -82,9 +82,9 @@ Modern metal and hard rock. The 5150 and 5150III are tight and aggressive, with 
 
 ### Solid state
 
-**JC-120** and **Valvestate 8080**.
+**JC-120**, **Valvestate 8080** and **RG100ES**.
 
-The JC-120 is a glassy, very clean transistor amp: no breakup, so effects stay pristine. Classic for chorus, new wave, jazz and ambient. The Valvestate 8080 has a tube preamp stage into a solid-state power amp. Tube-only settings (bias, tubes, transformer, speaker load) are not shown on solid-state models.
+The JC-120 is a glassy, very clean transistor amp: no breakup, so effects stay pristine. Classic for chorus, new wave, jazz and ambient. The Valvestate 8080 has a tube preamp stage into a solid-state power amp. The RG100ES is the solid-state Randall head associated with Dimebag Darrell: JFET gain stages that clip hard, and a tight low end. Channel 2 is the high-gain one, with **Gain** up and **Master** setting the level; **Sustain Boost** adds diode clipping for more sustain at a lower level. Tube-only settings (bias, tubes, transformer, speaker load) are not shown on solid-state models.
 
 ### Bass and others
 

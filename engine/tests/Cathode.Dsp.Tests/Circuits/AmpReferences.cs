@@ -599,6 +599,9 @@ static class AmpReferences {
                 case ElementKind.Amplifier:
                     c.Vcvs(e.C, 0, e.A, e.B, e.Value);
                     break;
+                case ElementKind.Jfet:
+                    c.Device(new Jfet(e.Jfet), (e.B, e.C), (e.A, e.C));
+                    break;
             }
         }
     }

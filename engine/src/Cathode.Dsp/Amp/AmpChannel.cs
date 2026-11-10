@@ -100,7 +100,9 @@ public sealed class AmpChannel {
     ChannelSettings channelSettings = ChannelSettings.Stock;
     PowerSettings powerSettings = PowerSettings.Stock;
     PowerControls powerControls;
-    bool powerMoved; // the Power Amp switch, a power setting or a power knob moved since the supply was last put at rest
+
+    bool
+        powerMoved; // the Power Amp switch, a power setting or a power knob moved since the supply was last put at rest
 
     public AmpDesign Design { get; }
     public IReadOnlyList<AmpStage> Stages => stages;
@@ -272,6 +274,7 @@ public sealed class AmpChannel {
             or ElementKind.Pentode
             or ElementKind.OpAmp
             or ElementKind.Amplifier
+            or ElementKind.Jfet
         );
 
     /// <summary>Applies the knobs (per block); circuits recompute only where a pot moved.</summary>
@@ -291,7 +294,8 @@ public sealed class AmpChannel {
         Power.Configure(power);
         Power.ConfigureLoop(preamp);
         SolidState?.Configure(power);
-        powerMoved |= power.Bias != powerControls.Bias || power.Sag != powerControls.Sag; // the knobs the supply follows
+        powerMoved |= power.Bias != powerControls.Bias
+            || power.Sag != powerControls.Sag; // the knobs the supply follows
         powerControls = power;
         if (powerMoved && !channelSettings.PowerAmp) {
             RestPowerAmp();

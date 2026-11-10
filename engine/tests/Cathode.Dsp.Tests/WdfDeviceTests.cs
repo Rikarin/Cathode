@@ -10,8 +10,10 @@ namespace Cathode.Dsp.Tests;
 public class WdfDeviceTests(ITestOutputHelper output) {
     const double Rate = 192_000;
 
-    public static TheoryData<string> Devices =>
-        ["diode", "diode-rs", "clipper", "npn", "pnp", "germanium", "triode", "pentode", "opamp", "pair"];
+    public static TheoryData<string> Devices => [
+        "diode", "diode-rs", "clipper", "npn", "pnp", "germanium", "triode", "pentode", "opamp", "jfet",
+        "jfet reversed", "pair"
+    ];
 
     [Fact]
     public void Junction_limiting_keeps_the_direction_and_limits_only_the_documented_steps() {
@@ -316,6 +318,38 @@ public class WdfDeviceTests(ITestOutputHelper output) {
         Assert.Equal(model.ForwardBeta, collector / (emitter - collector), model.ForwardBeta * 0.1);
     }
 
+    /// <summary>
+    ///     The 2N5484 sample inside its datasheet's ranges (I_DSS 1 to 5 mA, V_GS(off) −0.3 to −3 V, 3 to 6 mS at
+    ///     V_GS = 0), cut off below V_GS(off), the same device with drain and source swapped, and its gate a diode.
+    /// </summary>
+    [Fact]
+    public void Jfet_preset_is_inside_the_datasheet_ranges_and_symmetric() {
+        var model = JfetModel.J2N5484;
+        var fet = new Jfet(model);
+        var (current, jacobian) = (new double[2], new double[4]);
+        fet.Evaluate([0, 15], current, jacobian, 2);
+        output.WriteLine($"2N5484: I_DSS {current[1] * 1e3:0.00} mA, {jacobian[2] * 1e3:0.00} mS at V_GS = 0");
+        Assert.InRange(current[1], 1e-3, 5e-3);
+        Assert.InRange(jacobian[2], 3e-3, 6e-3);
+        Assert.InRange(model.PinchOff, -3, -0.3);
+        Assert.InRange(Math.Abs(current[0]), 0, 1e-12); // the gate, reverse biased
+
+        // Cut-off is soft (two thermal voltages wide): half a volt below V_GS(off) nothing is left.
+        fet.Evaluate([model.PinchOff - 0.5, 15], current, new double[4], 2);
+        Assert.InRange(current[1], 0, 1e-9);
+
+        // Below pinch-off the channel is a resistor either way round: 1 V across it, then the same with the gate
+        // voltage taken from the other end.
+        var forward = new double[2];
+        fet.Evaluate([-0.5, 0.2], forward, new double[4], 2);
+        fet.Evaluate([-0.5 - 0.2, -0.2], current, new double[4], 2);
+        Assert.Equal(forward[1], -current[1], 1e-9);
+
+        fet.Evaluate([0.65, 5], current, new double[4], 2);
+        output.WriteLine($"Gate at +0.65 V: {current[0] * 1e3:0.00} mA");
+        Assert.InRange(current[0], 0.1e-3, 10e-3);
+    }
+
     [Fact]
     public void Op_amp_closed_loop_gain_follows_the_gain_bandwidth_product() {
         // Non-inverting, gain 101, LM741 (1 MHz): flat at 1 kHz, -3 dB near GBW / 101 ≈ 9.9 kHz.
@@ -396,6 +430,7 @@ public class WdfDeviceTests(ITestOutputHelper output) {
             "triode" => new Triode(TriodeModel.Ecc83),
             "pentode" => new Pentode(PentodeModel.EL34),
             "opamp" => new OpAmp(OpAmpModel.TL072, -4.5, 4.5, Rate),
+            "jfet" or "jfet reversed" => new Jfet(JfetModel.J2N5484),
             _ => new Devices<Diode, Triode>(new(DiodeModel.Schottky), new(TriodeModel.Ecc82))
         };
 
@@ -416,6 +451,9 @@ public class WdfDeviceTests(ITestOutputHelper output) {
                 _ => Uniform(10, 450)
             },
             "opamp" => port == 0 ? Uniform(-0.05, 0.05) : Uniform(-4, 4),
+            "jfet" => port == 0 ? Uniform(-1.5, 0.6) : Uniform(0.1, 20),
+            // The drain below the source: the two change places, and the gate-drain junction is the one that conducts.
+            "jfet reversed" => port == 0 ? Uniform(-3, -2.4) : Uniform(-3, -0.5),
             _ => port == 0 ? Uniform(-0.5, 0.3) : port == 1 ? Uniform(-4, 1) : Uniform(20, 300)
         };
         double Uniform(double low, double high) => low + (high - low) * random.NextDouble();

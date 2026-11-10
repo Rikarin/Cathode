@@ -582,6 +582,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     [Fact]
     public void Expert_controls_hide_on_models_without_the_part_they_act_on() {
         var parameters = CircuitAmpBlock.Info.Params;
+
         string[] Hidden(string id) {
             var labels = parameters.Single(p => p.Id == id).TypeLabels!;
             return [..AmpDesign.All.Where((_, type) => labels[type] == string.Empty).Select(static a => a.Name)];
@@ -599,11 +600,11 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         );
         // Preamp Sag: not a rack preamp on its own supply, nor a solid-state amp's regulated rails.
         Assert.Equal(
-            ["JC-120", "TriAxis Rhythm", "TriAxis Lead 1", "TriAxis Lead 2", "Valvestate 8080", "JMP-1"],
+            ["JC-120", "TriAxis Rhythm", "TriAxis Lead 1", "TriAxis Lead 2", "Valvestate 8080", "JMP-1", "RG100ES"],
             Hidden("presag")
         );
         // Preamp Tube: a 12AX7 to replace (the B-15N runs 6SL7s on the 5751's curves, the Scout 6EU7s).
-        Assert.Equal(["Portaflex B-15N", "JC-120", "Scout GA-17RVT"], Hidden("pretube"));
+        Assert.Equal(["Portaflex B-15N", "JC-120", "Scout GA-17RVT", "RG100ES"], Hidden("pretube"));
         // Bright Cap: a bright cap that is not across a master.
         Assert.Contains("Champ 5F1", Hidden("brightcap"));
         Assert.Contains("Hot Rod Deluxe", Hidden("brightcap"));
@@ -637,6 +638,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
     public void Preamp_tube_reaches_a_stage_of_paralleled_twelve_ax7s(string model) {
         var type = AmpDesign.All.ToList().FindIndex(a => a.Name == model);
         Assert.True(type >= 0, model);
+
         float[] Render(float tube) {
             using var block = TestBlocks.Create<CircuitAmpBlock>(
                 (CircuitAmpBlock.Type, type),

@@ -47,8 +47,8 @@ usually go after the Cab, as they would in an effects loop or a studio. The amp 
   Rectifier, Rect-o-Verb, Mark IIC+ (and its clean rhythm channel, Mark IIC+ Rhythm), Mark IV (and its clean and
   crunch channels, Mark IV Rhythm 1 and Rhythm 2), Mark V, TriAxis, Legacy VL100, Powerball, Savage 120, Prometheus.
 - **Bass:** SVT, Portaflex B-15N, Bassman 135, Bass 400.
-- **Solid state:** JC-120 and Valvestate 8080 (a tube preamp into a transistor power amp). Their tube-only knobs are
-  hidden.
+- **Solid state:** JC-120, Valvestate 8080 (a tube preamp into a transistor power amp) and RG100ES (JFET stages, a
+  tight metal sound). Their tube-only knobs are hidden.
 
 **Two amps in one preset.** You can use the block twice, for example a clean amp and a lead amp on separate rows
 switched by scenes, or two amps blended in parallel. See [the grid](/manual/the-grid) and
@@ -175,6 +175,9 @@ Each switches the real components on the model's schematic. Some worth knowing:
   has one three-position switch, so with both on the model is in Mark IV mode.
 - **TriAxis, *Yellow*:** with *Red* (Switch 2), the preamp's mode switches.
 - **AFD100, *AFD*:** off is the #34 mode, on is AFD.
+- **RG100ES, *Channel 1*:** off is channel 2 (red LED), the high-gain channel; on is channel 1 (green), with less
+  gain and no clamps. *Sustain Boost* (Switch 2, the pull switch on the amp's Treble knob) puts two clipping diodes
+  ahead of channel 2's *Master*: more sustain and much less level, so turn *Master* up. It does nothing on channel 1.
 - **JC-120, *Distortion On*:** the effect channel's distortion (on the real amp, the switch at the bottom of the
   Distortion pot's travel, and the footswitch): the *Distortion* knob (Control 2) and the diode clipper ahead of the
   tone stack come in. Off, as the amp is usually played, the knob does nothing and is not shown.`,
@@ -641,6 +644,7 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'JMP-1': "Marshall JMP-1 preamp (Clean and OD) into the JCM900 4100's power amp.",
       'Quick Rod': 'Splawn Quick Rod, both channels with its gear switches (the power amp is assumed).',
       AFD100: 'Marshall AFD100 (Slash), #34 and AFD modes.',
+      RG100ES: 'Randall RG100ES: a solid-state head with a JFET preamp, both channels and the Sustain Boost.',
       'Dual Rectifier 3-Ch Orange':
         'Mesa/Boogie Dual Rectifier three-channel Solo Head, channel 2 (orange), with Raw, Vintage and Modern.'
     },
