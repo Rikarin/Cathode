@@ -1,5 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { type CathodeClient, type Connection, createCathodeClient } from '@cathode/api-client';
+import { Subject } from 'rxjs';
 import type { CathodeDesktop } from './desktop';
 
 const DefaultServer = 'http://127.0.0.1:5180';
@@ -19,6 +20,13 @@ export class ConnectionService {
   readonly connection = signal<Connection | null>(null);
   private api: CathodeClient | null = null;
 
+  /**
+   * In a browser, the Server refused this connection's token after the editor had started: the token was replaced (the
+   * desktop app's New token signs the other devices out). A REST call answered 401, or the events socket was refused.
+   * Startup then asks for the new token.
+   */
+  readonly tokenRefused$ = new Subject<void>();
+
   /** The REST client; valid once {@link connect} has resolved. */
   get client(): CathodeClient {
     if (!this.api) {
@@ -37,7 +45,14 @@ export class ConnectionService {
       showTokenInAddress(window, connection.token);
     }
 
-    this.api = createCathodeClient(connection);
+    this.api = createCathodeClient(connection, async request => {
+      const response = await fetch(request);
+      if (response.status === 401 && !this.desktop) {
+        this.tokenRefused$.next();
+      }
+
+      return response;
+    });
     this.connection.set(connection);
     return connection;
   }

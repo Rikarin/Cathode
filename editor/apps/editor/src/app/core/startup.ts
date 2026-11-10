@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CatalogStore } from '../state/catalog.store';
 import { GlobalStore } from '../state/global.store';
 import { LibraryStore } from '../state/library.store';
@@ -22,6 +23,16 @@ export class Startup {
   readonly error = signal<string | null>(null);
   /** In the desktop app, which Server it uses: the startup screen offers a way back to this computer's engine. */
   readonly target = signal<ServerTarget | null>(null);
+
+  constructor() {
+    // The token was replaced while the editor was open: stop talking to the Server and ask for the new one.
+    this.connection.tokenRefused$.pipe(takeUntilDestroyed()).subscribe(() => {
+      if (this.state() === 'ready') {
+        this.events.stop();
+        this.state.set('token');
+      }
+    });
+  }
 
   async start(): Promise<void> {
     this.state.set('starting');
