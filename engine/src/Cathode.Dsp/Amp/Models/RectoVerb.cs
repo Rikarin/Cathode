@@ -164,16 +164,22 @@ public static class RectoVerb {
 
     /// <summary>
     ///     V1B: 150 Ω grid stopper; 100k plate; 1.8k ‖ 1 µF and 15 µF through <paramref name="partial" /> (22k on the
-    ///     lead channel; 0 on the rhythm channel, where RY2a grounds the cap).
+    ///     lead channel; 0 on the rhythm channel, where RY2a grounds the cap). The three-channel Dual Rectifier's
+    ///     channel 1 has the same stage (its V2a) from <paramref name="volts" />, with another
+    ///     <paramref name="stopper" /> and its 1 µF through <paramref name="bypassSeries" /> ohms.
     /// </summary>
-    static StageNetlist SecondStage(double partial) {
+    internal static StageNetlist SecondStage(
+        double partial,
+        double volts = 376,
+        double stopper = 150,
+        double bypassSeries = 0
+    ) {
         var net = new StageNetlist();
         var (grid, supply, plate, cathode) = (net.Node(), net.Node(), net.Node(), net.Node());
-        net.Resistor(net.Input, grid, 150);
-        net.Supply(supply, 376);
+        net.Resistor(net.Input, grid, stopper);
+        net.Supply(supply, volts);
         net.Resistor(supply, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.8e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 1e-6);
+        DualRectifier.Cathode(net, cathode, bypassSeries);
         if (partial > 0) {
             var foot = net.Node();
             net.Capacitor(cathode, foot, 15e-6);
@@ -211,32 +217,80 @@ public static class RectoVerb {
     ///     The rhythm channel's V1A, stack and gain: 1M grid leak; 220k plate; 1.8k ‖ 1 µF; on the plate 1 nF to
     ///     ground and the stack (250 pF, and 2 nF beside it when Pushed, to the 250k audio treble; 150k slope; 0.1 µF
     ///     to the 250k audio bass; 47 nF to the 10k audio middle); the treble wiper into the 1M audio gain with 120 pF
-    ///     from its top to the wiper and 10 pF from the wiper to ground.
+    ///     from its top to the wiper and 10 pF from the wiper to ground. The three-channel Dual Rectifier's channel 1
+    ///     is the same circuit with its own <paramref name="volts" />, <paramref name="bypassSeries" /> ohms under
+    ///     the 1 µF, <paramref name="middle" /> pot and <paramref name="wiperCap" />, and Pushed on
+    ///     <paramref name="pushed" />.
     /// </summary>
-    static StageNetlist RhythmInputAndStack() {
+    internal static StageNetlist RhythmInputAndStack(
+        double volts = 394,
+        double bypassSeries = 0,
+        double middle = 10e3,
+        double wiperCap = 10e-12,
+        SwitchRole pushed = SwitchRole.Switch2
+    ) {
         var net = new StageNetlist();
         var (supply, plate, cathode, slope, trebleTop, trebleFoot, middleTop) =
             (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
         net.Resistor(net.Input, StageNetlist.Ground, 1e6);
-        net.Supply(supply, 394);
+        net.Supply(supply, volts);
         net.Resistor(supply, plate, 220e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.8e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 1e-6);
+        DualRectifier.Cathode(net, cathode, bypassSeries);
         net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
         net.Capacitor(plate, StageNetlist.Ground, 1e-9);
         net.Capacitor(plate, trebleTop, 250e-12, CapacitorRole.Stack);
-        net.SwitchedCapacitor(plate, trebleTop, 2e-9, SwitchRole.Switch2, CapacitorRole.Stack);
+        net.SwitchedCapacitor(plate, trebleTop, 2e-9, pushed, CapacitorRole.Stack);
         net.Resistor(plate, slope, 150e3);
         var treble = net.Pot(trebleTop, trebleFoot, new(250e3, PotTaper.Audio), PotRole.Treble);
         net.Capacitor(slope, trebleFoot, 0.1e-6, CapacitorRole.Stack);
         net.Rheostat(trebleFoot, middleTop, new(250e3, PotTaper.Audio), PotRole.Bass);
         net.Capacitor(slope, middleTop, 47e-9, CapacitorRole.Stack);
-        net.Rheostat(middleTop, StageNetlist.Ground, new(10e3, PotTaper.Audio), PotRole.Middle);
+        net.Rheostat(middleTop, StageNetlist.Ground, new(middle, PotTaper.Audio), PotRole.Middle);
         var gain = net.Pot(treble, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Gain);
         net.Capacitor(treble, gain, 120e-12, CapacitorRole.Bright);
-        net.Capacitor(gain, StageNetlist.Ground, 10e-12);
+        net.Capacitor(gain, StageNetlist.Ground, wiperCap);
         net.Output = gain;
         return net;
+    }
+
+    /// <summary>
+    ///     The rhythm channel's last triode, on <paramref name="net" />: 47 nF (with <paramref name="leak" /> to
+    ///     ground after it; 0 for none), 3.3M ‖ 39 pF (and 2 nF across them while <paramref name="pushed" /> is on)
+    ///     into the grid with 330k and 47 pF to ground; 100k plate from <paramref name="volts" /> with
+    ///     <paramref name="plateCap" /> across it (0 for none); 1.5k unbypassed; 47 nF and <paramref name="series" />
+    ///     out of the plate. Returns the far end of that resistor.
+    /// </summary>
+    internal static int RhythmStage(
+        StageNetlist net,
+        double volts,
+        double leak,
+        double plateCap,
+        SwitchRole pushed,
+        double series
+    ) {
+        var (coupled, grid, supply, plate, cathode) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        net.Capacitor(net.Input, coupled, 47e-9);
+        if (leak > 0) {
+            net.Resistor(coupled, StageNetlist.Ground, leak);
+        }
+
+        net.Resistor(coupled, grid, 3.3e6);
+        net.Capacitor(coupled, grid, 39e-12);
+        net.SwitchedCapacitor(coupled, grid, 2e-9, pushed);
+        net.Resistor(grid, StageNetlist.Ground, 330e3);
+        net.Capacitor(grid, StageNetlist.Ground, 47e-12);
+        net.Supply(supply, volts);
+        net.Resistor(supply, plate, 100e3);
+        if (plateCap > 0) {
+            net.Capacitor(supply, plate, plateCap, CapacitorRole.Plate);
+        }
+
+        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
+        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
+        var (blocked, fed) = (net.Node(), net.Node());
+        net.Capacitor(plate, blocked, 47e-9);
+        net.Resistor(blocked, fed, series);
+        return fed;
     }
 
     /// <summary>
@@ -246,22 +300,7 @@ public static class RectoVerb {
     /// </summary>
     static StageNetlist RhythmOutput() {
         var net = new StageNetlist();
-        var (coupled, grid, supply, plate, cathode, blocked, top) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Capacitor(net.Input, coupled, 47e-9);
-        net.Resistor(coupled, StageNetlist.Ground, 1.5e6);
-        net.Resistor(coupled, grid, 3.3e6);
-        net.Capacitor(coupled, grid, 39e-12);
-        net.SwitchedCapacitor(coupled, grid, 2e-9, SwitchRole.Switch2);
-        net.Resistor(grid, StageNetlist.Ground, 330e3);
-        net.Capacitor(grid, StageNetlist.Ground, 47e-12);
-        net.Supply(supply, 376);
-        net.Resistor(supply, plate, 100e3);
-        net.Capacitor(supply, plate, 500e-12, CapacitorRole.Plate);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
-        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-        net.Capacitor(plate, blocked, 47e-9);
-        net.Resistor(blocked, top, 330e3);
+        var top = RhythmStage(net, 376, 1.5e6, 500e-12, SwitchRole.Switch2, 330e3);
         net.Output = net.Pot(top, StageNetlist.Ground, new(250e3, PotTaper.Linear), PotRole.Master);
         return net;
     }

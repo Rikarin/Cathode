@@ -147,6 +147,14 @@ public sealed record SpeakerDesign(
 public readonly record struct PresenceOutDesign(SwitchRole Switch, bool WhileOn = true, double Rotation = 0);
 
 /// <summary>
+///     A front-panel switch that changes the feedback resistor: while <paramref name="Switch" /> is on the feedback
+///     fraction is <paramref name="Factor" /> times the network's (the two-channel Dual Rectifier's "more feedback"
+///     LDR, which puts a second 47k beside the first in the orange channel's Clean). The presence corner stays where
+///     the network's own feedback resistor puts it.
+/// </summary>
+public readonly record struct FeedbackBoostDesign(SwitchRole Switch, double Factor);
+
+/// <summary>
 ///     Global negative feedback from a speaker tap to the bottom of the phase inverter's tail: the feedback resistor
 ///     into a shunt resistor, with the presence control (a pot in series with a cap) across the shunt, which lowers the
 ///     feedback, and so lifts the response, at high frequencies; or, with <see cref="PresenceIsShunt" />, the presence
@@ -873,4 +881,7 @@ public sealed record PowerAmpDesign(
     ///     node). Pentode operation only: it is not in the path of ultralinear or triode-strapped screens.
     /// </summary>
     public double SharedScreenResistor { get; init; }
+
+    /// <summary>A front-panel switch that raises or lowers the feedback (see the type); null for none.</summary>
+    public FeedbackBoostDesign? FeedbackBoost { get; init; }
 }

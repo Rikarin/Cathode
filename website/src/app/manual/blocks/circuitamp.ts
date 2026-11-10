@@ -43,8 +43,9 @@ usually go after the Cab, as they would in an effects loop or a studio. The amp 
 - **Smooth, vocal overdrive:** ODS 97, ODS 70s, Cornford MK50H II, Lone Star, Subway Blues.
 - **Hot-rodded British and modern rock:** Silver Jubilee, JCM900 4100 and 4502, DSL100, JVM410H, BE-100 and
   BE-100 HBE, AFD100, Quick Rod, Laney GH100L, Hot Rod Deluxe.
-- **High gain:** SLO-100, 5150, 5150III, Dual Rectifier, Dual Rectifier 3-Ch, Dual Rectifier 3-Ch Orange, Triple
-  Rectifier, Rect-o-Verb, Mark IIC+ (and its clean rhythm channel, Mark IIC+ Rhythm), Mark IV (and its clean and
+- **High gain:** SLO-100, 5150, 5150III, Dual Rectifier and Dual Rectifier 3-Ch (each with its other channels:
+  Dual Rectifier Orange, Dual Rectifier 3-Ch Orange and Clean), Triple Rectifier (with Triple Rectifier Orange and
+  Clean), Rect-o-Verb, Mark IIC+ (and its clean rhythm channel, Mark IIC+ Rhythm), Mark IV (and its clean and
   crunch channels, Mark IV Rhythm 1 and Rhythm 2), Mark V, TriAxis, Legacy VL100, Powerball, Savage 120, Prometheus.
 - **Bass:** SVT, Portaflex B-15N, Bassman 135, Bass 400.
 - **Solid state:** JC-120 and Valvestate 8080 (a tube preamp into a transistor power amp). Their tube-only knobs are
@@ -99,7 +100,9 @@ gets a little louder and looser; at 0 it is at its darkest and tightest. A few m
 Rect-o-Verb's lead channel, and in the feedback on its rhythm channel;
 on the three-channel Dual Rectifier and the Triple Rectifier it is in the feedback in Raw and Vintage and a preamp
 control in Modern, and on the three-channel's orange channel a preamp control in Raw and in the feedback otherwise, so
-in that channel's Modern it does next to nothing, as on the drawing); the ODS 70s calls it *Accent*. On the Chieftain and Hot Cat 30 this knob is the amp's
+in that channel's Modern it does next to nothing, as on the drawing; on the three-channel's clean channel it is a
+preamp treble control at the master, and on the two-channel's orange channel it is in the feedback, so it does nothing
+in that channel's Modern); the ODS 70s calls it *Accent*. On the Chieftain and Hot Cat 30 this knob is the amp's
 *Brilliance*, on the Tiny Terror its *Tone*: a pot and cap across the power tubes' grids, like a Vox cut but wired the
 other way, so turning it **up** puts more resistance in front of the cap and brings the treble back (0 is darkest).`,
 
@@ -152,7 +155,8 @@ own name and meaning: *Brilliance* (AC15), *Brilliant* (Prometheus Clean), *Thic
 and the Lead Master's. On the DSL100 it is the amp's *Deep* switch, which is not a bright at all: it puts the amp's
 resonant network (a simulated inductor, tuned to about 53 Hz) across the feedback, for a broad lift in the bass. On the
 three-channel Dual Rectifier and the Triple Rectifier, *Raw* and *Modern* (Switch 1) are the amp's one Raw / Vintage /
-Modern switch: both off is Vintage, and with both on the model is in Modern. On the Powerball it is channel 1's Bright
+Modern switch: both off is Vintage, and with both on the model is in Modern. On Dual Rectifier Orange it is *Clean*,
+one end of that channel's Clean / Normal / Modern style (Switch 1 is Modern, both off is Normal). On the Powerball it is channel 1's Bright
 and does nothing in the lead channel. The value of the cap is on the Advanced page as *Bright Cap*.`,
 
     level: `The block's output level in dB, after everything else. A clean digital volume: it does not change the amp's
@@ -642,7 +646,13 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'Quick Rod': 'Splawn Quick Rod, both channels with its gear switches (the power amp is assumed).',
       AFD100: 'Marshall AFD100 (Slash), #34 and AFD modes.',
       'Dual Rectifier 3-Ch Orange':
-        'Mesa/Boogie Dual Rectifier three-channel Solo Head, channel 2 (orange), with Raw, Vintage and Modern.'
+        'Mesa/Boogie Dual Rectifier three-channel Solo Head, channel 2 (orange), with Raw, Vintage and Modern.',
+      'Dual Rectifier Orange':
+        'Mesa/Boogie Dual Rectifier (two-channel, 1993), orange channel, with Clean, Normal and Modern styles.',
+      'Dual Rectifier 3-Ch Clean':
+        'Mesa/Boogie Dual Rectifier three-channel Solo Head, channel 1: Clean, and Pushed for a crunch.',
+      'Triple Rectifier Orange': 'Mesa/Boogie Triple Rectifier, channel 2 (orange), with Raw, Vintage and Modern.',
+      'Triple Rectifier Clean': 'Mesa/Boogie Triple Rectifier, channel 1: Clean, and Pushed for a crunch.'
     },
     pretube: {
       Stock: "The schematic's own preamp tubes.",

@@ -100,6 +100,10 @@ public sealed partial record AmpDesign {
         MarkIIC.Rhythm,
         MarkIV.Rhythm1,
         MarkIV.Rhythm2,
-        DualRectifier3Channel.Orange
+        DualRectifier3Channel.Orange,
+        DualRectifier.Orange,
+        DualRectifier3Channel.Clean,
+        TripleRectifier.Orange,
+        TripleRectifier.Clean
     ];
 }

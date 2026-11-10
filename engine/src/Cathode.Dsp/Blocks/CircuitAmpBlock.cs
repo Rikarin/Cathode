@@ -545,6 +545,7 @@ public sealed partial class CircuitAmpBlock
             // Amp off puts out), whatever the interface's calibration. Input Trim still trims it.
             volts = lineMaster / (preampScale * inputVolts) * volts;
         }
+
         if (saturate || location == EqBeforePowerAmp || treble) {
             var eq = location == EqBeforePowerAmp;
             for (var i = 0; i < inner.Length; i++) {
@@ -792,6 +793,10 @@ public sealed partial class CircuitAmpBlock
         var feedback = Knob(Params.Advance(Feedback, frames));
         if (design.Power.FeedbackOffSwitch is { } off && preamp.IsOn(off)) {
             feedback = 0;
+        }
+
+        if (design.Power.FeedbackBoost is { } boost && preamp.IsOn(boost.Switch)) {
+            feedback *= boost.Factor;
         }
 
         // The feedback's presence pot: the Presence knob, or the model control its relays put there.

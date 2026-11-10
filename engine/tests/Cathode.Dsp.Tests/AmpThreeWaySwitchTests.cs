@@ -18,6 +18,8 @@ public class AmpThreeWaySwitchTests {
         ("Dual Rectifier 3-Ch", CircuitAmpBlock.Bright, CircuitAmpBlock.Switch1),
         ("Dual Rectifier 3-Ch Orange", CircuitAmpBlock.Bright, CircuitAmpBlock.Switch1),
         ("Triple Rectifier", CircuitAmpBlock.Bright, CircuitAmpBlock.Switch1),
+        ("Triple Rectifier Orange", CircuitAmpBlock.Bright, CircuitAmpBlock.Switch1),
+        ("Dual Rectifier Orange", CircuitAmpBlock.Bright, CircuitAmpBlock.Switch1),
         ("SVT", CircuitAmpBlock.Switch2, CircuitAmpBlock.Switch3),
         ("Prometheus", CircuitAmpBlock.Switch2, CircuitAmpBlock.Switch3)
     ];
