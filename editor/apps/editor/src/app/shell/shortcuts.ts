@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, Pipe, type PipeTransform, signal } from '@angular/core';
+import { isMac, keyNames } from '@cathode/audio-ui';
 
 /**
  * A keyboard shortcut. `key` is `KeyboardEvent.key` (case-insensitive for letters) or, for keys that change with ⇧
@@ -46,6 +47,9 @@ const channels: Shortcut[] = ['A', 'B', 'C', 'D'].map(c => ({
 /**
  * Every shortcut, in the order the help overlay lists them. They clash neither with each other (a test checks) nor
  * with the desktop app's menu, which is Electron's default (⌘C/⌘V/⌘X/⌘A edit, ⌘R reload, ⌘W, ⌘M, ⌘Q, ⌥⌘I).
+ *
+ * The editor also runs in a plain browser (a headless rig, an iPad), which keeps some keys for itself and never hands
+ * them to the page: ⌘T/Ctrl+T (new tab) for certain. A command bound to such a key needs an alias a browser delivers.
  */
 export const Shortcuts: readonly Shortcut[] = [
   { id: 'presetPicker', group: 'Presets', label: 'Open the preset picker (a name, or a bank slot number)', key: 'p' },
@@ -81,27 +85,16 @@ export const Shortcuts: readonly Shortcut[] = [
   { id: 'redo', group: 'Edit', label: 'Redo', key: 'z', mod: true, shift: true },
   { id: 'redoAlias', group: 'Edit', label: 'Redo (alias)', key: 'y', mod: true },
   { id: 'tuner', group: 'Other', label: 'Tuner', key: 't', mod: true },
+  // A browser keeps ⌘T/Ctrl+T for a new tab and never hands it to the page, so the tuner has a bare key as well.
+  { id: 'tunerAlias', group: 'Other', label: 'Tuner (alias; the one that works in a browser)', key: 't' },
   { id: 'mute', group: 'Other', label: 'Mute or unmute every output', key: 'm' },
   { id: 'clearClips', group: 'Other', label: 'Reset every clip light', key: 'k', mod: true },
   { id: 'settings', group: 'Other', label: 'Settings', key: ',', mod: true },
   { id: 'help', group: 'Other', label: 'Keyboard shortcuts', key: '?', shift: true }
 ];
 
-/** How a shortcut reads, on macOS or elsewhere. */
-export function shortcutKeys(shortcut: Shortcut, mac = isMac()): string[] {
-  const keys: string[] = [];
-  if (shortcut.mod) {
-    keys.push(mac ? '⌘' : 'Ctrl');
-  }
-
-  if (shortcut.shift && shortcut.key !== '?') {
-    keys.push('⇧');
-  }
-
-  if (shortcut.alt) {
-    keys.push(mac ? '⌥' : 'Alt');
-  }
-
+/** How a shortcut's key itself reads, without its modifiers. */
+function keyName(shortcut: Shortcut): string {
   const names: Record<string, string> = {
     PageUp: 'PgUp',
     PageDown: 'PgDn',
@@ -110,8 +103,51 @@ export function shortcutKeys(shortcut: Shortcut, mac = isMac()): string[] {
     Space: 'Space'
   };
   const key = shortcut.code ? shortcut.code.replace(/^Digit/, '') : (shortcut.key ?? '');
-  keys.push(names[key] ?? (key.length === 1 ? key.toUpperCase() : key));
+  return names[key] ?? (key.length === 1 ? key.toUpperCase() : key);
+}
+
+/** How a shortcut reads, key by key, on macOS (⌘ ⇧ S) or elsewhere (Ctrl Shift S): the keycaps of the shortcut list. */
+export function shortcutKeys(shortcut: Shortcut, mac = isMac()): string[] {
+  const names = keyNames(mac);
+  const keys: string[] = [];
+  if (shortcut.mod) {
+    keys.push(names.mod);
+  }
+
+  if (shortcut.shift && shortcut.key !== '?') {
+    keys.push(names.shift);
+  }
+
+  if (shortcut.alt) {
+    keys.push(names.alt);
+  }
+
+  keys.push(keyName(shortcut));
   return keys;
+}
+
+/**
+ * A shortcut as one short hint for a tooltip or a menu item, written as the platform writes it: "⇧⌘S" on macOS (the
+ * modifiers in Apple's order, no separator), "Ctrl+Shift+S" elsewhere. Every hint in a template comes from here (the
+ * `cthShortcut` pipe), so none names a key the user's keyboard does not have.
+ */
+export function shortcutHint(id: string, mac = isMac()): string {
+  const shortcut = Shortcuts.find(s => s.id === id);
+  if (!shortcut) {
+    throw new Error(`No shortcut "${id}"`);
+  }
+
+  if (!mac) {
+    return shortcutKeys(shortcut, false).join('+');
+  }
+
+  const shift = shortcut.shift && shortcut.key !== '?';
+  return `${shortcut.alt ? '⌥' : ''}${shift ? '⇧' : ''}${shortcut.mod ? '⌘' : ''}${keyName(shortcut)}`;
+}
+
+/** A shortcut's label for the shortcut list: a modifier it mentions (⌥) reads as the platform names it. */
+export function shortcutLabel(shortcut: Shortcut, mac = isMac()): string {
+  return shortcut.label.replaceAll('⌥', keyNames(mac).alt);
 }
 
 /** Whether an event comes from somewhere the user types: shortcuts stay out of the way there. */
@@ -196,6 +232,29 @@ export function yieldsToControl(shortcut: Shortcut): boolean {
   return !shortcut.mod && !/^F\d+$/.test(shortcut.key ?? '');
 }
 
+/**
+ * The shortcuts that still run while a modal dialog is open: those that open or close a dialog themselves, and the two
+ * that never touch the preset (mute is the panic button). Every other shortcut acts on the rig behind the dialog, where
+ * the user cannot see what it did, so it waits until the dialog is closed.
+ */
+const WithDialogOpen: ReadonlySet<string> = new Set(['tuner', 'tunerAlias', 'settings', 'help', 'mute', 'clearClips']);
+
+/** Whether a modal dialog (Settings, the Tuner, a confirmation…) is open: xUI marks its overlay pane `aria-modal`. */
+export function isDialogOpen(target: EventTarget | null): boolean {
+  const root = (target as Node | null)?.ownerDocument ?? (typeof document === 'undefined' ? null : document);
+  return !!root?.querySelector('[aria-modal="true"]');
+}
+
+/**
+ * Whether the page has text selected: an address or the access token in Settings, a log, an error message. ⌘C and ⌘X
+ * then belong to the browser, which copies that text; consuming the key for the grid would cancel the copy.
+ */
+export function hasSelectedText(target: EventTarget | null): boolean {
+  const root = (target as Node | null)?.ownerDocument ?? (typeof document === 'undefined' ? null : document);
+  const selection = root?.getSelection();
+  return !!selection && !selection.isCollapsed && selection.toString().length > 0;
+}
+
 /** The shortcut an event presses, if any: modifiers must match exactly (⌥ is ignored, it shows Block Info). */
 export function findShortcut(
   event: Pick<KeyboardEvent, 'key' | 'code' | 'metaKey' | 'ctrlKey' | 'shiftKey' | 'altKey'>,
@@ -212,8 +271,12 @@ export function findShortcut(
   );
 }
 
-function isMac(): boolean {
-  return typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+/** A shortcut's keys by its id, for a tooltip or a menu item: `'save' | cthShortcut` is "⌘S", or "Ctrl+S" off macOS. */
+@Pipe({ name: 'cthShortcut' })
+export class ShortcutHint implements PipeTransform {
+  transform(id: string): string {
+    return shortcutHint(id);
+  }
 }
 
 /**
@@ -259,7 +322,13 @@ export class ShortcutService {
       return false; // Space on a focused button presses it; it does not bypass the selected block
     }
 
-    const handler = shortcut && this.handlers.get(shortcut.id);
+    if ((shortcut?.id === 'copy' || shortcut?.id === 'cut') && hasSelectedText(event.target)) {
+      return false; // the selected text is what the user means to copy, not the block
+    }
+
+    // Behind a modal dialog the rig is out of sight: only the shortcuts that are safe there run.
+    const blocked = shortcut && !WithDialogOpen.has(shortcut.id) && isDialogOpen(event.target);
+    const handler = shortcut && !blocked && this.handlers.get(shortcut.id);
     if (!handler) {
       if (event.metaKey && event.key.toLowerCase() === 'a') {
         event.preventDefault(); // an editor, not a document: select-all would only paint every label blue

@@ -2,6 +2,7 @@ import { ScrollingModule } from '@angular/cdk/scrolling';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { type Bank, type PresetSummary, unwrap } from '@cathode/api-client';
+import { keyNames } from '@cathode/audio-ui';
 import { provideIcons } from '@ng-icons/core';
 import { matAddRound, matStarRound } from '@ng-icons/material-icons/round';
 import { XuiAlertDialogImports } from '@xui/alert-dialog';
@@ -208,8 +209,8 @@ export const LibraryEntryHeight = 24;
         </div>
         @if (factoryBank()) {
           <p class="text-foreground-muted shrink-0 px-3 pt-3 text-xs" data-testid="factory-bank-note">
-            The factory bank is read-only. Drag its presets onto a bank of your own, or ⇧-drag for a copy you can
-            change.
+            The factory bank is read-only. Drag its presets onto a bank of your own, or {{ keys.shift }}-drag for a copy
+            you can change.
           </p>
         }
         @if (bank(); as b) {
@@ -254,7 +255,8 @@ export const LibraryEntryHeight = 24;
           </div>
         }
         <p class="text-foreground-subtle mt-auto shrink-0 border-t border-(--hairline) px-3 py-2 text-xs">
-          Drag swaps two slots; ⌘-drag moves, ⇧-drag copies. Drop on a bank in the list for its first empty slot.
+          Drag swaps two slots; {{ keys.mod }}-drag moves, {{ keys.shift }}-drag copies. Drop on a bank in the list for
+          its first empty slot.
         </p>
       </section>
     </div>
@@ -325,6 +327,8 @@ export const LibraryEntryHeight = 24;
   `
 })
 export class ManagePage implements AsksBeforeLeaving {
+  /** The modifier keys as this platform names them, for the drag hints. */
+  protected readonly keys = keyNames();
   protected readonly library = inject(LibraryStore);
   private readonly live = inject(LiveStore);
   private readonly connection = inject(ConnectionService);

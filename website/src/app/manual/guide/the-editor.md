@@ -32,7 +32,7 @@ From left to right:
 | **TAP**                   | Tap tempo: click it in time with the music.                                                                                                                      |
 | Metronome                 | Turns the click on and off. Its level is on the Global page.                                                                                                     |
 | Looper                    | Opens the looper. See [The looper](/manual/live-performance#the-looper).                                                                                         |
-| Tuner                     | Opens the tuner (⌘T).                                                                                                                                            |
+| Tuner                     | Opens the tuner (⌘T or T).                                                                                                                                       |
 | Analyser                  | An oscilloscope and a real-time analyser (**Scope** and **RTA**) of the output.                                                                                  |
 | Preset Leveling           | Measures how loud the preset plays and suggests a level change. See [Gain staging and levels](/manual/gain-staging).                                             |
 | Mute                      | Silences every output (M). It turns red while muted.                                                                                                             |
@@ -120,7 +120,7 @@ A small dot beside a knob means a modifier drives it. While it runs, the knob tu
 | --------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | Block picker    | Double-click an empty cell, ↵ or Q on the grid | Every block type, with a search field.                                                                          |
 | Presets         | P, or a click on the preset name               | Search by name, author or tag, or type a bank slot number. A pin keeps it open to try one preset after another. |
-| Tuner           | ⌘T, or the tuner button                        | A needle or strobe tuner, the tuning, A4 reference and string offsets, and what the outputs play while tuning.  |
+| Tuner           | ⌘T or T, or the tuner button                   | A needle or strobe tuner, the tuning, A4 reference and string offsets, and what the outputs play while tuning.  |
 | Looper          | The looper button                              | Record, play, overdub, stop, undo, reverse, half speed, clear, and **Export WAV**.                              |
 | Analyser        | The analyser button                            | **Scope** shows the output's waveform; **RTA** its spectrum, with bands, decay and window settings.             |
 | Preset Leveling | ⌘L, or its button                              | Loudness measurement and a suggested level.                                                                     |

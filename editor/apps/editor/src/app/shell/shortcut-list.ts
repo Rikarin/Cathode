@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { keyNames } from '@cathode/audio-ui';
 import { XuiKbdImports } from '@xui/kbd';
-import { ShortcutGroups, Shortcuts, shortcutKeys } from './shortcuts';
+import { ShortcutGroups, Shortcuts, shortcutKeys, shortcutLabel } from './shortcuts';
 
 /** The Keyboard shortcuts tab of Settings (`?` opens it): every shortcut, grouped as the editor's commands are. */
 @Component({
@@ -31,17 +32,25 @@ import { ShortcutGroups, Shortcuts, shortcutKeys } from './shortcuts';
       <section aria-label="Knobs and grid">
         <h3 class="section-label mb-1.5 px-1">Knobs and grid</h3>
         <ul class="settings-group text-foreground-muted text-sm [&>li]:px-3 [&>li]:py-1.5">
-          <li>Knobs: drag (⇧ fine), wheel, arrows and Page keys, ⌥-click resets, double-click types a value</li>
-          <li>Grid: arrows move, ↵ adds a block, drag moves (⌥ copies)</li>
-          <li>Drag a block onto another to swap them; ⌘-drag to replace it</li>
+          <li>
+            Knobs: drag ({{ keys.shift }} fine), wheel, arrows and Page keys, {{ keys.alt }}-click resets, double-click
+            types a value
+          </li>
+          <li>Grid: arrows move, ↵ adds a block, drag moves ({{ keys.alt }} copies)</li>
+          <li>Drag a block onto another to swap them; {{ keys.mod }}-drag to replace it</li>
         </ul>
       </section>
     </div>
   `
 })
 export class ShortcutList {
+  protected readonly keys = keyNames();
   protected readonly groups = ShortcutGroups.map(name => ({
     name,
-    items: Shortcuts.filter(s => s.group === name).map(s => ({ id: s.id, label: s.label, keys: shortcutKeys(s) }))
+    items: Shortcuts.filter(s => s.group === name).map(s => ({
+      id: s.id,
+      label: shortcutLabel(s),
+      keys: shortcutKeys(s)
+    }))
   })).filter(g => g.items.length > 0);
 }

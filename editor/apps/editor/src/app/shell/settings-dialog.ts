@@ -11,6 +11,10 @@ import { ShortcutList } from './shortcut-list';
 /**
  * Settings (⌘,), as an app's preferences window: the user's Preferences, the Audio setup (interface, rate, buffer,
  * latency, Server) and the Keyboard shortcuts, one tab each. `?` opens it on the shortcuts.
+ *
+ * Each tab's content is created only while the dialog shows that tab. Content projected into `xui-dialog` and
+ * `xui-tab` would otherwise be created with this component and live for the whole session, attached or not: the Audio
+ * setup page polls the Server every 2 s and, in the desktop app, lists the audio devices as it starts.
  */
 @Component({
   selector: 'cth-settings-dialog',
@@ -37,17 +41,23 @@ import { ShortcutList } from './shortcut-list';
           (selectedTabIdChange)="select($event)"
         >
           <xui-tab id="preferences" title="Preferences">
-            <cth-preferences-panel
-              class="-mr-6 h-[min(44rem,72vh)] [scrollbar-gutter:stable] overflow-y-auto pt-4 pr-3.5"
-            />
+            @if (ui.settings() === 'preferences') {
+              <cth-preferences-panel
+                class="-mr-6 h-[min(44rem,72vh)] [scrollbar-gutter:stable] overflow-y-auto pt-4 pr-3.5"
+              />
+            }
           </xui-tab>
           <xui-tab id="setup" title="Audio setup">
-            <cth-setup-page class="-mr-6 !h-[min(44rem,72vh)] [scrollbar-gutter:stable] !pt-4 !pr-3.5 !pb-0 !pl-0" />
+            @if (ui.settings() === 'setup') {
+              <cth-setup-page class="-mr-6 !h-[min(44rem,72vh)] [scrollbar-gutter:stable] !pt-4 !pr-3.5 !pb-0 !pl-0" />
+            }
           </xui-tab>
           <xui-tab id="shortcuts" title="Keyboard shortcuts">
-            <cth-shortcut-list
-              class="-mr-6 h-[min(44rem,72vh)] [scrollbar-gutter:stable] overflow-y-auto pt-4 pr-3.5"
-            />
+            @if (ui.settings() === 'shortcuts') {
+              <cth-shortcut-list
+                class="-mr-6 h-[min(44rem,72vh)] [scrollbar-gutter:stable] overflow-y-auto pt-4 pr-3.5"
+              />
+            }
           </xui-tab>
         </xui-tabs>
       </xui-dialog-body>

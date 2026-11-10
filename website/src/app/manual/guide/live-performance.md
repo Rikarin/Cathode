@@ -62,7 +62,7 @@ Changing preset is fast, and with **Global ▸ Presets and scenes ▸ Preset spi
 
 ## The tuner
 
-Open the tuner with **⌘T**, the tuner button in the navigation bar, or a footswitch with the `tuner` action. Play a single string. The tuner shows the note and octave, how far off it is (as a needle or a strobe), the frequency and the deviation in cents. The note and the display turn green within ±2 cents of the target.
+Open the tuner with **⌘T** or **T**, the tuner button in the navigation bar, or a footswitch with the `tuner` action. Play a single string. The tuner shows the note and octave, how far off it is (as a needle or a strobe), the frequency and the deviation in cents. The note and the display turn green within ±2 cents of the target.
 
 The tuner listens to the input, before any effects, so a wah or a pitch shifter does not confuse it.
 

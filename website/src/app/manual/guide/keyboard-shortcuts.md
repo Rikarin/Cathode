@@ -1,6 +1,6 @@
 Every keyboard shortcut in the editor. Press **?** in Cathode to see the same list in **Settings ▸ Keyboard shortcuts**.
 
-On Windows and Linux, read **⌘** as **Ctrl** and **⌥** as **Alt**. Shortcuts do nothing while you are typing in a text field. The grid commands work on the Editor page, on the selected cell; the others work on every page.
+On Windows and Linux, read **⌘** as **Ctrl**, **⌥** as **Alt** and **⇧** as **Shift**; Cathode's own tooltips, menus and shortcut list show the keys that way there. Shortcuts do nothing while you are typing in a text field. While a dialog is open (Settings, the Tuner, a confirmation), only the Tuner, Settings, Keyboard shortcuts, mute and clip light shortcuts work, so a stray key cannot change the preset behind it. The grid commands work on the Editor page, on the selected cell; the others work on every page.
 
 ## Presets
 
@@ -67,7 +67,7 @@ On Windows and Linux, read **⌘** as **Ctrl** and **⌥** as **Alt**. Shortcuts
 
 | Shortcut | Action                      |
 | -------- | --------------------------- |
-| ⌘T       | Tuner                       |
+| ⌘T or T  | Tuner                       |
 | M        | Mute or unmute every output |
 | ⌘K       | Reset every clip light      |
 | ⌘,       | Settings                    |
@@ -109,6 +109,10 @@ On Windows and Linux, read **⌘** as **Ctrl** and **⌥** as **Alt**. Shortcuts
 | Arrow keys | Move through the list (the block picker moves across its grid of tiles) |
 | ↵          | Add the highlighted block, or load the highlighted preset               |
 | Esc        | Close                                                                   |
+
+## In a browser
+
+A browser keeps some keys for itself and never passes them to the page. **⌘T** (Ctrl+T) opens a new browser tab, so press **T** for the tuner. A browser may also keep Ctrl+PgUp and Ctrl+PgDn for switching its own tabs; the arrows beside the preset name and the setlist's buttons step presets and songs there.
 
 ## In the desktop app's menus
 

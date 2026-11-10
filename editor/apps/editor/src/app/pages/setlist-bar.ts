@@ -6,6 +6,7 @@ import { XuiButtonImports } from '@xui/button';
 import { XuiIconImports } from '@xui/icon';
 import { XuiSelectImports } from '@xui/select';
 import { XuiTooltipImports } from '@xui/tooltip';
+import { ShortcutHint } from '../shell/shortcuts';
 import { LibraryStore } from '../state/library.store';
 import { SetlistPlayer } from '../state/setlist-player';
 import type { Song } from './setlists';
@@ -21,7 +22,7 @@ const NoSetlist = 'none';
 @Component({
   selector: 'cth-setlist-bar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, XuiButtonImports, XuiIconImports, XuiSelectImports, XuiTooltipImports],
+  imports: [RouterLink, ShortcutHint, XuiButtonImports, XuiIconImports, XuiSelectImports, XuiTooltipImports],
   providers: [provideIcons({ matSkipNextRound, matSkipPreviousRound })],
   host: {
     class: 'pane flex flex-col gap-3 p-4',
@@ -49,7 +50,7 @@ const NoSetlist = 'none';
           aria-label="Previous song"
           data-testid="song-previous"
           [disabled]="!player.previous()"
-          [xuiTooltip]="'Previous song (⇧⌘PgUp)'"
+          [xuiTooltip]="'Previous song (' + ('songPrevious' | cthShortcut) + ')'"
           (click)="player.step(-1)"
         >
           <ng-icon xui name="matSkipPreviousRound" size="sm" />
@@ -89,7 +90,7 @@ const NoSetlist = 'none';
           aria-label="Next song"
           data-testid="song-next-button"
           [disabled]="!player.next()"
-          [xuiTooltip]="'Next song (⇧⌘PgDn)'"
+          [xuiTooltip]="'Next song (' + ('songNext' | cthShortcut) + ')'"
           (click)="player.step(1)"
         >
           <ng-icon xui name="matSkipNextRound" size="sm" />
@@ -100,7 +101,7 @@ const NoSetlist = 'none';
           @if (library.setlists().length === 0) {
             No setlists yet: make one on the <a class="underline" routerLink="/setlists">Setlists</a> page.
           } @else {
-            Pick a setlist to play it from here, with ⇧⌘PgDn, or from a footswitch.
+            Pick a setlist to play it from here, with {{ 'songNext' | cthShortcut }}, or from a footswitch.
           }
         </span>
       }

@@ -42,7 +42,7 @@ import { SaveBlockDialog } from './shell/save-block-dialog';
 import { ScopeDialog } from './shell/scope-dialog';
 import { ServerTargetForm } from './shell/server-target';
 import { SettingsDialog } from './shell/settings-dialog';
-import { ShortcutService } from './shell/shortcuts';
+import { ShortcutHint, ShortcutService } from './shell/shortcuts';
 import { keepToolbarClicksUnfocused } from './shell/toolbar-focus';
 import { Transport } from './shell/transport';
 import { TunerDialog } from './shell/tuner-dialog';
@@ -71,6 +71,7 @@ import { UiStore } from './state/ui.store';
     ScopeDialog,
     ServerTargetForm,
     SettingsDialog,
+    ShortcutHint,
     Transport,
     TunerDialog,
     XuiButtonImports,
@@ -218,7 +219,7 @@ import { UiStore } from './state/ui.store';
                 size="sm"
                 aria-label="Undo"
                 [attr.disabled]="live.state()?.canUndo ? null : ''"
-                [xuiTooltip]="'Undo (⌘Z)'"
+                [xuiTooltip]="'Undo (' + ('undo' | cthShortcut) + ')'"
                 (click)="live.undo()"
               >
                 <ng-icon xui name="matUndoRound" size="sm" />
@@ -230,7 +231,7 @@ import { UiStore } from './state/ui.store';
                 size="sm"
                 aria-label="Redo"
                 [attr.disabled]="live.state()?.canRedo ? null : ''"
-                [xuiTooltip]="'Redo (⇧⌘Z, ⌘Y)'"
+                [xuiTooltip]="'Redo (' + ('redo' | cthShortcut) + ', ' + ('redoAlias' | cthShortcut) + ')'"
                 (click)="live.redo()"
               >
                 <ng-icon xui name="matRedoRound" size="sm" />
@@ -243,7 +244,7 @@ import { UiStore } from './state/ui.store';
               variant="ghost"
               size="sm"
               aria-label="Tuner"
-              [xuiTooltip]="'Tuner (⌘T)'"
+              [xuiTooltip]="'Tuner (' + (tunerShortcut | cthShortcut) + ')'"
               (click)="ui.tunerOpen.set(true)"
             >
               <ng-icon xui name="cthTuner" size="sm" />
@@ -295,7 +296,7 @@ import { UiStore } from './state/ui.store';
                 size="sm"
                 aria-label="Settings"
                 data-testid="preferences-button"
-                [xuiTooltip]="'Settings (⌘,)'"
+                [xuiTooltip]="'Settings (' + ('settings' | cthShortcut) + ')'"
                 (click)="ui.settings.set('preferences')"
               >
                 <ng-icon xui name="matSettingsRound" size="sm" />
@@ -374,7 +375,11 @@ import { UiStore } from './state/ui.store';
               size="sm"
               aria-label="Save"
               data-testid="save"
-              [xuiTooltip]="live.preset()?.factory ? 'Save a copy (factory presets are read-only, ⌘S)' : 'Save (⌘S)'"
+              [xuiTooltip]="
+                (live.preset()?.factory ? 'Save a copy (factory presets are read-only, ' : 'Save (') +
+                ('save' | cthShortcut) +
+                ')'
+              "
               (click)="save()"
             >
               <ng-icon xui name="matSaveRound" size="sm" />
@@ -461,6 +466,8 @@ export class App {
   protected readonly macWindow = window.cathode?.platform === 'darwin';
   /** The desktop app opens Settings from its app menu (⌘,); a plain browser has no menu, so it gets a button. */
   protected readonly settingsButton = !window.cathode;
+  /** The tuner key the tooltip names: a browser keeps ⌘T/Ctrl+T for a new tab, so there it is the bare T. */
+  protected readonly tunerShortcut = window.cathode ? 'tuner' : 'tunerAlias';
   private readonly fullScreen = signal(false);
   protected readonly trafficLights = computed(() => this.macWindow && !this.fullScreen());
   protected readonly scopeOpen = signal(false);
@@ -600,6 +607,7 @@ export class App {
       mute: () => this.toggleMute(),
       clearClips: () => resetClipLights(),
       tuner: () => ui.tunerOpen.update(open => !open),
+      tunerAlias: () => ui.tunerOpen.update(open => !open),
       settings: () => ui.settings.update(tab => (tab === null ? 'preferences' : null)),
       help: () => ui.settings.update(tab => (tab === 'shortcuts' ? null : 'shortcuts'))
     };

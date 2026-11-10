@@ -80,7 +80,19 @@ import { Notify } from '../core/notify';
             <div class="flex flex-col gap-1">
               <span class="text-foreground-muted text-xs">Open in the other device's browser</span>
               @for (url of s.urls; track url) {
-                <span class="font-mono select-all" data-testid="network-url">{{ url }}</span>
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="font-mono select-all" data-testid="network-url">{{ url }}</span>
+                  <button
+                    xuiButton
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    [attr.aria-label]="'Copy ' + url"
+                    (click)="copy(url, 'address')"
+                  >
+                    Copy
+                  </button>
+                </div>
               } @empty {
                 <span>This computer is on no network yet. Join the Wi-Fi, then reopen this page.</span>
               }
@@ -89,7 +101,16 @@ import { Notify } from '../core/notify';
               <span class="text-foreground-muted text-xs">Access token</span>
               <div class="flex flex-wrap items-center gap-2">
                 <span class="font-mono break-all select-all" data-testid="network-token">{{ s.token }}</span>
-                <button xuiButton type="button" size="sm" variant="ghost" (click)="copy(s.token)">Copy</button>
+                <button
+                  xuiButton
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  aria-label="Copy the access token"
+                  (click)="copy(s.token, 'access token')"
+                >
+                  Copy
+                </button>
               </div>
             </div>
             <p class="text-foreground-muted max-w-md text-xs">
@@ -147,10 +168,10 @@ export class NetworkAccess {
     }
   }
 
-  protected async copy(text: string): Promise<void> {
+  protected async copy(text: string, what: 'address' | 'access token'): Promise<void> {
     try {
       await navigator.clipboard.writeText(text);
-      this.notify.success('Copied the access token.');
+      this.notify.success(`Copied the ${what}.`);
     } catch (error) {
       this.notify.error(error);
     }

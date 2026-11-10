@@ -28,6 +28,7 @@ import { Notify } from '../core/notify';
 import { CompareStore } from '../state/compare.store';
 import { LiveStore } from '../state/live.store';
 import { PresetSwitcher } from '../state/preset-switcher';
+import { ShortcutHint } from './shortcuts';
 
 /**
  * The preset commands beyond save: revert, clear, snapshots (stored on the Server, so every editor shares them) and
@@ -37,6 +38,7 @@ import { PresetSwitcher } from '../state/preset-switcher';
   selector: 'cth-preset-menu',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    ShortcutHint,
     XuiAlertDialogImports,
     XuiButtonImports,
     XuiDialogImports,
@@ -70,7 +72,7 @@ import { PresetSwitcher } from '../state/preset-switcher';
           Name, author, tags and notes…
         </button>
         <button type="button" xuiMenuItem icon="matSaveAsRound" (click)="saveAs.emit()">
-          Save as…<span menuItemLabel>⇧⌘S</span>
+          Save as…<span menuItemLabel>{{ 'saveAs' | cthShortcut }}</span>
         </button>
         <xui-menu-divider />
         <button type="button" xuiMenuItem icon="matViewQuiltRound" (click)="openTemplates()">New from template…</button>

@@ -1,13 +1,4 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  effect,
-  inject,
-  signal,
-  untracked,
-  viewChild
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { unwrap } from '@cathode/api-client';
 import { provideIcons } from '@ng-icons/core';
 import { matLibraryMusicRound } from '@ng-icons/material-icons/round';
@@ -46,32 +37,40 @@ export function parseSlot(query: string): number | null {
       (openChange)="!$event && ui.presetPicker.set(false)"
     >
       <xui-dialog-body class="flex min-h-0 flex-col gap-3">
-        <cth-picker-list
-          noun="presets"
-          [placeholder]="
-            library.banks().length > 0 ? 'Search name, author or tag, or a slot number' : 'Search name, author or tag'
-          "
-          [entries]="entries()"
-          [current]="live.preset()?.id ?? null"
-          [extra]="slotText()"
-          (queryChange)="query.set($event)"
-          (chosen)="load($event)"
-          (extraChosen)="loadSlot()"
-          (favorite)="library.setPresetMetadata($event.entry.id, { favorite: $event.favorite })"
-          (color)="library.setPresetMetadata($event.entry.id, { color: $event.color })"
-        >
-          @if (library.banks().length > 0) {
-            <xui-select
-              class="w-44"
-              aria-label="Bank"
-              [filterable]="false"
-              [items]="library.banks()"
-              [itemText]="bankName"
-              [value]="bank()"
-              (valueChange)="bankId.set($event?.id ?? null)"
-            />
-          }
-        </cth-picker-list>
+        <!--
+          Only while open: projected content is created with this component, so the list would otherwise keep a row
+          per preset rendered (and rendered again on every library refresh) for the whole session.
+        -->
+        @if (ui.presetPicker()) {
+          <cth-picker-list
+            noun="presets"
+            [placeholder]="
+              library.banks().length > 0 ? 'Search name, author or tag, or a slot number' : 'Search name, author or tag'
+            "
+            [entries]="entries()"
+            [current]="live.preset()?.id ?? null"
+            [extra]="slotText()"
+            [(pinned)]="pinned"
+            [(favoritesOnly)]="favoritesOnly"
+            (queryChange)="query.set($event)"
+            (chosen)="load($event)"
+            (extraChosen)="loadSlot()"
+            (favorite)="library.setPresetMetadata($event.entry.id, { favorite: $event.favorite })"
+            (color)="library.setPresetMetadata($event.entry.id, { color: $event.color })"
+          >
+            @if (library.banks().length > 0) {
+              <xui-select
+                class="w-44"
+                aria-label="Bank"
+                [filterable]="false"
+                [items]="library.banks()"
+                [itemText]="bankName"
+                [value]="bank()"
+                (valueChange)="bankId.set($event?.id ?? null)"
+              />
+            }
+          </cth-picker-list>
+        }
       </xui-dialog-body>
     </xui-dialog>
   `
@@ -83,7 +82,9 @@ export class PresetPicker {
   private readonly switcher = inject(PresetSwitcher);
   private readonly notify = inject(Notify);
   private readonly connection = inject(ConnectionService);
-  private readonly list = viewChild(PickerList);
+  /** The list's pin and favourites filter, kept here so they last from one opening of the picker to the next. */
+  protected readonly pinned = signal(false);
+  protected readonly favoritesOnly = signal(false);
 
   protected readonly query = signal('');
   protected readonly bankId = signal<string | null>(null);
@@ -126,7 +127,7 @@ export class PresetPicker {
 
   /** Loads through the preset switcher: it asks before discarding unsaved edits, and keeps Recent Presets. */
   protected async load(entry: PickerEntry): Promise<void> {
-    if ((await this.switcher.load(entry.id, entry.name)) && !this.list()?.pinned()) {
+    if ((await this.switcher.load(entry.id, entry.name)) && !this.pinned()) {
       this.ui.presetPicker.set(false);
     }
   }

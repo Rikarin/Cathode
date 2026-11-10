@@ -3,9 +3,13 @@ import {
   Shortcuts,
   controlTakesKey,
   findShortcut,
+  hasSelectedText,
+  isDialogOpen,
   isOnControl,
   isTyping,
-  shortcutKeys
+  shortcutHint,
+  shortcutKeys,
+  shortcutLabel
 } from './shortcuts';
 
 function key(key: string, options: Partial<KeyboardEventInit> & { code?: string } = {}): KeyboardEvent {
@@ -51,6 +55,7 @@ describe('keyboard shortcuts', () => {
     expect(findShortcut(key('q'))?.id).toBe('addBlock');
     expect(findShortcut(key('F1'))?.id).toBe('blockInfo');
     expect(findShortcut(key('t', { metaKey: true }))?.id).toBe('tuner');
+    expect(findShortcut(key('t'))?.id).toBe('tunerAlias');
     expect(findShortcut(key('y', { metaKey: true }))?.id).toBe('redoAlias');
     expect(findShortcut(key('z', { metaKey: true, shiftKey: true }))?.id).toBe('redo');
     expect(findShortcut(key('?', { shiftKey: true }))?.id).toBe('help');
@@ -65,8 +70,68 @@ describe('keyboard shortcuts', () => {
     }
 
     expect(shortcutKeys(saveAs, true)).toEqual(['⌘', '⇧', 'S']);
-    expect(shortcutKeys(saveAs, false)).toEqual(['Ctrl', '⇧', 'S']);
+    expect(shortcutKeys(saveAs, false)).toEqual(['Ctrl', 'Shift', 'S']);
     expect(shortcutKeys(scene8, true)).toEqual(['⌘', '8']);
+  });
+
+  it('gives the tuner a bare key as well, because a browser keeps ⌘T and Ctrl+T for a new tab', () => {
+    const service = new ShortcutService();
+    let toggled = 0;
+    service.register({ tuner: () => toggled++, tunerAlias: () => toggled++ });
+
+    const bare = key('t');
+    document.body.dispatchEvent(bare);
+    expect(service.dispatch(bare)).toBe(true);
+    expect(bare.defaultPrevented).toBe(true);
+    expect(service.dispatch(key('t', { ctrlKey: true }))).toBe(true);
+    expect(toggled).toBe(2);
+
+    // It is a letter like any other: typed into a field it is text.
+    const field = document.createElement('input');
+    document.body.append(field);
+    const typed = key('t');
+    field.dispatchEvent(typed);
+    expect(service.dispatch(typed)).toBe(false);
+    field.remove();
+
+    expect(shortcutHint('tunerAlias', true)).toBe('T');
+    expect(shortcutHint('tunerAlias', false)).toBe('T');
+  });
+
+  it('writes a hint for a tooltip or a menu item with the keys the keyboard has', () => {
+    expect(shortcutHint('save', true)).toBe('⌘S');
+    expect(shortcutHint('saveAs', true)).toBe('⇧⌘S');
+    expect(shortcutHint('bypassAll', true)).toBe('⇧⌘Space');
+    expect(shortcutHint('songNext', true)).toBe('⇧⌘PgDn');
+    expect(shortcutHint('settings', true)).toBe('⌘,');
+    expect(shortcutHint('help', true)).toBe('?');
+
+    expect(shortcutHint('save', false)).toBe('Ctrl+S');
+    expect(shortcutHint('saveAs', false)).toBe('Ctrl+Shift+S');
+    expect(shortcutHint('bypassAll', false)).toBe('Ctrl+Shift+Space');
+    expect(shortcutHint('engageAll', false)).toBe('Shift+Space');
+    expect(shortcutHint('songNext', false)).toBe('Ctrl+Shift+PgDn');
+    expect(shortcutHint('mute', false)).toBe('M');
+    expect(() => shortcutHint('nothing')).toThrow();
+  });
+
+  it('shows no Mac key symbol off macOS, in any shortcut’s keys, hint or label', () => {
+    for (const shortcut of Shortcuts) {
+      const shown = [
+        ...shortcutKeys(shortcut, false),
+        shortcutHint(shortcut.id, false),
+        shortcutLabel(shortcut, false)
+      ];
+      expect(shown.join(' ')).not.toMatch(/[⌘⌥⇧⌃]/);
+    }
+
+    const blockInfo = Shortcuts.find(s => s.id === 'blockInfo');
+    if (!blockInfo) {
+      throw new Error('No blockInfo shortcut');
+    }
+
+    expect(shortcutLabel(blockInfo, true)).toBe('Block Info (or hold ⌥)');
+    expect(shortcutLabel(blockInfo, false)).toBe('Block Info (or hold Alt)');
   });
 
   it('stays out of text fields but not checkboxes', () => {
@@ -353,6 +418,96 @@ describe('ShortcutService.dispatch and the focused element', () => {
     const unbound = key('j');
     expect(press(shortcuts, document.body, unbound)).toBe(false);
     expect(unbound.defaultPrevented).toBe(false);
+  });
+
+  it('leaves the rig alone behind a modal dialog: only the dialog toggles, mute and the clip reset run', () => {
+    const ran: string[] = [];
+    const shortcuts = new ShortcutService();
+    const ids = ['bypass', 'global', 'channelNext', 'channelA', 'addBlock', 'presetPicker', 'undo', 'redo', 'reload'];
+    const allowed = ['tuner', 'settings', 'help', 'mute', 'clearClips'];
+    const all = [...ids, 'channelReset', 'scene2', 'save', ...allowed];
+    shortcuts.register(Object.fromEntries(all.map(id => [id, () => ran.push(id)])));
+    // An xUI dialog: a CDK overlay pane marked modal, focused itself (dialog-focus.ts) or on a button inside.
+    const pane = element('div', { class: 'cdk-overlay-pane', role: 'dialog', 'aria-modal': 'true', tabindex: '-1' });
+    const button = pane.appendChild(document.createElement('button'));
+
+    const rig = [
+      key(' ', { code: 'Space' }),
+      key('g'),
+      key('x'),
+      key('a'),
+      key('q'),
+      key('p'),
+      key('z', { metaKey: true }),
+      key('z', { metaKey: true, shiftKey: true }),
+      key('i', { metaKey: true }),
+      key('2', { metaKey: true, code: 'Digit2' }),
+      key('s', { metaKey: true }),
+      key('F5')
+    ];
+    for (const event of rig) {
+      expect(press(shortcuts, pane, event)).toBe(false);
+      expect(event.defaultPrevented).toBe(false);
+    }
+
+    // Letters do not press a button, so without the dialog rule G would reach the rig from one.
+    expect(press(shortcuts, button, key('g'))).toBe(false);
+    // Focus left on the page behind (a dialog opened without taking it) changes nothing.
+    expect(press(shortcuts, document.body, key('g'))).toBe(false);
+    expect(ran).toEqual([]);
+
+    const safe = [
+      key('t', { metaKey: true }),
+      key(',', { metaKey: true }),
+      key('?', { shiftKey: true }),
+      key('m'),
+      key('k', { metaKey: true })
+    ];
+    for (const event of safe) {
+      expect(press(shortcuts, pane, event)).toBe(true);
+    }
+
+    expect(ran).toEqual(allowed);
+
+    // ⌘A still does not select the whole editor from a dialog.
+    const selectAll = key('a', { metaKey: true });
+    press(shortcuts, pane, selectAll);
+    expect(selectAll.defaultPrevented).toBe(true);
+
+    pane.remove();
+    expect(press(shortcuts, document.body, key('g'))).toBe(true);
+    expect(isDialogOpen(document.body)).toBe(false);
+  });
+
+  it('leaves ⌘C and ⌘X to the browser while text is selected, so an address or the token can be copied', () => {
+    const ran: string[] = [];
+    const shortcuts = new ShortcutService();
+    shortcuts.register({ copy: () => ran.push('copy'), cut: () => ran.push('cut'), paste: () => ran.push('paste') });
+    const address = element('span');
+    address.textContent = 'http://192.168.1.20:5270';
+    const selection = document.getSelection();
+    if (!selection) {
+      throw new Error('No selection in this DOM');
+    }
+
+    selection.selectAllChildren(address);
+    expect(hasSelectedText(address)).toBe(true);
+    for (const event of [key('c', { metaKey: true }), key('x', { ctrlKey: true })]) {
+      expect(press(shortcuts, document.body, event)).toBe(false);
+      expect(event.defaultPrevented).toBe(false);
+    }
+
+    expect(press(shortcuts, document.body, key('v', { metaKey: true }))).toBe(true);
+    expect(ran).toEqual(['paste']);
+
+    // Nothing selected: the keys are the grid's again.
+    selection.removeAllRanges();
+    expect(hasSelectedText(address)).toBe(false);
+    const copy = key('c', { metaKey: true });
+    expect(press(shortcuts, document.body, copy)).toBe(true);
+    expect(copy.defaultPrevented).toBe(true);
+    expect(press(shortcuts, document.body, key('x', { metaKey: true }))).toBe(true);
+    expect(ran).toEqual(['paste', 'copy', 'cut']);
   });
 
   it('dispatches to the handler registered last; unregistering an older one leaves it in place', () => {

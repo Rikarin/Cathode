@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, effect, input, output, signal, untracked } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  input,
+  model,
+  output,
+  signal,
+  untracked
+} from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   matPushPinRound,
@@ -221,9 +231,10 @@ export class PickerList {
   readonly color = output<{ entry: PickerEntry; color: string }>();
   readonly queryChange = output<string>();
 
-  readonly pinned = signal(false);
+  /** Two-way, like the favourites filter: a picker that creates the list only while open keeps them between openings. */
+  readonly pinned = model(false);
+  readonly favoritesOnly = model(false);
   protected readonly query = signal('');
-  protected readonly favoritesOnly = signal(false);
   protected readonly index = signal(0);
   protected readonly shown = computed(() => pickerEntries(this.entries(), this.query(), this.favoritesOnly()));
   protected readonly active = computed(() => this.shown()[this.index()] ?? null);
