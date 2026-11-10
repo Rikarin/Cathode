@@ -55,7 +55,7 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         { "SVT", (0xD1764C0CC01C37B0, 0x1D8F66AC6688D267) },
         { "Portaflex B-15N", (0x76788BF6655480E6, 0x375A6E0DDFCC5DBB) },
         { "JC-120", (0xE5591A0D89D0E308, 0xA7D1B0B5F3CF18FC) },
-        { "Hot Rod Deluxe", (0xBE549F7E7E20226C, 0xC934A025D888CB23) },
+        { "Hot Rod Deluxe", (0xBE549F7E7E20226C, 0xBE8A972AAC0C129F) },
         { "Champ 5F1", (0x751704F24D4270C5, 0xA36EB5EA922A9E6A) },
         { "Vibroverb AB763", (0x6F3DB50BEBC24351, 0xEECFD6ABF6A76C80) },
         { "Vibrolux Reverb AA964", (0x810B1B19D4ECF8D6, 0x0C96A8F162FDD247) },

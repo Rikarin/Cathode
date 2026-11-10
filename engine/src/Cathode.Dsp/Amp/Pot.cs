@@ -17,7 +17,8 @@ public enum PotTaper {
 /// <summary>
 ///     A potentiometer: its track resistance and taper; for an audio taper, <paramref name="Midpoint" /> is the
 ///     fraction of the track below the wiper at half rotation (Fender marks it in the part number: "250k15A" is 15 %,
-///     "100k30A" 30 %; 10 % is the usual A taper).
+///     "100k30A" 30 %; 10 % is the usual A taper); for a reverse audio taper it is the fraction above the wiper there
+///     ("25k30C": 30 % above, 70 % below).
 /// </summary>
 public readonly record struct Pot(double Ohms, PotTaper Taper, double Midpoint = 0.1) {
     /// <summary>
