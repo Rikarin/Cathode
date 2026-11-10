@@ -107,7 +107,7 @@ public static class Prometheus {
             new(Math.Sqrt(2), 100e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6),
             true,
             new(1.7e3),
-            new(Resonance: 95, PeakImpedance: 30, Q: 2.5),
+            SpeakerDesign.Closed4x12,
             new(25, 100e-6, 100, 50e-6, 10e3, 22e-6)
         ),
         -10

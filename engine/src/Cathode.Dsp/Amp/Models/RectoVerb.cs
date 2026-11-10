@@ -35,7 +35,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///         switched out), here the power amp's presence network at that value with its knob hidden; the 120 pF across
 ///         each inverter plate resistor and the 75 pF between the plates are left out. Not on the drawing: the idle
 ///         current (40 mA), the primary (4k, a typical value for two 6L6) and the Series II changes. The rhythm channel
-///         is not modelled.
+///         is not modelled. The stock speaker load is the closed 4 × 12 preset, as on the other Rectifiers: the head on
+///         a closed cabinet. There is no closed 1 × 12 or 2 × 12 curve for the combo; Speaker load: Follow Cab gives
+///         one.
 ///     </para>
 /// </remarks>
 public static class RectoVerb {
@@ -67,7 +69,7 @@ public static class RectoVerb {
             new(1, 47e3, 4.7e3, new(16.6e3, PotTaper.Linear), 0.1e-6),
             true,
             new(4e3),
-            new(Inductance: 1.4e-3, EddyResistance: 22, Resonance: 95, PeakImpedance: 30, Q: 2.2),
+            SpeakerDesign.Closed4x12,
             // The choke to B's 30 µF, 5.6k to C's 10 µF: 451 V to 415 V is 6.4 mA.
             new(30, 110e-6, 100, 30e-6, 5.6e3, 10e-6, 6.4e-3, RectifierModel.Silicon)
         ),

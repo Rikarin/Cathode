@@ -70,7 +70,7 @@ public static class MarkV {
             Feedback: new(1, 64e3, 1.5e3, new(25e3, PotTaper.Linear), 0.1e-6),
             true,
             new(2.2e3),
-            new(Inductance: 1.4e-3, EddyResistance: 22, Resonance: 95, PeakImpedance: 30, Q: 2.2),
+            SpeakerDesign.Closed4x12,
             new(30, 110e-6, 100, 30e-6, 5.6e3, 33e-6, 6e-3, RectifierModel.Silicon),
             Strapped: PentodeModel.SixL6GC,
             StrappedPerSide: 1

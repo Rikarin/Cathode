@@ -76,7 +76,7 @@ public static class DualRectifier {
             new(1, 47e3, 4.7e3, new(25e3, PotTaper.Linear), 0.1e-6),
             true,
             new(1.9e3),
-            new(Inductance: 1.4e-3, EddyResistance: 22, Resonance: 95, PeakImpedance: 30, Q: 2.2),
+            SpeakerDesign.Closed4x12,
             // 220 + 220 µF stacked, the choke to B's 30 µF, R602 2.7k to C's 30 µF: 454 V to 422 V is 11.9 mA.
             new(30, 110e-6, 100, 30e-6, 2.7e3, 30e-6, 11.9e-3, RectifierModel.Silicon),
             InverterInput: new(20e-9, 1e6),

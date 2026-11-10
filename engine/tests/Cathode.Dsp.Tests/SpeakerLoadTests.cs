@@ -69,6 +69,35 @@ public class SpeakerLoadTests(ITestOutputHelper output) {
     }
 
     /// <summary>
+    ///     The models heard through a closed 4 × 12 all take the one closed 4 × 12 curve, so their Stock load and the
+    ///     "4x12 Closed" choice are the same load.
+    /// </summary>
+    [Theory]
+    [InlineData("SLO-100")]
+    [InlineData("Mark IIC+")]
+    [InlineData("Mark IV")]
+    [InlineData("Mark V")]
+    [InlineData("5150")]
+    [InlineData("5150III")]
+    [InlineData("Dual Rectifier")]
+    [InlineData("Dual Rectifier 3-Ch")]
+    [InlineData("Triple Rectifier")]
+    [InlineData("Rect-o-Verb")]
+    [InlineData("TriAxis Rhythm")]
+    [InlineData("Powerball")]
+    [InlineData("Savage 120")]
+    [InlineData("Legacy VL100")]
+    [InlineData("Prometheus")]
+    [InlineData("Prometheus Clean")]
+    public void The_closed_4x12_models_share_the_closed_4x12_preset(string name) {
+        var design = AmpDesign.All.Single(a => a.Name == name);
+        Assert.Same(SpeakerDesign.Closed4x12, design.Power.Speaker);
+        var choice = SpeakerDesign.Presets.ToList().IndexOf(SpeakerDesign.Closed4x12) + 1;
+        Assert.Equal("4x12 Closed", CircuitAmpBlock.Info.Params[CircuitAmpBlock.SpeakerCurve].Options![choice]);
+        Assert.Same(design.Power.Speaker, CircuitAmpBlock.LoadFor(choice, (-1, -1)));
+    }
+
+    /// <summary>
     ///     Each speaker's impedance is the textbook Thiele-Small one, <c>Re + Res / (1 + j Qms (f/Fs − Fs/f))</c> with
     ///     <c>Res = Re Qms / Qes</c>, plus the voice coil's semi-inductance: the peak sits at Fs, reaches Re + Res, and
     ///     the top rises with Le.
