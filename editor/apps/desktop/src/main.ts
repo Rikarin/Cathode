@@ -7,11 +7,13 @@ import {
   net,
   protocol,
   session,
-  shell
+  shell,
+  systemPreferences
 } from 'electron';
 import { existsSync, statSync } from 'node:fs';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { type MicrophoneAccess, MicrophoneSettingsUrl, microphoneAccess, requestMicrophone } from './microphone';
 import { networkStatus, newToken, portFree } from './network';
 import { FileInbox, isPresetFile, presetArguments, readPreset } from './open-files';
 import {
@@ -150,6 +152,51 @@ function mayQuit(): Promise<boolean> {
   return askingToQuit;
 }
 
+/**
+ * Whether the engine host was last started on an audio interface without microphone access (macOS): its inputs are
+ * then silent, and it is restarted once the access is there (microphoneStatus).
+ */
+let hostLacksMicrophone = false;
+
+/**
+ * Before the engine host opens an audio interface: on macOS, shows the microphone prompt if the user has never
+ * answered it, so the host starts with the answer given. A refusal does not stop the engine: the outputs still play,
+ * and Audio setup says why the inputs are silent. Without a device (the null backend) nothing is asked.
+ */
+async function prepareMicrophone(): Promise<void> {
+  if (!settings.audio.device) {
+    hostLacksMicrophone = false;
+    return;
+  }
+
+  let access: MicrophoneAccess = 'not-determined';
+  try {
+    access = await requestMicrophone(process.platform, systemPreferences);
+  } catch (error) {
+    console.warn('Cathode: could not ask for microphone access', error);
+  }
+
+  hostLacksMicrophone = access !== 'granted';
+}
+
+/**
+ * The microphone access as it stands, for Audio setup. When the user has granted it since the host started without,
+ * the host is restarted so its inputs come alive.
+ */
+function microphoneStatus(): MicrophoneAccess {
+  const access = microphoneAccess(process.platform, systemPreferences);
+  if (access === 'granted' && hostLacksMicrophone) {
+    hostLacksMicrophone = false;
+    if (sidecars && settings.audio.device) {
+      sidecars
+        .applyAudio(settings.audio)
+        .catch((error: unknown) => console.error('Cathode: could not restart the engine host', error));
+    }
+  }
+
+  return access;
+}
+
 function connection(): Promise<Connection> {
   const target = settings.target;
   if (target.mode === 'remote') {
@@ -168,7 +215,9 @@ function connection(): Promise<Connection> {
     process.env['CATHODE_DATA_DIR'] ?? null,
     statuses => window?.webContents.send('cathode:sidecars', statuses)
   );
-  return sidecars.start();
+  const local = sidecars;
+  // If the target changed while macOS asked, these sidecars are no longer the ones to start.
+  return prepareMicrophone().then(() => (sidecars === local ? local.start() : connection()));
 }
 
 /** Allows the renderer to reach exactly the Server it uses, and nothing else. */
@@ -329,7 +378,14 @@ function handleIpc(): void {
   ipcMain.handle('cathode:audio:apply', async (_event, audio: unknown) => {
     settings = { ...settings, audio: validAudio(audio) };
     await saveSettings(settings);
+    await prepareMicrophone();
     await sidecars?.applyAudio(settings.audio);
+  });
+  ipcMain.handle('cathode:audio:microphone', () => microphoneStatus());
+  ipcMain.handle('cathode:audio:microphone:settings', async () => {
+    if (process.platform === 'darwin') {
+      await shell.openExternal(MicrophoneSettingsUrl);
+    }
   });
   ipcMain.handle('cathode:audio:latencyTest', () =>
     sidecars ? sidecars.latencyTest() : { ok: false, output: 'Not running a local engine.', roundTripMs: null }
@@ -579,8 +635,9 @@ app
       app.dock?.setIcon(Icon);
     }
 
-    // No camera, microphone, notifications or anything else: the editor needs none of it. Writing the clipboard (Copy
-    // the access token) is the one exception; reading it stays denied.
+    // No camera, microphone, notifications or anything else for the window: the editor needs none of it (the audio
+    // goes through the engine host, whose microphone access main asks macOS for: prepareMicrophone). Writing the
+    // clipboard (Copy the access token) is the one exception; reading it stays denied.
     session.defaultSession.setPermissionRequestHandler((_contents, permission, callback) =>
       callback(permission === 'clipboard-sanitized-write')
     );

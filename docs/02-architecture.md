@@ -440,6 +440,7 @@ Live state outside the preset has events of its own, which carry the current `re
   - gives each sidecar its standard input as a pipe, its lifeline: the OS closes it however the app ends, and the sidecar then stops cleanly (`--watch-stdin`, `Cathode:WatchStdin`), so none outlives a crash or a force quit
   - can instead connect to a remote server (headless rig) by URL and token
   - provides native file dialogs, auto-update and crash reporting
+  - on macOS, asks for microphone access (which covers every audio input) before the host opens an interface, and tells Audio setup when it is refused: the host would otherwise play silence with no error (`microphone.ts`)
   - asks GitHub's releases feed for a newer release shortly after the start and once a day (`updates.ts`; a setting, on by default, in the app's menu) and offers its page in the menu; nothing is downloaded or installed
   - is the app for `.cthpreset` files (a file association in the installers): a file opened from the OS (macOS `open-file`, elsewhere the command line, also a second start's) is read in main and handed to the editor, which imports it once it has connected (`open-files.ts`)
   - has contextIsolation on and nodeIntegration off; a minimal preload exposes `window.cathode.{pickFile, revealPath, version}`
