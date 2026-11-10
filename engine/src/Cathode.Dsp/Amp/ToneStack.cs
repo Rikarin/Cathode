@@ -20,7 +20,8 @@ public sealed record ToneStackDesign(
     Pot Middle
 ) {
     /// <summary>
-    ///     Fender blackface (AB763 Twin/Super Reverb): 250 pF, 100k, 0.1 µF, 47 nF, 250k A treble and bass, 10k mid.
+    ///     Fender blackface (AB763 Twin/Super Reverb): 250 pF, 100k, 0.1 µF, 47 nF, 250k A treble and bass, 10k A mid
+    ///     (the Twin Reverb and Super Reverb drawings: "Middle 10K-A").
     /// </summary>
     public static ToneStackDesign Fender { get; } = new(
         "Fender",
@@ -30,7 +31,7 @@ public sealed record ToneStackDesign(
         47e-9,
         new(250e3, PotTaper.Audio),
         new(250e3, PotTaper.Audio),
-        new(10e3, PotTaper.Linear)
+        new(10e3, PotTaper.Audio)
     );
 
     /// <summary>

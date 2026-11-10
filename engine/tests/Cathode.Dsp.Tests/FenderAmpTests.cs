@@ -124,6 +124,97 @@ public class FenderAmpTests(ITestOutputHelper output) {
     }
 
     [Fact]
+    public void Blackface_is_built_from_the_ab763_parts() {
+        // The AB763 drawings: 34k at the input (68k ‖ 68k), a 10K-A mid pot, 0.047 µF into the 220k mixing resistors,
+        // 1 nF into a 12AT7 pair with 470 Ω between the cathodes and the tail.
+        var design = Amp.Models.Blackface.Design;
+        var twin = Amp.Models.TwinReverb.Design;
+        var first = (ToneStackStageDesign)design.Preamp[0];
+        var twinFirst = (ToneStackStageDesign)twin.Preamp[0];
+        Assert.Equal(twinFirst.InputResistance, first.InputResistance);
+        Assert.Equal(34e3, first.InputResistance);
+        Assert.Equal(twinFirst.Stack with { Name = first.Stack.Name }, first.Stack);
+        Assert.Equal(new Pot(10e3, PotTaper.Audio), first.Stack.Middle);
+        Assert.Equal(47e-9, design.Preamp.OfType<CouplingStageDesign>().Single().CouplingCap);
+        Assert.Equal(twin.Power.PhaseInverter, design.Power.PhaseInverter);
+        Assert.Equal(470, ((LongTailPairDesign)design.Power.PhaseInverter).BiasResistor);
+        Assert.Equal(twin.Power.InverterInput, design.Power.InverterInput);
+    }
+
+    [Theory]
+    [InlineData("Blackface", 270)] // a Super Reverb-style channel
+    [InlineData("Deluxe Reverb", 180)]
+    [InlineData("Twin Reverb", 270)]
+    [InlineData("Super Reverb", 270)]
+    [InlineData("Vibroverb AB763", 280)]
+    [InlineData("Bandmaster AB763", 275)]
+    public void Ab763_first_stage_plates_rest_near_the_drawings_plate_voltage(string model, double drawn) {
+        // Robinette's "AB763 model differences" lists the voltage the drawings print at the 7025 plates, not the
+        // preamp's supply node: a 270 V plate on 100k and 1.5k needs a node near 410 V.
+        var stage = AmpDesign.All.Single(a => a.Name == model).Preamp[0];
+        var supply = stage switch {
+            ToneStackStageDesign stack => stack.Supply,
+            NetworkStageDesign network => network.Netlist.Elements.First(static e => e.Kind == ElementKind.Supply).Value,
+            _ => throw new InvalidOperationException(stage.Name)
+        };
+        var plate = OperatingPoint.CommonCathode(Wdf.TriodeModel.Ecc83, 0, supply, 100e3, 1.5e3).Plate;
+        output.WriteLine($"{model}: V1 on {supply:0} V rests at {plate:0} V at the plate (drawing {drawn:0} V)");
+        Assert.Equal(drawn, plate, 0.15 * drawn);
+    }
+
+    [Theory]
+    [InlineData("Bassman 5F6-A")]
+    [InlineData("Bassman 5F6-A Jumped")]
+    public void Bassman_inverter_takes_the_stack_through_its_input_cap_and_draws_grid_current(string model) {
+        // The 5F6-A drawing: 0.02 µF from the treble wiper to the inverter's grid, 1M from the grid to the junction of
+        // the 470 Ω and the tail. The Tweed Twin 5F8-A's drawing has the same.
+        var design = AmpDesign.All.Single(a => a.Name == model);
+        Assert.Equal(new InverterInputDesign(20e-9, 1e6), design.Power.InverterInput);
+        Assert.Equal(Amp.Models.TweedTwin.Design.Power.InverterInput, design.Power.InverterInput);
+
+        // Overdriven, the grid conducts on the peaks and charges the cap: the grid's mean falls below its rest.
+        var power = new PowerAmp(design.Power, 96_000);
+        power.SetSourceResistance(40e3);
+        power.Configure(new(0.5, 0, 0, 0.5, 0.5, 0.5));
+        power.Reset();
+        var rest = power.InverterGrid;
+        var mean = 0.0;
+        for (var n = 0; n < 19_200; n++) {
+            power.Tick(60 * Math.Sin(2 * Math.PI * 220 * n / 96_000.0));
+            if (n >= 9_600) {
+                mean += power.InverterGrid / 9_600;
+            }
+        }
+
+        output.WriteLine($"{model}: driven grid rests at {rest:0.00} V, mean {mean:0.00} V under a 60 V sine");
+        Assert.True(mean < rest - 1, $"mean {mean:0.00} V against {rest:0.00} V at rest");
+
+        // And the whole amp still converges at full gain, hot bias and full sag under a full-scale square wave.
+        using var block = new CircuitAmpBlock();
+        block.Params.SetTarget(CircuitAmpBlock.Type, AmpDesign.All.ToList().FindIndex(a => a.Name == model));
+        block.Params.SetTarget(CircuitAmpBlock.Gain, 10);
+        block.Params.SetTarget(CircuitAmpBlock.Control1, 10);
+        block.Params.SetTarget(CircuitAmpBlock.Bias, 100);
+        block.Params.SetTarget(CircuitAmpBlock.Sag, 10);
+        block.Prepare(new(Rate, 64));
+        var square = Signals.Sine(110, Rate, 48_000).Select(static s => s >= 0 ? 1f : -1f).ToArray();
+        var rendered = BlockRender.Mono(block, Signals.Concat(square, Signals.Noise(48_000, 4)), 64);
+        Assert.True(Analysis.AllFinite(rendered));
+        var channel = block.Channel;
+        var solvers = channel.Stages
+            .Where(static s => s.Newton is not null)
+            .Select(static s => s.Newton!)
+            .Append(channel.Power.Newton);
+        foreach (var newton in solvers) {
+            Assert.Equal(0, newton.NonFinite);
+            Assert.True(
+                newton.Unconverged <= newton.Samples / 10_000,
+                $"{model}: {newton.Unconverged} unconverged of {newton.Samples}"
+            );
+        }
+    }
+
+    [Fact]
     public void Tweed_deluxe_power_tubes_idle_on_the_drawings_250_ohm_cathode_resistor() {
         // The 5E3's two 6V6s share 250 Ω (Robinette: about 38 mA a tube); the resistor sets the idle current, not a
         // current the model guesses.
@@ -136,6 +227,65 @@ public class FenderAmpTests(ITestOutputHelper output) {
         Assert.Equal(250, power.CathodeResistor, 6);
         Assert.Equal(power.CathodeVoltage, 250 * 2 * (plate + screen), 0.05 * power.CathodeVoltage);
         Assert.InRange(plate, 0.030, 0.040);
+    }
+
+    [Fact]
+    public void Tweed_deluxe_bright_cap_fades_out_as_tone_is_turned_down() {
+        // The drawing's tone pot has the 500 pF on its far end: at 10 it bypasses the Instrument volume's upper part,
+        // and turned down the pot's track comes in series with it. The Microphone channel is the same circuit without
+        // the cap, so the Instrument channel's extra treble over it is the bright bypass.
+        double Lift(float tone) {
+            return Channel(0f) - Channel(1f);
+
+            double Channel(float mic) => Analysis.ToDb(Level(4_000, mic) / Level(400, mic));
+
+            double Level(double frequency, float mic) {
+                using var block = new CircuitAmpBlock();
+                block.Params.SetTarget(
+                    CircuitAmpBlock.Type,
+                    AmpDesign.All.ToList().FindIndex(static a => a.Name == "Tweed Deluxe 5E3")
+                );
+                block.Params.SetTarget(CircuitAmpBlock.Gain, 3);
+                block.Params.SetTarget(CircuitAmpBlock.Control1, 3);
+                block.Params.SetTarget(CircuitAmpBlock.Treble, tone);
+                block.Params.SetTarget(CircuitAmpBlock.Switch1, mic);
+                block.Prepare(new(Rate, 64));
+                var rendered = BlockRender.Mono(block, Signals.Sine(frequency, Rate, 19_200, 0.01f), 64);
+                return Analysis.Rms(rendered.AsSpan(9_600));
+            }
+        }
+
+        var (full, half, low) = (Lift(10f), Lift(5f), Lift(2f));
+        output.WriteLine(
+            $"Instrument over Microphone, 4 kHz over 400 Hz: {full:0.0} dB at tone 10, {half:0.0} dB at 5, "
+            + $"{low:0.0} dB at 2"
+        );
+        Assert.True(full > 10, $"bright cap at tone 10: {full:0.0} dB");
+        Assert.True(Math.Abs(half) < 3, $"bright cap at tone 5: {half:0.0} dB");
+        Assert.True(Math.Abs(low) < 3, $"bright cap at tone 2: {low:0.0} dB");
+    }
+
+    [Fact]
+    public void Tweed_deluxe_supply_has_the_drawings_droppers_and_its_nodes_follow_from_them() {
+        // The 5E3 drawing: 5k from the reservoir to the screen node, 22k on to the preamp node. It prints no voltages,
+        // so the preamp node is where the 22k and the draw of the stages on it meet.
+        var design = Amp.Models.TweedDeluxe.Design;
+        var supply = design.Power.PowerSupply;
+        Assert.Equal(5e3, supply.ChokeResistance);
+        Assert.Equal(22e3, supply.PreampResistance);
+
+        var rail = design.Power.PhaseInverter.Supply;
+        var draw = 2 * OperatingPoint.CommonCathode(Wdf.TriodeModel.TwelveAY7, 0, rail, 100e3, 2 * 820).Current
+            + OperatingPoint.CommonCathode(Wdf.TriodeModel.Ecc83, 0, rail, 100e3, 1.5e3).Current
+            + OperatingPoint.CommonCathode(Wdf.TriodeModel.Ecc83, 0, rail, 56e3 + 56e3, 1.5e3).Current;
+        var power = new AmpChannel(design, 96_000).Power;
+        output.WriteLine(
+            $"B+ {power.Supply:0} V, screens {power.ScreenSupply:0} V, preamp {power.PreampVoltage:0} V "
+            + $"(stages on {rail:0} V drawing {draw * 1e3:0.00} mA)"
+        );
+        Assert.Equal(draw, supply.PreampCurrent, 0.03 * draw);
+        Assert.Equal(rail, power.PreampVoltage, 0.02 * rail);
+        Assert.InRange(power.ScreenSupply, 310, 330);
     }
 
     [Fact]

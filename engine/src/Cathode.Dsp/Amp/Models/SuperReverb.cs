@@ -11,18 +11,23 @@ namespace Cathode.Dsp.Amp.Models;
 ///     docs/06 §3.1.
 /// </summary>
 /// <remarks>
+///     The supply nodes are the Fender drawing's ("Super-Reverb-Amp AB763",
+///     schematicheaven.net/fenderamps/super_reverb_ab763_schem.pdf): 460 V at the plates and, past the choke, at the
+///     screens and the vibrato, 1k to 450 V (the inverter), 4.7k to 410 V (the preamp); the drawing's 270 V is at the
+///     7025 plates. The supply here has one dropper below the screen node: the 1k and 4.7k in series, at the current
+///     that puts the preamp node on 410 V.
 ///     The first stage is a network stage, so that the channel switch can swap the fixed mid resistor for the mid pot.
-///     The mid pot (10k audio) and the Normal channel's mid cap (taken as the Vibrato channel's 0.022 µF) are
-///     unverified; the idle current (35 mA) and the supply's source resistance are typical values. The existing
-///     "Blackface" type is a Super-style channel without the mixing stage; this is the whole amp.
+///     The mid pot (10K-A) and both channels' 0.022 µF mid caps are the drawing's; the idle current (35 mA) and the
+///     supply's source resistance are typical values. The "Blackface" type is a Super-style channel without the
+///     mixing stage; this is the whole amp.
 /// </remarks>
 public static class SuperReverb {
     public static AmpDesign Design { get; } = new(
         "Super Reverb",
         [
             FirstStage(),
-            Ab763.SecondStage(270),
-            Ab763.Mixer(270) with { Tremolo = Ab763.Vibrato(460) }
+            Ab763.SecondStage(410),
+            Ab763.Mixer(410) with { Tremolo = Ab763.Vibrato(460) }
         ],
         new(
             "2 x 6L6GC",
@@ -34,7 +39,7 @@ public static class SuperReverb {
             false,
             0,
             40,
-            Ab763.PhaseInverter(420),
+            Ab763.PhaseInverter(450),
             0.1e-6,
             220e3,
             1.5e3,
@@ -44,7 +49,7 @@ public static class SuperReverb {
             true,
             new(4.2e3),
             SpeakerDesign.OpenBack4x10,
-            new(100, 40e-6, 100, 20e-6, 10e3, 20e-6, 6e-3, RectifierModel.GZ34),
+            new(100, 40e-6, 100, 20e-6, 5.7e3, 20e-6, 8.8e-3, RectifierModel.GZ34),
             InverterInput: Ab763.InverterInput
         ),
         -6
@@ -70,7 +75,7 @@ public static class SuperReverb {
     static NetworkStageDesign FirstStage() {
         var net = new StageNetlist();
         var (plate, cathode, rail) = (net.Node(), net.Node(), net.Node());
-        net.Supply(rail, 270);
+        net.Supply(rail, 410);
         net.Resistor(rail, plate, 100e3);
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
         net.Capacitor(cathode, StageNetlist.Ground, 25e-6);

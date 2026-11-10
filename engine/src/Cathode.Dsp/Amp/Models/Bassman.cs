@@ -7,8 +7,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///     shared 820 Ω ‖ 250 µF cathode), the channels' 0.02 µF caps and 1M volumes (the Bright channel's with a fixed 100
 ///     pF), the 270k mixing resistors into V2A (12AX7, 100k, 820 Ω unbypassed), the V2B cathode follower DC-coupled to
 ///     it (100k) driving the Bassman stack (Yeh and Smith's values: 250 pF, 56k slope, 0.02 µF bass and mid; treble
-///     250k, bass 1M, mid 25k), whose treble wiper drives the inverter's 1M grid resistor directly (the amp has no
-///     master), a 12AX7 long-tail pair (82k/100k, 470 Ω, 10k tail over the 5k presence pot), two 5881 (6L6 curves) in
+///     250k, bass 1M, mid 25k), whose treble wiper drives the inverter through its 0.02 µF input cap (the amp has no
+///     master), a 12AX7 long-tail pair (82k/100k, 470 Ω, 10k tail over the 5k presence pot, the 1M grid resistors
+///     returning to the junction of the 470 Ω and the 10k), two 5881 (6L6 curves) in
 ///     fixed bias at 430 V on a GZ34, a 4k : 2 Ω transformer and 27k feedback from the 2 Ω tap into the presence pot,
 ///     which is the tail's shunt with the 0.1 µF on its wiper. Panel: Bright and Normal volumes, Bass, Middle, Treble,
 ///     Presence;
@@ -40,10 +41,13 @@ namespace Cathode.Dsp.Amp.Models;
 ///         Jumpered, each grid sees about 68k (the two input jacks' resistors in series).
 ///     </para>
 ///     <para>
-///         The stack's output is the treble wiper, loaded by the inverter's 1M grid resistor: the amp has no master.
-///         (The model first had that 1M as a pot on the Master role, which the hidden panel knob left at its default of
-///         5, halving the drive into the inverter, with Master Location and Master Trim acting on an amp without a
-///         master.)
+///         The stack's output is the treble wiper: the amp has no master. From there the drawing ("Bassman 5F6-A",
+///         schematicheaven.net/fenderamps/bassman_5f6a_schem.pdf, code I-EG) has 0.02 µF into the inverter's grid and
+///         1M from the grid to the junction of the 470 Ω and the 10k tail, which follows the grid, so the leak is
+///         bootstrapped. That is the power amp's input network (<see cref="InverterInputDesign" />), as on the Tweed
+///         Twin 5F8-A, whose drawing has the same: the cathode follower charges the cap through the inverter's grid
+///         current when it is overdriven, and the stack sees the cap and the bootstrapped leak rather than a plain 1M
+///         to ground. The stack stage's own load pot is left as an open end (<see cref="NoLoad" />).
 ///     </para>
 /// </remarks>
 public static class Bassman {
@@ -54,6 +58,12 @@ public static class Bassman {
 
     /// <summary>The idle V1 half's plate: a 12AY7's r_p (about 27k at 1.65 mA) in parallel with its 100k.</summary>
     const double IdlePlate = 21e3;
+
+    /// <summary>
+    ///     The stack stage's load pot, with no knob: the treble wiper's only load is the inverter's input network in
+    ///     the power amp, so this stands for an open end (100M against the stack's few hundred kΩ).
+    /// </summary>
+    static readonly Pot NoLoad = new(100e6, PotTaper.Linear);
 
     /// <summary>The Bassman 5F6-A stack (Yeh and Smith, DAFx-06).</summary>
     public static ToneStackDesign Stack { get; } = new(
@@ -87,7 +97,7 @@ public static class Bassman {
                     325,
                     100e3,
                     Stack,
-                    new(1e6, PotTaper.Linear), // the inverter's grid resistor: no knob, no master
+                    NoLoad,
                     null
                 )
             ],
@@ -111,7 +121,8 @@ public static class Bassman {
                 true,
                 new(4e3),
                 SpeakerDesign.OpenBack4x10,
-                new(100, 32e-6, 100, 16e-6, 4.7e3, 16e-6, 6e-3, RectifierModel.GZ34)
+                new(100, 32e-6, 100, 16e-6, 4.7e3, 16e-6, 6e-3, RectifierModel.GZ34),
+                InverterInput: new(20e-9, 1e6)
             ),
             -11
         ) {
