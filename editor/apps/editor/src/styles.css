@@ -17,14 +17,23 @@ body {
   @apply bg-background text-foreground font-sans antialiased;
   font-size: 13px;
   overscroll-behavior: none;
-  /* An app, not a document: labels, readouts and the grid's + are not text to select. Fields still are (below). */
+  /*
+   * An app, not a document: labels, readouts and the grid's + are not text to select. Fields still are, and so are
+   * the reports the app prints (the engine log, the latency test's and the IR capture's output), which a user copies
+   * into a bug report (below).
+   */
   @apply select-none;
 }
 
 input,
 textarea,
+pre,
 [contenteditable]:not([contenteditable='false']) {
   @apply select-text;
+}
+
+pre {
+  cursor: text;
 }
 
 /* The navbar as a macOS title bar (app.ts): dragging it moves the window, while its controls stay clickable. */

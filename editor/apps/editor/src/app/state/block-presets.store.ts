@@ -99,13 +99,16 @@ export class BlockPresetsStore {
     );
   }
 
-  /** Saves a new user entry: one channel's values, or (with `channels`) a whole block. */
+  /**
+   * Saves a new user entry: one channel's values, or (with `channels`) a whole block. Resolves to whether the Server
+   * stored it; a refusal is reported and leaves the Library as it was.
+   */
   async save(
     type: string,
     name: string,
     entry: Pick<BlockPreset, 'values'> & Partial<Pick<BlockPreset, 'channels' | 'modifiers' | 'assets' | 'folder'>>
-  ): Promise<void> {
-    await this.notify.run(async () => {
+  ): Promise<boolean> {
+    const saved = await this.notify.run(async () => {
       const id = newId();
       unwrap(
         await this.connection.client.PUT('/api/v1/block-presets/{id}', {
@@ -123,8 +126,13 @@ export class BlockPresetsStore {
           }
         })
       );
-      await this.refresh();
+      return true;
     });
+    if (saved) {
+      await this.refresh();
+    }
+
+    return saved ?? false;
   }
 
   /** Every block of the working copy, as whole-block entries in one folder. */
