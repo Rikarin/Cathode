@@ -867,13 +867,9 @@ public struct RTypeRoot<TPorts, TDevice>
         var s = Newton;
         var v = s.voltages.AsSpan(0, k);
         var r = s.currents.AsSpan(0, k);
-        var best = s.best.AsSpan(0, k);
-        var trial = s.residual.AsSpan(0, k);
-        var gc = s.conductances.AsSpan(0, k);
-        var jacobian = s.jacobian.AsSpan(0, k * k);
         var system = s.system.AsSpan(0, k * k);
         var step = s.step.AsSpan(0, k);
-        best.CopyTo(v);
+        s.best.AsSpan(0, k).CopyTo(v);
         s.bestCurrents.AsSpan(0, k).CopyTo(r);
         var ignored = double.PositiveInfinity;
         Residual(k, v, ref ignored);
@@ -883,9 +879,9 @@ public struct RTypeRoot<TPorts, TDevice>
         }
 
         for (var d = 0; d < k; d++) {
-            var sum = trial[d];
+            var sum = s.residual[d];
             for (var l = s.blockStart[d]; l < s.blockEnd[d]; l++) {
-                sum += (jacobian[d * k + l] - (d == l ? gc[d] : 0)) * step[l];
+                sum += (s.jacobian[d * k + l] - (d == l ? s.conductances[d] : 0)) * step[l];
             }
 
             if (!double.IsFinite(sum) || !double.IsFinite(step[d])) {
