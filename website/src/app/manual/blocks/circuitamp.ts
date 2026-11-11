@@ -54,7 +54,7 @@ Leave a few dB of headroom in *Level*; a Cab block after the amp removes them.
   Triple Rectifier (with Triple Rectifier Orange and Clean), Rect-o-Verb, Mark IIC+ (and its clean rhythm channel,
   Mark IIC+ Rhythm), Mark IV (and its clean and crunch channels, Mark IV Rhythm 1 and Rhythm 2), Mark V (and its
   channels 1 and 2, Mark V Clean and Mark V Crunch), TriAxis, Legacy VL100, Powerball, Savage 120 (and Savage 120
-  Clean, its clean and first crunch channel), Prometheus.
+  Clean, its clean and first crunch channel), Fireball 60, Prometheus.
 - **Bass:** SVT (and its second channel, SVT Channel 2), SVT-CL, Portaflex B-15N (and both its channels jumpered, Portaflex B-15N Jumped), Bassman 135, Bass 400, and the solid-state GK 800RB.
 - **Solid state:** JC-120, GK 800RB and Valvestate 8080 (a tube preamp into a transistor power amp). Their tube-only
   knobs are hidden.
@@ -105,7 +105,9 @@ the presence pot and cap reduce the feedback at high frequencies, so the power a
 bite and cut, down to soften harsh tops. Because it acts in the feedback loop, its effect also depends on *Feedback*:
 with no feedback it has nothing to work on. On the Mark IIC+, Mark IV and Mark V the presence is a rheostat in series with the
 feedback, as on the amps: turning it up lowers the feedback at every frequency and the treble's most, so the amp also
-gets a little louder and looser; at 0 it is at its darkest and tightest. A few models wire their presence elsewhere
+gets a little louder and looser; at 0 it is at its darkest and tightest. The Fireball 60 has the same rheostat with no
+cap at all, so there the knob is simply the amount of feedback: up is louder, looser and brighter. A few models wire
+their presence elsewhere
 (the Rectifiers' is shown as Control 2: a preamp treble control on the two-channel Dual Rectifier and on the
 Rect-o-Verb's lead channel, and in the feedback on its rhythm channel;
 on the three-channel Dual Rectifier and the Triple Rectifier it is in the feedback in Raw and Vintage and a preamp
@@ -246,7 +248,8 @@ the Silver Jubilee, *Tone Shift* on the DSL100, *3rd Gear* on the Quick Rod,
 *-10 dB* on the GK 800RB (its input attenuator), *Smooth* on the Savage 120 (its second lead voice: less gain into the tone stack and one more tube stage after it, so
 the sound is rounder and the tone knobs do less; off is Rough), *Channel 1* on the Powerball (its Clean and Crunch
 channel, chosen by *Gain Hi*, with its own gain, tone stack and *Bright*; off is the lead channel), *Crunch 1* on the
-Savage 120 Clean (one more tube stage behind its own *Crunch 1 Gain*; off is Clean). *Bite Down* and
+Savage 120 Clean (one more tube stage behind its own *Crunch 1 Gain*; off is Clean), *Clean* on the
+Fireball 60 (its clean channel, which shares the gain and the tone stack with Ultra; off is Ultra). *Bite Down* and
 *Bass Cut* are the other side of the switch that *Bite Up* and *Ultra Lo* (Switch 2) belong to, and win when both are
 on.`,
 
@@ -663,6 +666,8 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
         'Engl Savage 120, channel 2: the lead, Rough and (Switch 3) Smooth, and Crunch 2 on the Bright switch. Aggressive, mid-forward high gain.',
       'Savage 120 Clean':
         'Engl Savage 120, channel 1: Clean and (Switch 3) Crunch 1, with Bright, Preshape and Contour. A bright, tight clean that Preshape fattens and pushes.',
+      'Fireball 60':
+        'Engl Fireball 60: the Ultra channel and (Switch 3) the clean channel, into two 6L6: high gain with few controls. A resistor the drawing leaves out and two supply filter nodes are assumed, both from the Powerball.',
       SVT: 'Ampeg SVT, channel one: the classic tube bass amp, with its Mid-Range and Mid Freq, Ultra Hi, Ultra Lo and Bass Cut.',
       'SVT Channel 2':
         'Ampeg SVT, channel two: the plainer channel, Volume, Bass and Treble with Ultra Hi and Ultra Lo and no midrange controls. With Ultra Lo off its volume network cuts the lows, as on the amp.',
@@ -884,7 +889,8 @@ away and back: every knob returns to the model's stock setting.
 **Differences from the Axe-Fx.** Cathode's expert controls scale real components (a cap, a resistor, a tube's curve)
 rather than behaviour, and a control the model has no part for is hidden and does nothing. Some models rest on
 assumed values where the schematic was incomplete or wrong (the Powerball's preamp, taken from a hand-corrected copy
-of the factory drawing, the Prometheus as a whole, several output transformers); the model descriptions say where.
+of the factory drawing, the Fireball's two extra supply filter nodes, the Prometheus as a whole, several output
+transformers); the model descriptions say where.
 
 **CPU.** The amp runs a full circuit at twice the sample rate (at rates below 64 kHz), so it is the heaviest block in
 most presets, and the high-gain models are the heaviest of all. Two amps in one preset is fine on most computers; see

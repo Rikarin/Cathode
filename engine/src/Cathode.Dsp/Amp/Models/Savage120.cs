@@ -446,36 +446,8 @@ public static class Savage120 {
     ///     V5A, the loop's send follower: 100k grid leak; 100k ‖ 47 nF to the rail; 1k cathode; 1 µF and the balance's
     ///     10k into V5B's 100k grid leak.
     /// </summary>
-    static StageNetlist Follower() {
-        var net = new StageNetlist();
-        var (grid, supply, plate, cathode, send, ret) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Resistor(net.Input, grid, 1);
-        net.Resistor(grid, StageNetlist.Ground, 100e3);
-        net.Supply(supply, InverterRail);
-        net.Resistor(supply, plate, 100e3);
-        net.Capacitor(supply, plate, 47e-9);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1e3);
-        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-        net.Capacitor(cathode, send, 1e-6);
-        net.Resistor(send, ret, 10e3);
-        net.Resistor(ret, StageNetlist.Ground, 100e3);
-        net.Output = ret;
-        return net;
-    }
+    static StageNetlist Follower() => EnglParts.Follower(InverterRail, 1, 100e3, 47e-9, 1e-6);
 
     /// <summary>V5B, the return stage (100k, 1k ‖ 22 µF), and 100 nF, 47k into the 1M linear master.</summary>
-    static StageNetlist ReturnAndMaster() {
-        var net = new StageNetlist();
-        var (supply, plate, cathode, coupled, top) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(supply, InverterRail);
-        net.Resistor(supply, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 22e-6);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
-        net.Capacitor(plate, coupled, 100e-9);
-        net.Resistor(coupled, top, 47e3);
-        net.Output = net.Pot(top, StageNetlist.Ground, new(1e6, PotTaper.Linear), PotRole.Master);
-        return net;
-    }
+    static StageNetlist ReturnAndMaster() => EnglParts.ReturnAndMaster(InverterRail, 1e3, 47e3);
 }

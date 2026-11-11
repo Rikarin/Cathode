@@ -415,12 +415,8 @@ public static class Powerball {
         );
         net.Capacitor(coupled, trebleTop, 470e-12, CapacitorRole.Stack);
         net.SwitchedCapacitor(coupled, trebleTop, 470e-12, SwitchRole.Switch1, CapacitorRole.Stack);
-        net.Resistor(coupled, slope, 100e3);
-        var treble = net.Pot(trebleTop, bassTop, new(250e3, PotTaper.Linear), PotRole.Treble);
-        net.Capacitor(slope, bassTop, 22e-9, CapacitorRole.Stack);
-        net.Rheostat(bassTop, middleTop, new(1e6, PotTaper.Audio), PotRole.Bass);
-        var middle = net.Pot(middleTop, StageNetlist.Ground, new(20e3, PotTaper.Linear), PotRole.Middle);
-        net.Capacitor(slope, middle, 10e-9, CapacitorRole.Stack);
+        var (treble, middle) =
+            EnglParts.StackPots(net, (coupled, slope, trebleTop, bassTop, middleTop), 100e3, 22e-9, 10e-9);
         net.SwitchedCapacitor(slope, middle, 0, SwitchRole.Switch1, CapacitorRole.Stack, 10e-9);
 
         net.Resistor(treble, cleanTop, 220e3);
@@ -437,38 +433,10 @@ public static class Powerball {
     ///     V7A, the loop's send follower: 220k into the grid with 100k to ground; 100k ‖ 10 nF to the 410 V rail; 1k
     ///     cathode; 4.7 µF and 10k into V7B's 100k grid leak.
     /// </summary>
-    static StageNetlist Follower() {
-        var net = new StageNetlist();
-        var (grid, supply, plate, cathode, send, ret) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Resistor(net.Input, grid, 220e3);
-        net.Resistor(grid, StageNetlist.Ground, 100e3);
-        net.Supply(supply, InverterRail);
-        net.Resistor(supply, plate, 100e3);
-        net.Capacitor(supply, plate, 10e-9);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1e3);
-        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-        net.Capacitor(cathode, send, 4.7e-6);
-        net.Resistor(send, ret, 10e3);
-        net.Resistor(ret, StageNetlist.Ground, 100e3);
-        net.Output = ret;
-        return net;
-    }
+    static StageNetlist Follower() => EnglParts.Follower(InverterRail, 220e3, 100e3, 10e-9, 4.7e-6);
 
     /// <summary>V7B, the return stage (100k, 1.5k ‖ 22 µF), and 100 nF, 100k into the 1M linear master.</summary>
-    static StageNetlist ReturnAndMaster() {
-        var net = new StageNetlist();
-        var (supply, plate, cathode, coupled, top) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(supply, InverterRail);
-        net.Resistor(supply, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 22e-6);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
-        net.Capacitor(plate, coupled, 100e-9);
-        net.Resistor(coupled, top, 100e3);
-        net.Output = net.Pot(top, StageNetlist.Ground, new(1e6, PotTaper.Linear), PotRole.Master);
-        return net;
-    }
+    static StageNetlist ReturnAndMaster() => EnglParts.ReturnAndMaster(InverterRail, 1.5e3, 100e3);
 
     static double Parallel(double a, double b) => a * b / (a + b);
 }

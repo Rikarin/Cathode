@@ -120,6 +120,7 @@ export const AMP_MODELS: Record<string, { family: AmpFamily; basedOn: string }> 
   Powerball: { family: 'highgain', basedOn: 'Engl Powerball' },
   'Savage 120': { family: 'highgain', basedOn: 'Engl Savage 120, channel 2 (Lead and Crunch 2)' },
   'Savage 120 Clean': { family: 'highgain', basedOn: 'Engl Savage 120, channel 1 (Clean and Crunch 1)' },
+  'Fireball 60': { family: 'highgain', basedOn: 'Engl Fireball 60' },
   'Quick Rod': { family: 'highgain', basedOn: 'Splawn Quickrod' },
   Prometheus: { family: 'highgain', basedOn: 'Lichtlaerm Audio Prometheus, lead channel' },
   'Prometheus Clean': { family: 'highgain', basedOn: 'Lichtlaerm Audio Prometheus, clean channel' },
