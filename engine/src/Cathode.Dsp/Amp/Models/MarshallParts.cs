@@ -77,6 +77,37 @@ public static class MarshallParts {
         new(Math.Sqrt(0.5), 100e3, 4.7e3, new(22e3, PotTaper.Linear), 0.1e-6, 80);
 
     /// <summary>
+    ///     The 100 W Super Lead's power amp, which the 1959T and the 1959SLP reissue have too: four EL34 on 460 V at
+    ///     35 mA each behind <paramref name="gridStopper" /> (5.6k; 1.5k on the reissue), a long-tail pair on 375 V,
+    ///     47k of feedback into the 5k presence pot (0.1 µF across the part the knob turns in), a 1.7k transformer and
+    ///     a closed 4 × 12.
+    /// </summary>
+    public static PowerAmpDesign SuperLeadPower(double gridStopper = 5.6e3) =>
+        new(
+            "4 x EL34",
+            PentodeModel.EL34,
+            2,
+            460,
+            1e3,
+            0.035,
+            false,
+            0,
+            100,
+            new LongTailPairDesign(TriodeModel.Ecc83, 375, 82e3, 100e3, 10e3, 470),
+            22e-9,
+            220e3,
+            gridStopper,
+            0,
+            new(1e6, PotTaper.Linear),
+            new(Math.Sqrt(2), 47e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6, 80) { PresenceIsShunt = true },
+            true,
+            new(1.7e3),
+            SpeakerDesign.Closed4x12,
+            new(25, 50e-6, 200, 50e-6, 10e3, 32e-6),
+            InverterInput: null
+        );
+
+    /// <summary>
     ///     The panel of a JCM800-style master-volume amp: no Cut, Depth or Bright; the Low input on switch 1.
     /// </summary>
     public static AmpPanel MasterVolumePanel { get; } = AmpPanel.Standard with {

@@ -41,29 +41,7 @@ public static class Marshall1959Slp {
             new TriodeStageDesign("V2A", TriodeModel.Ecc83, 300, 100e3, 820, 0.68e-6),
             MarshallParts.FollowerStack("V2B", 300, 100e3, MarshallVintageParts.ReissueStack, 1e6)
         ],
-        new(
-            "4 x EL34",
-            PentodeModel.EL34,
-            2,
-            460,
-            1e3,
-            0.035,
-            false,
-            0,
-            100,
-            new LongTailPairDesign(TriodeModel.Ecc83, 375, 82e3, 100e3, 10e3, 470),
-            22e-9,
-            220e3,
-            1.5e3,
-            0,
-            new(1e6, PotTaper.Linear),
-            new(Math.Sqrt(2), 47e3, 5e3, new(5e3, PotTaper.Linear), 0.1e-6, 80) { PresenceIsShunt = true },
-            true,
-            new(1.7e3),
-            SpeakerDesign.Closed4x12,
-            new(25, 50e-6, 200, 50e-6, 10e3, 32e-6),
-            InverterInput: null
-        ),
+        MarshallParts.SuperLeadPower(1.5e3),
         -6
     ) { Panel = MarshallParts.TwoChannelPanel with { Gain = "Loudness 1", Control1 = "Loudness 2" } };
 }
