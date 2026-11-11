@@ -287,14 +287,7 @@ public sealed partial class LiveRig {
 
     public Task<LiveState> CopyChannelAsync(string id, CopyChannelRequest request, long? expected) =>
         Locked(async () => {
-                Check(expected);
-                var block = Find(id);
-                var descriptor = catalog.Descriptor(block.Type)
-                    ?? throw new RigException(400, $"'{id}' has no channels.");
-                CheckChannel(request.From, descriptor.Channels);
-                CheckChannel(request.To, descriptor.Channels);
-                PushUndo(null);
-                var before = Channels(block);
+                var (block, before) = BeginChannelPair(id, request, expected);
                 // Through Put, so a linked global block and the preset's other blocks linked to it get the copy too.
                 Put(block, request.To, new(block.Channels.GetValueOrDefault(request.From) ?? []));
                 await RefreshChannelAsync(block, before, request.To);

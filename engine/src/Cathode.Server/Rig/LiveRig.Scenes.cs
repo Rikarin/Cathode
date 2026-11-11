@@ -102,14 +102,7 @@ public sealed partial class LiveRig {
     /// </summary>
     public Task<LiveState> SwapChannelsAsync(string id, CopyChannelRequest request, long? expected) =>
         Locked(async () => {
-                Check(expected);
-                var block = Find(id);
-                var descriptor = catalog.Descriptor(block.Type)
-                    ?? throw new RigException(400, $"'{id}' has no channels.");
-                CheckChannel(request.From, descriptor.Channels);
-                CheckChannel(request.To, descriptor.Channels);
-                PushUndo(null);
-                var before = Channels(block);
+                var (block, before) = BeginChannelPair(id, request, expected);
                 var a = block.Channels.GetValueOrDefault(request.From);
                 var b = block.Channels.GetValueOrDefault(request.To);
                 Put(block, request.From, b);
@@ -264,6 +257,24 @@ public sealed partial class LiveRig {
 
     /// <summary>The block's channels as they are now (<see cref="Put" /> replaces a channel, never edits it).</summary>
     static Dictionary<string, Dictionary<string, float>> Channels(PresetBlock block) => new(block.Channels);
+
+    /// <summary>
+    ///     The start of a copy or swap between two channels of a block: checks the revision and that the block has
+    ///     both channels, opens an undo step, and returns the block with its channels as they are before the change.
+    /// </summary>
+    (PresetBlock Block, Dictionary<string, Dictionary<string, float>> Before) BeginChannelPair(
+        string id,
+        CopyChannelRequest request,
+        long? expected
+    ) {
+        Check(expected);
+        var block = Find(id);
+        var descriptor = catalog.Descriptor(block.Type) ?? throw new RigException(400, $"'{id}' has no channels.");
+        CheckChannel(request.From, descriptor.Channels);
+        CheckChannel(request.To, descriptor.Channels);
+        PushUndo(null);
+        return (block, Channels(block));
+    }
 
     /// <summary>
     ///     After a channel's values changed: sends them if the block is running one of <paramref name="channels" />.
