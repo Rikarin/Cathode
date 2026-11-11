@@ -251,12 +251,16 @@ test('the preset picker searches from the keyboard, stays open when pinned, and 
   await expect(picker.getByRole('option', { name: /Back in Black/ }).getByLabel('loaded')).toBeVisible();
 
   // The arrow keys move the highlight, and the star under the list makes the highlighted preset a favourite.
+  // The list is filtered a moment after the typing and the highlight moves a moment after the key: wait for the
+  // second row to be the highlighted one before reading its name off the star, or the name is the first row's.
   await search.fill('b');
   await search.press('ArrowDown');
-  await expect(picker.locator('[role=option][aria-selected=true]')).toHaveCount(1);
+  const highlighted = picker.getByRole('option').nth(1);
+  await expect(highlighted).toHaveAttribute('aria-selected', 'true');
   const star = picker.getByTestId('picker-favorite');
   await expect(star).toHaveAccessibleName(/^Favourite ./);
   const favourite = ((await star.getAttribute('aria-label')) ?? '').replace(/^Favourite /, '');
+  await expect(highlighted).toContainText(favourite);
   await star.click();
 
   // Favourites only lists it alone, also with the search cleared; favourites come first in the whole list.
