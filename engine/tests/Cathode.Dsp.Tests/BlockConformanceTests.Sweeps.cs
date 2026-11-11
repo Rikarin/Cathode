@@ -20,6 +20,12 @@ public partial class BlockConformanceTests {
     /// <summary>Set to <c>1</c> (the nightly workflow does) to sweep every type of the blocks with many.</summary>
     const string FullVariable = "CATHODE_SWEEPS_FULL";
 
+    /// <summary>
+    ///     A comma-separated list of type indices (<c>33,35</c>) to sweep those types alone, of every block with many:
+    ///     to reproduce a nightly failure without the whole sweep. It wins over <see cref="FullVariable" />.
+    /// </summary>
+    const string TypesVariable = "CATHODE_SWEEP_TYPES";
+
     /// <summary>Above this many types a build sweeps a sample of them.</summary>
     const int ManyTypes = 32;
 
@@ -148,16 +154,22 @@ public partial class BlockConformanceTests {
     /// <remarks>
     ///     Found in November 2026, sweeping all 92 models. The tweed Bassman motorboats (about 22 Hz at -25 dBFS RMS,
     ///     peaks of -15 dBFS) for as long as the block runs with its Normal Vol or the Overdrive at 10, or its tone
-    ///     stack moved to Pre; its Jumped variant, the Tweed Twin 5F8-A (the same preamp) and the Powerball do with
-    ///     the Overdrive at 10 (-16, -12 and -14 dBFS); the Deluxe 6G3 rings at -18 dBFS on EL34s; the Sunn Model T
-    ///     holds -24 dBFS with its feedback at 10 and -28 dBFS on EL84s.
+    ///     stack moved to Pre; its Jumped variant and the Tweed Twin 5F8-A (the same preamp) do with the Overdrive at
+    ///     10 (-16 and -12 dBFS); the Deluxe 6G3 rings at -18 dBFS on EL34s; the Sunn Model T holds -24 dBFS with its
+    ///     feedback at 10 and -28 dBFS on EL84s. The Powerball's entry for the Overdrive at 10 went with #512. Found
+    ///     later, by the nightly sweep of 11 November 2026: the Rect-o-Verb motorboats at about 11 Hz, holding
+    ///     -17.5 dBFS, with its Output (Control 1) or the Overdrive at 10, and the Powerball at 12 Hz, -10 dBFS, with
+    ///     its stack moved to Pre (its #512 preamp). All three are loops through the supply: each is silent with Sag
+    ///     or Preamp Sag at 0.
     /// </remarks>
     static bool KnownToRing(string typeId, int type, string param, float value) =>
         typeId == "circuitamp"
         && (AmpDesign.All[type].Name, param, value) switch {
             ("Bassman 5F6-A", "control1" or "overdrive", 10) => true,
             ("Bassman 5F6-A", "stackloc", 1) => true,
-            ("Bassman 5F6-A Jumped" or "Tweed Twin 5F8-A" or "Powerball", "overdrive", 10) => true,
+            ("Bassman 5F6-A Jumped" or "Tweed Twin 5F8-A", "overdrive", 10) => true,
+            ("Rect-o-Verb", "control1" or "overdrive", 10) => true,
+            ("Powerball", "stackloc", 1) => true,
             ("Deluxe 6G3", "powertube", 2) => true,
             ("Sunn Model T", "feedback", 10) => true,
             ("Sunn Model T", "powertube", 3) => true,
@@ -439,10 +451,16 @@ public partial class BlockConformanceTests {
     /// <summary>
     ///     The types a sweep covers. A block with a model per type (the Circuit Amp, the Drive) has dozens, each slow
     ///     to prepare, so a build sweeps one in <paramref name="sample" /> of them and the nightly run all
-    ///     (<see cref="FullVariable" />).
+    ///     (<see cref="FullVariable" />), or the ones <see cref="TypesVariable" /> names.
     /// </summary>
     static IEnumerable<int> SweptTypes(BlockDescriptor descriptor, int sample) {
         var count = TypeCount(descriptor);
+        if (count > ManyTypes && Environment.GetEnvironmentVariable(TypesVariable) is { Length: > 0 } chosen) {
+            return chosen.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .Select(static text => int.Parse(text, CultureInfo.InvariantCulture))
+                .Where(type => type >= 0 && type < count);
+        }
+
         var step = count > ManyTypes && Environment.GetEnvironmentVariable(FullVariable) != "1" ? sample : 1;
         return Enumerable.Range(0, count).Where(type => type % step == 0);
     }
