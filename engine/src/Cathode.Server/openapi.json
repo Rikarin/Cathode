@@ -3938,7 +3938,7 @@
               "null",
               "integer"
             ],
-            "description": "How many times the Server has stored this bank: set by the Server on every save (what a client sends here is\nignored), and answered as the ETag. Sent back as \u0060If-Match\u0060 on a PUT, it makes the Server refuse the\nsave (412) when another editor stored the bank in between. Null in a file from before revisions and for the factory\nbank.",
+            "description": "How many times the Server has stored this bank: set by the Server on every save (what a client sends here is\nignored), and answered as the ETag. Sent back as \u0060If-Match\u0060 on a PUT, it makes the Server refuse the\nsave (412) when another editor stored the bank in between. Null in a file from before revisions and for the\nfactory bank.",
             "format": "int64"
           },
           "factory": {
@@ -4849,7 +4849,7 @@
               "null",
               "string"
             ],
-            "description": "Where scene MIDI, footswitch LEDs and MIDI clock go: a MIDI output\u0027s uid (string MidiOutputInfo.Uid, from\n\u0060GET /api/v1/midi/outputs\u0060), or null for every output. One port keeps them from looping back into a\ncontroller that echoes what it receives; while that port is not connected, nothing is sent."
+            "description": "Where scene MIDI, footswitch LEDs and MIDI clock go: a MIDI output\u0027s uid (string MidiOutputInfo.Uid,\nfrom \u0060GET /api/v1/midi/outputs\u0060), or null for every output. One port keeps them from looping back into\na controller that echoes what it receives; while that port is not connected, nothing is sent."
           },
           "sendMidiClock": {
             "type": "boolean",
@@ -6445,7 +6445,7 @@
               "null",
               "integer"
             ],
-            "description": "How many times the Server has stored this setlist: set by the Server on every save (what a client sends here is\nignored), and answered as the ETag. Sent back as \u0060If-Match\u0060 on a PUT, it makes the Server refuse the\nsave (412) when another editor stored the setlist in between. Null in a file from before revisions.",
+            "description": "How many times the Server has stored this setlist: set by the Server on every save (what a client sends here\nis ignored), and answered as the ETag. Sent back as \u0060If-Match\u0060 on a PUT, it makes the Server refuse the\nsave (412) when another editor stored the setlist in between. Null in a file from before revisions.",
             "format": "int64"
           },
           "entries": {

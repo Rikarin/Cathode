@@ -1825,8 +1825,8 @@ export interface components {
        * Format: int64
        * @description How many times the Server has stored this bank: set by the Server on every save (what a client sends here is
        *     ignored), and answered as the ETag. Sent back as `If-Match` on a PUT, it makes the Server refuse the
-       *     save (412) when another editor stored the bank in between. Null in a file from before revisions and for the factory
-       *     bank.
+       *     save (412) when another editor stored the bank in between. Null in a file from before revisions and for the
+       *     factory bank.
        */
       revision?: null | number;
       /** @description True for the factory bank, which lists the factory presets and cannot be changed; null otherwise. */
@@ -2201,9 +2201,9 @@ export interface components {
       midiChannel: number;
       midiMappings: components['schemas']['MidiMapping'][];
       /**
-       * @description Where scene MIDI, footswitch LEDs and MIDI clock go: a MIDI output's uid (string MidiOutputInfo.Uid, from
-       *     `GET /api/v1/midi/outputs`), or null for every output. One port keeps them from looping back into a
-       *     controller that echoes what it receives; while that port is not connected, nothing is sent.
+       * @description Where scene MIDI, footswitch LEDs and MIDI clock go: a MIDI output's uid (string MidiOutputInfo.Uid,
+       *     from `GET /api/v1/midi/outputs`), or null for every output. One port keeps them from looping back into
+       *     a controller that echoes what it receives; while that port is not connected, nothing is sent.
        */
       midiOutPort?: null | string;
       /**
@@ -2921,8 +2921,8 @@ export interface components {
       name: string;
       /**
        * Format: int64
-       * @description How many times the Server has stored this setlist: set by the Server on every save (what a client sends here is
-       *     ignored), and answered as the ETag. Sent back as `If-Match` on a PUT, it makes the Server refuse the
+       * @description How many times the Server has stored this setlist: set by the Server on every save (what a client sends here
+       *     is ignored), and answered as the ETag. Sent back as `If-Match` on a PUT, it makes the Server refuse the
        *     save (412) when another editor stored the setlist in between. Null in a file from before revisions.
        */
       revision?: null | number;
