@@ -107,6 +107,7 @@ public sealed partial record AmpDesign {
         TripleRectifier.Clean,
         MarkV.Clean,
         MarkV.Crunch,
-        Evh5150III.CleanCrunch
+        Evh5150III.CleanCrunch,
+        Savage120.Clean
     ];
 }

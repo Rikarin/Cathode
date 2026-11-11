@@ -52,7 +52,8 @@ Leave a few dB of headroom in *Level*; a Cab block after the amp removes them.
   Dual Rectifier 3-Ch (each with its other channels: Dual Rectifier Orange, Dual Rectifier 3-Ch Orange and Clean),
   Triple Rectifier (with Triple Rectifier Orange and Clean), Rect-o-Verb, Mark IIC+ (and its clean rhythm channel,
   Mark IIC+ Rhythm), Mark IV (and its clean and crunch channels, Mark IV Rhythm 1 and Rhythm 2), Mark V (and its
-  channels 1 and 2, Mark V Clean and Mark V Crunch), TriAxis, Legacy VL100, Powerball, Savage 120, Prometheus.
+  channels 1 and 2, Mark V Clean and Mark V Crunch), TriAxis, Legacy VL100, Powerball, Savage 120 (and Savage 120
+  Clean, its clean and first crunch channel), Prometheus.
 - **Bass:** SVT, Portaflex B-15N, Bassman 135, Bass 400.
 - **Solid state:** JC-120 and Valvestate 8080 (a tube preamp into a transistor power amp). Their tube-only knobs are
   hidden.
@@ -121,7 +122,14 @@ on the Savage). At 0 the feedback is stock. The DSL100's *Deep* is a switch, as 
     cut: `The Vox-style cut control (AC30, AC15, DC-30): a pot and cap across the phase inverter's outputs that shunt
 treble away before the power tubes. Turning it **up** removes more treble (it works backwards to a treble knob). Use it
 to tame the top end of a bright class-A amp. The Chieftain, Hot Cat 30 and Tiny Terror have the same circuit wired the
-other way, as their *Brilliance* or *Tone* (see *Presence*).`,
+other way, as their *Brilliance* or *Tone* (see *Presence*).
+
+Two models without a cut control put a knob of their own here. On the Powerball it is *Gate Threshold*, the lead
+channel's noise gate (the knob on the amp's rear panel): at 0, and up to about 1.3, the gate is off; above that it
+mutes the lead channel whenever the signal falls under the threshold, and turning it up raises the threshold. A played
+note passes untouched. Set it just high enough that the amp is quiet between notes; set too high it cuts the tails of
+held notes. It does nothing in channel 1. On the Savage 120 it is *Hi Balance*, which works, and shows, only with
+*Smooth* on: it sets how much high end reaches the extra tube stage that Smooth adds. It starts at 5.`,
 
     master: `The master volume, on models that have one, at its real place in the circuit (on most amps between the
 preamp and the phase inverter). It sets how hard the phase inverter and the power tubes are driven. At high settings
@@ -164,7 +172,10 @@ three-channel Dual Rectifier and the Triple Rectifier, *Raw* and *Modern* (Switc
 Modern switch: both off is Vintage, and with both on the model is in Modern. On Dual Rectifier Orange it is *Clean*,
 one end of that channel's Clean / Normal / Modern style (Switch 1 is Modern, both off is Normal). On the Powerball it
 is channel 1's Bright and does nothing in the lead channel; the same goes for the 5150, where it is the rhythm
-channel's Bright. The value of the cap is on the Advanced page as *Bright Cap*.`,
+channel's Bright. On the Savage 120 it is *Crunch 2*, the amp's second crunch sound: the lead
+channel with its extra gain stage and the *Lead* knob out of the path (*Lead Boost* then does nothing); *Smooth* and
+the tone controls work as in the lead. On the Savage 120 Clean it is the clean channel's Bright. The value of the cap
+is on the Advanced page as *Bright Cap*.`,
 
     level: `The block's output level in dB, after everything else. A clean digital volume: it does not change the amp's
 drive or tone. Use it to balance this amp against other presets or the other amp. See
@@ -190,6 +201,7 @@ Each switches the real components on the model's schematic. Some worth knowing:
   own gain network and tone stack behind the same knobs.
 - **Powerball, *Focused*:** in the lead channel it swaps the open middle pot for the focused one (*Mid Focused*,
   Control 1) and doubles the treble cap; in channel 1 it doubles the treble cap and makes the middle's cap smaller.
+- **Savage 120 Clean, *Contour*:** adds to the treble cap, as on the Savage 120.
 - **Mark V, *IIC+ Mode*:** with *Mark IV Mode* (Switch 2), selects the channel-3 mode; both off is Extreme. The amp
   has one three-position switch, so with both on the model is in Mark IV mode. On Mark V Clean the pair is *Fat* and
   *Tweed* (both off is Clean; both on is Tweed) and Switch 3 is the amp's *Bold* switch; on Mark V Crunch it is
@@ -203,7 +215,8 @@ Each switches the real components on the model's schematic. Some worth knowing:
 
     switch2: `A model's second switch, where it has one: for example *Tube Rectifier* on the Rectifiers (5U4 tube
 rectifiers instead of silicon: more sag), *Crunch* on the SLO-100's normal channel and the 5150's rhythm channel, *Deep* on the Mark IIC+
-(a bass boost), *Bite Up* on the Prometheus, *Gain Hi* on the Powerball (the amp's Gain Lo/Hi button: the hotter Hi Lead in the lead channel, Crunch in place of
+(a bass boost), *Bite Up* on the Prometheus, *Preshape* on the Savage 120 Clean (it takes the signal past the
+clean channel's shaping network: much louder and fuller, and it overdrives sooner), *Gain Hi* on the Powerball (the amp's Gain Lo/Hi button: the hotter Hi Lead in the lead channel, Crunch in place of
 Clean in channel 1), *Mark IV Mode* on
 the Mark V, *C45* on the BE-100, *Rhythm Clip* on the Silver Jubilee, *Ultra Lo* on the SVT and B-15. It switches the
 same parts the real switch does.
@@ -220,7 +233,8 @@ on the Mark IV (the amp's Harmonics / Mid Gain switch; off is Harmonics), *Brigh
 SVT, *Voice* on the BE-100, *Low Power* on the Silver Jubilee, *Tone Shift* on the DSL100, *3rd Gear* on the Quick Rod,
 *Smooth* on the Savage 120 (its second lead voice: less gain into the tone stack and one more tube stage after it, so
 the sound is rounder and the tone knobs do less; off is Rough), *Channel 1* on the Powerball (its Clean and Crunch
-channel, chosen by *Gain Hi*, with its own gain, tone stack and *Bright*; off is the lead channel). *Bite Down* and
+channel, chosen by *Gain Hi*, with its own gain, tone stack and *Bright*; off is the lead channel), *Crunch 1* on the
+Savage 120 Clean (one more tube stage behind its own *Crunch 1 Gain*; off is Clean). *Bite Down* and
 *Bass Cut* are the other side of the switch that *Bite Up* and *Ultra Lo* (Switch 2) belong to, and win when both are
 on.`,
 
@@ -228,12 +242,14 @@ on.`,
 *Mic Vol* on the Tweed Deluxe, *Loudness 2*, *Volume II*), a lead drive (*Lead Drive* on the Mark IIC+ and IV,
 *Lead 1 Drive*, *Overdrive*, *Drive*), a channel master (*R1 Master* and *R2 Master* on the Mark IV's rhythm
 channels), an output level after the masters (*Output* on the Rect-o-Verb), or a tone control (*Edge* on the Hot Cat, *Mid Freq* on the SVT, *Hi Treble*
-on the JC-120, *Mid Focused* on the Powerball, *Cut* on the Prometheus, a low cut before its gain stages). On jumped
+on the JC-120, *Mid Focused* on the Powerball, *Cut* on the Prometheus, a low cut before its gain stages), or a
+second gain (*Crunch 1 Gain* on the Savage 120 Clean, shown with *Crunch 1* on). On jumped
 Plexi-style amps the two volumes blend the bright and normal channels. On the Quick Rod it is the *Solo Boost*, which
 starts at 0: the boost is off there, as on the amp until you press its footswitch; turn it up for the solo lift.`,
 
     control2: `A model's second extra knob, where it has one: *Lead Master* on the Mark IIC+ and IV, *Presence* on the
-Rectifiers (a preamp presence control there), *Lead Volume* on the Savage, *Channel Volume* on the Powerball (the volume of the mode that plays: Lo or Hi Lead,
+Rectifiers (a preamp presence control there), *Lead Volume* on the Savage (Crunch 2's volume too), *Volume* on the
+Savage 120 Clean (the Clean or the Crunch volume), *Channel Volume* on the Powerball (the volume of the mode that plays: Lo or Hi Lead,
 Clean or Crunch), *OD Level* on the ODS,
 *Dynamic Voice* on the TriAxis, the 4 kHz band of the Bass 400's EQ, *Distortion* on the JC-120 (the gain ahead of its
 diode clipper, from about 2× to 48×; it shows, and acts, only with the *Distortion On* switch on).`,
@@ -264,7 +280,10 @@ power amp keeps its feedback only in the top of the treble and runs open below i
 forward in the mids, and the Presence knob then works on that top range only.`,
 
     fatsw: `Moves the tone stack's frequencies down (to 0.6 times stock): fuller lows and low mids, as the "Fat" switch
-does on amps that have one. Hidden where the model has its own Fat switch, and where its preamp has no tone stack.`,
+does on amps that have one. Hidden where the model has its own Fat switch, and where its preamp has no tone stack.
+
+On the Powerball it is *Bottom*, the amp's own low boost: its three Bottom buttons (channel 1, Lo Lead and Hi Lead) on
+one switch, which acts on the mode that plays. A gentle lift of the lows, strongest in channel 1.`,
 
     cutsw: `A 150 Hz high-pass at the input (if *Low Cut* is set higher, the higher one wins). Tightens a boomy amp or a
 dark guitar and keeps the low end from smearing high-gain sounds. Hidden on the SVT, which has its own *Bass Cut*.`,
@@ -618,8 +637,11 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'Triple Rectifier':
         'Mesa/Boogie Triple Rectifier: built as the three-channel Dual Rectifier with six 6L6s, as no schematic was found.',
       Powerball:
-        'Engl Powerball: channel 2 (lead), Lo and Hi modes, with its Open and Focused middle, and on Switch 3 channel 1, Clean and Crunch. Tight modern metal. Two supply filter nodes are assumed (not on the drawing) to stop it motorboating.',
-      'Savage 120': 'Engl Savage 120 lead channel, Rough and (Switch 3) Smooth: aggressive, mid-forward high gain.',
+        'Engl Powerball: channel 2 (lead), Lo and Hi modes, with its Open and Focused middle, its noise gate (Gate Threshold) and Bottom, and on Switch 3 channel 1, Clean and Crunch. Tight modern metal. The factory drawing of its preamp is wrong, so the stages are coupled as a hand-corrected copy of it shows.',
+      'Savage 120':
+        'Engl Savage 120, channel 2: the lead, Rough and (Switch 3) Smooth, and Crunch 2 on the Bright switch. Aggressive, mid-forward high gain.',
+      'Savage 120 Clean':
+        'Engl Savage 120, channel 1: Clean and (Switch 3) Crunch 1, with Bright, Preshape and Contour. A bright, tight clean that Preshape fattens and pushes.',
       SVT: 'Ampeg SVT: the classic tube bass amp, with Ultra Hi, Ultra Lo and Bass Cut.',
       'Portaflex B-15N': 'Ampeg B-15N Portaflex: warm, round vintage bass. One channel: its two are the same circuit.',
       'JC-120':
@@ -825,8 +847,8 @@ away and back: every knob returns to the model's stock setting.
 
 **Differences from the Axe-Fx.** Cathode's expert controls scale real components (a cap, a resistor, a tube's curve)
 rather than behaviour, and a control the model has no part for is hidden and does nothing. Some models rest on
-assumed values where the schematic was incomplete (the Powerball's two extra supply filter nodes, the Prometheus as a
-whole, several output transformers); the model descriptions say where.
+assumed values where the schematic was incomplete or wrong (the Powerball's preamp, taken from a hand-corrected copy
+of the factory drawing, the Prometheus as a whole, several output transformers); the model descriptions say where.
 
 **CPU.** The amp runs a full circuit at twice the sample rate (at rates below 64 kHz), so it is the heaviest block in
 most presets, and the high-gain models are the heaviest of all. Two amps in one preset is fine on most computers; see

@@ -1058,7 +1058,9 @@ public sealed partial class CircuitAmpBlock
                     Glide(Eq1 + 3),
                     Glide(Eq1 + 4)
                 ),
-                Presence: Knob(Now(Presence))
+                Presence: Knob(Now(Presence)),
+                Fat: Now(Fat) >= 0.5f,
+                Cut: Knob(Now(Cut))
             )
         );
         // The tremolo: the model's own oscillator where it has one (Speed in hertz, Intensity as the knob's rotation),
@@ -1348,7 +1350,8 @@ readonly record struct AdvancedFeatures(
     public static AdvancedFeatures Of(AmpDesign design) =>
         new(
             AmpFeatures.Has(design, "mvloc") ? AmpFeatures.MasterPaths(design) : 0,
-            AmpFeatures.Has(design, "fatsw"),
+            // The generic Fat only: a model's own switch on it reaches its stages as a switch.
+            design.Panel.Fat is null && AmpFeatures.Has(design, "fatsw"),
             // The presence network itself: Presence Shift is hidden where the amp's relays work the shift cap.
             AmpFeatures.Has(design, "presfreq"),
             AmpFeatures.Has(design, "cutsw"),

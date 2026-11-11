@@ -14,7 +14,10 @@ namespace Cathode.Dsp.Tests;
 ///     cuts under grid current. The Savage's four network stages agree to -87 dB at 2 mV; driven hard, its V2B (330k
 ///     plate, unbypassed 3.3k) into V3B's grid current is the cuts' known weak spot (-8 dB), as the Rect-o-Verb's cold
 ///     clipper with a plate bypass cap is (-13 dB). The Savage's Smooth path, through its stack and V3A (five stages),
-///     agrees to -42 dB at 2 mV and -32 dB at 50 mV: its pad keeps V3B's grid current small.
+///     agrees to -42 dB at 2 mV and -32 dB at 50 mV: its pad keeps V3B's grid current small. The Powerball's lead,
+///     with the corrected copy's networks, agrees to -22.5 dB at 0.5 mV and -8.4 dB at 50 mV (it was -28 and -13 dB
+///     as the factory drawing has it): V6A now has 1 nF across its 330k plate resistor, the same weak spot. Its
+///     channel 1, three stages behind a 33 dB divider, agrees to -42 dB.
 /// </remarks>
 public partial class AmpStageTests {
     /// <summary>
@@ -70,14 +73,14 @@ public partial class AmpStageTests {
                 false,
                 4,
                 0.0005,
-                -25
+                -20
             },
             {
                 "Powerball",
                 false,
                 4,
                 0.05,
-                -10
+                -6
             },
             {
                 "Powerball",
@@ -146,13 +149,11 @@ public partial class AmpStageTests {
             1,
             false,
             Switch1: other && onSwitch1,
-            Switch3: other && !onSwitch1
+            Switch3: other && !onSwitch1,
+            // The Savage's Hi Balance at noon, where its model ships.
+            Cut: 0.5
         );
-        var designs = AmpDesign.All.Single(a => a.Name == type)
-            .Preamp
-            .SelectMany(s => s is ChannelSwitchStageDesign c ? controls.IsOn(c.Switch) ? c.On : c.Off : [s])
-            .Take(count)
-            .ToArray();
+        var designs = Playing(AmpDesign.All.Single(a => a.Name == type).Preamp, controls).Take(count).ToArray();
 
         var stages = designs.Select(static d => d.Create(Rate)).ToArray();
         var (rest, resistance) = (0.0, 0.0);
@@ -227,7 +228,9 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
             { "Savage 120", 0, 0, 0 },
             { "Savage 120", 1, 1, 0 },
             { "Savage 120", 0, 0, 1 },
-            { "Savage 120", 1, 1, 1 }
+            { "Savage 120", 1, 1, 1 },
+            { "Savage 120 Clean", 0, 0, 0 },
+            { "Savage 120 Clean", 1, 1, 1 }
         };
 
     /// <summary>
@@ -295,6 +298,8 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
             new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "Powerball"))
         );
         Assert.Equal("Bright", Label("bright", "Powerball"));
+        Assert.Equal("Gate Threshold", Label("cut", "Powerball"));
+        Assert.Equal("Bottom", Label("fatsw", "Powerball"));
         Assert.Equal("Channel Volume", Label("control2", "Powerball"));
         Assert.Equal("Mid Open", Label("middle", "Powerball"));
         Assert.Equal("Mid Focused", Label("control1", "Powerball"));
@@ -303,6 +308,15 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
             new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "Savage 120"))
         );
         Assert.Equal("Lead", Label("control1", "Savage 120"));
+        Assert.Equal("Crunch 2", Label("bright", "Savage 120"));
+        Assert.Equal("Hi Balance", Label("cut", "Savage 120"));
+        Assert.Equal(
+            ["Contour", "Preshape", "Crunch 1"],
+            new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "Savage 120 Clean"))
+        );
+        Assert.Equal("Crunch 1 Gain", Label("control1", "Savage 120 Clean"));
+        Assert.Equal("Volume", Label("control2", "Savage 120 Clean"));
+        Assert.Empty(Label("cut", "Savage 120 Clean")!);
         Assert.Equal(6, AmpDesign.All.Single(static a => a.Name == "Triple Rectifier").Power.TubesPerSide * 2);
     }
 
@@ -387,8 +401,9 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
 
     /// <summary>
     ///     The Powerball's channel 1 (Switch 3) runs three of the lead's four stages behind a divider: far less gain
-    ///     than the lead, Crunch (Switch 2) above Clean by its hotter divider, and a Bright switch that lifts the highs
-    ///     at a low gain setting and does nothing in the lead.
+    ///     than the lead, Crunch (Switch 2) above Clean by its hotter divider (470k over 470k behind 1 nF against
+    ///     Clean's 1M over 22k: 22 dB at 1 kHz with the volumes full), and a Bright switch that lifts the highs at a
+    ///     low gain setting and does nothing in the lead.
     /// </summary>
     [Fact]
     public void Powerball_channel_one_is_the_clean_and_crunch_of_three_stages() {
@@ -412,7 +427,7 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         output.WriteLine($"Powerball at 1 kHz: lead {lead:0.0} dB, clean {clean:0.0} dB, crunch {crunch:0.0} dB");
         output.WriteLine($"Bright at 5 kHz: channel 1 {bright:0.0} dB, lead {leadBright:0.00} dB");
         Assert.True(clean < lead - 20, $"clean {clean:0.0} dB against the lead's {lead:0.0} dB");
-        Assert.InRange(crunch - clean, 1, 8);
+        Assert.InRange(crunch - clean, 15, 29);
         Assert.True(bright > 3, $"Bright lifts 5 kHz by {bright:0.0} dB");
         Assert.Equal(0, leadBright, 6);
     }
@@ -431,7 +446,9 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
                 (CircuitAmpBlock.Switch3, smooth ? 1f : 0f),
                 (CircuitAmpBlock.Gain, gain),
                 (CircuitAmpBlock.Treble, treble),
-                (CircuitAmpBlock.Master, 3f)
+                (CircuitAmpBlock.Master, 3f),
+                // Hi Balance at noon, the model's default.
+                (CircuitAmpBlock.Cut, 5f)
             );
 
         static double Small(bool smooth) {
@@ -467,6 +484,164 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
         Assert.InRange(small, -60, -20);
         Assert.InRange(driven, -12, 3);
         Assert.True(smoothed < rough - 2, $"Smooth's treble reaches {smoothed:0.0} dB, Rough's {rough:0.0} dB");
+    }
+
+    /// <summary>
+    ///     Issue #512, "the Powerball model is fuzzy". Built from the factory drawing alone, the lead had 65 dB of gain
+    ///     at Gain 5 against about 40 for the 5150 and the Dual Rectifier, and a 220 Hz note at 0.2 mV played within
+    ///     2 dB of one at 0.1 V: a square wave whatever was played. With the interstage networks of the corrected copy
+    ///     (1 nF and 470k dividers, the Lo and Hi networks) its gain is the other high-gain models' and a note that
+    ///     dies away gets quieter.
+    /// </summary>
+    [Fact]
+    public void Powerball_lead_has_a_high_gain_amps_gain_and_follows_the_playing() {
+        static double At(string type, float amplitude) {
+            using var block = Create(type);
+            return Level(block, 220, amplitude) - Analysis.ToDb(amplitude / Math.Sqrt(2));
+        }
+
+        var (powerball, peavey, rectifier) = (At("Powerball", 1e-6f), At("5150", 1e-6f), At("Dual Rectifier", 1e-6f));
+        using var loud = Create("Powerball");
+        using var quiet = Create("Powerball");
+        var dynamics = Level(loud, 220, 0.1f) - Level(quiet, 220, 2e-4f);
+        output.WriteLine(
+            $"Gain at 220 Hz, stock knobs: Powerball {powerball:0.0} dB, 5150 {peavey:0.0}, Dual Rectifier "
+            + $"{rectifier:0.0}; 0.1 V against 0.2 mV: {dynamics:0.0} dB"
+        );
+        Assert.InRange(powerball, Math.Min(peavey, rectifier) - 8, Math.Max(peavey, rectifier) + 8);
+        Assert.True(dynamics > 15, $"a 0.2 mV note plays only {dynamics:0.0} dB below a 0.1 V one");
+    }
+
+    /// <summary>
+    ///     The Powerball's noise gate (the Cut knob, "Gate Threshold"). At 0 it is off, as on the amp below about 9
+    ///     o'clock: a small signal passes in proportion. Turned up, a signal under the threshold is shunted (the J175
+    ///     through 4.7k: more than 15 dB down), a played note passes untouched, a higher setting closes on a louder
+    ///     signal, and channel 1, which has no gate, does not change.
+    /// </summary>
+    [Fact]
+    public void Powerball_gate_shuts_a_quiet_lead_and_leaves_a_played_note() {
+        static double At(float threshold, float amplitude, float channel = 0) {
+            using var block = Create(
+                "Powerball",
+                (CircuitAmpBlock.Cut, threshold),
+                (CircuitAmpBlock.Switch3, channel)
+            );
+            return Level(block, 220, amplitude);
+        }
+
+        var off = At(0, 1e-5f) - At(0, 1e-6f);
+        var (low, high) = (At(2, 1e-5f) - At(0, 1e-5f), At(2, 1e-4f) - At(0, 1e-4f));
+        var higher = At(8, 1e-4f) - At(0, 1e-4f);
+        var played = At(8, 0.1f) - At(0, 0.1f);
+        var clean = At(8, 1e-4f, 1) - At(0, 1e-4f, 1);
+        output.WriteLine(
+            $"Gate off: {off:0.0} dB for 20 dB more in; at 2: {low:0.0} dB at 10 µV, {high:0.0} dB at 100 µV; at 8: "
+            + $"{higher:0.0} dB at 100 µV, {played:0.00} dB at 0.1 V; channel 1 {clean:0.00} dB"
+        );
+        Assert.Equal(20, off, 0.5);
+        Assert.True(low < -15, $"the gate at 2 takes a 10 µV signal down by {low:0.0} dB");
+        Assert.Equal(0, high, 0.1);
+        Assert.True(higher < -15, $"the gate at 8 takes a 100 µV signal down by {higher:0.0} dB");
+        Assert.Equal(0, played, 0.1);
+        Assert.Equal(0, clean, 6);
+
+        // The comparator's divider: never under the rail's 12 V below 13 % of the knob, 7.8 V over it at the top.
+        var gate = AmpDesign.All.Single(static a => a.Name == "Powerball")
+            .Preamp.OfType<ChannelSwitchStageDesign>()
+            .SelectMany(static c => c.Off)
+            .OfType<NetworkStageDesign>()
+            .Single(static s => s.Gate is not null)
+            .Gate!;
+        Assert.True(gate.ThresholdAt(0) < 0 && gate.ThresholdAt(0.1) < 0 && gate.ThresholdAt(0.2) > 0);
+        Assert.Equal(24 * 22e3 / 26.7e3 - 12, gate.ThresholdAt(1), 1e-9);
+        Assert.Equal(1, gate.GainAt(gate.GateHigh, 100e3));
+        Assert.Equal(4.825e3 / 104.825e3, gate.GainAt(0, 100e3), 1e-12);
+    }
+
+    /// <summary>
+    ///     The Powerball's Bottom (the Fat switch): in the lead the low boost into the volume (R32 330k, 10 nF, 680k),
+    ///     in channel 1 the second 1.5 nF on the coupling cap. Both lift 80 Hz and leave 4 kHz within a decibel.
+    /// </summary>
+    [Fact]
+    public void Powerball_Bottom_lifts_the_lows_of_the_channel_that_plays() {
+        static double At(float channel, double frequency, float bottom) {
+            using var block = Create(
+                "Powerball",
+                (CircuitAmpBlock.Switch3, channel),
+                (CircuitAmpBlock.Fat, bottom),
+                (CircuitAmpBlock.Gain, 3f)
+            );
+            return Level(block, frequency, 1e-6f);
+        }
+
+        static double Lift(float channel, double frequency) => At(channel, frequency, 1) - At(channel, frequency, 0);
+
+        var (lead, leadHigh, clean, cleanHigh) = (Lift(0, 80), Lift(0, 4_000), Lift(1, 80), Lift(1, 4_000));
+        output.WriteLine(
+            $"Bottom: lead {lead:0.0} dB at 80 Hz, {leadHigh:0.0} at 4 kHz; channel 1 {clean:0.0} and {cleanHigh:0.0}"
+        );
+        Assert.InRange(lead, 1, 6);
+        Assert.InRange(clean, 3, 9);
+        Assert.Equal(0, leadHigh, 1.0);
+        Assert.Equal(0, cleanHigh, 1.0);
+    }
+
+    /// <summary>
+    ///     The Savage's Crunch 2 (the Bright switch) takes V2A straight to V3B, past the Lead pot and V2B: less gain
+    ///     than the lead, and the Lead knob does nothing in it. Hi Balance (the Cut knob) is in circuit in Smooth only,
+    ///     where it moves the highs.
+    /// </summary>
+    [Fact]
+    public void Savage_Crunch_2_skips_the_lead_stage_and_Hi_Balance_works_in_Smooth() {
+        static double At(double frequency, params (int, float)[] settings) {
+            using var block = Create("Savage 120", [(CircuitAmpBlock.Gain, 3f), ..settings]);
+            return Level(block, frequency, 1e-6f);
+        }
+
+        const int Crunch = CircuitAmpBlock.Bright, Lead = CircuitAmpBlock.Control1, Smooth = CircuitAmpBlock.Switch3;
+        var crunch = At(1_000, (Crunch, 1f)) - At(1_000);
+        var lead = At(1_000, (Crunch, 1f), (Lead, 10f)) - At(1_000, (Crunch, 1f), (Lead, 0f));
+        var balance = At(5_000, (Smooth, 1f), (CircuitAmpBlock.Cut, 10f))
+            - At(5_000, (Smooth, 1f), (CircuitAmpBlock.Cut, 0f));
+        var rough = At(5_000, (CircuitAmpBlock.Cut, 10f)) - At(5_000, (CircuitAmpBlock.Cut, 0f));
+        output.WriteLine(
+            $"Crunch 2 against Lead {crunch:0.0} dB; the Lead knob in Crunch 2 {lead:0.00} dB; Hi Balance 0 to 10 at "
+            + $"5 kHz: Smooth {balance:0.0} dB, Rough {rough:0.00} dB"
+        );
+        Assert.InRange(crunch, -20, -3);
+        Assert.Equal(0, lead, 6);
+        Assert.True(balance > 10, $"Hi Balance moves 5 kHz by {balance:0.0} dB in Smooth");
+        Assert.Equal(0, rough, 6);
+        Assert.Equal(
+            5f,
+            CircuitAmpBlock.Info.Params.Single(static p => p.Id == "cut").TypeDefaults![TypeOf("Savage 120")]
+        );
+    }
+
+    /// <summary>
+    ///     The Savage's channel 1: Preshape takes the gain's feed from the 10 nF in place of the shaping network (far
+    ///     more level, most of it in the lows), Bright lifts the highs, and Crunch 1 adds V4B behind its own gain.
+    /// </summary>
+    [Fact]
+    public void Savage_Clean_has_Preshape_Bright_and_Crunch_1() {
+        static double At(double frequency, params (int, float)[] settings) {
+            using var block = Create("Savage 120 Clean", [(CircuitAmpBlock.Gain, 3f), ..settings]);
+            return Level(block, frequency, 1e-5f);
+        }
+
+        const int Preshape = CircuitAmpBlock.Switch2, Crunch = CircuitAmpBlock.Switch3;
+        var (low, high) = (At(100, (Preshape, 1f)) - At(100), At(5_000, (Preshape, 1f)) - At(5_000));
+        var bright = At(5_000, (CircuitAmpBlock.Bright, 1f)) - At(5_000);
+        var crunch = At(1_000, (Crunch, 1f), (CircuitAmpBlock.Control1, 10f)) - At(1_000);
+        var hidden = At(1_000, (CircuitAmpBlock.Control1, 10f)) - At(1_000, (CircuitAmpBlock.Control1, 0f));
+        output.WriteLine(
+            $"Preshape {low:0.0} dB at 100 Hz, {high:0.0} at 5 kHz; Bright {bright:0.0} dB at 5 kHz; Crunch 1 full "
+            + $"{crunch:0.0} dB; its gain in Clean {hidden:0.00} dB"
+        );
+        Assert.True(low > 20 && high < low - 10);
+        Assert.True(bright > 5);
+        Assert.True(crunch > 10);
+        Assert.Equal(0, hidden, 6);
     }
 
     /// <summary>
@@ -605,6 +780,8 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
             // The Powerball's lead has a middle pot for each Style; its channel 1 (Switch 3) has one.
             ("Powerball", CircuitAmpBlock.Control1) => s1 > 0 && s3 == 0,
             ("Powerball", CircuitAmpBlock.Middle) => s1 == 0 || s3 > 0,
+            // The Savage's Lead pot is out of the path in Crunch 2, its Crunch 1 gain in Clean.
+            ("Savage 120 Clean", CircuitAmpBlock.Control1) => s3 > 0,
             _ => true
         };
 

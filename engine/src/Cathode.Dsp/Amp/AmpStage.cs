@@ -57,7 +57,13 @@ public enum PotRole {
     ///     The tremolo's Intensity knob (<see cref="AmpControls.TremoloDepth" />), for an Intensity pot that sits in a
     ///     stage's netlist (the Marshall 18 W's cathode rheostat, the pot the 1962 reissue's tremolo FET grounds).
     /// </summary>
-    TremoloDepth
+    TremoloDepth,
+
+    /// <summary>
+    ///     The Circuit Amp's Cut knob as a pot of the preamp's own (<see cref="AmpControls.Cut" />), on a model whose
+    ///     power amp has no cut control and whose panel names the knob: the Savage 120's Hi Balance.
+    /// </summary>
+    Cut
 }
 
 /// <summary>Which front-panel switch engages a switched element of a stage.</summary>
@@ -72,7 +78,13 @@ public enum SwitchRole {
     Switch2,
 
     /// <summary>The model's third extra switch.</summary>
-    Switch3
+    Switch3,
+
+    /// <summary>
+    ///     The Circuit Amp's Fat switch as a switch of the model's own circuit, which its panel names
+    ///     (<see cref="AmpPanel.Fat" />): the generic Fat then does nothing on that model.
+    /// </summary>
+    Fat
 }
 
 /// <summary>The design of one preamp stage; <see cref="Create" /> builds it.</summary>
@@ -108,8 +120,10 @@ public readonly record struct EqualizerGains(double Band1, double Band2, double 
 ///     (<paramref name="Control1" />, <paramref name="Control2" />) and switches (<paramref name="Switch1" /> to
 ///     <paramref name="Switch3" />), a graphic equaliser's band gains, and the model's own tremolo
 ///     (<see cref="StageTremoloDesign" />): <paramref name="TremoloRate" /> in hertz, <paramref name="TremoloDepth" />
-///     its Intensity knob's rotation (0 stops it), and the presence knob for a stage that holds part of the presence
-///     control (<see cref="PotRole.Presence" />).
+///     its Intensity knob's rotation (0 stops it), the presence knob for a stage that holds part of the presence
+///     control (<see cref="PotRole.Presence" />), the Fat switch for a model that wires it
+///     (<see cref="SwitchRole.Fat" />) and the Cut knob's rotation for a preamp control a model puts on it
+///     (<see cref="NoiseGateDesign" />).
 /// </summary>
 public readonly record struct AmpControls(
     double Gain,
@@ -126,7 +140,9 @@ public readonly record struct AmpControls(
     EqualizerGains Equalizer = default,
     double TremoloRate = 0,
     double TremoloDepth = 0,
-    double Presence = 0.5
+    double Presence = 0.5,
+    bool Fat = false,
+    double Cut = 0
 ) {
     public double Rotation(PotRole role) =>
         role switch {
@@ -143,6 +159,7 @@ public readonly record struct AmpControls(
             PotRole.Equalizer5 => Slider(Equalizer.Band5),
             PotRole.Presence => Presence,
             PotRole.TremoloDepth => TremoloDepth,
+            PotRole.Cut => Cut,
             _ => Control2
         };
 
@@ -154,6 +171,7 @@ public readonly record struct AmpControls(
             SwitchRole.Bright => Bright,
             SwitchRole.Switch1 => Switch1,
             SwitchRole.Switch2 => Switch2,
+            SwitchRole.Fat => Fat,
             _ => Switch3
         };
 
@@ -163,6 +181,7 @@ public readonly record struct AmpControls(
             SwitchRole.Bright => this with { Bright = false },
             SwitchRole.Switch1 => this with { Switch1 = false },
             SwitchRole.Switch2 => this with { Switch2 = false },
+            SwitchRole.Fat => this with { Fat = false },
             _ => this with { Switch3 = false }
         };
 }

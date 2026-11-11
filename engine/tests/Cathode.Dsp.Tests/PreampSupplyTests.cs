@@ -84,8 +84,8 @@ public class PreampSupplyTests {
 
     /// <summary>
     ///     The nine at the settings that showed it (gain 10, master 8, 0.1 V), and the user's 5150 settings; the
-    ///     Powerball also at gain 1 and master 5 after a 0.4 V chord, where its drawn supply latched, and in its
-    ///     channel 1.
+    ///     Powerball also at gain 1 and master 5 after a 0.4 V chord, where the preamp of the factory drawing latched
+    ///     on the drawn supply (the corrected one, on that supply, does not), and in its channel 1.
     /// </summary>
     [Theory]
     [MemberData(nameof(Motorboating))]

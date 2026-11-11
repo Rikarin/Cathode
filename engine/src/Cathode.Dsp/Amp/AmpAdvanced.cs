@@ -28,7 +28,8 @@ public static class AmpFeatures {
                 && MasterPaths(design) != 0
                 && design.Power.ShuntMaster is null
                 && design.Power.Topology == PowerTopology.PushPull,
-            "fatsw" => !panel.HasSwitch("Fat") && Any(preamp, HasStackCap),
+            // The model's own switch on Fat (the Powerball's Bottom), else the generic one.
+            "fatsw" => panel.Fat is not null || (!panel.HasSwitch("Fat") && Any(preamp, HasStackCap)),
             "stackfreq" => Any(preamp, HasStackCap),
             "brightcap" => Any(preamp, HasBrightCap),
             "pretube" => Any(preamp, HasTwelveAX7),

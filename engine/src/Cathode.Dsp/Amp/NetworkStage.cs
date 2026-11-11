@@ -229,6 +229,31 @@ public sealed class StageNetlist {
     /// <summary>A supply rail at <paramref name="volts" /> (nominal; it follows the preamp's sag).</summary>
     public void Supply(int node, double volts) => Add(new(ElementKind.Supply, node, Ground, volts));
 
+    /// <summary>
+    ///     A common-cathode triode with its grid on <paramref name="grid" />: a rail of <paramref name="supply" />
+    ///     volts, <paramref name="plateResistor" /> from it to the plate, and <paramref name="cathodeResistor" /> to
+    ///     ground with <paramref name="bypass" /> farads across it (0 for none). Returns the plate.
+    /// </summary>
+    public int CommonCathode(
+        int grid,
+        TriodeModel tube,
+        double supply,
+        double plateResistor,
+        double cathodeResistor,
+        double bypass = 0
+    ) {
+        var (rail, plate, cathode) = (Node(), Node(), Node());
+        Supply(rail, supply);
+        Resistor(rail, plate, plateResistor);
+        CathodeResistor(cathode, Ground, cathodeResistor);
+        if (bypass > 0) {
+            Capacitor(cathode, Ground, bypass);
+        }
+
+        Triode(plate, grid, cathode, tube);
+        return plate;
+    }
+
     public void Triode(int plate, int grid, int cathode, TriodeModel tube) =>
         Add(new(ElementKind.Triode, plate, grid, 0) { C = cathode, Triode = tube });
 
@@ -313,12 +338,19 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
     /// <summary>A tremolo of the model's own on this stage (the stage built is wrapped in it); null for none.</summary>
     public StageTremoloDesign? Tremolo { get; init; }
 
+    /// <summary>A noise gate on this stage (the stage built is wrapped in it); null for none.</summary>
+    public NoiseGateDesign? Gate { get; init; }
+
     public override bool HasTremolo => Tremolo is not null;
 
-    public override AmpStage Create(double sampleRate) =>
-        Tremolo is { } tremolo ? tremolo.Wrap(this, CreateNetwork(sampleRate), sampleRate) : CreateNetwork(sampleRate);
+    public override AmpStage Create(double sampleRate) {
+        var stage = Tremolo is { } tremolo
+            ? tremolo.Wrap(this, CreateNetwork(sampleRate), sampleRate)
+            : CreateNetwork(sampleRate);
+        return Gate is { } gate ? new NoiseGateStage(gate, stage, sampleRate) : stage;
+    }
 
-    /// <summary>The stage itself, without <see cref="Tremolo" />.</summary>
+    /// <summary>The stage itself, without <see cref="Tremolo" /> or <see cref="Gate" />.</summary>
     AmpStage CreateNetwork(double sampleRate) {
         var devices = Netlist.Elements
             .Where(static e => e.Kind is ElementKind.Triode
