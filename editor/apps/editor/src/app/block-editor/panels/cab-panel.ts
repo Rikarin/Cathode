@@ -221,7 +221,7 @@ export class CabPanel {
 
   protected readonly Source = Source;
   protected readonly noFiles =
-    'Cathode comes with no IR files, and a slot without one plays nothing. Upload a .wav IR or a .cabgrid pack, or ' +
+    'The library has no IR files, and a slot without one plays nothing. Upload a .wav IR or a .cabgrid pack, or ' +
     'set Source to DynaCab, which needs no file.';
   protected readonly takesFile = takesFile;
   protected readonly reductionSpan = ReductionSpanDb;

@@ -129,7 +129,7 @@ Choose the send and return channels in **Settings ▸ Audio setup** (**FX loop s
 - **Input** → wah, compressor, drives → **FX Loop** block → modulation, delay, reverb → **Output**.
 - Leave out the Amp and Cab blocks: your real amp is the amp, your real cab the cab.
 
-<!-- screenshot wanted: a four-cable-method preset on the grid: Input, Wah, Drive, FX Loop, Chorus, Delay, Reverb, Output -->
+![A four-cable-method preset on the grid: Input, Wah, Drive, FX Loop, Chorus, Delay, Reverb, Output 1](screenshots/four-cable.webp)
 
 The FX Loop block sends its input out to the amp's front end and returns what comes back from the amp's preamp. Set its **Send Level** and **Return Level** for clean levels in both directions, and enter the round-trip delay in **Loop Latency** (measure it with the loopback test in Audio setup, with the send cabled to the return) so parallel paths stay in time.
 

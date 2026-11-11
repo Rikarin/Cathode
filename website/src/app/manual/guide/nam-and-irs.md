@@ -2,7 +2,7 @@ Cathode's own amps and cabs are modelled from circuits and data sheets. You can 
 
 This chapter covers loading and levelling captures, finding them, loading and mixing IRs, and capturing an IR.
 
-> **Note:** Cathode comes with no captures and no IR files, so the Amp NAM block, the IR Player and the Cab's IR and IR Pack sources have nothing to play until you upload a file; each says so while your Library has none. The factory presets need none: they use the Circuit Amp and the Cab's DynaCab speakers.
+> **Note:** Cathode comes with eight impulse responses and no captures. The IRs are in **Library ▸ Cab IRs**, marked **Factory**, with names that start with "Cathode": 1x12, 2x12, 4x10 and 4x12 cabinets under a dynamic or a ribbon microphone. They are rendered from Cathode's own cab model, the one behind the Cab block's DynaCab source, so they are not recordings of real cabinets; they give the IR Player and the Cab's IR source something to play before you have files of your own. You can tag and favourite them, but not rename or delete them, and a backup leaves them out, since every Cathode has them. The Amp NAM block has nothing to play until you upload a capture, and says so while your Library has none. The factory presets need no files: they use the Circuit Amp and the Cab's DynaCab speakers.
 
 ## Neural captures: NAM and AIDA-X
 
@@ -29,7 +29,7 @@ If you want an amp whose knobs interact as on the real thing, use the Circuit Am
 2. Add an **Amp NAM** block where the amp goes on the grid.
 3. Select it, and choose the model in its **Capture** picker. A tag shows whether it is a **NAM** or an **AIDA-X** model.
 
-<!-- screenshot wanted: the Amp NAM block with a capture loaded, its NAM tag, and the Input, Output, Normalize and EQ knobs -->
+![The Amp NAM block with the capture A2.nam loaded: the Capture picker with Browse and Upload, the NAM tag, and the Input, Output, Normalize, Bass, Middle, Treble, Presence, Calibrated Input, Size and EQ Location controls](screenshots/amp-nam.webp)
 
 ![The Library: presets, and tabs for the Block Library, global blocks, NAM amps and IR cabs](screenshots/library.webp)
 
@@ -157,7 +157,7 @@ This needs the **desktop app** with a real audio interface: the capture uses the
    - **IR length (ms)**: how much of the response to keep, 500 by default. 200 ms is plenty for a close-miked cab; keep more for a roomy IR.
 6. Press **Capture**. Cathode stops the engine while it measures (you hear nothing else), plays the sweep and records it, then starts the engine again.
 
-<!-- screenshot wanted: the Capture an IR dialog with its sweep settings and a successful report -->
+<!-- screenshot wanted: the Capture an IR dialog with its sweep settings and a successful report. Needs a real sweep through a cabinet and a microphone: the capture set-up (editor/apps/desktop/e2e/manual-screenshots.spec.ts) runs without audio. -->
 
 7. Read the report. It shows the recorded peak. If it warns that the recording clipped, lower the level or the mic preamp's gain and capture again. If it says nothing came back on input 1, check the cables and the mic preamp.
 8. On success, the IR is saved to the library as **Capture** followed by the date and time. Rename it in the library, then load it in a Cab slot.

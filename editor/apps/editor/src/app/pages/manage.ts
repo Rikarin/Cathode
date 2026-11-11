@@ -13,6 +13,8 @@ export interface WorkBank {
   slots: (string | null)[];
   /** The factory bank: read-only, its presets copied or placed into the user's banks. */
   factory?: boolean | null;
+  /** The revision of the stored bank this working copy was made from (none for the factory bank); see `ifMatch`. */
+  revision?: number | null;
 }
 
 /** A slot of a bank: which bank, which slot (0-based). */
@@ -184,6 +186,35 @@ export class ManageSession {
   }
 
   /**
+   * Puts this session's pending slot changes on a bank as another editor has since stored it: every slot the session
+   * did not change takes the stored preset, and the bank its stored name and revision. The session's own slots stay
+   * as they are, still pending. What Save does when the Server refuses a bank as changed elsewhere, before it stores
+   * the bank again: the other editor's change is kept, not put back to what this page read when it was opened.
+   */
+  rebaseBank(stored: Bank & { revision?: number | null }): void {
+    const bank = this.bank(stored.id);
+    bank.name = stored.name;
+    bank.revision = stored.revision ?? null;
+    for (let slot = 0; slot < SlotCount; slot++) {
+      if (!this.changedSlots.has(`${bank.id}:${slot}`)) {
+        bank.slots[slot] = stored.slots[slot] ?? null;
+      }
+    }
+  }
+
+  /**
+   * The bank's stored revision after a save of this page's own was answered with it. `madeOn` is the revision that
+   * save was guarded with: when the session's working copy was made from another (an older one: another editor has
+   * stored the bank since), it keeps its own, so Save still finds out.
+   */
+  bankSaved(id: string, madeOn: number | null | undefined, revision: number | null | undefined): void {
+    const bank = this.banks.find(b => b.id === id);
+    if (bank && (bank.revision ?? null) === (madeOn ?? null)) {
+      bank.revision = revision ?? null;
+    }
+  }
+
+  /**
    * Renames a bank in the session. The page renames it on the Server at once; this keeps the working copy in step, so a
    * later Save of its slots does not put the old name back.
    */
@@ -284,8 +315,13 @@ export class ManageSession {
     this.meta.delete(id);
   }
 
-  /** A bank's slots are now stored as the session has them. */
-  bankStored(id: string): void {
+  /** A bank's slots are now stored as the session has them, at `revision` (as the Server answered). */
+  bankStored(id: string, revision?: number | null): void {
+    const bank = this.banks.find(b => b.id === id);
+    if (bank && revision != null) {
+      bank.revision = revision;
+    }
+
     for (const key of [...this.changedSlots].filter(k => k.startsWith(`${id}:`))) {
       this.changedSlots.delete(key);
     }

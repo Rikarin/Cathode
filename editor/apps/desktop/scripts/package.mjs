@@ -1,5 +1,5 @@
-// Packages the desktop app for this machine's OS into dist/release: a .dmg and .zip on macOS, an NSIS installer on
-// Windows, an AppImage on Linux. Run it through `pnpm dist`, which first builds the app (nx build desktop) and the
+// Packages the desktop app for this machine's OS and CPU into dist/release: a .dmg and .zip on macOS, an NSIS installer
+// on Windows, an AppImage on Linux, and beside it a .deb when CATHODE_DEB_MAINTAINER names its maintainer. Run it through `pnpm dist`, which first builds the app (nx build desktop) and the
 // engine (apps/desktop/scripts/publish-engine.mjs).
 //
 // Signing is used when electron-builder's usual variables are set (CSC_LINK and CSC_KEY_PASSWORD; on macOS also
@@ -104,6 +104,14 @@ for (const name of [
 
 const signing = Boolean(process.env['CSC_LINK'] || process.env['CSC_NAME']);
 
+// A .deb must name a maintainer with an address ("Name <name@host>"), and the project has no address of its own to
+// put there: whoever builds says who maintains the package, in CATHODE_DEB_MAINTAINER (the workflows pass the
+// repository variable of that name). Without it Linux gets the AppImage only.
+const debMaintainer = process.env['CATHODE_DEB_MAINTAINER']?.trim() || undefined;
+if (debMaintainer && !/^[^<>]+ <[^<>@\s]+@[^<>@\s]+>$/.test(debMaintainer)) {
+  throw new Error(`CATHODE_DEB_MAINTAINER must be "Name <name@host>"; got "${debMaintainer}".`);
+}
+
 await build({
   publish: 'never',
   config: {
@@ -159,6 +167,27 @@ await build({
     },
     win: { target: ['nsis'] },
     nsis: { oneClick: false, allowToChangeInstallationDirectory: true },
-    linux: { target: ['AppImage'], category: 'Audio' }
+    linux: {
+      target: debMaintainer ? ['AppImage', 'deb'] : ['AppImage'],
+      category: 'Audio',
+      ...(debMaintainer ? { maintainer: debMaintainer } : {})
+    },
+    // electron-builder's own list for Electron (app-builder-lib, FpmTarget.js), and what the engine needs on top: the
+    // C library it was linked against or newer (docs/10-releases.md, "The oldest Linux it runs on") and ALSA.
+    deb: {
+      depends: [
+        'libgtk-3-0',
+        'libnotify4',
+        'libnss3',
+        'libxss1',
+        'libxtst6',
+        'xdg-utils',
+        'libatspi2.0-0',
+        'libuuid1',
+        'libsecret-1-0',
+        'libc6 (>= 2.36)',
+        'libasound2'
+      ]
+    }
   }
 });

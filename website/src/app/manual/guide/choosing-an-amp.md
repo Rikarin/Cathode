@@ -137,7 +137,7 @@ Behind the front panel, the expert pages hold the components of the circuit. Eve
 
 ### Power Amp
 
-<!-- screenshot wanted: the Amp block on its Power Amp page (Sag, Bias, Feedback, Power Tube, Variac, Supply Type, Rectifier) -->
+![The Amp block's Power Amp page on the Plexi 100W: Sag, Bias, Feedback, the Power Amp switch, Power Tube, Presence Freq, Variac, Supply Type, Rectifier, the bias tremolo and the plate suppressors](screenshots/power-amp.webp)
 
 **Sag.** A tube amp's power supply cannot deliver unlimited current. When you hit a loud chord, the supply voltage drops for a moment and recovers, which compresses the attack and makes the note swell. **Sag** (5 is stock) scales the supply's internal resistance from a quarter (0, stiff and fast) to four times stock (10, soft and spongy). **B+ Time Const** on the Advanced page sets how quickly the supply recovers.
 

@@ -183,7 +183,7 @@ Not built:
   - not built: **oasdiff** failing PRs on breaking changes unless the API version is bumped. A breaking change to the API passes CI as long as `openapi.json` and the client are regenerated with it
   - the **TypeScript client** in `editor/libs/api-client` is regenerated in CI (`nx run api-client:check-generated`), and the build fails if the committed client is stale
 - **WebSocket tests:** event ordering (a REST mutation is followed by its `paramChanged` event), a slow client's `resync`, reconnect and resync from `revision`, and multiple clients in sync. `/ws` has no subscriptions to test ([02 §6](02-architecture.md#6-rest-api-cathodeserver)).
-- **Concurrency** (`ConcurrencyApiTests`): an edit with a stale `If-Match` gets `412` and changes nothing, on the working copy and on the global settings; an `If-Match` that is not one revision gets `400`; a knob value made on an earlier preset load gets `412`.
+- **Concurrency** (`ConcurrencyApiTests`): an edit with a stale `If-Match` gets `412` and changes nothing, on the working copy, on the global settings and on a setlist or bank (whose revision counts its saves, and which a stale save does not bring back once deleted); an `If-Match` that is not one revision gets `400`; a knob value made on an earlier preset load gets `412`.
 - Pact is optional. It becomes worthwhile once third-party clients (mobile app, controller bridges) consume the API.
 
 ---

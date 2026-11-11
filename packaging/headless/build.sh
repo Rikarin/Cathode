@@ -5,6 +5,9 @@
 # files (LICENSE and licenses/, see THIRD-PARTY-NOTICES.md).
 # Usage: packaging/headless/build.sh [version]   (default: CATHODE_VERSION, else the editor workspace's version)
 # Needs: .NET (engine/global.json), Node with pnpm (editor/package.json), CMake and a C compiler for the native shims.
+# With CATHODE_ENGINE_PREBUILT=1 the engine is not built: the one already in editor/dist/engine is packaged, and .NET,
+# CMake and the compiler are not needed. A release links the engine on Debian 12 and packages it on the runner
+# (.github/workflows/release.yml, the `linux-engine` job); what is built here needs this machine's C library or newer.
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../.." && pwd)

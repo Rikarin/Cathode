@@ -58,14 +58,26 @@ public sealed class Library(
     public Bank[] Banks() => [
         presets.Factory.Bank(),
         ..bankIndex.All()
-            .Select(static b => new Bank { Id = b.Id, Name = b.Name, Factory = b.Factory, Slots = [..b.Slots] })
+            .Select(static b => new Bank {
+                    Id = b.Id,
+                    Name = b.Name,
+                    Revision = b.Revision,
+                    Factory = b.Factory,
+                    Slots = [..b.Slots]
+                }
+            )
             .OrderBy(static b => b.Name, StringComparer.OrdinalIgnoreCase)
     ];
 
     public Bank? Bank(string id) => id == FactoryPresets.BankId ? presets.Factory.Bank() : banks.Get(id);
 
-    public void Save(Setlist setlist) {
+    /// <summary>
+    ///     Stores a setlist under its next revision. With <paramref name="expected" /> (the revision the change was made
+    ///     on), refused with 412 when the stored setlist is at another one: another editor saved it, or deleted it.
+    /// </summary>
+    public void Save(Setlist setlist, long? expected = null) {
         lock (gate) {
+            setlist.Revision = NextRevision(setlists.Get(setlist.Id)?.Revision, expected, "setlist");
             var problems = new List<string>();
             HashSet<string> kept = [..setlists.Get(setlist.Id)?.Entries.Select(static e => e.PresetId) ?? []];
             for (var i = 0; i < setlist.Entries.Count; i++) {
@@ -84,12 +96,14 @@ public sealed class Library(
         }
     }
 
-    public void Save(Bank bank) {
+    /// <summary>Stores a bank under its next revision; <paramref name="expected" /> as for a setlist.</summary>
+    public void Save(Bank bank, long? expected = null) {
         if (bank.Id == FactoryPresets.BankId) {
             throw RigException.Conflict("The factory bank cannot be changed; put its presets in a bank of your own.");
         }
 
         lock (gate) {
+            bank.Revision = NextRevision(banks.Get(bank.Id)?.Revision, expected, "bank");
             var problems = new List<string>();
             if (bank.Slots.Count > Contracts.Bank.SlotCount) {
                 problems.Add($"A bank has {Contracts.Bank.SlotCount} slots; this one has {bank.Slots.Count}.");
@@ -171,6 +185,21 @@ public sealed class Library(
         return slot >= 0 && slot < bank.Slots.Count && bank.Slots[slot] is { } id
             ? id
             : throw RigException.NotFound($"Slot {slot} of bank '{bank.Name}' is empty.");
+    }
+
+    /// <summary>
+    ///     The revision a save gets: one more than the stored entry's (0 for an entry that is not stored, or was stored
+    ///     before revisions). Throws 412 when the caller expected another one than is stored.
+    /// </summary>
+    static long NextRevision(long? stored, long? expected, string kind) {
+        var current = stored ?? 0;
+        return expected is { } wanted && wanted != current
+            ? throw new RigException(
+                412,
+                $"The {kind} was changed or deleted elsewhere (another editor) since it was read. "
+                + "Read it again and make the change again."
+            )
+            : current + 1;
     }
 
     static void Reject(List<string> problems, string kind) {

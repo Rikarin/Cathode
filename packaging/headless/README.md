@@ -7,9 +7,9 @@ or from the Cathode desktop app's remote-server connection.
 ## What it needs
 
 - A 64-bit Linux with **systemd**, on x64 or ARM64 (the package's name says which).
-- **glibc 2.39 or newer**: Ubuntu 24.04, Debian 13, Raspberry Pi OS based on Debian 13 ("trixie"), Fedora 40, and
-  later. The engine is built on Ubuntu 24.04 and does not load on an older C library, such as Debian 12's or Ubuntu
-  22.04's. `install.sh` checks this first and changes nothing when the engine cannot start.
+- **glibc 2.36 or newer**: Debian 12, Raspberry Pi OS based on Debian 12 ("bookworm"), Ubuntu 24.04, Fedora 37, and
+  later. The engine is linked on Debian 12 and does not load on an older C library, such as Ubuntu 22.04's (2.35) or
+  Debian 11's. `install.sh` checks this first and changes nothing when the engine cannot start.
 - The ALSA library (`libasound2`), which those systems install by default.
 
 ## Install

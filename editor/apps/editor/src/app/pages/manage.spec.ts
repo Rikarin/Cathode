@@ -1,6 +1,9 @@
 import type { Bank, PresetSummary } from '@cathode/api-client';
 import { ManageSession, nextSelection } from './manage';
 
+/** Bank One as the Server lists it once it has stored it four times. */
+const revised = (slots: string[]): Bank & { revision: number } => ({ id: 'one', name: 'One', slots, revision: 4 });
+
 const preset = (id: string, name = id): PresetSummary => ({ id, name, tags: [], modified: '', favorite: false });
 
 function session() {
@@ -157,5 +160,33 @@ describe('Manage Presets', () => {
     expect(plan.deletes).toEqual([]);
     expect(m.isFactoryBank('factory')).toBe(true);
     expect(m.isFactory('a')).toBe(false);
+  });
+
+  it('puts its own slot changes on a bank another editor has stored since, and keeps the other slots as stored', () => {
+    const m = new ManageSession([revised(['a', 'b', 'c'])], [preset('a'), preset('b'), preset('c'), preset('d')]);
+    m.swap({ bank: 'one', slot: 0 }, { bank: 'one', slot: 1 }); // this page: b, a, c
+
+    // Meanwhile another editor renamed the bank, replaced slot 2 and filled slot 5.
+    m.rebaseBank({ id: 'one', name: 'Gig', slots: ['a', 'b', 'd', null, null, 'c'], revision: 6 } as unknown as Bank);
+
+    const bank = m.plan().banks[0];
+    expect(bank?.slots).toEqual(['b', 'a', 'd', null, null, 'c']);
+    expect([bank?.name, bank?.revision]).toEqual(['Gig', 6]);
+    expect(m.isChanged({ bank: 'one', slot: 0 })).toBe(true); // still to be saved
+    expect(m.isChanged({ bank: 'one', slot: 2 })).toBe(false);
+  });
+
+  it('takes the revision of its own rename only when its working copy was made from the bank that was renamed', () => {
+    const m = new ManageSession([revised(['a'])], [preset('a')]);
+
+    m.bankSaved('one', 4, 5);
+    expect(m.bank('one').revision).toBe(5);
+
+    // The stored bank was at 7 by the time of the next rename (another editor): Save must still be refused.
+    m.bankSaved('one', 7, 8);
+    expect(m.bank('one').revision).toBe(5);
+
+    m.bankStored('one', 9);
+    expect(m.bank('one').revision).toBe(9);
   });
 });

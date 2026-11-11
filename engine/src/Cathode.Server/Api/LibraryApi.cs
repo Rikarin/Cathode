@@ -1,6 +1,7 @@
 using Cathode.Server.Stores;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using System.Globalization;
 using static Cathode.Server.Api.CathodeApi;
 
 namespace Cathode.Server.Api;
@@ -43,9 +44,10 @@ static class LibraryApi {
             "Setlist",
             static books => books.Setlists(),
             static (books, id) => books.Setlist(id),
-            static (books, id, setlist) => {
+            static (books, id, setlist, expected) => {
                 setlist.Id = id;
-                books.Save(setlist);
+                books.Save(setlist, expected);
+                return setlist.Revision;
             },
             static (books, id) => books.DeleteSetlist(id)
         );
@@ -54,9 +56,10 @@ static class LibraryApi {
             "Bank",
             static books => books.Banks(),
             null, // a client lists the banks; nothing reads one alone
-            static (books, id, bank) => {
+            static (books, id, bank, expected) => {
                 bank.Id = id;
-                books.Save(bank);
+                books.Save(bank, expected);
+                return bank.Revision;
             },
             static (books, id) => books.DeleteBank(id)
         );
@@ -66,16 +69,18 @@ static class LibraryApi {
     ///     <c>GET /</c> (named <c>List</c> + <paramref name="name" /> + s), and <c>GET</c> (when
     ///     <paramref name="get" /> is given), <c>PUT</c> and <c>DELETE /{id}</c> (<c>Get</c>, <c>Put</c> and
     ///     <c>Delete</c> + <paramref name="name" />) for one kind of library entry. A put stores the entry under the id
-    ///     of its route and answers with it.
+    ///     of its route and answers with it, its new revision as the ETag; with <c>If-Match</c> it is refused (412) when
+    ///     the stored entry is not at that revision.
     /// </summary>
     static void MapEntries<T>(
         RouteGroupBuilder group,
         string name,
         Func<Library, T[]> list,
         Func<Library, string, T?>? get,
-        Action<Library, string, T> save,
+        Func<Library, string, T, long?, long?> save,
         Func<Library, string, bool> delete
     ) where T : class {
+        var noun = name.ToLowerInvariant();
         group.MapGet("/", (Library books) => TypedResults.Ok(list(books))).WithName("List" + name + "s");
         if (get is not null) {
             group.MapGet(
@@ -88,12 +93,20 @@ static class LibraryApi {
 
         group.MapPut(
                 ById,
-                (string id, T entry, Library books) => {
-                    save(books, id, entry);
+                (string id, T entry, Library books, HttpContext http) => {
+                    if (save(books, id, entry, Expected(http)) is { } revision) {
+                        http.Response.Headers.ETag = $"\"{revision.ToString(CultureInfo.InvariantCulture)}\"";
+                    }
+
                     return TypedResults.Ok(entry);
                 }
             )
-            .WithName("Put" + name);
+            .WithName("Put" + name)
+            .WithSummary(
+                $"Stores the {noun} under the id of the route and answers with it, its new revision in 'revision' and "
+                + "as the ETag. With If-Match (the revision it was read at), refused with 412 when it was stored or "
+                + "deleted in between (another editor); without, it replaces whatever is stored."
+            );
         group.MapDelete(
                 ById,
                 Results<NoContent, NotFound>(string id, Library books) =>

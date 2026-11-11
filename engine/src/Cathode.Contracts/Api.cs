@@ -54,8 +54,10 @@ public sealed record PresetSummary(
 );
 
 /// <summary>
-///     A stored asset. <c>Slimmable</c> is set on NAM captures only: true when the file holds more than one size of
-///     its model (NAM A2), so the Amp NAM block's Size does something on it.
+///     An asset in the store. <c>Factory</c> is true for one that came with Cathode: it cannot be renamed or deleted
+///     (its colour tag and favourite flag are the user's), and is left out of a backup. <c>Slimmable</c> is set on
+///     NAM captures only: true when the file holds more than one size of its model (NAM A2), so the Amp NAM block's
+///     Size does something on it.
 /// </summary>
 public sealed record AssetInfo(
     string Ref,
@@ -65,7 +67,8 @@ public sealed record AssetInfo(
     DateTimeOffset Added,
     string? Color = null,
     bool Favorite = false,
-    bool? Slimmable = null
+    bool? Slimmable = null,
+    bool? Factory = null
 );
 
 /// <summary>

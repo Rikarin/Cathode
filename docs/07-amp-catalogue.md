@@ -14,7 +14,7 @@ Every real amp we model, plan to model, or might model, with where it stands in 
 - Add a capture you found to `engine/tests/assets/references/manifest.json` (see `docs/06-amp-modelling-spec.md` §4).
   Tone3000 ("T3K" licence) and CC BY-NC files are local-only: never commit them.
 
-Last updated: 2026-11-10 (88 types, through the Quick Rod, AFD100, DSL100 and JMP-1; duplicate rows merged and the counts redone).
+Last updated: 2026-11-10 (88 types, through the Quick Rod, AFD100, DSL100 and JMP-1; duplicate rows merged and the counts redone; a row for each amp issue #357 to #509, a status for each variant the wiki names, and the AC15 and Dr Z Route 66 drawings read).
 
 ## Status key
 
@@ -81,12 +81,12 @@ Last updated: 2026-11-10 (88 types, through the Quick Rod, AFD100, DSL100 and JM
 |---|---|---|---|---|---|
 | AC30 Top Boost | ✅ Done (JMI OS/010, OS/065 values) | AC30 | T3K: AC30S1 gain sweep | AC30 TB / C2 / HW direct out | 2x12 open, Celestion Blue / Alnico |
 | AC30 Normal channel | ✅ Done | AC30, Switch 1 "Normal Ch" | — | | 2x12 open, Blue |
-| AC15 (EF86) | ✅ Done (mixing and cut assumed; no vibrato-tremolo: no AC15 drawing could be read) | AC15 | Stand-ins, not this amp: GPL: AC15 Top Boost (version not stated; mapped to the AC30 type, the AC15 type having no top-boost channel); T3K: AC15C1 Normal (6 settings, on the type's 12AX7 channel) and Top Boost (the AC15C1 is a current circuit with no EF86) | Vintage EF86 channel captures | 1x12 open, Blue / G12M |
+| AC15 (EF86) | ✅ Done (mixing and cut assumed, and no vibrato-tremolo channel. Three AC15 drawings are on schematicheaven's Vox index, read 2026-11-10: `voxamps/ac151960.pdf` is JMI's "Vox AC15 amplifier circuit No. 3", drawing OA/031 of 25-4-60, the amp this type models: EF86 Normal channel with the Brilliance switch, 12AX7 inverter, cut, two EL84 on a shared 130 Ω, 8000 Ω anode to anode, EZ81, and the Vib/Trem channel on a 12AX7, a 12AU7 and a 12AX7. The scan is rough: the main path can be read with care, parts of the Vib/Trem section are smudged. `voxamps/ac15.pdf` is the later "Vox AC-15 Amplifier No. V-1-5" sheet with American tube numbers, what looks like the same circuit redrawn cleanly, but scanned at 596 × 743 pixels, so its values are at the edge of legible; the two together may settle most of them. `voxamps/ac151959.pdf` is the earlier "AC/15 Amplifier No. 2" (OS/005, 4-12-59) with the ECF82 Vibravox unit, another circuit. The type's assumed mixing and cut have not yet been checked against OA/031: [#452](https://github.com/Rikarin/cathode/issues/452)) | AC15 | Stand-ins, not this amp: GPL: AC15 Top Boost (version not stated; mapped to the AC30 type, the AC15 type having no top-boost channel); T3K: AC15C1 Normal (6 settings, on the type's 12AX7 channel) and Top Boost (the AC15C1 is a current circuit with no EF86) | Vintage EF86 channel captures | 1x12 open, Blue / G12M |
 | Matchless DC-30 | ✅ Done | DC-30 | GPL: Matchless SC30 channel 1 | DC-30 both channels | 2x12 open, G12H30 / Vintage 30 |
 | Dumble Overdrive Special | ✅ Done (a 1997 ODS 100, traced: clean and overdrive; the 1970s ODS with Rock/Jazz and Deep is its own type, see the Dumble ODS row in the additions below) | ODS 97, ODS 70s | GPL: Dumble kit low/high, Dumble clone clean/medium/high (all mapped to ODS 97, knobs fitted) | Real ODS captures with settings; an HRM schematic | 1x12 / 2x12 open, EV12L |
 | Two-Rock (Dumble-style) | ⏸ Waiting (no schematic published; the ODS work does not carry over without one) | — | (Dumble captures above) | Schematic or trace | 1x12 / 2x12 open |
 | Bad Cat Hot Cat / Black Cat | ✅ Done (Hot Cat 30, both inputs; its Brilliance on the Presence knob, clockwise brighter; the master read as a divider, the drawing having it as a dead rheostat; Black Cat ⏸: no schematic, Bad Cat never published one) | Hot Cat 30 | — | Hot Cat 30 captures, Gain and Clean inputs | 2x12 open |
-| Dr Z Maz 18 | ⏸ Waiting (searched 2026-10: no schematic or trace; specs only: 2 x EL84 cathode bias, 5AR4) | — | — | Schematic | 1x12 / 2x12 open |
+| Dr Z Maz 18 | ⏸ Waiting (searched 2026-10: no schematic or trace; specs only: 2 x EL84 cathode bias, 5AR4). For the Route 66 there is a trace, read 2026-11-10: prowessamplifiers.com `schematics/images/Route66.jpg`, a redrawn sheet titled "ROOT 666" and signed "The Doctor", Rev 1.0, 4/15/2005. It is not a factory drawing and names no source amp, but every value on it is legible: an EF86 input stage (220k plate, 1M screen, 1.5k cathode with 25 µF), Bass and Treble around a 150k / 100k divider, Volume, a 12AX7 long-tailed-pair inverter (82k and 91k plates, 1.2k and 47k in the tail), two fixed-bias KT66 (−50 V, 1.5k grid stoppers, 470 Ω screens), a 5AR4, and the supply (445 / 353 / 306 V) with a table of measured voltages. The output transformer's primary is not given. Enough to build the Route 66 as a trace-based type ([#384](https://github.com/Rikarin/cathode/issues/384)) | — | — | Schematic (Maz); a factory drawing or a second trace to check the Route 66 one against | 1x12 / 2x12 open |
 | Morgan AC20 / SW | ⏸ Waiting (searched 2026-10: no schematic; specs only: EF86 or 12AX7 channel, 2 x EL84, GZ34) | — | — | Schematic | 1x12 open |
 | Matchless Chieftain | ✅ Done (factory drawing 1994 plus a measured trace; its Brilliance on the Presence knob, clockwise brighter) | Chieftain | — | Captures with settings | 2x12 open, G12H30 |
 | Divided by 13 | ⏸ Waiting (searched 2026-10: no schematic or trace for the JRT 9/15, CJ 11 or FTR 37) | — | — | Schematic | 1x12 / 2x12 |
@@ -182,8 +182,9 @@ the B-15 runs on the Circuit Amp's closed 8 × 10 speaker curve.
 
 ## Counts
 
-Counted over every table in this file, including the two sections added from Fractal's lists (recounted 2026-11-10).
-Each row is counted once by its status; the seven ↪ rows point at an amp counted in its own row. A row can stand for
+Counted over every table in this file, including the two sections added from Fractal's lists and the issues table at
+the end (recounted 2026-11-10). Each row is counted once by its status; the ↪ rows (seven in the Axe-Fx sections, and
+the issues whose amp has a row above) point at an amp counted in its own row, and the wiki's variants are not counted. A row can stand for
 more than one type (a Jumped variant, a second channel) and two rows can share one, so the Done count is not the
 number of types.
 
@@ -191,8 +192,8 @@ number of types.
 |---|---|
 | ✅ Done (78, one of them partly), done as a variant of another model (1), or covered by another type (1) | 80 |
 | 🔨 In progress | 0 |
-| 📋 Planned (schematic found, not built yet) | 0 |
-| ⏸ Waiting on a schematic or better data | 54 |
+| 📋 Planned (schematic found, not built yet), 67 of them rows of the issues table | 67 |
+| ⏸ Waiting on a schematic or better data, 16 of them rows of the issues table | 70 |
 | 💤 Not planned (not researched yet) | 2 |
 
 ### Circuit Amp types by index
@@ -380,7 +381,32 @@ models. Against the catalogue above it adds these real amps:
 | Diamond Del Fuego | Modern high gain | ⏸ Waiting (nothing found; specs: 3 × 12AX7, 2 × EL84, 6CA4 rectifier, 22 W, designed with Roy Blankenship) | — | Del Fuego | 4x12 closed |
 
 The wiki also names variants of amps already listed, which can be covered by switches or extra types once the base amp
-exists:
+exists. They are not counted in the Counts table: each belongs to a row above or to an issue in the next section.
+"Schematic" is what the issue's search found (2026-11), not a reading of the drawing.
+
+| Variant | Status | Issue |
+|---|---|---|
+| Fender '59 Bassman LTD reissue | 📋 Planned (schematic: available) | [#404](https://github.com/Rikarin/cathode/issues/404) |
+| Fender Twin Reverb, 1971 silverface | 📋 Planned (schematic: available) | [#403](https://github.com/Rikarin/cathode/issues/403) |
+| Fender Vibroverb, old (6G16) and Custom reissue | 📋 Planned (schematic: available) | [#479](https://github.com/Rikarin/cathode/issues/479) |
+| Marshall Plexis dated 1967, 1969, 1970 and 1972, and the 50 W Plexi with 6CA7 tubes | 📋 Planned (schematic: available) | [#420](https://github.com/Rikarin/cathode/issues/420) |
+| Marshall JCM800 2203 / 2204 High input | ✅ Done (the JCM800 2203 and JCM800 2204 types) | — |
+| Marshall JCM800 2203 / 2204 Low input | 📋 Planned (schematic: available; the types have no Low input yet) | [#419](https://github.com/Rikarin/cathode/issues/419) |
+| EVH 5150III, the standard 100 W head | ⏸ Waiting (the 5150III type is drawn from the 100S Stealth's channel 3, the only drawing found, so it is the Stealth that is covered and the standard amp that would be the variant) | — |
+| Mesa Mark IIC+ Bright and Deep | ✅ Done (the Mark IIC+ type's Bright and Deep switches; its rhythm channel is the Mark IIC+ Rhythm type, from `Boogie_mkiic_plus.pdf`) | — |
+| Mesa Mark IV rhythm and mid-gain voicings | ✅ Done (the Mark IV Rhythm 1 and Rhythm 2 types, from `Boogie_mkiv.pdf`; the mid-gain voicing is Rhythm 2) | — |
+| Mesa Mark V IIC+ / MKIV / XT modes | ✅ Done (the Mark V type's mode switches) | — |
+| Mesa JP-2C Shred | ⏸ Waiting (schematic: none found) | [#500](https://github.com/Rikarin/cathode/issues/500) |
+| Bogner Ecstasy 20th Anniversary | ⏸ Waiting (schematic: partial; no 20th Anniversary drawing) | [#413](https://github.com/Rikarin/cathode/issues/413) |
+| Diezel Herbert MkIII | ⏸ Waiting (schematic: none found) | [#490](https://github.com/Rikarin/cathode/issues/490) |
+| Carvin VL300 | ⏸ Waiting (schematic: partial) | [#496](https://github.com/Rikarin/cathode/issues/496) |
+| Revv Generator Green / Purple / Red | ⏸ Waiting (schematic: none found) | [#491](https://github.com/Rikarin/cathode/issues/491) |
+| PRS Archon Clean / Lead / Bright | ⏸ Waiting (schematic: none found) | [#493](https://github.com/Rikarin/cathode/issues/493) |
+| Fryette D60 Less / More | ⏸ Waiting (schematic: none found) | [#492](https://github.com/Rikarin/cathode/issues/492) |
+| Two-Rock PAB switch variants | ⏸ Waiting (schematic: partial) | [#460](https://github.com/Rikarin/cathode/issues/460) |
+| ODS PAB switch variants | ⏸ Waiting (the Overdrive Special types have no PAB switch; the sources are the forum traces described in the Dumble row) | — |
+
+The same list as the wiki gives it:
 - **Fender:** a '59 Bassman LTD reissue, a 1971 silverface Twin Reverb, and old and Custom reissue Vibroverbs.
 - **Marshall:** Plexis dated 1967, 1969, 1970 and 1972, a 50 W Plexi with 6CA7 tubes, and JCM800 2203/2204 High and Low inputs.
 - **High gain:**
@@ -397,3 +423,174 @@ exists:
 
 For each model the wiki page also gives the original amp's controls, power tubes, matching speakers and Fractal's comments.
 That is useful when building a model: check the controls and tubes against the schematic.
+
+## Amps asked for in issues
+
+The 1.0.0-rc.5 audit compared the Circuit Amp types with this file and with the model lists of the Axe-Fx III, Helix,
+Quad Cortex, TONEX and AmpliTube, and filed one issue per missing amp, variant or channel: 153 issues, #357 to
+#509, labelled `amp model`. Each issue gives the circuit in a line, where a schematic was found, what the engine would
+need beyond a netlist, and the typical cab. [#510](https://github.com/Rikarin/cathode/issues/510) lists 126 further
+low-priority candidates in one issue; they have no rows here.
+
+One row per issue, as filed. "Schematic" is the issue's own finding: *available* means a drawing was found or listed
+(most were seen on a site's index and not opened: check that it can be read before building), *partial* a trace of
+unknown origin or part of the amp, *not confirmed* a lead nobody could check, *none found* nothing. The status follows
+from it: 📋 Planned with a schematic available, ⏸ Waiting otherwise. An amp that already has a row in the tables above
+keeps its status there (↪) and is not counted twice; the 83 others are counted in the Counts table. When
+an issue is built, give the amp a row in its family's table above, with the type's name, and mark it here.
+
+| Issue | Amp, variant or channel | Family | Kind | Priority | Schematic | Status | Typical cab |
+|---|---|---|---|---|---|---|---|
+| [#357](https://github.com/Rikarin/cathode/issues/357) | Ampeg SVT-CL / SVT-2 Pro | Bass | New amp | high | available | 📋 Planned | 8x10 closed |
+| [#358](https://github.com/Rikarin/cathode/issues/358) | Gallien-Krueger 800RB | Bass | New amp | high | available | 📋 Planned | 4x10 / 1x15 |
+| [#359](https://github.com/Rikarin/cathode/issues/359) | Orange OR120 / OR80 Graphic ('Pics Only') | British | New amp | high | available | 📋 Planned | 4x12 closed, Greenback / G12H |
+| [#360](https://github.com/Rikarin/cathode/issues/360) | Fender Pro Junior | Fender | New amp | high | available | 📋 Planned | 1x10 open, Eminence/Jensen |
+| [#361](https://github.com/Rikarin/cathode/issues/361) | Fender Champ AA764 / Vibro Champ AA764 | Fender | New amp | high | available | 📋 Planned | 1x8 open |
+| [#362](https://github.com/Rikarin/cathode/issues/362) | Peavey 6505+ / 5150 II | High gain | New amp | high | available | ↪ See its row above | 4x12 closed, Sheffield / Vintage 30 |
+| [#363](https://github.com/Rikarin/cathode/issues/363) | Peavey Classic 30 / Classic 50 (and Delta Blues) | High gain | New amp | high | available | 📋 Planned | 1x12 / 4x10 open |
+| [#364](https://github.com/Rikarin/cathode/issues/364) | ENGL Fireball 60 / 100 | High gain | New amp | high | available | 📋 Planned | 4x12 closed, Vintage 30 |
+| [#365](https://github.com/Rikarin/cathode/issues/365) | Sunn Model T | High gain | New amp | high | available | 📋 Planned | 4x12 closed / 6x12 |
+| [#366](https://github.com/Rikarin/cathode/issues/366) | Marshall Super Bass 100 (1992) | Marshall | New amp | high | available | 📋 Planned | 4x12 closed / 4x15 |
+| [#367](https://github.com/Rikarin/cathode/issues/367) | Marshall JCM800 2210 / 2205 (split channel) | Marshall | New amp | high | available | 📋 Planned | 4x12 closed, G12T-75 |
+| [#368](https://github.com/Rikarin/cathode/issues/368) | Marshall JCM2000 TSL100 | Marshall | New amp | high | available | 📋 Planned | 4x12 closed |
+| [#369](https://github.com/Rikarin/cathode/issues/369) | Randall RG100ES (and RG80 / RG100 Classic) | Solid state | New amp | high | available | ↪ See its row above | 4x12 closed |
+| [#370](https://github.com/Rikarin/cathode/issues/370) | Supro 1624T Dual-Tone | US vintage | New amp | high | available | ↪ See its row above | 1x12 open, Jensen C12Q |
+| [#371](https://github.com/Rikarin/cathode/issues/371) | Supro Thunderbolt S6420 | US vintage | New amp | high | available | 📋 Planned | 1x15 open |
+| [#372](https://github.com/Rikarin/cathode/issues/372) | Silvertone 1484 Twin Twelve | US vintage | New amp | high | available | 📋 Planned | 2x12 closed (separate cab), Jensen C12Q |
+| [#373](https://github.com/Rikarin/cathode/issues/373) | Vox AC15C1 (Custom) | Vox/class A | New amp | high | available | 📋 Planned | 1x12 open, Greenback / Alnico Blue |
+| [#374](https://github.com/Rikarin/cathode/issues/374) | Mesa/Boogie Bass 400+ | Bass | Variant | medium | partial | ⏸ Waiting | 8x10 / 2x15 |
+| [#375](https://github.com/Rikarin/cathode/issues/375) | Ampeg SVT-4 Pro / SVT-3 Pro | Bass | New amp | medium | available | 📋 Planned | 8x10 / 4x10 |
+| [#376](https://github.com/Rikarin/cathode/issues/376) | Ampeg V-4B | Bass | New amp | medium | available | 📋 Planned | 2x15 / 8x10 |
+| [#377](https://github.com/Rikarin/cathode/issues/377) | Ampeg B-15N 1964 (B-15NC) and 1966 (B-15NF) versions | Bass | Variant | medium | available | 📋 Planned | 1x15 closed |
+| [#378](https://github.com/Rikarin/cathode/issues/378) | Acoustic 360 / 361 | Bass | New amp | medium | partial | ⏸ Waiting | 1x18 folded horn |
+| [#379](https://github.com/Rikarin/cathode/issues/379) | Trace Elliot GP12 / AH250 | Bass | New amp | medium | available | 📋 Planned | 4x10 |
+| [#380](https://github.com/Rikarin/cathode/issues/380) | Aguilar DB750 / DB751 | Bass | New amp | medium | partial | ⏸ Waiting | 4x10 / 8x10 |
+| [#381](https://github.com/Rikarin/cathode/issues/381) | Sunn Coliseum 300 (bass) | Bass | New amp | medium | available | 📋 Planned | 2x15 |
+| [#382](https://github.com/Rikarin/cathode/issues/382) | Sunn 200S / 2000S | Bass | New amp | medium | available | 📋 Planned | 2x15 |
+| [#383](https://github.com/Rikarin/cathode/issues/383) | Fender Bassman 300 Pro / Super Bassman | Bass | New amp | medium | available | 📋 Planned | 8x10 / 4x10 |
+| [#384](https://github.com/Rikarin/cathode/issues/384) | Dr Z Route 66 | Boutique | New amp | medium | available (read 2026-11-10, see the Dr Z row) | ↪ See its row above | 2x12 open |
+| [#385](https://github.com/Rikarin/cathode/issues/385) | Tone King Imperial (MkI / MkII / 20th Anniversary) | Boutique | New amp | medium | partial | ⏸ Waiting | 1x12 open |
+| [#386](https://github.com/Rikarin/cathode/issues/386) | Orange Rockerverb 50 MkI (and MkII / MkIII) | British | New amp | medium | partial | ↪ See its row above | 2x12 / 4x12 closed, Vintage 30 |
+| [#387](https://github.com/Rikarin/cathode/issues/387) | Orange AD30 (A30) | British | New amp | medium | partial | ↪ See its row above | 2x12 closed |
+| [#388](https://github.com/Rikarin/cathode/issues/388) | Orange Thunderverb 200 / 50 | British | New amp | medium | partial | ⏸ Waiting | 4x12 closed |
+| [#389](https://github.com/Rikarin/cathode/issues/389) | Hiwatt DR201 (200 W) | British | New amp | medium | available | 📋 Planned | 4x12 / 4x15, Fane |
+| [#390](https://github.com/Rikarin/cathode/issues/390) | Laney Supergroup 100 (LA100BL, Mk1) | British | New amp | medium | available | 📋 Planned | 4x12 closed |
+| [#391](https://github.com/Rikarin/cathode/issues/391) | Laney AOR Pro-Tube 50 / 100 | British | New amp | medium | available | 📋 Planned | 4x12 closed |
+| [#392](https://github.com/Rikarin/cathode/issues/392) | Laney VH100R | British | New amp | medium | available | 📋 Planned | 4x12 closed |
+| [#393](https://github.com/Rikarin/cathode/issues/393) | Sound City 50 Plus / 120 | British | New amp | medium | available | 📋 Planned | 4x12 closed, Fane |
+| [#394](https://github.com/Rikarin/cathode/issues/394) | Fender Blues Deluxe / Blues DeVille (and Hot Rod DeVille) | Fender | New amp | medium | available | 📋 Planned | 1x12 / 2x12 / 4x10 open |
+| [#395](https://github.com/Rikarin/cathode/issues/395) | Fender Super-Sonic 22 / 60 | Fender | New amp | medium | available | 📋 Planned | 1x12 open |
+| [#396](https://github.com/Rikarin/cathode/issues/396) | Fender Showman / Dual Showman AB763 (and Dual Showman Reverb AA769) | Fender | Variant | medium | available | 📋 Planned | 1x15 / 2x15 closed, JBL D130F |
+| [#397](https://github.com/Rikarin/cathode/issues/397) | Fender Pro Reverb AA165 | Fender | Variant | medium | available | 📋 Planned | 2x12 open |
+| [#398](https://github.com/Rikarin/cathode/issues/398) | Fender Deluxe 5C3 / 5D3 (TV and wide panel) | Fender | New amp | medium | available | 📋 Planned | 1x12 open |
+| [#399](https://github.com/Rikarin/cathode/issues/399) | Fender Bandmaster 5E7 (tweed, 3x10) | Fender | New amp | medium | available | 📋 Planned | 3x10 open |
+| [#400](https://github.com/Rikarin/cathode/issues/400) | Fender Super 5F4 (tweed, 2x10) | Fender | New amp | medium | available | 📋 Planned | 2x10 open |
+| [#401](https://github.com/Rikarin/cathode/issues/401) | Fender Bassman 6G6-B (brownface/blonde piggy-back) | Fender | New amp | medium | available | 📋 Planned | 2x12 closed |
+| [#402](https://github.com/Rikarin/cathode/issues/402) | Fender Showman 6G14-A / Twin 6G8-A (brownface/blonde, harmonic vibrato) | Fender | Variant | medium | available | 📋 Planned | 1x15 closed JBL / 2x12 open |
+| [#403](https://github.com/Rikarin/cathode/issues/403) | Fender Twin Reverb, silverface (1971 AA270 / master-volume 100 W / 135 W ultralinear) | Fender | Variant | medium | available | ↪ See its row above | 2x12 open, JBL D120F |
+| [#404](https://github.com/Rikarin/cathode/issues/404) | Fender '59 Bassman LTD / '59 Bassman reissue | Fender | Variant | medium | available | ↪ See its row above | 4x10 open, Jensen P10R |
+| [#405](https://github.com/Rikarin/cathode/issues/405) | Fender Bassman AB165 (blackface) | Fender | New amp | medium | partial | ↪ See its row above | 2x12 closed |
+| [#406](https://github.com/Rikarin/cathode/issues/406) | Fender '68 Custom Deluxe Reverb (modified silverface reissue) | Fender | Variant | medium | not confirmed | ⏸ Waiting | 1x12 open, Celestion G12V-70 |
+| [#407](https://github.com/Rikarin/cathode/issues/407) | Fender Prosonic | Fender | New amp | medium | available | 📋 Planned | 2x10 open |
+| [#408](https://github.com/Rikarin/cathode/issues/408) | EVH 5150III 100S Stealth (and 50 W, LBX) | High gain | Variant | medium | partial | ↪ See its row above | 4x12 closed |
+| [#409](https://github.com/Rikarin/cathode/issues/409) | Peavey JSX | High gain | New amp | medium | partial | ⏸ Waiting | 4x12 closed |
+| [#410](https://github.com/Rikarin/cathode/issues/410) | Peavey Triple XXX / 3120 | High gain | New amp | medium | available | 📋 Planned | 4x12 closed |
+| [#411](https://github.com/Rikarin/cathode/issues/411) | Peavey Invective 120 | High gain | New amp | medium | partial | ⏸ Waiting | 4x12 closed |
+| [#412](https://github.com/Rikarin/cathode/issues/412) | Soldano Hot Rod 50 / 100 (and Avenger) | High gain | New amp | medium | available | 📋 Planned | 4x12 closed |
+| [#413](https://github.com/Rikarin/cathode/issues/413) | Bogner Ecstasy 100B / 101B (and 20th Anniversary) | High gain | New amp | medium | partial | ↪ See its row above | 4x12 closed |
+| [#414](https://github.com/Rikarin/cathode/issues/414) | Bogner Uberschall | High gain | New amp | medium | partial | ↪ See its row above | 4x12 closed |
+| [#415](https://github.com/Rikarin/cathode/issues/415) | Diezel VH4 | High gain | New amp | medium | partial | ↪ See its row above | 4x12 closed, Vintage 30 |
+| [#416](https://github.com/Rikarin/cathode/issues/416) | ENGL Ritchie Blackmore Signature E650 | High gain | New amp | medium | available | 📋 Planned | 4x12 closed |
+| [#417](https://github.com/Rikarin/cathode/issues/417) | Hughes & Kettner TriAmp MkI | High gain | New amp | medium | available | ↪ See its row above | 4x12 closed |
+| [#418](https://github.com/Rikarin/cathode/issues/418) | Carvin X100B | High gain | New amp | medium | available | 📋 Planned | 4x12 closed |
+| [#419](https://github.com/Rikarin/cathode/issues/419) | Marshall JCM800 2203 / 2204: Low input is not modelled | Marshall | Missing channel or mode | medium | available | ↪ See its row above | 4x12 closed |
+| [#420](https://github.com/Rikarin/cathode/issues/420) | Marshall Plexi year variants (1967, 1969, 1970, 1972) and 50 W with 6CA7 | Marshall | Variant | medium | available | ↪ See its row above | 4x12 closed, Greenback / G12H |
+| [#421](https://github.com/Rikarin/cathode/issues/421) | Marshall JTM50 / 'black flag' (1966-67, GZ34 EL34 transitional) | Marshall | Variant | medium | partial | ⏸ Waiting | 4x12 closed, Greenback |
+| [#422](https://github.com/Rikarin/cathode/issues/422) | Marshall 1986 Bass 50 W (and Park 75) | Marshall | New amp | medium | available | 📋 Planned | 4x12 closed |
+| [#423](https://github.com/Rikarin/cathode/issues/423) | Marshall 6100 30th Anniversary (and 6100LM) | Marshall | New amp | medium | available | 📋 Planned | 4x12 closed |
+| [#424](https://github.com/Rikarin/cathode/issues/424) | Marshall 2061X / 2061 Lead & Bass 20 | Marshall | New amp | medium | partial | ⏸ Waiting | 2x12 closed |
+| [#425](https://github.com/Rikarin/cathode/issues/425) | Marshall JCM900 SL-X 2100 / 2500 | Marshall | New amp | medium | available | 📋 Planned | 4x12 closed |
+| [#426](https://github.com/Rikarin/cathode/issues/426) | Marshall 2203 with the Jose Arredondo mod (and 'SIR #36') | Marshall | Variant | medium | partial | ⏸ Waiting | 4x12 closed |
+| [#427](https://github.com/Rikarin/cathode/issues/427) | Mesa/Boogie Mark I | Mesa | New amp | medium | available | 📋 Planned | 1x12 closed, Altec 417 |
+| [#428](https://github.com/Rikarin/cathode/issues/428) | Mesa/Boogie Mark III | Mesa | New amp | medium | partial | ⏸ Waiting | 1x12 / 4x12 closed |
+| [#429](https://github.com/Rikarin/cathode/issues/429) | Mesa/Boogie Trem-O-Verb | Mesa | New amp | medium | available | 📋 Planned | 2x12 / 4x12 closed |
+| [#430](https://github.com/Rikarin/cathode/issues/430) | Mesa/Boogie Stiletto Deuce / Ace | Mesa | New amp | medium | available | 📋 Planned | 4x12 closed |
+| [#431](https://github.com/Rikarin/cathode/issues/431) | Mesa/Boogie Road King II / Roadster | Mesa | New amp | medium | available | 📋 Planned | 4x12 closed |
+| [#432](https://github.com/Rikarin/cathode/issues/432) | Mesa/Boogie Studio Preamp | Preamp | New amp | medium | available | 📋 Planned | 4x12 closed |
+| [#433](https://github.com/Rikarin/cathode/issues/433) | Mesa/Boogie Quad Preamp | Preamp | New amp | medium | available | 📋 Planned | 4x12 closed |
+| [#434](https://github.com/Rikarin/cathode/issues/434) | ENGL E530 preamp | Preamp | New amp | medium | available | 📋 Planned | 4x12 closed |
+| [#435](https://github.com/Rikarin/cathode/issues/435) | Alembic F-2B preamp | Preamp | New amp | medium | partial | ⏸ Waiting | any |
+| [#436](https://github.com/Rikarin/cathode/issues/436) | Marshall Lead 12 (3005 / 5005) | Solid state | New amp | medium | available | 📋 Planned | 1x10 / mini stack |
+| [#437](https://github.com/Rikarin/cathode/issues/437) | Sunn Beta Lead / Beta Bass | Solid state | New amp | medium | partial | ⏸ Waiting | 4x12 closed |
+| [#438](https://github.com/Rikarin/cathode/issues/438) | Peavey Bandit 112 (TransTube) | Solid state | New amp | medium | partial | ⏸ Waiting | 1x12 Sheffield |
+| [#439](https://github.com/Rikarin/cathode/issues/439) | Ampeg VH-140C / SS-140C | Solid state | New amp | medium | available | 📋 Planned | 4x12 closed |
+| [#440](https://github.com/Rikarin/cathode/issues/440) | Polytone Mini-Brute | Solid state | New amp | medium | available | 📋 Planned | 1x12 / 1x15 closed |
+| [#441](https://github.com/Rikarin/cathode/issues/441) | Lab Series L5 | Solid state | New amp | medium | available | 📋 Planned | 2x12 open |
+| [#442](https://github.com/Rikarin/cathode/issues/442) | Supro S6616 (Trojan Tremolo) | US vintage | New amp | medium | available | 📋 Planned | 1x10 / 6x9 open |
+| [#443](https://github.com/Rikarin/cathode/issues/443) | Supro Model 24 S6424 | US vintage | New amp | medium | available | 📋 Planned | 1x12 open |
+| [#444](https://github.com/Rikarin/cathode/issues/444) | Gibson GA-40 Les Paul (5879) | US vintage | New amp | medium | available | ↪ See its row above | 1x12 open, Jensen P12Q |
+| [#445](https://github.com/Rikarin/cathode/issues/445) | Gibson GA-5 Les Paul Junior / Skylark | US vintage | New amp | medium | available | 📋 Planned | 1x8 open |
+| [#446](https://github.com/Rikarin/cathode/issues/446) | Gibson GA-20 | US vintage | New amp | medium | available | 📋 Planned | 1x12 open |
+| [#447](https://github.com/Rikarin/cathode/issues/447) | Magnatone Custom 280 (and Custom 15 / M15) | US vintage | New amp | medium | available | ↪ See its row above | 2x12 open |
+| [#448](https://github.com/Rikarin/cathode/issues/448) | Music Man HD-130 / RD-50 | US vintage | New amp | medium | available | 📋 Planned | 2x12 / 4x10 |
+| [#449](https://github.com/Rikarin/cathode/issues/449) | Ampeg V-4 / VT-22 (guitar) | US vintage | New amp | medium | available | 📋 Planned | 4x12 / 2x12 |
+| [#450](https://github.com/Rikarin/cathode/issues/450) | Ampeg Reverberocket R-12R | US vintage | New amp | medium | available | 📋 Planned | 1x12 open |
+| [#451](https://github.com/Rikarin/cathode/issues/451) | Vox AC30CC / AC30C2 (Custom Classic / Custom) | Vox/class A | Variant | medium | available | 📋 Planned | 2x12 open, Greenback / Alnico Blue |
+| [#452](https://github.com/Rikarin/cathode/issues/452) | Vox AC15 (1960): the vibrato/tremolo channel is not modelled | Vox/class A | Missing channel or mode | medium | available (read 2026-11-10, see the AC15 row) | ↪ See its row above | 1x12 open, Alnico Blue |
+| [#453](https://github.com/Rikarin/cathode/issues/453) | Vox AC30/4 and AC30/6 Normal (1960, fawn, non-top-boost) | Vox/class A | Variant | medium | available | 📋 Planned | 2x12 open, Alnico Blue |
+| [#454](https://github.com/Rikarin/cathode/issues/454) | Vox AC10 (1960s) | Vox/class A | New amp | medium | available | 📋 Planned | 1x10 / 2x10 open |
+| [#455](https://github.com/Rikarin/cathode/issues/455) | Vox AC4 | Vox/class A | New amp | medium | partial | ⏸ Waiting | 1x8 open |
+| [#456](https://github.com/Rikarin/cathode/issues/456) | Vox AC50 | Vox/class A | New amp | medium | available | 📋 Planned | 2x12 closed, Alnico Blue + horn |
+| [#457](https://github.com/Rikarin/cathode/issues/457) | Vox AC100 | Vox/class A | New amp | medium | available | 📋 Planned | 4x12 closed + horns |
+| [#458](https://github.com/Rikarin/cathode/issues/458) | Matchless Lightning 15 | Vox/class A | New amp | medium | available | 📋 Planned | 1x12 / 2x12 open |
+| [#459](https://github.com/Rikarin/cathode/issues/459) | Orange AD200B MkIII (bass) | Bass | New amp | low | none found | ↪ See its row above | 8x10 / 4x10 closed |
+| [#460](https://github.com/Rikarin/cathode/issues/460) | Two-Rock (Jet 35, Classic Reverb, Traditional Clean; PAB variants) | Boutique | New amp | low | partial | ↪ See its row above | 1x12 / 2x12 open |
+| [#461](https://github.com/Rikarin/cathode/issues/461) | Dr Z Maz 18 Jr (and Maz 8 / Maz 38) | Boutique | New amp | low | none found | ↪ See its row above | 1x12 / 2x12 open |
+| [#462](https://github.com/Rikarin/cathode/issues/462) | Morgan AC20 Deluxe / SW22 / SW50 | Boutique | New amp | low | none found | ↪ See its row above | 1x12 open |
+| [#463](https://github.com/Rikarin/cathode/issues/463) | Divided by 13 JRT 9/15, CJ 11, FTR 37 | Boutique | New amp | low | none found | ↪ See its row above | 1x12 / 2x12 |
+| [#464](https://github.com/Rikarin/cathode/issues/464) | Budda Superdrive / Twinmaster | Boutique | New amp | low | none found | ↪ See its row above | 2x12 |
+| [#465](https://github.com/Rikarin/cathode/issues/465) | Fuchs Overdrive Supreme | Boutique | New amp | low | none found | ↪ See its row above | 1x12 / 2x12 open |
+| [#466](https://github.com/Rikarin/cathode/issues/466) | Bludotone Ojai | Boutique | New amp | low | none found | ↪ See its row above | 1x12 / 2x12 open |
+| [#467](https://github.com/Rikarin/cathode/issues/467) | Carr Rambler (and Mercury) | Boutique | New amp | low | none found | ↪ See its row above | 1x12 / 2x12 open |
+| [#468](https://github.com/Rikarin/cathode/issues/468) | Trainwreck Rocket | Boutique | New amp | low | partial | ↪ See its row above | 1x12 / 2x12 |
+| [#469](https://github.com/Rikarin/cathode/issues/469) | Komet 60 / Concorde | Boutique | New amp | low | partial | ↪ See its row above | 2x12 / 4x12 |
+| [#470](https://github.com/Rikarin/cathode/issues/470) | Swart Atomic Space Tone | Boutique | New amp | low | none found | ↪ See its row above | 1x12 open |
+| [#471](https://github.com/Rikarin/cathode/issues/471) | Paul Ruby Rocket | Boutique | New amp | low | not confirmed | ↪ See its row above | 1x12 open |
+| [#472](https://github.com/Rikarin/cathode/issues/472) | Carol-Ann OD-2 / Triptik / Tucana 3 | Boutique | New amp | low | not confirmed | ↪ See its row above | 2x12 / 4x12 |
+| [#473](https://github.com/Rikarin/cathode/issues/473) | Dumble ODS with the HRM stack | Boutique | Variant | low | partial | ↪ See its row above | 1x12 / 2x12 open |
+| [#474](https://github.com/Rikarin/cathode/issues/474) | Orange OR50 reissue / OR15 | British | New amp | low | partial | ↪ See its row above | 2x12 / 4x12 closed |
+| [#475](https://github.com/Rikarin/cathode/issues/475) | Suhr Badger 18 / 30 and SL68 | British | New amp | low | none found | ↪ See its row above | 2x12 / 4x12 |
+| [#476](https://github.com/Rikarin/cathode/issues/476) | Friedman Dirty Shirley | British | New amp | low | partial | ↪ See its row above | 4x12 closed |
+| [#477](https://github.com/Rikarin/cathode/issues/477) | Friedman Small Box | British | New amp | low | none found | ↪ See its row above | 2x12 / 4x12 closed |
+| [#478](https://github.com/Rikarin/cathode/issues/478) | Blankenship Leeds 21 | British | New amp | low | not confirmed | ↪ See its row above | 1x12 / 2x12 |
+| [#479](https://github.com/Rikarin/cathode/issues/479) | Fender Vibroverb 6G16 (brown, 1963) and '63 Vibroverb reissue | Fender | Variant | low | available | ↪ See its row above | 2x10 open |
+| [#480](https://github.com/Rikarin/cathode/issues/480) | Fender Bassman 100 (pentode-screen version of the Bassman 135) | Fender | Variant | low | available | ↪ See its row above | 4x12 closed |
+| [#481](https://github.com/Rikarin/cathode/issues/481) | Fender Eric Clapton EC Vibro-Champ | Fender | Variant | low | none found | ↪ See its row above | 1x8 open |
+| [#482](https://github.com/Rikarin/cathode/issues/482) | Cameron CCV | High gain | New amp | low | none found | ↪ See its row above | 4x12 closed |
+| [#483](https://github.com/Rikarin/cathode/issues/483) | Cameron Atomica | High gain | New amp | low | none found | ↪ See its row above | 4x12 closed |
+| [#484](https://github.com/Rikarin/cathode/issues/484) | Splawn Nitro | High gain | New amp | low | none found | ↪ See its row above | 4x12 closed |
+| [#485](https://github.com/Rikarin/cathode/issues/485) | Hook Captain 34 | High gain | New amp | low | none found | ↪ See its row above | 4x12 closed |
+| [#486](https://github.com/Rikarin/cathode/issues/486) | Wizard Modern Classic | High gain | New amp | low | partial | ↪ See its row above | 4x12 closed |
+| [#487](https://github.com/Rikarin/cathode/issues/487) | Victory Kraken / Sheriff (and V30 Countess, Super Kraken) | High gain | New amp | low | none found | ↪ See its row above | 4x12 closed |
+| [#488](https://github.com/Rikarin/cathode/issues/488) | Diamond Del Fuego | High gain | New amp | low | not confirmed | ↪ See its row above | 4x12 closed |
+| [#489](https://github.com/Rikarin/cathode/issues/489) | Bogner Shiva / XTC Classic | High gain | New amp | low | none found | ↪ See its row above | 4x12 / 2x12 closed |
+| [#490](https://github.com/Rikarin/cathode/issues/490) | Diezel Herbert (and MkIII) | High gain | New amp | low | none found | ↪ See its row above | 4x12 closed |
+| [#491](https://github.com/Rikarin/cathode/issues/491) | Revv Generator 120 (Green / Purple / Red) | High gain | New amp | low | none found | ↪ See its row above | 4x12 closed |
+| [#492](https://github.com/Rikarin/cathode/issues/492) | Fryette (VHT) Deliverance / D60 / Sig:X / Pittbull | High gain | New amp | low | none found | ↪ See its row above | 4x12 closed |
+| [#493](https://github.com/Rikarin/cathode/issues/493) | PRS Archon (Clean / Lead / Bright) and MT15 | High gain | New amp | low | none found | ↪ See its row above | 4x12 closed |
+| [#494](https://github.com/Rikarin/cathode/issues/494) | Krank Revolution / Krankenstein | High gain | New amp | low | partial | ↪ See its row above | 4x12 closed |
+| [#495](https://github.com/Rikarin/cathode/issues/495) | Randall Satan / Thrasher / Diavlo / Warhead | High gain | New amp | low | none found | ↪ See its row above | 4x12 closed |
+| [#496](https://github.com/Rikarin/cathode/issues/496) | Carvin Legacy 3 VL300 | High gain | Variant | low | partial | ↪ See its row above | 4x12 closed |
+| [#497](https://github.com/Rikarin/cathode/issues/497) | Marshall SV20H Studio Vintage | Marshall | Variant | low | partial | ↪ See its row above | 2x12 / 4x12 closed |
+| [#498](https://github.com/Rikarin/cathode/issues/498) | Marshall SC20H Studio Classic | Marshall | Variant | low | partial | ↪ See its row above | 2x12 / 4x12 closed |
+| [#499](https://github.com/Rikarin/cathode/issues/499) | Marshall JVM410HJS (Satriani) | Marshall | New amp | low | partial | ↪ See its row above | 4x12 closed, Vintage 30 |
+| [#500](https://github.com/Rikarin/cathode/issues/500) | Mesa/Boogie JP-2C | Mesa | New amp | low | none found | ↪ See its row above | 4x12 closed |
+| [#501](https://github.com/Rikarin/cathode/issues/501) | Mesa/Boogie Triple Crown TC-100 / TC-50 | Mesa | New amp | low | none found | ↪ See its row above | 4x12 closed |
+| [#502](https://github.com/Rikarin/cathode/issues/502) | Soldano X88R preamp | Preamp | New amp | low | partial | ↪ See its row above | 4x12 closed |
+| [#503](https://github.com/Rikarin/cathode/issues/503) | Soldano / Caswell X99 preamp | Preamp | New amp | low | partial | ↪ See its row above | 4x12 closed |
+| [#504](https://github.com/Rikarin/cathode/issues/504) | Bogner Fish preamp (and Bogner/Hafler Triple Giant) | Preamp | New amp | low | partial | ↪ See its row above | 4x12 closed |
+| [#505](https://github.com/Rikarin/cathode/issues/505) | CAE 3+ SE preamp | Preamp | New amp | low | partial | ↪ See its row above | 4x12 closed |
+| [#506](https://github.com/Rikarin/cathode/issues/506) | Supro 1964T / 1695T Black Magick (2014+ reissues) | US vintage | New amp | low | none found | ↪ See its row above | 1x12 open |
+| [#507](https://github.com/Rikarin/cathode/issues/507) | Vox AC30HW / AC30HW2 (hand-wired) | Vox/class A | Variant | low | none found | ↪ See its row above | 2x12 open, Alnico Blue |
+| [#508](https://github.com/Rikarin/cathode/issues/508) | Vox AC30: the Vib-Trem channel is not modelled | Vox/class A | Missing channel or mode | low | available | ↪ See its row above | 2x12 open, Alnico Blue |
+| [#509](https://github.com/Rikarin/cathode/issues/509) | Bad Cat Black Cat 30 | Vox/class A | New amp | low | none found | ↪ See its row above | 2x12 open |

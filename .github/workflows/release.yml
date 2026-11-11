@@ -5,11 +5,16 @@ name: release
 # - The desktop app (the editor, Electron and the engine sidecars): a .dmg and .zip for Apple Silicon Macs, an NSIS
 #   installer for Windows x64 and an AppImage for Linux x64. Each is started on its runner as packaged and checked: it
 #   runs the engine it carries, serves its editor, passes the sidecar tests and leaves nothing running when it quits.
+#   The same for Intel Macs, Windows on ARM and ARM64 Linux desktops, built and checked the same way on runners of
+#   their own; a release does not wait for those three (docs/10-releases.md, "Desktop targets"). Linux also gets a
+#   .deb when the repository variable CATHODE_DEB_MAINTAINER names its maintainer.
 # - The headless rig (the engine and server with the web editor, systemd services and an install script) for small
 #   Linux computers without a display, x64 and ARM64: cathode-server-<version>-linux-<arch>.tar.gz. Each is installed
 #   on its runner and checked: the services start, the web editor loads and the API wants the token.
 #
-# Every installer builds on its own OS and CPU, since NativeAOT cannot cross-compile. Running the workflow by hand
+# Every installer builds on its own OS and CPU, since NativeAOT cannot cross-compile. The Linux engine is linked in a
+# Debian 12 container (the `linux-engine` job), so the AppImage and the headless rig run on glibc 2.36 and newer, and
+# the Linux jobs package that engine (docs/10-releases.md, "The oldest Linux it runs on"). Running the workflow by hand
 # builds them all as workflow artifacts without publishing a release; those builds are neither signed nor attested.
 #
 # Nothing is built for a tag that does not point at a commit on master (the `tag` job, which every build waits for),
@@ -77,8 +82,83 @@ jobs:
       - name: The .NET SDK is the current servicing release
         run: .github/actions/setup-dotnet/sdk-is-current.sh
 
-  desktop:
+  # The Linux engine (the NativeAOT host, the server and the native shims), linked on the oldest system the Linux
+  # packages run on: the host and the shims bind to the C library they are linked against, and Debian 12's is glibc
+  # 2.36. The job runs in a Debian 12 container on a runner of each CPU, and hands the engine to the `headless` job and
+  # to the Linux leg of `desktop` as an artifact (a tar file: an artifact does not keep the executable bit).
+  #
+  # The image is pinned by digest, as the actions are by commit. To update it, take the digest of the `12` tag from
+  # https://hub.docker.com/_/debian/tags (the multi-platform one). What the build needs from the system comes from
+  # Debian's own packages: CMake 3.25 (engine/native wants 3.24), GCC 12 (C++20) and Clang for NativeAOT's link.
+  linux-engine:
     needs: tag
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, name: linux-x64 }
+          - { os: ubuntu-24.04-arm, name: linux-arm64 }
+    runs-on: ${{ matrix.os }}
+    container: debian:12@sha256:268fb24c39bca92d326dd83ea3abebe4a3f7751c804ffef23bb6d857dd343ff8
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # git before the checkout, so that it is a clone (native/build.sh fetches NeuralAmpModelerCore with git too).
+      # libicu and ca-certificates are for the .NET SDK; zlib1g-dev and clang for NativeAOT; binutils for objdump.
+      - name: Build tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates curl git build-essential cmake clang zlib1g-dev libasound2-dev libicu72 binutils
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Not ./.github/actions/setup-dotnet: its cache of the SDK is keyed by the runner, and holds the SDK under the
+      # runner's home folder, which is another path in a container. The same committed install script, uncached.
+      - name: Set up .NET
+        run: |
+          bash .github/actions/setup-dotnet/dotnet-install.sh --jsonfile engine/global.json \
+            --install-dir "$HOME/.dotnet-sdk" --azure-feed https://builds.dotnet.microsoft.com/dotnet
+          echo "DOTNET_ROOT=$HOME/.dotnet-sdk" >> "$GITHUB_ENV"
+          echo "$HOME/.dotnet-sdk" >> "$GITHUB_PATH"
+      - name: Cache native dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: engine/artifacts/deps
+          key: native-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt', 'engine/native/cth_audio/CMakeLists.txt') }}
+      # The script needs Node and nothing from node_modules.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Build the engine
+        run: node editor/apps/desktop/scripts/publish-engine.mjs
+      # The minimum system the README, docs/10 and the manual name: glibc 2.36, this container's. The NAM shim
+      # carries its own C++ runtime, so no libstdc++ version comes on top.
+      - name: The C library it needs
+        working-directory: editor/dist/engine
+        run: |
+          "$GITHUB_WORKSPACE/packaging/glibc-floor.sh" 2.36 cathode-host libcth_audio.so libcth_nam.so
+          if objdump -p libcth_nam.so | grep -E 'NEEDED +lib(stdc\+\+|gcc_s)'; then
+            echo "::error::libcth_nam.so needs the system's C++ runtime; it should carry its own"
+            exit 1
+          fi
+      - name: It runs on Debian 12
+        working-directory: editor/dist/engine
+        run: |
+          ./cathode-host --version
+          ./cathode-host --self-test
+      - name: Pack it
+        run: tar -C editor/dist -cf "engine-${{ matrix.name }}.tar" engine
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: engine-${{ matrix.name }}
+          path: engine-${{ matrix.name }}.tar
+          if-no-files-found: error
+          retention-days: 1 # only the jobs below read it
+
+  desktop:
+    # linux-engine: the Linux leg packages the engine built there. The other legs wait for it too, a few minutes.
+    needs: [tag, linux-engine]
     # The signing secrets belong in this environment (see the top of this file). A manual run uses no environment.
     environment: ${{ needs.tag.outputs.release == 'true' && 'release' || '' }}
     strategy:
@@ -87,9 +167,15 @@ jobs:
         include:
           - { os: macos-latest, name: macos-arm64 }
           - { os: windows-latest, name: windows-x64 }
-          # Not ubuntu-latest: the runner's C library is the oldest the engine in the AppImage runs on (glibc 2.39).
+          # Packages the engine from linux-engine (glibc 2.36 and newer); only Electron comes from this runner.
           - { os: ubuntu-24.04, name: linux-x64 }
+          # The extra targets (docs/10-releases.md, "Desktop targets"): built and tested like the three above, but a
+          # leg that fails does not fail the release, which is then published without that target's files.
+          - { os: macos-15-intel, name: macos-x64, extra: true }
+          - { os: windows-11-arm, name: windows-arm64, extra: true }
+          - { os: ubuntu-24.04-arm, name: linux-arm64, extra: true }
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.extra || false }}
     timeout-minutes: 60 # notarisation waits on Apple
     permissions:
       contents: read
@@ -118,6 +204,19 @@ jobs:
           cache: pnpm
           cache-dependency-path: editor/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - name: The engine linked on Debian 12
+        if: runner.os == 'Linux'
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: engine-${{ matrix.name }}
+          path: ${{ runner.temp }}/engine
+      - name: Put it where the packaging looks for it
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          mkdir -p dist
+          tar -C dist -xf "$RUNNER_TEMP/engine/engine-${{ matrix.name }}.tar"
+          echo "CATHODE_ENGINE_PREBUILT=1" >> "$GITHUB_ENV"
       - name: Build and package
         shell: bash
         env:
@@ -129,12 +228,14 @@ jobs:
           APPLE_TEAM_ID: ${{ needs.tag.outputs.release == 'true' && secrets.APPLE_TEAM_ID || '' }}
           # Without a certificate, do not let electron-builder pick one up from the runner's keychain.
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ needs.tag.outputs.release == 'true' && secrets.CSC_LINK != '' }}
+          # "Name <name@host>": with it Linux also gets a .deb (package.mjs); without it, the AppImage only.
+          CATHODE_DEB_MAINTAINER: ${{ vars.CATHODE_DEB_MAINTAINER }}
         run: pnpm dist
       - name: The C library the Linux engine needs
         if: runner.os == 'Linux'
         working-directory: editor/dist/engine
         run: |
-          "$GITHUB_WORKSPACE/packaging/glibc-floor.sh" 2.39 cathode-host libcth_audio.so libcth_nam.so
+          "$GITHUB_WORKSPACE/packaging/glibc-floor.sh" 2.36 cathode-host libcth_audio.so libcth_nam.so
       # The app as packaged, started from where electron-builder left it unpacked beside the installers: it runs the
       # engine it carries (resources/engine), serves its own editor and stops cleanly, and the sidecar tests pass
       # against it on this OS. editor.yml runs those tests on Linux only, against a development build.
@@ -163,7 +264,7 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          files=(*.dmg *.zip *.exe *.AppImage)
+          files=(*.dmg *.zip *.exe *.AppImage *.deb)
           if [ "${#files[@]}" = 0 ]; then echo "::error::no installers in editor/dist/release"; exit 1; fi
           if command -v sha256sum > /dev/null; then hash=(sha256sum); else hash=(shasum -a 256); fi
           "${hash[@]}" -- "${files[@]}" | sed -E 's/^([0-9a-f]{64}) [ *]/\1  /' > "$SUMS"
@@ -183,11 +284,12 @@ jobs:
             editor/dist/release/*.zip
             editor/dist/release/*.exe
             editor/dist/release/*.AppImage
+            editor/dist/release/*.deb
             editor/dist/release/SHA256SUMS.desktop-${{ matrix.name }}
           if-no-files-found: error
 
   headless:
-    needs: tag
+    needs: [tag, linux-engine]
     strategy:
       fail-fast: false
       matrix:
@@ -202,13 +304,10 @@ jobs:
       attestations: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Nothing .NET is built here (the engine comes from linux-engine); the SDK is for dotnet-stack, should the
+      # server not start below.
       - uses: ./.github/actions/setup-dotnet
-      - name: Cache native dependencies
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: engine/artifacts/deps
-          key: native-deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('engine/native/cth_nam/CMakeLists.txt', 'engine/native/cth_audio/CMakeLists.txt') }}
-      - name: Linux audio headers
+      - name: The ALSA library
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
@@ -222,14 +321,24 @@ jobs:
         working-directory: editor
       - name: The host's start script
         run: packaging/headless/tests/run-host.test.sh
+      - name: The engine linked on Debian 12
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: engine-${{ matrix.name }}
+          path: ${{ runner.temp }}/engine
       - name: Build the package
-        run: packaging/headless/build.sh
-      # The minimum system the README, docs/10 and the manual name: glibc 2.39, this runner's. The host and the shims
-      # bind to the C library they were linked against, and the NAM shim carries its own C++ runtime.
+        env:
+          CATHODE_ENGINE_PREBUILT: "1"
+        run: |
+          mkdir -p editor/dist
+          tar -C editor/dist -xf "$RUNNER_TEMP/engine/engine-${{ matrix.name }}.tar"
+          packaging/headless/build.sh
+      # The minimum system the README, docs/10 and the manual name: glibc 2.36, Debian 12's, where the engine in the
+      # package was linked. Checked again here, on what is shipped; the NAM shim carries its own C++ runtime.
       - name: The C library it needs
         run: |
           cd dist/headless/cathode-server-*/bin
-          "$GITHUB_WORKSPACE/packaging/glibc-floor.sh" 2.39 cathode-host libcth_audio.so libcth_nam.so
+          "$GITHUB_WORKSPACE/packaging/glibc-floor.sh" 2.36 cathode-host libcth_audio.so libcth_nam.so
           if objdump -p libcth_nam.so | grep -E 'NEEDED +lib(stdc\+\+|gcc_s)'; then
             echo "::error::libcth_nam.so needs the system's C++ runtime; it should carry its own"
             exit 1
@@ -306,8 +415,15 @@ jobs:
       id-token: write # the Sigstore certificate that signs the attestation of SHA256SUMS
       attestations: write
     steps:
+      # The installers and their checksums, not the engine-linux-* artifacts the build jobs passed between them.
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
+          pattern: desktop-*
+          path: release
+          merge-multiple: true
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          pattern: headless-*
           path: release
           merge-multiple: true
       # SHA256SUMS is the build jobs' own checksums, merged, after checking that every downloaded file still has the

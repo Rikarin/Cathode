@@ -33,7 +33,7 @@ public sealed class LibraryBackupTests : IAsyncLifetime {
     [Fact]
     public async Task A_whole_library_moves_to_another_server() {
         var rig = await SaveRigWithCab(from, "Travel Rig");
-        var asset = Assert.Single((await from.GetFromJsonAsync<AssetInfo[]>("/api/v1/assets", Token))!);
+        var asset = Assert.Single((await from.UserAssetsAsync(Token)));
         await Ensure(
             from.PatchAsJsonAsync(
                 $"/api/v1/assets/{asset.Ref}/metadata",
@@ -80,7 +80,7 @@ public sealed class LibraryBackupTests : IAsyncLifetime {
             ("blue", true),
             (presets.Single(p => p.Id == factory).Color, presets.Single(p => p.Id == factory).Favorite)
         );
-        var restored = Assert.Single((await to.GetFromJsonAsync<AssetInfo[]>("/api/v1/assets", Token))!);
+        var restored = Assert.Single((await to.UserAssetsAsync(Token)));
         Assert.Equal(
             (asset.Ref, "My room.wav", "red", true),
             (restored.Ref, restored.Name, restored.Color, restored.Favorite)
@@ -201,7 +201,7 @@ public sealed class LibraryBackupTests : IAsyncLifetime {
         Assert.Contains("corrupt", tamperedBody, StringComparison.Ordinal);
         Assert.Equal(HttpStatusCode.BadRequest, packageStatus);
         Assert.Equal(HttpStatusCode.BadRequest, garbageStatus);
-        Assert.Empty((await to.GetFromJsonAsync<AssetInfo[]>("/api/v1/assets", Token))!);
+        Assert.Empty((await to.UserAssetsAsync(Token)));
         Assert.DoesNotContain(
             (await to.GetFromJsonAsync<PresetSummary[]>("/api/v1/presets", Token))!,
             static p => p.Factory != true

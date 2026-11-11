@@ -36,7 +36,7 @@ If the chosen output is unplugged, Cathode sends nothing until it is back; the l
 
 A **mapping** connects one MIDI message to one **action**. The table in the MIDI section lists them: the message and its channel, the action, its target and its value. The bin removes one.
 
-<!-- screenshot wanted: Global page, MIDI section: the mappings table, the learn row (action, target and value lists, MIDI learn) and the Monitor showing a few messages -->
+![The Global page's MIDI section: the receive channel and output, five mappings (a program change to the Factory bank's slots, and CCs to scene, tap, External 1 and the tuner), the action to learn with MIDI learn, and the Monitor, empty until a message arrives](screenshots/midi.webp)
 
 To add a mapping, use **MIDI learn**:
 
@@ -133,7 +133,7 @@ Mappings work for a few switches. For a whole foot controller, use **footswitch 
 
 The bin at the end of a row removes the switch. A new switch starts as CC 20 upwards on channel 1, selecting the scene of its number.
 
-<!-- screenshot wanted: Global page, Footswitches section: a layout with two views and four switches filled in (Sends, Tap, Hold, LED, Then layout) -->
+![The Global page's Footswitches section: the layout “Pedalboard” with the views Scenes and Looper, and four switches, each with its label, the CC it sends, its Tap and Hold actions, LED, Then layout and In this preset](screenshots/footswitches.webp)
 
 ### Choosing actions
 

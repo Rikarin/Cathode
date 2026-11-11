@@ -4,7 +4,7 @@ This chapter takes you from nothing to playing through Cathode: download and ins
 
 You need:
 
-- a Mac with Apple Silicon, a Windows 10 or 11 PC, or a Linux PC (x64);
+- a Mac with Apple Silicon, a Windows 10 or 11 PC, or a Linux PC (x64); there are extra builds for Intel Macs, Windows on ARM and ARM64 Linux, see below;
 - an audio interface with an instrument input, connected to the computer and switched on;
 - headphones or speakers plugged into the interface (not into the computer's own headphone socket);
 - a guitar and a cable.
@@ -19,8 +19,17 @@ Get the latest build from the [Releases page](https://github.com/Rikarin/cathode
 | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
 | `Cathode-<version>-mac-arm64.dmg`                      | macOS on Apple Silicon (M1 and later). A `.zip` of the same app is there too.                             |
 | `Cathode-<version>-win-x64.exe`                        | Windows 10 and 11                                                                                         |
-| `Cathode-<version>-linux-x86_64.AppImage`              | Linux desktops (x64) with glibc 2.39 or newer: Ubuntu 24.04, Debian 13, Fedora 40 and later.              |
+| `Cathode-<version>-linux-x86_64.AppImage`              | Linux desktops (x64) with glibc 2.36 or newer: Debian 12, Ubuntu 24.04, Fedora 37 and later.              |
 | `cathode-server-<version>-linux-<x64 or arm64>.tar.gz` | The headless server, for a computer without a screen. See [The headless server](/manual/headless-server). |
+
+A release can also carry these extra builds. They are made and start-tested the same way, but so far only on the build machines, not with a real audio interface, and a release that could not build one comes without it:
+
+| File                                     | For                                                                                   |
+| ---------------------------------------- | ------------------------------------------------------------------------------------- |
+| `Cathode-<version>-mac-x64.dmg`          | macOS on an Intel Mac.                                                                |
+| `Cathode-<version>-win-arm64.exe`        | Windows 11 on ARM.                                                                    |
+| `Cathode-<version>-linux-arm64.AppImage` | Linux desktops (ARM64), same glibc as above.                                          |
+| `Cathode-<version>-linux-<arch>.deb`     | Debian and Ubuntu (`amd64` or `arm64`), as an alternative to the AppImage. See below. |
 
 Each release also lists a `SHA256SUMS` file. If you want to check that your download is complete and unchanged, compare the file's SHA-256 checksum with the line for it there.
 
@@ -49,6 +58,8 @@ You only need to do this once. If macOS asks whether Cathode may use the microph
 
 1. Make the AppImage executable: `chmod +x Cathode-<version>-linux-x86_64.AppImage`, or tick "Allow executing file as program" in your file manager's properties.
 2. Run it.
+
+On Debian and Ubuntu you can install the `.deb` instead, when the release has one: `sudo apt install ./Cathode-<version>-linux-amd64.deb`. It puts Cathode in the applications menu with its icon, and double-clicking a `.cthpreset` file opens it in Cathode. An AppImage does none of that by itself.
 
 ## 3. Connect your guitar and speakers
 

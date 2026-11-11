@@ -103,7 +103,7 @@ To use it:
 4. Press **Stop**. Cathode shows the measured loudness and the change it suggests.
 5. Press **Apply**.
 
-<!-- screenshot wanted: the Preset Leveling dialog after a measurement, with Momentary, Short-term and Measured readings, the target set to -18 and the suggested amp Level change -->
+<!-- screenshot wanted: the Preset Leveling dialog after a measurement, with Momentary, Short-term and Measured readings, the target set to -18 and the suggested amp Level change. Needs a guitar played through an interface: the capture set-up (editor/apps/desktop/e2e/manual-screenshots.spec.ts) runs without audio. -->
 
 The change goes to the **Level** of the preset's amp (the first Amp or Amp NAM block) on the channel in use, or to the Output block's **Main Level** if the preset has no amp. Level each amp channel by playing a scene that uses it.
 

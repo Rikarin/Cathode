@@ -44,8 +44,12 @@ Get the latest build from the [Releases page](https://github.com/Rikarin/cathode
 |---|---|---|
 | `Cathode-<version>-mac-arm64.dmg` | macOS on Apple Silicon | Not notarised yet: on first launch, right-click the app and choose Open. |
 | `Cathode-<version>-win-x64.exe` | Windows 10 and 11 | Not signed yet: SmartScreen asks you to confirm. |
-| `Cathode-<version>-linux-x86_64.AppImage` | Linux desktops (x64) with glibc 2.39 or newer: Ubuntu 24.04, Debian 13, Fedora 40 and later | Make it executable (`chmod +x`) and run it. |
+| `Cathode-<version>-linux-x86_64.AppImage` | Linux desktops (x64) with glibc 2.36 or newer: Debian 12, Ubuntu 24.04, Fedora 37 and later | Make it executable (`chmod +x`) and run it. |
+| `Cathode-<version>-mac-x64.dmg`, `-win-arm64.exe`, `-linux-arm64.AppImage` | Intel Macs, Windows 11 on ARM, ARM64 Linux desktops | Extra builds: made and start-tested like the three above, but so far only on GitHub's build machines, and a release that could not build one comes without it. |
 | `cathode-server-<version>-linux-<x64\|arm64>.tar.gz` | A small Linux computer in your rig, with no display | See [the headless rig](#a-headless-rig). |
+
+A release may also carry `.deb` packages for Debian and Ubuntu (`Cathode-<version>-linux-amd64.deb`, `-arm64.deb`),
+which add the menu entry, the icon and the `.cthpreset` file association that an AppImage leaves to you.
 
 Each release lists `SHA256SUMS` to check the downloads against. Every file and `SHA256SUMS` itself carry a signed
 build-provenance attestation: `gh attestation verify <file> --repo Rikarin/cathode` shows it was built by this
@@ -86,7 +90,7 @@ cd cathode-server-<version>-linux-arm64
 sudo ./install.sh
 ```
 
-The rig needs systemd and glibc 2.39 or newer (Ubuntu 24.04, Debian 13, Raspberry Pi OS based on Debian 13, and
+The rig needs systemd and glibc 2.36 or newer (Debian 12, Raspberry Pi OS based on Debian 12, Ubuntu 24.04, and
 later); the installer checks before it changes anything. It starts Cathode at every boot and prints the address to
 open and an access token. See
 [packaging/headless/README.md](packaging/headless/README.md) for choosing the audio interface, updates and logs.

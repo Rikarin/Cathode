@@ -244,6 +244,13 @@ public sealed class Setlist {
 
     public string Name { get; set; } = "New Setlist";
 
+    /// <summary>
+    ///     How many times the Server has stored this setlist: set by the Server on every save (what a client sends here is
+    ///     ignored), and answered as the ETag. Sent back as <c>If-Match</c> on a PUT, it makes the Server refuse the
+    ///     save (412) when another editor stored the setlist in between. Null in a file from before revisions.
+    /// </summary>
+    public long? Revision { get; set; }
+
     public List<SetlistEntry> Entries { get; set; } = [];
 }
 
@@ -256,6 +263,14 @@ public sealed class Bank {
     public string Id { get; set; } = Preset.NewId();
 
     public string Name { get; set; } = "New Bank";
+
+    /// <summary>
+    ///     How many times the Server has stored this bank: set by the Server on every save (what a client sends here is
+    ///     ignored), and answered as the ETag. Sent back as <c>If-Match</c> on a PUT, it makes the Server refuse the
+    ///     save (412) when another editor stored the bank in between. Null in a file from before revisions and for the factory
+    ///     bank.
+    /// </summary>
+    public long? Revision { get; set; }
 
     /// <summary>
     ///     True for the factory bank, which lists the factory presets and cannot be changed; null otherwise.

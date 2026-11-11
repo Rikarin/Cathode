@@ -19,9 +19,10 @@ import { type PickerEntry, PickerList } from '../../shell/picker-list';
 import { LibraryStore } from '../../state/library.store';
 
 /**
- * Picks an asset of one family for a block slot, or uploads a new file (which is then picked). Cathode ships no
- * captures or impulse responses, so while the library has none of the family the picker says so (`hint`: what the
- * block does without a file, and where files come from) instead of showing an empty list with no explanation.
+ * Picks an asset of one family for a block slot, or uploads a new file (which is then picked). Cathode ships a few
+ * impulse responses (rendered from its own cab model) and no captures, so while the library has none of the family
+ * the picker says so (`hint`: what the block does without a file, and where files come from) instead of showing an
+ * empty list with no explanation.
  */
 @Component({
   selector: 'cth-asset-picker',

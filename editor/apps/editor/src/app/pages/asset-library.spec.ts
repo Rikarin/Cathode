@@ -125,6 +125,28 @@ describe('AssetList', () => {
     expect(rows()[0]?.textContent).toContain('—');
   });
 
+  it('marks a file that came with Cathode, and offers neither Rename nor Delete while one is selected', async () => {
+    const { library, assets, fixture, element, rows } = await render(2);
+    library.cabGrids.set([{ ...asset(0), factory: true } as AssetInfo, asset(1)]);
+    await settle(fixture);
+    const button = (label: string) =>
+      [...element.querySelectorAll<HTMLButtonElement>('footer button')].find(b => b.textContent.trim() === label);
+
+    expect(rows()[0]?.querySelector('[data-testid="factory-asset-tag"]')).not.toBeNull();
+    expect(rows()[1]?.querySelector('[data-testid="factory-asset-tag"]')).toBeNull();
+
+    assets.selected.set(new Set(['ir0', 'ir1']));
+    await settle(fixture);
+    expect(button('Delete')?.disabled).toBe(true);
+    expect(button('Rename…')?.disabled).toBe(true);
+
+    // The user's own file alone can be renamed and deleted as before.
+    assets.selected.set(new Set(['ir1']));
+    await settle(fixture);
+    expect(button('Delete')?.disabled).toBe(false);
+    expect(button('Rename…')?.disabled).toBe(false);
+  });
+
   it('says when the search matches nothing', async () => {
     const { assets, fixture, element, rows } = await render(3);
 

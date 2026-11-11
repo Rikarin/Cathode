@@ -40,7 +40,7 @@ public sealed class PresetPackageTests : IAsyncLifetime {
         Assert.False(imported.Renamed);
         Assert.True(loaded.IsSuccessStatusCode, await loaded.Content.ReadAsStringAsync(Token));
         await ServerFixture.Eventually(() => target.Graph?.SlotOf("cab1") >= 0); // the engine loaded the IR
-        Assert.Single((await to.GetFromJsonAsync<AssetInfo[]>("/api/v1/assets", Token))!);
+        Assert.Single((await to.UserAssetsAsync(Token)));
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public sealed class PresetPackageTests : IAsyncLifetime {
         var imported = await Import(to, await from.GetByteArrayAsync($"/api/v1/presets/{id}/export", Token));
 
         Assert.Equal(1, imported.AssetsAdded);
-        var stored = Assert.Single((await to.GetFromJsonAsync<AssetInfo[]>("/api/v1/assets", Token))!);
+        var stored = Assert.Single((await to.UserAssetsAsync(Token)));
         Assert.Equal((asset.Ref, "cabgrid"), (stored.Ref, stored.Kind));
     }
 
@@ -114,7 +114,7 @@ public sealed class PresetPackageTests : IAsyncLifetime {
 
         Assert.Equal(HttpStatusCode.BadRequest, status);
         Assert.Contains("corrupt", body, StringComparison.Ordinal);
-        Assert.Empty((await to.GetFromJsonAsync<AssetInfo[]>("/api/v1/assets", Token))!);
+        Assert.Empty((await to.UserAssetsAsync(Token)));
     }
 
     [Theory]
@@ -190,7 +190,7 @@ public sealed class PresetPackageTests : IAsyncLifetime {
 
         Assert.Equal(HttpStatusCode.BadRequest, status);
         Assert.Contains(reason, body, StringComparison.Ordinal);
-        Assert.Empty((await to.GetFromJsonAsync<AssetInfo[]>("/api/v1/assets", Token))!);
+        Assert.Empty((await to.UserAssetsAsync(Token)));
     }
 
     [Fact]
@@ -209,7 +209,7 @@ public sealed class PresetPackageTests : IAsyncLifetime {
 
         Assert.Equal(HttpStatusCode.BadRequest, status);
         Assert.Contains("The preset is not valid", body, StringComparison.Ordinal);
-        Assert.Empty((await to.GetFromJsonAsync<AssetInfo[]>("/api/v1/assets", Token))!);
+        Assert.Empty((await to.UserAssetsAsync(Token)));
         Assert.DoesNotContain(
             (await to.GetFromJsonAsync<PresetSummary[]>("/api/v1/presets", Token))!,
             static p => p.Name == "Bad grid"
@@ -230,7 +230,7 @@ public sealed class PresetPackageTests : IAsyncLifetime {
         var imported = await Import(to, package);
 
         Assert.Equal(1, imported.AssetsAdded);
-        var asset = Assert.Single((await to.GetFromJsonAsync<AssetInfo[]>("/api/v1/assets", Token))!);
+        var asset = Assert.Single((await to.UserAssetsAsync(Token)));
         Assert.Equal(asset.Ref[7..] + ".wav", asset.Name);
     }
 

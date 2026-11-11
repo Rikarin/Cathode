@@ -5,7 +5,7 @@ The headless server runs Cathode's engine on a small Linux computer that lives i
 ## What you need
 
 - **A small Linux computer** with a 64-bit system: a Raspberry Pi 5 (ARM64), or a mini PC or NUC (x64). The installer needs **systemd**, which most distributions use, including Raspberry Pi OS and Ubuntu.
-- **A recent system:** glibc 2.39 or newer, which means Ubuntu 24.04, Debian 13, Raspberry Pi OS based on Debian 13 ("trixie"), Fedora 40, or later. The engine does not start on older ones, such as Debian 12 ("bookworm") or Ubuntu 22.04.
+- **A recent system:** glibc 2.36 or newer, which means Debian 12, Raspberry Pi OS based on Debian 12 ("bookworm"), Ubuntu 24.04, Fedora 37, or later. The engine does not start on older ones, such as Ubuntu 22.04 or Debian 11 ("bullseye").
 - **A USB audio interface** that works on Linux without special drivers (most class-compliant ones do).
 - **A network** shared with the device you will edit from: Ethernet, or the same Wi-Fi.
 - Optionally a USB MIDI foot controller. It plugs into the rig, not into the device you edit from.
@@ -90,7 +90,7 @@ For example: `CATHODE_HOST_ARGS=--input-map 1;2 --outputs 1,3,0,0`. Separate the
 
 The browser remembers the token for that rig, so next time the editor opens straight away. It is the full editor, the same as in the desktop app, except that **Audio setup** shows the engine figures and the input calibration but cannot choose the interface (that is the settings file's job).
 
-<!-- screenshot wanted: the editor in a phone browser, connected to a headless rig (remote.png, already listed in screenshots.ts) -->
+<!-- screenshot wanted: the editor in a phone browser, connected to a headless rig (remote.png, already listed in screenshots.ts). Not taken yet: at a phone's width the preset bar's controls overlap, so the picture waits for that layout. -->
 
 If you lose the token, it is the `Cathode__Token` line in `/etc/cathode/cathode.env`:
 
