@@ -66,16 +66,19 @@ test('a rig is saved as a template, a new preset starts from it, and the templat
   await expect(editor.block('Drive', 'drive1')).toBeVisible();
   await expect(editor.block('Delay', 'delay1')).toBeVisible();
 
-  // Delete the template. It asks first: Cancel keeps it, Delete empties the list again.
+  // Deleting the template asks first; cancelling keeps it.
   await window.getByTestId('preset-menu').click();
   await window.getByRole('menuitem', { name: 'New from template…' }).click();
+  const confirming = window.getByRole('alertdialog', { name: 'Delete template?' });
   await templates.getByRole('button', { name: 'Delete template Pedal start' }).click();
-  const confirm = window.getByRole('alertdialog', { name: 'Delete template?' });
-  await expect(confirm).toContainText('“Pedal start” will be deleted');
-  await confirm.getByRole('button', { name: 'Cancel' }).click();
+  await expect(confirming).toContainText('“Pedal start” will be deleted');
+  await confirming.getByRole('button', { name: 'Cancel' }).click();
+  await expect(confirming).toBeHidden();
   await expect(row).toBeVisible();
+
+  // Delete: the list is empty again.
   await templates.getByRole('button', { name: 'Delete template Pedal start' }).click();
-  await confirm.getByRole('button', { name: 'Delete' }).click();
+  await confirming.getByRole('button', { name: 'Delete' }).click();
   await expect(templates.getByText('No templates yet')).toBeVisible();
 });
 

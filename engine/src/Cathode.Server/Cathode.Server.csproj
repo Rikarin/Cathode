@@ -30,14 +30,27 @@
   </ItemGroup>
   <!-- A self-contained publish carries the .NET runtime and ASP.NET Core (MIT): their licence and third-party notices,
        from the runtime packs, go with it into licenses/dotnet, and the installers ship that folder
-       (THIRD-PARTY-NOTICES.md). -->
+       (THIRD-PARTY-NOTICES.md).
+       Only the packs of the frameworks this project references are read: ResolvedRuntimePack also lists packs the
+       SDK keeps for a transitive reference and never downloads (Microsoft.WindowsDesktop.App on Windows). The files
+       are found by wildcard because the packs do not agree on the extension's case (LICENSE.TXT in
+       Microsoft.NETCore.App, LICENSE.txt in Microsoft.AspNetCore.App), which matters on Linux. -->
   <Target Name="CopyRuntimeNotices" AfterTargets="Publish" Condition="'$(SelfContained)' == 'true'">
     <ItemGroup>
-      <RuntimeNotice Include="%(ResolvedRuntimePack.PackageDirectory)/LICENSE.TXT;%(ResolvedRuntimePack.PackageDirectory)/THIRD-PARTY-NOTICES.TXT"
-                     Framework="%(ResolvedRuntimePack.FrameworkName)"/>
+      <_RuntimePackByFramework Include="@(ResolvedRuntimePack->'%(FrameworkName)')"/>
+      <_ReferencedRuntimePack Include="@(_RuntimePackByFramework)"
+                              Condition="'@(FrameworkReference)' != '' and '@(_RuntimePackByFramework)' != '' and '%(Identity)' != ''"/>
+      <RuntimeNotice Include="%(_ReferencedRuntimePack.PackageDirectory)/LICENSE.*;%(_ReferencedRuntimePack.PackageDirectory)/THIRD-PARTY-NOTICES.*"
+                     Framework="%(_ReferencedRuntimePack.Identity)"/>
     </ItemGroup>
-    <Error Condition="'@(RuntimeNotice)' == ''" Text="No runtime pack was resolved, so the .NET licence files cannot be copied."/>
-    <Error Condition="!Exists('%(RuntimeNotice.FullPath)')" Text="%(RuntimeNotice.FullPath) is missing: the .NET licence files cannot be copied."/>
+    <PropertyGroup>
+      <_RuntimeNoticesFound>@(RuntimeNotice->Count())</_RuntimeNoticesFound>
+      <_ReferencedRuntimePacks>@(_ReferencedRuntimePack->Count())</_ReferencedRuntimePacks>
+      <_RuntimeNoticesExpected>$([MSBuild]::Multiply($(_ReferencedRuntimePacks), 2))</_RuntimeNoticesExpected>
+    </PropertyGroup>
+    <Error Condition="'@(_ReferencedRuntimePack)' == ''" Text="No runtime pack was resolved, so the .NET licence files cannot be copied."/>
+    <Error Condition="'$(_RuntimeNoticesFound)' != '$(_RuntimeNoticesExpected)'"
+           Text="Expected a LICENSE and a THIRD-PARTY-NOTICES file in each of @(_ReferencedRuntimePack->'%(PackageDirectory)', ', ') but found @(RuntimeNotice, ', '): the .NET licence files cannot be copied."/>
     <Copy SourceFiles="@(RuntimeNotice)"
           DestinationFiles="@(RuntimeNotice->'$(PublishDir)licenses/dotnet/%(Framework)-%(Filename).txt')"/>
   </Target>

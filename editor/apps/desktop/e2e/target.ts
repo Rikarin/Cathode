@@ -10,27 +10,42 @@ const dist = resolve(__dirname, '../../../dist');
  */
 export const packaged = Boolean(process.env['CATHODE_PACKAGED']);
 
+/** Where electron-builder leaves the app unpacked beside the installers: the app as shipped. */
+export const shippedFolder = join(dist, 'release');
+
+/**
+ * Where the copy of the unpacked app that the tests start is made (global-setup.ts). Playwright drives Electron's main
+ * process through Node's inspector, and the shipped binary refuses --inspect (its fuses, scripts/package.mjs), so the
+ * copy has that one fuse switched back on.
+ */
+export const drivenFolder = join(dist, 'apps/desktop-e2e');
+
 /** How to start the app under test: the executable (none: the electron package's) and its arguments. */
 export function launchTarget(): { executablePath?: string; args: string[] } {
-  return packaged ? { executablePath: packagedExecutable(), args: [] } : { args: [join(dist, 'apps/desktop/main.js')] };
+  return packaged
+    ? { executablePath: packagedApp(drivenFolder).executable, args: [] }
+    : { args: [join(dist, 'apps/desktop/main.js')] };
 }
 
-/** The packaged app's executable, where electron-builder leaves the app unpacked beside the installers. */
-function packagedExecutable(): string {
-  const release = join(dist, 'release');
+/**
+ * The unpacked app in `folder` (the shipped one or the tests' copy): the folder electron-builder names after the OS
+ * and CPU, the executable in it, and what Electron's fuses are read from and written to (the bundle on macOS).
+ */
+export function packagedApp(folder: string): { unpacked: string; executable: string; fuses: string } {
   const arch = process.arch === 'x64' ? '' : `-${process.arch}`;
-  const candidates =
+  const [unpacked, executables, bundle] =
     process.platform === 'darwin'
-      ? [`mac${arch}/Cathode.app/Contents/MacOS/Cathode`]
+      ? [`mac${arch}`, ['Cathode.app/Contents/MacOS/Cathode'], 'Cathode.app']
       : process.platform === 'win32'
-        ? [`win${arch}-unpacked/Cathode.exe`]
-        : [`linux${arch}-unpacked/cathode`, `linux${arch}-unpacked/Cathode`];
-  const found = candidates.map(candidate => join(release, candidate)).find(path => existsSync(path));
-  if (!found) {
+        ? [`win${arch}-unpacked`, ['Cathode.exe'], null]
+        : [`linux${arch}-unpacked`, ['cathode', 'Cathode'], null];
+  const executable = executables.map(name => join(folder, unpacked, name)).find(path => existsSync(path));
+  if (!executable) {
     throw new Error(
-      `No packaged app in ${release} (looked for ${candidates.join(', ')}): run pnpm dist first, or unset CATHODE_PACKAGED.`
+      `No packaged app in ${folder} (looked for ${executables.map(name => `${unpacked}/${name}`).join(', ')}): ` +
+        'run pnpm dist first, or unset CATHODE_PACKAGED.'
     );
   }
 
-  return found;
+  return { unpacked: join(folder, unpacked), executable, fuses: bundle ? join(folder, unpacked, bundle) : executable };
 }
