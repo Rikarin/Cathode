@@ -78,7 +78,7 @@ public static class Gk800Rb {
     static readonly OpAmpModel Lf353 = OpAmpModel.TL072;
 
     /// <summary>The J113 as the drawing's voltages have it: V_TO −2.4 V, β 1.7 mA/V² (see the remarks).</summary>
-    static readonly JfetModel Fet = new(-2.4, 1.7e-3);
+    static readonly JfetModel Fet = JfetModel.FromBeta(-2.4, 1.7e-3);
 
     static readonly Pot Tone = new(25e3, PotTaper.Linear);
 

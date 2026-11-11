@@ -12,23 +12,32 @@ namespace Cathode.Dsp.Tests;
 ///     but for a gain of 10⁵, so the comparison stays below clipping).
 /// </summary>
 public partial class AmpStageTests {
-    public static TheoryData<string, double, double> BassChains =>
+    public static TheoryData<string, bool, double, double> BassChains =>
         new() {
-            { "SVT", 0.001, -30 },
-            { "SVT Channel 2", 0.001, -30 },
-            { "SVT-CL", 0.001, -30 },
-            { "Portaflex B-15N", 0.01, -30 },
-            { "Portaflex B-15N Jumped", 0.01, -30 },
-            { "JC-120", 0.02, -40 },
-            { "GK 800RB", 0.002, -40 }
+            { "SVT", false, 0.001, -30 },
+            { "SVT Channel 2", false, 0.001, -30 },
+            { "SVT-CL", false, 0.001, -30 },
+            { "Portaflex B-15N", false, 0.01, -30 },
+            { "Portaflex B-15N Jumped", false, 0.01, -30 },
+            { "JC-120", false, 0.02, -40 },
+            { "GK 800RB", false, 0.002, -40 },
+            // The RG100ES's JFET stages, cut at the first stage's drain, the follower's source and the treble wiper:
+            // the red channel, then the green (Switch 1).
+            { "RG100ES", false, 0.0005, -30 },
+            { "RG100ES", true, 0.002, -30 }
         };
 
     [Theory]
     [MemberData(nameof(BassChains))]
-    public void Bass_and_solid_state_chains_match_the_reference(string type, double amplitude, double limitDb) {
+    public void Bass_and_solid_state_chains_match_the_reference(
+        string type,
+        bool switch1,
+        double amplitude,
+        double limitDb
+    ) {
         var design = AmpDesign.All.Single(a => a.Name == type);
         var designs = design.Preamp.ToArray();
-        var controls = new AmpControls(0.5, 0.5, 0.7, 0.5, 1, false);
+        var controls = new AmpControls(0.5, 0.5, 0.7, 0.5, 1, false, Switch1: switch1);
 
         var stages = designs.Select(static d => d.Create(Rate)).ToArray();
         var (rest, resistance) = (0.0, 0.0);
@@ -112,7 +121,11 @@ public partial class BassAmpTests(ITestOutputHelper output) {
     static readonly string[] Models =
         ["SVT", "SVT Channel 2", "Portaflex B-15N", "Portaflex B-15N Jumped", "JC-120"];
 
-    public static TheoryData<string> Types => [..Models, Gk];
+    /// <summary>
+    ///     <see cref="Models" />, the GK 800RB (BassAmpTests.Gk800Rb.cs) and the RG100ES, whose panel is a guitar amp's
+    ///     (BassAmpTests.Randall.cs).
+    /// </summary>
+    public static TheoryData<string> Types => [..Models, Gk, Randall];
 
     [Fact]
     public void Panels_name_the_real_controls_and_hide_the_rest() {

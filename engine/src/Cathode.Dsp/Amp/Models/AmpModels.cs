@@ -125,6 +125,7 @@ public sealed partial record AmpDesign {
         SuperBass100.Design,
         JCM2210.Design,
         JCM2210.Head50,
-        Tsl100.Design
+        Tsl100.Design,
+        RandallRG100ES.Design
     ];
 }

@@ -292,6 +292,7 @@ public sealed class AmpChannel {
             or ElementKind.Pentode
             or ElementKind.OpAmp
             or ElementKind.Amplifier
+            or ElementKind.Jfet
         );
 
     /// <summary>Applies the knobs (per block); circuits recompute only where a pot moved.</summary>

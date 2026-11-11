@@ -58,8 +58,8 @@ Leave a few dB of headroom in *Level*; a Cab block after the amp removes them.
   Clean, its clean and first crunch channel), Fireball 60, Prometheus.
 - **Loud, clean and heavy (doom, drone, a fuzz in front):** Sunn Model T.
 - **Bass:** SVT (and its second channel, SVT Channel 2), SVT-CL, Portaflex B-15N (and both its channels jumpered, Portaflex B-15N Jumped), Bassman 135, Bass 400, and the solid-state GK 800RB.
-- **Solid state:** JC-120, GK 800RB and Valvestate 8080 (a tube preamp into a transistor power amp). Their tube-only
-  knobs are hidden.
+- **Solid state:** JC-120, GK 800RB, Valvestate 8080 (a tube preamp into a transistor power amp) and RG100ES (JFET
+  stages, a tight metal sound). Their tube-only knobs are hidden.
 
 **Two amps in one preset.** You can use the block twice, for example a clean amp and a lead amp on separate rows
 switched by scenes, or two amps blended in parallel. See [the grid](/manual/the-grid) and
@@ -229,6 +229,9 @@ Each switches the real components on the model's schematic. Some worth knowing:
   (Switch 2), as the amp's two mode switches work. Gain, Volume and the tone knobs are the playing channel's own.
   *Mid Boost / Tone Shift* (Switch 3) is that channel's voicing switch: Mid Boost on Clean, Tone Shift on Crunch
   and Lead.
+- **RG100ES, *Channel 1*:** off is channel 2 (red LED), the high-gain channel; on is channel 1 (green), with less
+  gain and no clamps. *Sustain Boost* (Switch 2, the pull switch on the amp's Treble knob) puts two clipping diodes
+  ahead of channel 2's *Master*: more sustain and much less level, so turn *Master* up. It does nothing on channel 1.
 - **JC-120, *Distortion On*:** the effect channel's distortion (on the real amp, the switch at the bottom of the
   Distortion pot's travel, and the footswitch): the *Distortion* knob (Control 2) and the diode clipper ahead of the
   tone stack come in. Off, as the amp is usually played, the knob does nothing and is not shown.
@@ -754,6 +757,7 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'JCM800 2210':
         'Marshall JCM800 2210, the 100 W two-channel JCM800: a diode-clipped Boost channel and a clean Normal channel (Switch 1).',
       'JCM800 2205': 'Marshall JCM800 2205, the 50 W version of the 2210.',
+      RG100ES: 'Randall RG100ES: a solid-state head with a JFET preamp, both channels and the Sustain Boost.',
       'Dual Rectifier 3-Ch Orange':
         'Mesa/Boogie Dual Rectifier three-channel Solo Head, channel 2 (orange), with Raw, Vintage and Modern.',
       'Dual Rectifier Orange':
