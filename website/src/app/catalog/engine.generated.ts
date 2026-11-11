@@ -166,7 +166,8 @@ export const ENGINE = {
         'Micro Boost',
         'Mid Boost',
         'Bosom Boost',
-        'FAS Boost'
+        'FAS Boost',
+        'Heavy Metal'
       ]
     },
     {
@@ -202,7 +203,7 @@ export const ENGINE = {
       typeId: 'chorus',
       name: 'Chorus',
       category: 'Modulation',
-      types: []
+      types: ['Chorus', 'JC-120']
     },
     {
       typeId: 'flanger',
@@ -330,7 +331,37 @@ export const ENGINE = {
         'Mark IIC+ Rhythm',
         'Mark IV Rhythm 1',
         'Mark IV Rhythm 2',
-        'Dual Rectifier 3-Ch Orange'
+        'Dual Rectifier 3-Ch Orange',
+        'Dual Rectifier Orange',
+        'Dual Rectifier 3-Ch Clean',
+        'Triple Rectifier Orange',
+        'Triple Rectifier Clean',
+        'Mark V Clean',
+        'Mark V Crunch',
+        '5150III Clean/Crunch',
+        'Savage 120 Clean',
+        'SVT Channel 2',
+        'Portaflex B-15N Jumped',
+        'SVT-CL',
+        'GK 800RB',
+        'OR120',
+        'OR80',
+        'Pro Junior',
+        'Champ AA764',
+        '6505+',
+        '6505+ Rhythm',
+        'Classic 30',
+        'Fireball 60',
+        'Sunn Model T',
+        'Super Bass 100',
+        'JCM800 2210',
+        'JCM800 2205',
+        'TSL100',
+        'RG100ES',
+        'Supro 1624T',
+        'Thunderbolt S6420',
+        'Twin Twelve 1484',
+        'AC15C1'
       ]
     },
     {
@@ -788,6 +819,11 @@ export const ENGINE = {
     {
       name: 'FAS Boost',
       modelledAfter: "Fractal's own boost (a design): flat TL072 boost to 21 dB on 18 V with a gentle presence lift"
+    },
+    {
+      name: 'Heavy Metal',
+      modelledAfter:
+        'Boss HM-2 Heavy Metal: two transistor gain stages, an op-amp with silicon diodes across its feedback, silicon to ground, two-knob gyrator EQ (Color Mix L on the Bass Pot, Color Mix H on Tone)'
     }
   ],
   wahs: [

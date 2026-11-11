@@ -149,7 +149,8 @@ public partial class BlockConformanceTests {
     ///     Found in November 2026, sweeping all 92 models. The tweed Bassman motorboats (about 22 Hz at -25 dBFS RMS,
     ///     peaks of -15 dBFS) for as long as the block runs with its Normal Vol or the Overdrive at 10, or its tone
     ///     stack moved to Pre; its Jumped variant, the Tweed Twin 5F8-A (the same preamp) and the Powerball do with
-    ///     the Overdrive at 10 (-16, -12 and -14 dBFS); the Deluxe 6G3 rings at -18 dBFS on EL34s.
+    ///     the Overdrive at 10 (-16, -12 and -14 dBFS); the Deluxe 6G3 rings at -18 dBFS on EL34s; the Sunn Model T
+    ///     holds -24 dBFS with its feedback at 10 and -28 dBFS on EL84s.
     /// </remarks>
     static bool KnownToRing(string typeId, int type, string param, float value) =>
         typeId == "circuitamp"
@@ -158,6 +159,8 @@ public partial class BlockConformanceTests {
             ("Bassman 5F6-A", "stackloc", 1) => true,
             ("Bassman 5F6-A Jumped" or "Tweed Twin 5F8-A" or "Powerball", "overdrive", 10) => true,
             ("Deluxe 6G3", "powertube", 2) => true,
+            ("Sunn Model T", "feedback", 10) => true,
+            ("Sunn Model T", "powertube", 3) => true,
             _ => false
         };
 

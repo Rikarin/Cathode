@@ -182,7 +182,8 @@ public partial class BassAmpTests(ITestOutputHelper output) {
 
     /// <summary>
     ///     The JC-120's Distortion knob does nothing until Distortion On is on, so it shows only then; no two of its
-    ///     controls share a name, and no other model hides a control behind a switch.
+    ///     controls share a name. The only other model that hides a control behind a switch is the Savage 120 (both
+    ///     types: a knob that belongs to one position of its third switch).
     /// </summary>
     [Fact]
     public void Jc120_distortion_knob_shows_only_with_its_switch_on() {
@@ -191,8 +192,13 @@ public partial class BassAmpTests(ITestOutputHelper output) {
         Assert.Equal(TypeOf("JC-120"), when.Key);
         Assert.Equal(("switch1", 1f), (when.Value.Param, Assert.Single(when.Value.Values)));
         Assert.All(
-            info.Params.Where(static p => p.Id != "control2"),
-            static p => Assert.Null(p.TypeVisibleWhen)
+            info.Params.Where(static p => p.Id != "control2")
+                .Where(static p => p.TypeVisibleWhen is not null)
+                .SelectMany(static p => p.TypeVisibleWhen!),
+            static hidden => {
+                Assert.StartsWith("Savage 120", AmpDesign.All[hidden.Key].Name, StringComparison.Ordinal);
+                Assert.Equal("switch3", hidden.Value.Param);
+            }
         );
 
         string[] controls = [

@@ -6,7 +6,7 @@ the format upgrades older presets as it reads them.
 
 ## 1.0.0-rc.6 — unreleased
 
-The fixes below came out of a second full audit of the code (issues #163 to #356).
+The fixes below came out of a second full audit of the code (issues #163 to #356), and from the first seventeen amps of its missing-amp list (#357 to #373).
 
 ### Added
 
@@ -86,6 +86,86 @@ The fixes below came out of a second full audit of the code (issues #163 to #356
 - Telemetry: each block reports its measured CPU share, shown on the block's page (#342)
 - Editor: the Amp NAM, IR Player and Cab file pickers explain that Cathode ships no captures or IRs while the library
   has none, and what to do (#355)
+- Amp NAM: Size shows only for a capture that has more than one size (NAM A2); the Server reads it from the file and
+  sends it on the asset (#220).
+- Amp NAM: Stack Type puts a Fender, Marshall or Vox passive tone stack on Bass, Middle and Treble, and Bright adds a
+  treble shelf; both sit before or after the capture with EQ Location (#336).
+- Modifiers: each source has a Scale, two sources can subtract, Update Rate spaces the parameter writes, auto-engage can
+  be off above its threshold, and PC Reset holds the stored value after a preset load until the external controller
+  moves (#219).
+- Drive: Heavy Metal, a Boss HM-2 with its two-knob gyrator EQ (Color Mix L on the Bass Pot, Color Mix H on Tone), is a
+  new type after the existing ones (#343).
+- 18 W 1974X: Depth is now the amp's Intensity rheostat in the shared cathode, with the oscillator at full swing while
+  the tremolo runs; 0 is still the footswitch (#330).
+- Bluesbreaker 1962: the amp's own tremolo on Speed and Intensity, a J174 chopping Channel II at 2.0 to 4.7 Hz; the
+  1959T's tremolo is still not built, and its notes say what the scan does not give (#291).
+- Amp: the 5150 has its rhythm channel on Switch 1 ("Rhythm Ch"), with Crunch on Switch 2 and the Bright switch, read
+  from the Peavey factory scan (#201).
+- Amp: new type 5150III Clean/Crunch, the EVH 5150III's green channel with the blue channel on Switch 1, read from
+  Fender's service diagram of the standard 100 W head (#306).
+- Amp: the Powerball has its lead channel's noise gate (Gate Threshold, on the Cut knob; off at 0) and its Bottom switch
+  (#307).
+- Amp: the Savage 120 has Crunch 2 (Bright switch) and a Hi Balance knob for Smooth, and its clean and Crunch 1 channel
+  is the new Savage 120 Clean type (#308).
+- Amp: new type SVT Channel 2, the Ampeg SVT's second channel, with its own Volume, Bass, Treble, Ultra Hi and Ultra Lo
+  (#309).
+- Amp: new type Portaflex B-15N Jumped, both channels of the B-15N played at once, each with its own volume, tone
+  controls and Ultra switches (#310).
+- Chorus: new Type choice; JC-120 is the Roland Jazz Chorus's own chorus (one bucket-brigade line, dry on the left,
+  chorus on the right) (#311).
+- Amp: new types Dual Rectifier Orange (two-channel orange channel: Normal / Clean / Modern), Dual Rectifier 3-Ch Clean
+  (channel 1, Clean / Pushed), Triple Rectifier Orange and Triple Rectifier Clean, all from the factory drawings (#205).
+- Amp: new types Mark V Clean (channel 1: Clean / Fat / Tweed, Bold) and Mark V Crunch (channel 2: Edge / Crunch / Mark
+  I); all Mark V types gain the loop's recovery stage V6B, the drawn inverter tail and the series presence network with
+  one rheostat per channel, so Mark V drives its power amp about 15 dB harder and its Presence behaves as on the Mark IV
+  (#204).
+- Circuit Amp: new type Pro Junior, the Fender Pro Junior (two EL84, Volume and Tone) modelled from the factory drawing
+  047420 rev C (#360).
+- Server: setlists and banks carry a revision, and a save made on a stale one is refused (412) instead of silently
+  replacing another editor's change; the editor re-reads and, for bank slots, merges (#178).
+- Packaging: the desktop app is also built for Intel Macs, Windows on ARM and ARM64 Linux as extra targets, and as a
+  `.deb` on Linux once a maintainer is named (#327).
+- Factory content: eight impulse responses rendered from the cab model come with every library, read-only and marked
+  Factory (#355).
+- Editor: on a touch screen, double-tap a knob or its value to type a value (#186).
+- Shortcuts: preset and song stepping (PgUp/PgDn, Shift+PgUp/PgDn), the scenes (1-8) and Preset Leveling (L) also work
+  without Cmd/Ctrl, so they work in a browser that keeps those keys for its tabs; in a browser the tooltips name these
+  keys (#260).
+- Amp: new Circuit Amp type Champ AA764, the blackface and silverface Fender Champ (single-ended 6V6GT, Volume, Treble,
+  Bass), modelled from Fender's AA764 drawing (#361).
+- Amp: new Circuit Amp types OR120 and OR80, the early-1970s Orange Graphic Mk II ("Pics Only") from the 1972 factory
+  drawing, with Bass, Treble, the six-position FAC (Control 1) and HF Drive (Presence) (#359).
+- Amp: new Circuit Amp type Super Bass 100, the Marshall 1992 Super Bass (100 W) from Unicord drawing 70-13-11: the
+  Plexi 100W's circuit without bright caps, darker and fuller, for guitar or bass (#366).
+- Amp: new type GK 800RB, the Gallien-Krueger 800RB solid-state bass head from its 1982 service drawings (four-band EQ,
+  Contour, Lo Cut, Hi Boost, -10 dB, FET Boost, 300 W power amp); network stages can now hold a JFET (#358).
+- Circuit Amp: new type SVT-CL, the Ampeg SVT-CL from the factory drawings, with the 0 dB and -15 dB inputs, Ultra Hi,
+  Ultra Lo, the five-position midrange Frequency switch, Gain and Master (#357).
+- Amp: new Circuit Amp type Sunn Model T (first generation, 150 W, four ultralinear 6550), Brite and Normal channels
+  with Both In, from Sunn drawing D-1029 rev A and its voltage chart (#365).
+- Amp: new Circuit Amp type Classic 30 (Peavey Classic 30, from factory drawing 81501580): Lead channel with Pre and
+  Post, Normal channel with Volume (Normal Ch switch), Boost switch, four EL84 (#363).
+- Amp: new types 6505+ and 6505+ Rhythm, the Peavey 5150 II / 6505+ lead and rhythm channels (Crunch and Bright
+  switches) from the factory drawing, with the amp's own presence and resonance networks (#362).
+- Amp: new Circuit Amp type Thunderbolt S6420, the 1966 Supro Thunderbolt 1 x 15 bass combo (Volume and Tone, a fixed
+  paraphase inverter, two cathode-biased 6L6GC, no feedback), read from four traces of original amps (#371).
+- Amp: new Circuit Amp type Fireball 60 (Engl Fireball 60, E625), the Ultra channel and the clean channel (Switch 3
+  "Clean"), from the factory drawing 625; the presence is the drawn rheostat in series with the feedback. One divider
+  resistor and two supply filter nodes the drawing leaves out are assumed from the Powerball (#364).
+- Amp: new Circuit Amp type TSL100, the three-channel Marshall JCM2000 (Clean, Crunch and Lead with Mid Boost, Tone
+  Shift and Deep), from the factory drawings (#368).
+- Amp: new Circuit Amp type RG100ES, the solid-state Randall RG100ES from its factory schematic: both channels (Switch 1
+  Channel 1), the Sustain Boost (Switch 2), Presence, and JFET gain stages in the amp engine (#369).
+- Amp: new type Twin Twelve 1484, the Silvertone 1484 from Sears' factory drawing (both channels, Volume, Bass, Treble;
+  6CG7 driver and cathodyne on a new 6CG7 tube table; its tremolo and reverb are not built) (#372).
+- Amp: new Circuit Amp type Supro 1624T (Dual-Tone): both channels with Standard and Treble inputs, a fixed-divider
+  paraphase inverter, a 6973 output-tube table fitted to RCA's sheet, and the second channel's tremolo on Speed and
+  Intensity (#370).
+- Amp: new Circuit Amp type AC15C1, the current Vox AC15 from the factory service manual: Top Boost and Normal inputs
+  (Switch 1), Tone Cut and a master volume, two EL84 (#373).
+- Amp: two new Circuit Amp types, JCM800 2210 (100 W) and JCM800 2205 (50 W), Marshall's split-channel JCM800 from the
+  1988 factory drawings: the diode-clipped Boost channel and the clean Normal channel (Switch 1), with Boost Volume on
+  Control 1 (#367).
 
 ### Changed
 
@@ -174,6 +254,49 @@ The fixes below came out of a second full audit of the code (issues #163 to #356
   and Boost/Pad), linked from every block's Global Mix (#354)
 - Docs: docs/07 has one row per amp, a Counts table that adds up, and blockers that match the stage library (paraphase
   inverter, op-amp stages) (#356)
+- ODS 70s: stays without a Master, as its sheets and a 1977 example have it; the model notes and the amp catalogue now
+  give the evidence (#195).
+- Tests: two conformance sweeps cover every parameter of every block type (no dead knobs; decay with one parameter at an
+  extreme), nightly on every amp and drive model. Knobs are hidden where they did nothing (Input gate on Off, Vol/Pan
+  swell knobs on Volume, Graphic EQ Q controls on passive layouts, Compressor Auto Makeup on Sustainer, Pitch Mix/Global
+  Mix/Kill Dry on Whammy and Virtual Capo, Pitch Tracking on Octave Divider and Crystals, Delay LFO Phase on Mono Tape);
+  a resonant Multitap Delay voice filter no longer howls; Power Amp off no longer leaves a DC offset on the Princeton
+  5F2-A and Liverpool (#171).
+- Tests: the looper's Erase and Undo are timed on a 300 s loop, a loop export is refused while recording and held to an
+  allocation budget, and the callback-stall watchdog rule is tested without a device (#241).
+- Tests: a capture's drift guard holds all four measures or does not exist; ESR and MRSTFT guards sit 15 % above what
+  the matches measure, and an unmatched local-only capture fails with the guard to record once its file is fetched
+  (#217).
+- Docs: the amp catalogue lists the Rect-o-Verb with the closed 4 x 12 its model (the head) is loaded with (#302).
+- Docs: the amp catalogue lists every amp issue with its status, gives each wiki variant a status, and records what the
+  AC15 and Dr Z Route 66 drawings are (#356).
+- Manual: ten new screenshots cover the Power Amp page, the Cab's Align view, Amp NAM, Manage presets, Controllers,
+  MIDI, footswitches, the four-cable method and Scenes (#352).
+- Tests: the editor shell's Save flow and shortcuts, the transport and looper, the preset picker, the tuner dialog,
+  network access, Batch Set and the block page now have unit specs (#272).
+- Tests: the desktop end-to-end suite now drives Reset Amp blocks, the IR list, the Block Library, the Cab's Align view,
+  Recent presets, the preset picker, the global Perform page, footswitch layout links and per-preset overrides, Preset
+  Leveling on a real signal, drag-to-swap and the mono hint (#218).
+- Website: Angular updated to 22.2.5 (#514).
+- Website: marked 18.1.3, tslib 2.9.1, Tailwind CSS 4.3.5, postcss 8.5.32 and prettier-plugin-packagejson 3.1.0 (#516).
+- Website: @types/node updated to 26.6.6 (#518).
+- Website: @ng-icons/core updated to 36.1.0 (#519).
+- Editor: Angular updated to 22.2.5 and the CDK to 22.2.6 (#515).
+- Editor: 48 minor and patch dependency updates, among them xui 3.1.0, Tailwind 4.3.5, Playwright 1.65.0 and
+  electron-builder 26.18.0 (#521).
+- Editor: @types/node updated from 24 to 26.6.6 (#522).
+- Editor: jsdom updated from 27 to 31 for the unit tests (#523).
+- Desktop: qrcode-generator updated from 1.4.4 to 2.0.4; the network QR code is unchanged (#524).
+- CI: pnpm/action-setup 6.1.1, actions/download-artifact 8.0.2 and github/codeql-action/upload-sarif 4.39.3 (#513).
+- Engine: Microsoft.AspNetCore.OpenApi and Microsoft.AspNetCore.Mvc.Testing 10.0.15 (#517).
+- Engine tests: CsCheck 5.0.1 (#520).
+- Tests: the template end-to-end test confirms the delete, which now asks first.
+- Packaging: the Server's publish finds the .NET licence files on Linux and Windows, so the desktop installers build
+  there again.
+- CI: the packaged-app tests start a copy of the app that takes --inspect, and check that the shipped binary's fuses are
+  set.
+- Tests: the REST tap tempo test bounds each tap by the engine clock on both sides of its request, so a slow runner no
+  longer fails it.
 
 ### Fixed
 
@@ -391,6 +514,25 @@ The fixes below came out of a second full audit of the code (issues #163 to #356
   Visual C++ Redistributable (#323).
 - Headless rig: `uninstall.sh` also removes the server's cache (`/var/cache/cathode`) and the socket folder, and an
   update clears the previous version's unpacked files (#324).
+- Amp: the Friedman BE-100 (both channels) and the Laney GH100L wire the Middle pot as their drawings do, with the
+  middle cap on the wiper, so Bass and Middle interact correctly at low settings and the amps no longer go silent with
+  all three tone knobs at 0 (#196).
+- Amp: the Powerball's preamp follows a hand-corrected copy of Engl's drawing, so its lead has a high-gain amp's gain
+  instead of a fuzz's, cuts the lows between its stages and no longer needs the assumed supply filter (#512).
+- Amp: the Bass 400 is rated 300 W, not the 400 of its name; its 1.2k output transformer is kept, now checked against
+  what its six 6550 deliver (#300).
+- Amp: the Mark IIC+ and Mark IV run on the factory sheets' supply voltages (B+ 480 V, 397 V and 392 V preamp rails) and
+  their decoupling chain rests at the rails the stages are built for (#296).
+- Diagnostics: the Drive and Wah blocks report their circuit solvers' fault counts like the Amp, the Server logs a block
+  whose count rises, and the block page shows a Solver faults line when one is not zero (#278).
+- Amp: the documentation says how far a cranked power amp's flyback passes full scale (up to about 5 dB for a few
+  samples), and a test pins it (#277).
+- Amp: a type change, a tube swap, the triode switch and Tonestack Location are settled on the control thread, so the
+  audio thread's switch no longer solves the operating points (#274).
+- Amp Rect-o-Verb: the effects loop's tube stages and the Output Level (Control 1) follow the channel masters, as on the
+  amp; the type drives its power amp about 15 dB harder at the same settings (#305).
+- Packaging: a release links the Linux engine on Debian 12, so the AppImage and the headless rig run on glibc 2.36 and
+  newer (Debian 12, Raspberry Pi OS bookworm, Ubuntu 24.04) instead of 2.39 (#212).
 
 ## 1.0.0-rc.5 — 2026-10-30
 

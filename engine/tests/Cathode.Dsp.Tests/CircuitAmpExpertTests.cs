@@ -85,6 +85,9 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                         // cathode resistor, and RCA's sheet has such a pair drawing only a fifth more at full power
                         // (about -66 dB).
                         && !(index == CircuitAmpBlock.SupplyTime && design == Supro1624T.Design)
+                        // Nor on the Savage 120's clean channel, which leaves its four 6550s near idle at gain 7
+                        // (about -64 dB).
+                        && !(index == CircuitAmpBlock.SupplyTime && design == Savage120.Clean)
                         && !(index == CircuitAmpBlock.PowerTube
                             && design.Power.Name.Contains(tube ?? "-", StringComparison.Ordinal))
                         && !(index is CircuitAmpBlock.PresenceFrequency or CircuitAmpBlock.DepthFrequency
