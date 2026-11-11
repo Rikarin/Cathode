@@ -2,7 +2,7 @@ using Cathode.Dsp.Wdf;
 
 namespace Cathode.Dsp.Amp.Models;
 
-/// <summary>A gain stage's triode as the Engl and the Peavey models have it, in a netlist that wires the rest.</summary>
+/// <summary>A gain stage's triode as the Engl and the Peavey models have it; the netlist wires the rest.</summary>
 public static class TriodeParts {
     /// <summary>
     ///     A common-cathode 12AX7 on <paramref name="grid" />: <paramref name="plateResistor" /> from
