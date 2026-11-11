@@ -41,13 +41,13 @@ public sealed class UndoHistoryTests {
         var history = new UndoHistory(clock);
 
         // One drag held still for ten seconds in the middle: one step.
-        Assert.True(history.Record("gesture:drive1:A:g1", static () => Snapshot(10, 1), gesture: true));
+        Assert.True(history.Record("gesture:drive1:A:g1", static () => Snapshot(10, 1), true));
         clock.Advance(TimeSpan.FromSeconds(10));
-        Assert.False(history.Record("gesture:drive1:A:g1", static () => Snapshot(10, 2), gesture: true));
+        Assert.False(history.Record("gesture:drive1:A:g1", static () => Snapshot(10, 2), true));
 
         // Released, and the same knob grabbed again 100 ms later: a new step.
         clock.Advance(TimeSpan.FromMilliseconds(100));
-        Assert.True(history.Record("gesture:drive1:A:g2", static () => Snapshot(10, 3), gesture: true));
+        Assert.True(history.Record("gesture:drive1:A:g2", static () => Snapshot(10, 3), true));
         Assert.Equal((2, 0), history.Steps);
     }
 
@@ -75,7 +75,7 @@ public sealed class UndoHistoryTests {
 
     [Fact]
     public void Each_stack_drops_its_oldest_steps_beyond_the_step_limit() {
-        var history = new UndoHistory(new ManualClock(), maxSteps: 3);
+        var history = new UndoHistory(new ManualClock(), 3);
         for (var i = 1; i <= 5; i++) {
             history.Push(Snapshot(10, i));
         }
@@ -90,7 +90,7 @@ public sealed class UndoHistoryTests {
     [Fact]
     public void Memory_is_bounded_by_bytes_as_well_as_steps() {
         const int mb = 1024 * 1024;
-        var history = new UndoHistory(new ManualClock(), maxSteps: 100, maxBytes: 10L * mb);
+        var history = new UndoHistory(new ManualClock(), 100, 10L * mb);
 
         // A hundred 3 MB presets (a big PUT /live, over and over): only the newest three fit in 10 MB.
         for (var i = 1; i <= 100; i++) {

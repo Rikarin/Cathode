@@ -1,7 +1,6 @@
 using Cathode.Contracts;
 using Cathode.Server.Midi;
 using Microsoft.Extensions.DependencyInjection;
-using System.Net.Http.Json;
 
 namespace Cathode.Server.Tests;
 

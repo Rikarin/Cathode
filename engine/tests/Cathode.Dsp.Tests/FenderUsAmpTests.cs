@@ -219,7 +219,7 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
     [Fact]
     public void The_hot_rod_deluxes_presence_pot_is_the_drawings_reverse_audio_taper() {
         var feedback = Design("Hot Rod Deluxe").Power.Feedback;
-        Assert.Equal(new Pot(25e3, PotTaper.ReverseAudio, 0.3), feedback.Presence);
+        Assert.Equal(new(25e3, PotTaper.ReverseAudio, 0.3), feedback.Presence);
         Assert.Equal(25e3 * 0.1e-6, feedback.PresenceTimes(0).Tau1, 12);
         Assert.Equal(7.5e3 * 0.1e-6, feedback.PresenceTimes(0.5).Tau1, 12);
         Assert.Equal(0, feedback.PresenceTimes(1).Tau1, 12);

@@ -519,7 +519,7 @@ public sealed partial class LiveRig {
     /// </summary>
     public void ApplyGlobalSettings(GlobalSettings global) {
         hub.Publish(
-            new RigEvent("globalChanged", Interlocked.Read(ref revision)),
+            new("globalChanged", Interlocked.Read(ref revision)),
             ContractsJsonContext.Default.RigEvent
         );
         var values = GlobalValues(global);

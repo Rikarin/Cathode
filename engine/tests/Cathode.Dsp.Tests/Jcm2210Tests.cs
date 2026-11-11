@@ -142,13 +142,13 @@ public class Jcm2210Tests(ITestOutputHelper output) {
                 (82e3, 100e3, 26.7e3, 470.0),
                 (pair.PlateResistorA, pair.PlateResistorB, pair.TailResistor, pair.BiasResistor)
             );
-            Assert.Equal(new InverterInputDesign(22e-9, 330e3), design.Power.InverterInput);
+            Assert.Equal(new(22e-9, 330e3), design.Power.InverterInput);
             Assert.Equal(
                 (100e3, 4.7e3, 0.1e-6),
                 (design.Power.Feedback.FeedbackResistor, design.Power.Feedback.ShuntResistor,
                     design.Power.Feedback.PresenceCap)
             );
-            Assert.Equal(new Pot(22e3, PotTaper.Audio), design.Power.Feedback.Presence);
+            Assert.Equal(new(22e3, PotTaper.Audio), design.Power.Feedback.Presence);
         }
 
         static double GridCap(AmpDesign design) {
@@ -192,14 +192,14 @@ public class Jcm2210Tests(ITestOutputHelper output) {
             + Stage(rail, 150e3, 10e3)
             + Stage(rail, 100e3, 1.5e3)
             + v1b
-            + (3 * Stage(rail, 100e3, 1.5e3));
+            + 3 * Stage(rail, 100e3, 1.5e3);
         var draw = triodes + tail;
         output.WriteLine(
             $"{type}: triodes {triodes * 1e3:0.00} mA (V1B {v1b * 1e3:0.00}), inverter {tail * 1e3:0.00} mA, "
-            + $"in all {draw * 1e3:0.00} mA; node {screens - (10e3 * draw):0.0} V against {rail} V"
+            + $"in all {draw * 1e3:0.00} mA; node {screens - 10e3 * draw:0.0} V against {rail} V"
         );
         Assert.Equal(design.Power.PowerSupply.PreampCurrent, draw, 0.3e-3);
-        Assert.Equal(rail, screens - (10e3 * draw), 4.0);
+        Assert.Equal(rail, screens - 10e3 * draw, 4.0);
     }
 
     /// <summary>

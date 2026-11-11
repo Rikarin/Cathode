@@ -207,8 +207,7 @@ public static class Powerball {
     static StageNetlist InputAndGain() {
         var net = new StageNetlist();
         var (coupled, idle, cut, top) = (FirstStage(net), net.Node(), net.Node(), net.Node());
-        net.Capacitor(coupled, idle, 1.5e-9);
-        net.Resistor(idle, StageNetlist.Ground, Parallel(470e3, 1.1e6));
+        Load(net, coupled, idle, 1.5e-9, Parallel(470e3, 1.1e6));
         net.Capacitor(coupled, cut, 1e-9);
         net.Resistor(cut, StageNetlist.Ground, 470e3);
         net.Resistor(cut, top, 100e3);
@@ -244,29 +243,15 @@ public static class Powerball {
         var (grid, supply, plate, cathode) = (net.Node(), net.Node(), net.Node(), net.Node());
         net.Capacitor(net.Input, coupled, 47e-9);
         net.Resistor(coupled, StageNetlist.Ground, 2.2e6);
-        net.Capacitor(coupled, loTop, 470e-12);
-        net.Resistor(loTop, lo, 220e3);
-        net.Resistor(lo, StageNetlist.Ground, 470e3);
-        net.Capacitor(lo, StageNetlist.Ground, 330e-12);
-        net.Capacitor(coupled, hiTop, 2.2e-9);
-        net.Resistor(hiTop, hi, 100e3);
-        net.Resistor(hi, StageNetlist.Ground, 470e3);
-        net.Capacitor(hi, StageNetlist.Ground, 1e-9);
-        net.Resistor(coupled, clean, 1e6);
-        net.Capacitor(coupled, clean, 100e-12);
-        net.Resistor(clean, StageNetlist.Ground, 22e3);
+        EnglParts.Divider(net, (coupled, loTop, lo), 470e-12, 220e3, 470e3, 330e-12);
+        EnglParts.Divider(net, (coupled, hiTop, hi), 2.2e-9, 100e3, 470e3, 1e-9);
+        EnglParts.CleanDivider(net, coupled, clean);
         net.Capacitor(coupled, crunch, 1e-9);
         net.Resistor(crunch, StageNetlist.Ground, 940e3);
         net.SwitchedResistor(lo, grid, 1, 0, SwitchRole.Switch2);
         net.SwitchedResistor(hi, grid, 0, 1, SwitchRole.Switch2);
         net.Resistor(grid, StageNetlist.Ground, 470e3);
-        net.Supply(supply, PreampRail);
-        net.Resistor(supply, plate, 330e3);
-        net.Capacitor(supply, plate, 1e-9, CapacitorRole.Plate);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 3.3e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 1e-6);
-        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-        net.Output = plate;
+        net.Output = EnglParts.ColdClipper(net, (grid, supply, plate, cathode), PreampRail, 1e-6);
         return net;
     }
 
@@ -359,16 +344,8 @@ public static class Powerball {
     static StageNetlist ChannelOneGain() {
         var net = new StageNetlist();
         var (coupled, idle, cut, top) = (FirstStage(net), net.Node(), net.Node(), net.Node());
-        net.Capacitor(coupled, idle, 1e-9);
-        net.Resistor(idle, StageNetlist.Ground, Parallel(470e3, 1.1e6));
-        net.Capacitor(coupled, cut, 1.5e-9);
-        net.SwitchedCapacitor(coupled, cut, 1.5e-9, SwitchRole.Fat);
-        net.Resistor(cut, StageNetlist.Ground, 470e3);
-        net.Resistor(cut, top, 100e3);
-        var wiper = net.Pot(top, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Gain);
-        net.SwitchedCapacitor(cut, wiper, 100e-12, SwitchRole.Bright, CapacitorRole.Bright);
-        net.Resistor(wiper, StageNetlist.Ground, Parallel(470e3, 1e6));
-        net.Output = wiper;
+        Load(net, coupled, idle, 1e-9, Parallel(470e3, 1.1e6));
+        net.Output = EnglParts.Gain(net, (coupled, cut, top), 1.5e-9, 470e3, true, Parallel(470e3, 1e6));
         return net;
     }
 
@@ -380,17 +357,13 @@ public static class Powerball {
     /// </summary>
     static StageNetlist ChannelOneThirdStage() {
         var net = new StageNetlist();
-        var (coupled, lo, hi, clean, crunchTop, crunch, grid) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (coupled, lo, hi) = (net.Node(), net.Node(), net.Node());
+        var (clean, crunchTop, crunch, grid) = (net.Node(), net.Node(), net.Node(), net.Node());
         net.Capacitor(net.Input, coupled, 47e-9);
         net.Resistor(coupled, StageNetlist.Ground, 2.2e6);
-        net.Capacitor(coupled, lo, 470e-12);
-        net.Resistor(lo, StageNetlist.Ground, 690e3);
-        net.Capacitor(coupled, hi, 2.2e-9);
-        net.Resistor(hi, StageNetlist.Ground, 570e3);
-        net.Resistor(coupled, clean, 1e6);
-        net.Capacitor(coupled, clean, 100e-12);
-        net.Resistor(clean, StageNetlist.Ground, 22e3);
+        Load(net, coupled, lo, 470e-12, 690e3);
+        Load(net, coupled, hi, 2.2e-9, 570e3);
+        EnglParts.CleanDivider(net, coupled, clean);
         net.Capacitor(coupled, crunchTop, 1e-9);
         net.Resistor(crunchTop, crunch, 470e3);
         net.Resistor(crunch, StageNetlist.Ground, 470e3);
@@ -439,4 +412,14 @@ public static class Powerball {
     static StageNetlist ReturnAndMaster() => EnglParts.ReturnAndMaster(InverterRail, 1.5e3, 100e3);
 
     static double Parallel(double a, double b) => a * b / (a + b);
+
+    /// <summary>
+    ///     The idle channel's or mode's network as a load, on <paramref name="net" />: <paramref name="cap" /> from
+    ///     <paramref name="from" /> to <paramref name="node" />, and <paramref name="resistance" /> (all it reaches)
+    ///     from there to ground.
+    /// </summary>
+    static void Load(StageNetlist net, int from, int node, double cap, double resistance) {
+        net.Capacitor(from, node, cap);
+        net.Resistor(node, StageNetlist.Ground, resistance);
+    }
 }

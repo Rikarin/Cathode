@@ -2,7 +2,6 @@ using Cathode.Contracts;
 using Cathode.Server.Rig;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
-using System.Net.Http.Json;
 
 namespace Cathode.Server.Tests;
 

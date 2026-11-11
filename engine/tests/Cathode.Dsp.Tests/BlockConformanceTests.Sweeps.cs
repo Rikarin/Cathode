@@ -487,7 +487,7 @@ public partial class BlockConformanceTests {
     ///     and last.
     /// </summary>
     static IEnumerable<float> Extremes(ParamDescriptor p, float current) {
-        IEnumerable<float> values = p.Kind == ParamKind.Float || p.Max > 12
+        var values = p.Kind == ParamKind.Float || p.Max > 12
             ? [p.Min, p.Max, MathF.Round((p.Min + p.Max) / 2)]
             : Enumerable.Range(0, (int)p.Max + 1).Select(static option => (float)option);
         return values.Take(p.Kind == ParamKind.Float ? 2 : int.MaxValue).Where(value => value != current);

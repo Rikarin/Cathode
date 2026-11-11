@@ -3,7 +3,6 @@ using Cathode.Server.Rig;
 using Cathode.Server.Stores;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
-using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 
 namespace Cathode.Server.Tests;

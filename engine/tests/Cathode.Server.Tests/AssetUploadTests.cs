@@ -3,11 +3,10 @@ using Cathode.Server.Rig;
 using Cathode.Server.Stores;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Metadata;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Mvc;
 using System.Net;
-using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -99,7 +98,7 @@ public sealed class AssetUploadTests : IAsyncLifetime {
         await File.WriteAllTextAsync(Path.Combine(folder, "index.json"), """[{ "ref": "sha256:""", Token);
 
         using var http = await damaged.ConnectedClientAsync();
-        var listed = (await http.UserAssetsAsync(Token));
+        var listed = await http.UserAssetsAsync(Token);
         using var upload = await http.PostAsync("/api/v1/assets?name=more.nam", new ByteArrayContent([5, 6]), Token);
 
         var asset = Assert.Single(listed);
@@ -163,7 +162,7 @@ public sealed class AssetUploadTests : IAsyncLifetime {
             "\"slimmable\":true",
             (await File.ReadAllTextAsync(Path.Combine(folder, "index.json"), Token)).Replace(
                 " ",
-                "",
+                string.Empty,
                 StringComparison.Ordinal
             ),
             StringComparison.Ordinal

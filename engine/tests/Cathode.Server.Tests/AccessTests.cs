@@ -1,10 +1,9 @@
 using Cathode.Contracts;
 using Cathode.Server.Api;
-using System.Net;
-using System.Net.Http.Json;
-using System.Net.WebSockets;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Net;
+using System.Net.WebSockets;
 
 namespace Cathode.Server.Tests;
 

@@ -58,7 +58,7 @@ public sealed class DeviceHealthTests {
     public void Without_a_device_the_status_is_ok() {
         using var service = new EngineHostService(ProcessSpec.Default, "null");
         Assert.Equal(AudioDeviceStatus.Ok, service.DeviceStatus);
-        Assert.Equal("ok", service.Telemetry(new HostTelemetry()).DeviceStatus);
+        Assert.Equal("ok", service.Telemetry(new()).DeviceStatus);
     }
 
     sealed class FakeDevice : IDeviceMonitor {

@@ -98,7 +98,7 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         { "Deluxe 6G3", (0xCF998D388667A246, 0xD83E23FAB3ED2FE9) },
         { "Vibrolux 6G11", (0x571C6DBBBE507E38, 0xDF5707421F87007E) },
         { "Bassman 135", (0xFC42035894385A78, 0x60B4A0E9B0B74D78) },
-        { "Scout GA-17RVT", (0x53511F6E464C9C80, 0x65AA4CE5C6153C38) },
+        { "Scout GA-17RVT", (0x53511F6E464C9C80, 0x65AA4CE5C6153C38) }
     };
 
     static readonly Lock UpdateLock = new();

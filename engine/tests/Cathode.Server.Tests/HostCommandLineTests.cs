@@ -213,7 +213,7 @@ public sealed class HostCommandLineTests {
                 Path.Combine(directory.FullName, $"h.sock2.{Gone}.telemetry")
             ];
             foreach (var file in kept.Append(stale)) {
-                File.WriteAllText(file, "");
+                File.WriteAllText(file, string.Empty);
             }
 
             Assert.Equal(1, Cathode.EngineHost.TelemetryFiles.RemoveStale(socket));

@@ -4,7 +4,6 @@ using Cathode.Server.Stores;
 using Cathode.Testing;
 using System.IO.Compression;
 using System.Net;
-using System.Net.Http.Json;
 using System.Text;
 
 namespace Cathode.Server.Tests;
@@ -33,7 +32,7 @@ public sealed class LibraryBackupTests : IAsyncLifetime {
     [Fact]
     public async Task A_whole_library_moves_to_another_server() {
         var rig = await SaveRigWithCab(from, "Travel Rig");
-        var asset = Assert.Single((await from.UserAssetsAsync(Token)));
+        var asset = Assert.Single(await from.UserAssetsAsync(Token));
         await Ensure(
             from.PatchAsJsonAsync(
                 $"/api/v1/assets/{asset.Ref}/metadata",
@@ -80,7 +79,7 @@ public sealed class LibraryBackupTests : IAsyncLifetime {
             ("blue", true),
             (presets.Single(p => p.Id == factory).Color, presets.Single(p => p.Id == factory).Favorite)
         );
-        var restored = Assert.Single((await to.UserAssetsAsync(Token)));
+        var restored = Assert.Single(await to.UserAssetsAsync(Token));
         Assert.Equal(
             (asset.Ref, "My room.wav", "red", true),
             (restored.Ref, restored.Name, restored.Color, restored.Favorite)
@@ -101,7 +100,7 @@ public sealed class LibraryBackupTests : IAsyncLifetime {
             (await to.GetFromJsonAsync<Bank[]>("/api/v1/banks", Token))!.Single(b => b.Id == bank.Id).Slots
         );
         Assert.Equal(
-            new SetlistEntry(rig, 2, "Opener"),
+            new(rig, 2, "Opener"),
             Assert.Single((await to.GetFromJsonAsync<Setlist>($"/api/v1/setlists/{setlist.Id}", Token))!.Entries)
         );
         var settings = (await to.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!;
@@ -201,7 +200,7 @@ public sealed class LibraryBackupTests : IAsyncLifetime {
         Assert.Contains("corrupt", tamperedBody, StringComparison.Ordinal);
         Assert.Equal(HttpStatusCode.BadRequest, packageStatus);
         Assert.Equal(HttpStatusCode.BadRequest, garbageStatus);
-        Assert.Empty((await to.UserAssetsAsync(Token)));
+        Assert.Empty(await to.UserAssetsAsync(Token));
         Assert.DoesNotContain(
             (await to.GetFromJsonAsync<PresetSummary[]>("/api/v1/presets", Token))!,
             static p => p.Factory != true

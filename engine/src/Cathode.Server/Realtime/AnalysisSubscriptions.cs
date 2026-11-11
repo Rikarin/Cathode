@@ -114,7 +114,7 @@ public sealed class AnalysisSubscriptions(LiveRig rig, EngineConnection engine) 
     static void Set(HashSet<string> clients, string? client, bool on) {
         if (string.IsNullOrEmpty(client)) {
             if (on) {
-                clients.Add("");
+                clients.Add(string.Empty);
             } else {
                 clients.Clear();
             }

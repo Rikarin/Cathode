@@ -278,11 +278,16 @@ public sealed class AidaModel : ICaptureModel {
         readonly NativeBuffer cell;
         readonly NativeBuffer gates;
 
+        /// <remarks>
+        ///     The biases are read in the body, after the base has read and checked the kernels: a malformed model is
+        ///     rejected for its first fault, and no buffer is allocated before a check that can throw (a primary
+        ///     constructor's initializers would run ahead of the base's).
+        /// </remarks>
         public LstmLayer(int inputSize, int hiddenSize, JsonElement weights)
             : base(inputSize, hiddenSize, 4, weights) {
-            bias = Row(weights[2], 4 * hiddenSize);
-            cell = new(hiddenSize);
-            gates = new(4 * hiddenSize);
+            bias = Row(weights[2], 4 * HiddenSize);
+            cell = new(HiddenSize);
+            gates = new(4 * HiddenSize);
         }
 
         public override ReadOnlySpan<float> Step(ReadOnlySpan<float> x) {

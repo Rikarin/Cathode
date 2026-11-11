@@ -490,7 +490,7 @@ public class HighGainAmpTests(ITestOutputHelper output) {
     public void The_5150III_presence_cap_is_the_redraws_two_68_nF_in_parallel() {
         var feedback = Evh5150III.Design.Power.Feedback;
         Assert.Equal((39e3, 4.7e3), (feedback.FeedbackResistor, feedback.ShuntResistor));
-        Assert.Equal(new Pot(10e3, PotTaper.Audio), feedback.Presence);
+        Assert.Equal(new(10e3, PotTaper.Audio), feedback.Presence);
         Assert.Equal(2 * 68e-9, feedback.PresenceCap, 1e-15);
     }
 

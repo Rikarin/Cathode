@@ -404,10 +404,10 @@ public class DriveStageTests(ITestOutputHelper output) {
             stage.Tick(0.02 * Math.Sin(2 * Math.PI * 1_000 * n / 96_000));
         }
 
-        Assert.Equal(new SolverFaults(480, 0, 0), stage.Faults);
+        Assert.Equal(new(480, 0, 0), stage.Faults);
 
         stage.Tick(double.NaN);
-        Assert.Equal(new SolverFaults(480, 1, 0), stage.Faults);
+        Assert.Equal(new(480, 1, 0), stage.Faults);
         Assert.Equal(stage.Root.Scattering.Failures, stage.Faults.FailedRecomputes);
     }
 

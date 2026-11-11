@@ -1,5 +1,5 @@
-using System.Globalization;
 using Cathode.Testing.References;
+using System.Globalization;
 
 namespace Cathode.References.Tests;
 

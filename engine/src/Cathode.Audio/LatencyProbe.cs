@@ -6,12 +6,23 @@ namespace Cathode.Audio;
 ///     Measures round-trip latency through a physical loopback (output 1 cabled to input 1): emits a click every
 ///     period and records how many samples later its peak arrives on the input. Allocation-free on the audio thread.
 /// </summary>
-public sealed class LatencyProbe : IAudioProcessor {
-    readonly int period;
-    readonly float amplitude;
-    readonly float threshold;
-    readonly int skipPeriods;
-    readonly int[] lags;
+/// <param name="sampleRate">Stream sample rate.</param>
+/// <param name="periodSeconds">Click spacing; must exceed the latency being measured.</param>
+/// <param name="amplitude">Click level (keep it modest: it is audible).</param>
+/// <param name="threshold">Minimum input peak that counts as a detected click.</param>
+/// <param name="maxMeasurements">Measurements kept; further clicks are ignored.</param>
+public sealed class LatencyProbe(
+    double sampleRate,
+    double periodSeconds = 0.25,
+    float amplitude = 0.5f,
+    float threshold = 0.01f,
+    int maxMeasurements = 64
+) : IAudioProcessor {
+    readonly int period = (int)(sampleRate * periodSeconds);
+    readonly float amplitude = amplitude;
+    readonly float threshold = threshold;
+    readonly int skipPeriods = 2; // let the device settle
+    readonly int[] lags = new int[maxMeasurements];
     long position;
     int count;
     float peak;
@@ -22,25 +33,6 @@ public sealed class LatencyProbe : IAudioProcessor {
 
     /// <summary>Periods that ended without a detectable click.</summary>
     public int Missed { get; private set; }
-
-    /// <param name="sampleRate">Stream sample rate.</param>
-    /// <param name="periodSeconds">Click spacing; must exceed the latency being measured.</param>
-    /// <param name="amplitude">Click level (keep it modest: it is audible).</param>
-    /// <param name="threshold">Minimum input peak that counts as a detected click.</param>
-    /// <param name="maxMeasurements">Measurements kept; further clicks are ignored.</param>
-    public LatencyProbe(
-        double sampleRate,
-        double periodSeconds = 0.25,
-        float amplitude = 0.5f,
-        float threshold = 0.01f,
-        int maxMeasurements = 64
-    ) {
-        period = (int)(sampleRate * periodSeconds);
-        this.amplitude = amplitude;
-        this.threshold = threshold;
-        skipPeriods = 2; // let the device settle
-        lags = new int[maxMeasurements];
-    }
 
     /// <summary>Snapshot of the measured lags in samples.</summary>
     public int[] Measurements() => [..lags.AsSpan(0, Count)];

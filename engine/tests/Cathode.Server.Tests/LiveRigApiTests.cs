@@ -6,7 +6,6 @@ using Cathode.Testing;
 using Microsoft.AspNetCore.Mvc;
 using System.IO.Compression;
 using System.Net;
-using System.Net.Http.Json;
 using System.Text;
 
 namespace Cathode.Server.Tests;
@@ -318,7 +317,7 @@ public sealed class LiveRigApiTests : IAsyncLifetime {
         Assert.Equal(0, cab.Channels["A"]["m2mute"]);
         Assert.Equal(1, cab.Channels["B"]["m2mute"]);
         // An asset that is gone, or a slot the block does not have, is left out rather than failing the paste.
-        Assert.Equal(new Dictionary<string, string> { ["slot1"] = irAsset.Ref }, cab.Assets);
+        Assert.Equal(new() { ["slot1"] = irAsset.Ref }, cab.Assets);
         // One undo takes the whole paste back, and nothing before it.
         Assert.Equal(before.Preset.Blocks.Select(static b => b.Id), undone.Preset.Blocks.Select(static b => b.Id));
         Assert.True(undone.CanUndo);

@@ -64,25 +64,102 @@ static class EnglParts {
 
     /// <summary>
     ///     The pots of a stack with one middle pot, from the node after its input cap: <paramref name="slope" /> to
-    ///     the slope node; the 250k linear treble from its cap down to the bass's top; <paramref name="bassCap" />
-    ///     from the slope to the 1M audio bass rheostat's top; the bass's bottom on the top of the 20k linear middle,
-    ///     with <paramref name="middleCap" /> from the slope on its wiper. Returns the treble's and the middle's
-    ///     wipers.
+    ///     the slope node; the <paramref name="treble" /> linear treble (250k unless given) from its cap down to the
+    ///     bass's top; <paramref name="bassCap" /> from the slope to the 1M audio bass rheostat's top; the bass's
+    ///     bottom on the top of the <paramref name="middlePot" /> linear middle (20k unless given), with
+    ///     <paramref name="middleCap" /> from the slope on its wiper. Returns the treble's and the middle's wipers.
     /// </summary>
     public static (int Treble, int Middle) StackPots(
         StageNetlist net,
         (int Coupled, int Slope, int TrebleTop, int BassTop, int MiddleTop) at,
         double slope,
         double bassCap,
-        double middleCap
+        double middleCap,
+        double treble = 250e3,
+        double middlePot = 20e3
     ) {
         net.Resistor(at.Coupled, at.Slope, slope);
-        var treble = net.Pot(at.TrebleTop, at.BassTop, new(250e3, PotTaper.Linear), PotRole.Treble);
+        var trebleWiper = net.Pot(at.TrebleTop, at.BassTop, new(treble, PotTaper.Linear), PotRole.Treble);
         net.Capacitor(at.Slope, at.BassTop, bassCap, CapacitorRole.Stack);
         net.Rheostat(at.BassTop, at.MiddleTop, new(1e6, PotTaper.Audio), PotRole.Bass);
-        var middle = net.Pot(at.MiddleTop, StageNetlist.Ground, new(20e3, PotTaper.Linear), PotRole.Middle);
+        var middle = net.Pot(at.MiddleTop, StageNetlist.Ground, new(middlePot, PotTaper.Linear), PotRole.Middle);
         net.Capacitor(at.Slope, middle, middleCap, CapacitorRole.Stack);
-        return (treble, middle);
+        return (trebleWiper, middle);
+    }
+
+    /// <summary>
+    ///     A gain pot behind its high-pass, on <paramref name="net" />: <paramref name="cap" /> from the coupled node
+    ///     to the cut one (a second one across it with Fat), and <paramref name="shunt" /> from there to ground; 100k
+    ///     on to the top, the 1M audio gain's; with Bright, 100 pF to the wiper from the top or, with
+    ///     <paramref name="brightFromCut" />, from the cut node; <paramref name="wiperLoad" /> from the wiper to
+    ///     ground. Returns the wiper.
+    /// </summary>
+    public static int Gain(
+        StageNetlist net,
+        (int Coupled, int Cut, int Top) at,
+        double cap,
+        double shunt,
+        bool brightFromCut,
+        double wiperLoad
+    ) {
+        net.Capacitor(at.Coupled, at.Cut, cap);
+        net.SwitchedCapacitor(at.Coupled, at.Cut, cap, SwitchRole.Fat);
+        net.Resistor(at.Cut, StageNetlist.Ground, shunt);
+        net.Resistor(at.Cut, at.Top, 100e3);
+        var wiper = net.Pot(at.Top, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Gain);
+        net.SwitchedCapacitor(brightFromCut ? at.Cut : at.Top, wiper, 100e-12, SwitchRole.Bright, CapacitorRole.Bright);
+        net.Resistor(wiper, StageNetlist.Ground, wiperLoad);
+        return wiper;
+    }
+
+    /// <summary>
+    ///     A divider behind a series cap, on <paramref name="net" />: <paramref name="cap" /> from the node it is fed
+    ///     from to its top, <paramref name="series" /> on to its tap, and <paramref name="shunt" /> with
+    ///     <paramref name="shuntCap" /> across it from there to ground (the Powerball's Lo and Hi networks, the
+    ///     Fireball's Ultra one).
+    /// </summary>
+    public static void Divider(
+        StageNetlist net,
+        (int From, int Top, int Tap) at,
+        double cap,
+        double series,
+        double shunt,
+        double shuntCap
+    ) {
+        net.Capacitor(at.From, at.Top, cap);
+        net.Resistor(at.Top, at.Tap, series);
+        net.Resistor(at.Tap, StageNetlist.Ground, shunt);
+        net.Capacitor(at.Tap, StageNetlist.Ground, shuntCap);
+    }
+
+    /// <summary>
+    ///     The Clean divider, on <paramref name="net" />: 1M with 100 pF across it from <paramref name="from" /> to
+    ///     <paramref name="tap" />, 22k from there to ground.
+    /// </summary>
+    public static void CleanDivider(StageNetlist net, int from, int tap) {
+        net.Resistor(from, tap, 1e6);
+        net.Capacitor(from, tap, 100e-12);
+        net.Resistor(tap, StageNetlist.Ground, 22e3);
+    }
+
+    /// <summary>
+    ///     The cold clipper, on <paramref name="net" />: a 12AX7 on <paramref name="at" />'s grid with 330k and 1 nF
+    ///     across it from <paramref name="rail" />, 3.3k with <paramref name="bypass" /> across it under the cathode.
+    ///     Returns the plate.
+    /// </summary>
+    public static int ColdClipper(
+        StageNetlist net,
+        (int Grid, int Supply, int Plate, int Cathode) at,
+        double rail,
+        double bypass
+    ) {
+        net.Supply(at.Supply, rail);
+        net.Resistor(at.Supply, at.Plate, 330e3);
+        net.Capacitor(at.Supply, at.Plate, 1e-9, CapacitorRole.Plate);
+        net.CathodeResistor(at.Cathode, StageNetlist.Ground, 3.3e3);
+        net.Capacitor(at.Cathode, StageNetlist.Ground, bypass);
+        net.Triode(at.Plate, at.Grid, at.Cathode, TriodeModel.Ecc83);
+        return at.Plate;
     }
 
     /// <summary>

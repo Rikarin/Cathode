@@ -178,7 +178,7 @@ public sealed unsafe class NativeAudioSession : IDisposable {
     /// </summary>
     public AudioDeviceStatus DeviceStatus {
         get {
-            var status = (AudioDeviceStatus)NativeMethods.Status(stream);
+            var status = (AudioDeviceStatus)Status(stream);
             if (status != AudioDeviceStatus.Ok) {
                 return status;
             }

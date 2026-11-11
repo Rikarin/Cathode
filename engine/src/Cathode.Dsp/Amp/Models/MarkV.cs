@@ -183,13 +183,13 @@ public static class MarkV {
             90,
             // The 22k tail stands on the feedback shunt, 3.3k over 1.5k: 26.8k from the bias junction to ground.
             new LongTailPairDesign(TriodeModel.Ecc83, supply, 82e3, 91e3, 26.8e3, 470),
-            CouplingCap: 0.1e-6,
-            GridLeak: 150e3,
-            GridStopper: 2.2e3,
-            CutCap: 0,
-            CutPot: new(1e6, PotTaper.Linear),
+            0.1e-6,
+            150e3,
+            2.2e3,
+            0,
+            new(1e6, PotTaper.Linear),
             // 4.7k from the tap and the 3.3k ahead of the 56k ‖ 5 nF leg.
-            Feedback: new(1, 4.7e3 + 3.3e3 + presenceSeries, 1.5e3, new(250e3, PotTaper.Linear), 5e-9) {
+            new(1, 4.7e3 + 3.3e3 + presenceSeries, 1.5e3, new(250e3, PotTaper.Linear), 5e-9) {
                 Series = new(56e3, 3.3e3, 47e-9, shiftCap)
             },
             true,

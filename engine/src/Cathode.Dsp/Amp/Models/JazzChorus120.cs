@@ -143,7 +143,7 @@ public static class JazzChorus120 {
         net.Resistor(minus, leg, 1e3);
         net.Capacitor(leg, pot, 10e-6);
         if (distortion) {
-            net.Rheostat(pot, StageNetlist.Ground, new(50e3, PotTaper.Linear), PotRole.Control2, falling: true);
+            net.Rheostat(pot, StageNetlist.Ground, new(50e3, PotTaper.Linear), PotRole.Control2, true);
         } else {
             net.Resistor(pot, StageNetlist.Ground, 50e3);
         }

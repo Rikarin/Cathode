@@ -3,19 +3,14 @@ using Cathode.Dsp.Parameters;
 namespace Cathode.Dsp;
 
 /// <summary>Convenience base class wiring the parameter bank into the block lifecycle.</summary>
-public abstract class DspBlock : IDspBlock {
-    public BlockDescriptor Descriptor { get; }
+public abstract class DspBlock(BlockDescriptor descriptor) : IDspBlock {
+    public BlockDescriptor Descriptor { get; } = descriptor;
 
-    public ParamBank Params { get; }
+    public ParamBank Params { get; } = new(descriptor.Params);
 
     public virtual int LatencySamples => 0;
 
     protected ProcessSpec Spec { get; private set; } = ProcessSpec.Default;
-
-    protected DspBlock(BlockDescriptor descriptor) {
-        Descriptor = descriptor;
-        Params = new(descriptor.Params);
-    }
 
     public void Prepare(in ProcessSpec spec) {
         Spec = spec;

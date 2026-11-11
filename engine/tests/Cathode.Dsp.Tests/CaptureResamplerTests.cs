@@ -11,7 +11,7 @@ public class CaptureResamplerTests {
     [InlineData(88_200)]
     [InlineData(96_000)]
     public void A_capture_trained_at_48k_runs_at_48k_and_comes_back_delayed_by_the_reported_latency(int engineRate) {
-        var model = new FakeModel(48_000, identity: true);
+        var model = new FakeModel(48_000, true);
         using var block = Amp(model, engineRate, 64);
 
         Assert.NotNull(block.Resampler);
@@ -37,7 +37,7 @@ public class CaptureResamplerTests {
         // A model whose filter is defined in samples, as a neural capture's are: a one-pole low-pass at 2 kHz at 48
         // kHz. Run at 96 kHz without resampling its corner would move up an octave.
         static double GainAt(int engineRate, double frequency) {
-            using var block = Amp(new FakeModel(48_000, identity: false), engineRate, 64);
+            using var block = Amp(new(48_000, false), engineRate, 64);
             var input = Signals.Sine(frequency, engineRate, engineRate, 0.25f);
             var output = BlockRender.Stereo(block, input, input, static _ => 64).Left;
             return Analysis.ToDb(
@@ -54,7 +54,7 @@ public class CaptureResamplerTests {
 
     [Fact]
     public void At_the_trained_rate_nothing_is_resampled() {
-        var model = new FakeModel(48_000, identity: true);
+        var model = new FakeModel(48_000, true);
         using var block = Amp(model, 48_000, 64);
 
         Assert.Null(block.Resampler);
@@ -64,7 +64,7 @@ public class CaptureResamplerTests {
 
     [Fact]
     public void A_model_without_a_rate_is_taken_as_48k() {
-        var model = new FakeModel(-1, identity: true);
+        var model = new FakeModel(-1, true);
         using var block = Amp(model, 44_100, 64);
 
         Assert.NotNull(block.Resampler);
@@ -73,7 +73,7 @@ public class CaptureResamplerTests {
 
     [Fact]
     public void Resampled_processing_does_not_allocate() {
-        using var block = Amp(new FakeModel(48_000, identity: false), 44_100, 64);
+        using var block = Amp(new(48_000, false), 44_100, 64);
         var left = Signals.Noise(64, 1, 0.3f);
         var right = new float[64];
         var context = new BlockContext(44_100, 120, 0);

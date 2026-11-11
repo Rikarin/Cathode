@@ -211,7 +211,7 @@ public sealed class HalfBandStage {
 ///     4x oversampling as two cascaded 2x half-band stages. Process a block with <see cref="Up" />, run the
 ///     nonlinearity on the returned span, then <see cref="Down" />. Allocation-free after construction.
 /// </summary>
-public sealed class Oversampler4x {
+public sealed class Oversampler4x(int maxBlockSize) {
     /// <summary>Stopband attenuation of each stage, in dB.</summary>
     public const double AttenuationDb = 100;
 
@@ -229,8 +229,8 @@ public sealed class Oversampler4x {
 
     readonly HalfBandStage first = new(FirstBranches);
     readonly HalfBandStage second = new(SecondBranches);
-    float[] twice;
-    float[] four;
+    float[] twice = new float[maxBlockSize * 2];
+    float[] four = new float[maxBlockSize * 4];
 
     public static int CoefficientCount => FirstStage.Length + SecondStage.Length;
 
@@ -247,11 +247,6 @@ public sealed class Oversampler4x {
     public void SetPhase(OversamplingPhase phase) {
         first.SetPhase(phase, FirstTransition);
         second.SetPhase(phase, SecondTransition);
-    }
-
-    public Oversampler4x(int maxBlockSize) {
-        twice = new float[maxBlockSize * 2];
-        four = new float[maxBlockSize * 4];
     }
 
     /// <summary>

@@ -508,8 +508,8 @@ public sealed partial class LiveRig(
     /// </summary>
     static string? SceneUndoKey(int scene, SceneUpdateRequest request) =>
         request is { Name: null, Midi: null } && (request.Level is not null || request.Controllers is not null)
-            ? $"scene:{scene}:{(request.Level is null ? "" : "level")},"
-            + $"{(request.Controllers is null ? "" : "controllers")}"
+            ? $"scene:{scene}:{(request.Level is null ? string.Empty : "level")},"
+            + $"{(request.Controllers is null ? string.Empty : "controllers")}"
             : null;
 
     /// <summary>
@@ -763,7 +763,7 @@ public sealed partial class LiveRig(
     void PushUndo(string? key, string? gesture = null) {
         CheckGesture(gesture);
         if (key is not null && gesture is not null) {
-            history.Record($"{key}|gesture:{gesture}", Capture, gesture: true);
+            history.Record($"{key}|gesture:{gesture}", Capture, true);
         } else {
             history.Record(key, Capture);
         }

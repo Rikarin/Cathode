@@ -134,7 +134,7 @@ public class FenderAmpTests(ITestOutputHelper output) {
         Assert.Equal(twinFirst.InputResistance, first.InputResistance);
         Assert.Equal(34e3, first.InputResistance);
         Assert.Equal(twinFirst.Stack with { Name = first.Stack.Name }, first.Stack);
-        Assert.Equal(new Pot(10e3, PotTaper.Audio), first.Stack.Middle);
+        Assert.Equal(new(10e3, PotTaper.Audio), first.Stack.Middle);
         Assert.Equal(47e-9, design.Preamp.OfType<CouplingStageDesign>().Single().CouplingCap);
         Assert.Equal(twin.Power.PhaseInverter, design.Power.PhaseInverter);
         Assert.Equal(470, ((LongTailPairDesign)design.Power.PhaseInverter).BiasResistor);
@@ -170,7 +170,7 @@ public class FenderAmpTests(ITestOutputHelper output) {
         // The 5F6-A drawing: 0.02 µF from the treble wiper to the inverter's grid, 1M from the grid to the junction of
         // the 470 Ω and the tail. The Tweed Twin 5F8-A's drawing has the same.
         var design = AmpDesign.All.Single(a => a.Name == model);
-        Assert.Equal(new InverterInputDesign(20e-9, 1e6), design.Power.InverterInput);
+        Assert.Equal(new(20e-9, 1e6), design.Power.InverterInput);
         Assert.Equal(Amp.Models.TweedTwin.Design.Power.InverterInput, design.Power.InverterInput);
 
         // Overdriven, the grid conducts on the peaks and charges the cap: the grid's mean falls below its rest.

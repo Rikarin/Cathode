@@ -5,7 +5,6 @@ using Cathode.Dsp.Cabinets;
 using Cathode.Dsp.Filters;
 using Cathode.Engine.Rig;
 using System.Net;
-using System.Net.Http.Json;
 
 namespace Cathode.Server.Tests;
 

@@ -4,7 +4,6 @@ using Cathode.Dsp.IO;
 using Cathode.Server.Stores;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
-using System.Net.Http.Json;
 
 namespace Cathode.Server.Tests;
 

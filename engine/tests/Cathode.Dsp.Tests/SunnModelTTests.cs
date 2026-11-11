@@ -127,7 +127,7 @@ public class SunnModelTTests(ITestOutputHelper output) {
         Assert.Equal("Master", Label("master"));
         Assert.Equal("Presence", Label("presence"));
         Assert.Equal(["Both In", "Normal Input"], new[] { "switch1", "switch2" }.Select(Label));
-        Assert.Equal(["", "", ""], new[] { "cut", "depth", "bright" }.Select(Label));
+        Assert.Equal([string.Empty, string.Empty, string.Empty], new[] { "cut", "depth", "bright" }.Select(Label));
     }
 
     [Theory]

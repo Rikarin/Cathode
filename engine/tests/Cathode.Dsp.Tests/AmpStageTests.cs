@@ -85,7 +85,7 @@ public partial class AmpStageTests(ITestOutputHelper output) {
     /// </summary>
     [Fact]
     public void A_marshall_stack_has_its_middle_cap_on_the_wiper_and_passes_signal_with_every_knob_at_0() {
-        var marshall = Amp.Models.MarshallParts.JCM800Stack;
+        var marshall = MarshallParts.JCM800Stack;
         Assert.True(marshall.MiddleOnWiper);
         Assert.True(ToneStackDesign.Marshall.MiddleOnWiper);
         Assert.False(ToneStackDesign.Fender.MiddleOnWiper);

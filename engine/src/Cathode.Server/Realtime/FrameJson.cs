@@ -1,7 +1,7 @@
+using Cathode.Contracts;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
-using Cathode.Contracts;
 
 namespace Cathode.Server.Realtime;
 

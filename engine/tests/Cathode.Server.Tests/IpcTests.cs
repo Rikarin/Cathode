@@ -194,7 +194,7 @@ public sealed class IpcTests : IDisposable {
     public async Task Midi_ports_and_midi_out_destinations_cross_the_socket() {
         var token = TestContext.Current.CancellationToken;
         using var service = new EngineHostService(ProcessSpec.Default, "test");
-        string? destination = "unset";
+        var destination = "unset";
         service.NativeMidiSend = (port, _) => {
             destination = port;
             return true;

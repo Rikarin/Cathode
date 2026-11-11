@@ -3,11 +3,11 @@
   "isRoot": true,
   "tools": {
     "rikarin.skala.cli": {
-      "version": "4.4.0",
+      "version": "4.4.1",
       "commands": [
         "skala"
       ],
-      "rollForward": true
+      "rollForward": false
     }
   }
 }

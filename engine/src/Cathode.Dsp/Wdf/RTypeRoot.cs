@@ -1,7 +1,7 @@
+using Cathode.Dsp.Blocks;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using Cathode.Dsp.Blocks;
 
 namespace Cathode.Dsp.Wdf;
 

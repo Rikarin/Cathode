@@ -165,8 +165,8 @@ public sealed class CabIrSwitcher : IDisposable {
     /// </summary>
     public bool IsIdentity =>
         fading is null
-        && (active is null or { IsIdentity: true })
-        && (Volatile.Read(ref pending) is null or { IsIdentity: true });
+        && active is null or { IsIdentity: true }
+        && Volatile.Read(ref pending) is null or { IsIdentity: true };
 
     /// <summary>
     ///     Control thread, audio stopped: sizes the fade buffers and starts on <paramref name="initial" />.

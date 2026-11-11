@@ -1,7 +1,7 @@
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Cathode.Dsp.Blocks;
 using Cathode.Testing;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Cathode.Dsp.Tests;
 

@@ -5,7 +5,6 @@ using Cathode.Server.Midi;
 using Cathode.Server.Rig;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
-using System.Net.Http.Json;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json.Nodes;

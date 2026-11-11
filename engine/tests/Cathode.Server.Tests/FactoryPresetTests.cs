@@ -7,7 +7,6 @@ using Cathode.Server.Stores;
 using Cathode.Testing.References;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
-using System.Net.Http.Json;
 
 namespace Cathode.Server.Tests;
 

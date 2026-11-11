@@ -395,7 +395,7 @@ public class CathodeEngineTests {
         Assert.True(Analysis.Peak(after.AsSpan(0, 240)) > 0.5 * echo, "the evicted tail keeps playing into its fade");
         Assert.True(Analysis.Peak(after.AsSpan(1_000)) < 1e-4, "and is gone once the fade is over");
         // ... so the join is no steeper than the echo itself.
-        float[] tailEnd = before[^480..];
+        var tailEnd = before[^480..];
         float[] joined = [..tailEnd, ..after.AsSpan(0, 1_000)];
         var maxStep = joined.Zip(joined.Skip(1), static (a, b) => Math.Abs(b - a)).Max();
         var naturalStep = tailEnd.Zip(tailEnd.Skip(1), static (a, b) => Math.Abs(b - a)).Max();

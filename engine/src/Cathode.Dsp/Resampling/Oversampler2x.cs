@@ -5,16 +5,12 @@ namespace Cathode.Dsp.Resampling;
 ///     stopband, transition from about 20 kHz at 48 kHz). Process a block with <see cref="Up" />, run the nonlinearity
 ///     on the returned span, then <see cref="Down" />. Allocation-free after construction.
 /// </summary>
-public sealed class Oversampler2x {
+public sealed class Oversampler2x(int maxBlockSize) {
     static readonly (float[], float[]) Branches =
         HalfBandStage.Split(HalfBand.Design(Oversampler4x.AttenuationDb, Oversampler4x.FirstTransition));
 
     readonly HalfBandStage stage = new(Branches);
-    float[] twice;
-
-    public Oversampler2x(int maxBlockSize) {
-        twice = new float[maxBlockSize * 2];
-    }
+    float[] twice = new float[maxBlockSize * 2];
 
     /// <summary>The filters in use (<see cref="OversamplingPhase" />).</summary>
     public OversamplingPhase Phase => stage.Phase;

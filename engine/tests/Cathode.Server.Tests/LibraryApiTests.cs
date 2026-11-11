@@ -6,7 +6,6 @@ using Cathode.Server.Stores;
 using Cathode.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
-using System.Net.Http.Json;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -85,7 +84,7 @@ public sealed class LibraryApiTests : IAsyncLifetime {
         var afterLast = await Neighbour(1);
 
         Assert.Equal(verse, first.Preset.Id);
-        Assert.Equal(new PresetPosition(bank.Id, 0), first.Position);
+        Assert.Equal(new(bank.Id, 0), first.Position);
         Assert.Equal(new PresetStep(chorus, null, new(bank.Id, 2)), next); // the empty slot is skipped
         // The factory bank comes first: before the Gig bank's first slot is the factory bank's last.
         var lastFactory = factory.Slots.FindLastIndex(static s => s is not null);
@@ -104,10 +103,10 @@ public sealed class LibraryApiTests : IAsyncLifetime {
         var second = await navigator.StepAsync(1);
         var wrapped = await navigator.StepAsync(1);
 
-        Assert.Equal(new PresetPosition(Setlist: setlist.Id, Entry: 0), loaded.Position);
+        Assert.Equal(new(Setlist: setlist.Id, Entry: 0), loaded.Position);
         Assert.Equal((verse, 1), (second!.Preset.Id, second.ActiveScene));
         Assert.Equal((chorus, 3), (wrapped!.Preset.Id, wrapped.ActiveScene));
-        Assert.Equal(new PresetPosition(Setlist: setlist.Id, Entry: 0), wrapped.Position);
+        Assert.Equal(new(Setlist: setlist.Id, Entry: 0), wrapped.Position);
     }
 
     [Fact]
@@ -158,7 +157,7 @@ public sealed class LibraryApiTests : IAsyncLifetime {
         Assert.Equal(HttpStatusCode.OK, kept.StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, added.StatusCode);
         Assert.Equal((verse, 4), (next!.Preset.Id, next.ActiveScene));
-        Assert.Equal(new PresetPosition(Setlist: setlist.Id, Entry: 2), next.Position);
+        Assert.Equal(new(Setlist: setlist.Id, Entry: 2), next.Position);
         Assert.Equal(2, server.Services.GetRequiredService<GlobalStore>().Get().ActiveSong);
     }
 
@@ -200,7 +199,7 @@ public sealed class LibraryApiTests : IAsyncLifetime {
         var next = await Neighbour(1);
 
         Assert.Null(loaded.Position);
-        Assert.Equal(new PresetStep(chorus), previous);
+        Assert.Equal(new(chorus), previous);
         Assert.Equal(new PresetStep(factory.Slots[0]!, null, new("factory", 0)), next);
     }
 

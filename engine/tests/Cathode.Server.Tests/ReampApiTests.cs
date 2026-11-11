@@ -2,7 +2,6 @@ using Cathode.Contracts;
 using Cathode.Dsp.IO;
 using Cathode.Testing;
 using System.Net;
-using System.Net.Http.Json;
 
 namespace Cathode.Server.Tests;
 

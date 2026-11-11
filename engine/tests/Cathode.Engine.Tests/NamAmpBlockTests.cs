@@ -231,7 +231,7 @@ public class NamAmpBlockTests {
 
         // lstm.nam was made at +18.3 dBu; Input 1's default full scale is 1 V peak, -0.79 dBu: 19.09 dB less drive.
         Assert.Equal(18.3, calibrated.Model!.InputLevel!.Value, 4);
-        var gain = (float)Cathode.Dsp.Decibels.ToGain(Cathode.Dsp.Blocks.CaptureAmpBlock.FullScaleDbuAt1V - 18.3);
+        var gain = (float)Decibels.ToGain(Cathode.Dsp.Blocks.CaptureAmpBlock.FullScaleDbuAt1V - 18.3);
         var expected = Render(raw, [..input.Select(x => x * gain)], static _ => Block);
         var actual = Render(calibrated, input, static _ => Block);
 
@@ -336,7 +336,9 @@ public class NamAmpBlockTests {
     sealed class ExactTanh : IDisposable {
         readonly bool before = NamModel.FastTanh;
 
-        public ExactTanh() => NamModel.SetFastTanh(false);
+        public ExactTanh() {
+            NamModel.SetFastTanh(false);
+        }
 
         public void Dispose() => NamModel.SetFastTanh(before);
     }

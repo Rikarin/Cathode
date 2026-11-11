@@ -159,7 +159,7 @@ public sealed class HostErrorPathTests : IDisposable {
         using var socket = await ConnectAsync(token);
         await using var stream = new NetworkStream(socket, false);
         string[] frames = [
-            "", // a zero-length frame
+            string.Empty, // a zero-length frame
             "null",
             "42",
             "[]",

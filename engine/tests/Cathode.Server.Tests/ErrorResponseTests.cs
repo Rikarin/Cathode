@@ -1,7 +1,6 @@
 using Cathode.Contracts;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
-using System.Net.Http.Json;
 
 namespace Cathode.Server.Tests;
 

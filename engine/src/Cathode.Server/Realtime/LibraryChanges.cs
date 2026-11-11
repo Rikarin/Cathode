@@ -17,7 +17,7 @@ public sealed class LibraryChanges(EventHub hub) {
     public const string Templates = "templates";
 
     public void Publish(string kind) =>
-        hub.Publish(new LibraryChanged("libraryChanged", kind), ContractsJsonContext.Default.LibraryChanged);
+        hub.Publish(new("libraryChanged", kind), ContractsJsonContext.Default.LibraryChanged);
 
     /// <summary>
     ///     What a store calls after a write: publishes <paramref name="kind" />, or nothing without a hub.

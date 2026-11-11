@@ -101,8 +101,8 @@ public static class RectoVerb {
                             500e-12,
                             null,
                             new(250e3, PotTaper.Linear),
-                            middleOnWiper: false,
-                            masterSeries: 220e3
+                            false,
+                            220e3
                         )
                     )
                 ],

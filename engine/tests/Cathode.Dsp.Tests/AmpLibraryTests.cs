@@ -565,7 +565,7 @@ public partial class AmpStageTests {
     public void Mark_series_presence_matches_its_circuit(string type, double legCap) {
         var design = AmpDesign.All.Single(a => a.Name == type).Power.Feedback;
         // The Mark IV's rheostat also has its pull shift's cap, out of circuit here (MarkChannelTests covers it).
-        Assert.Equal(new SeriesPresence(56e3, 3.3e3, 47e-9), design.Series!.Value with { ShiftCap = 0 });
+        Assert.Equal(new(56e3, 3.3e3, 47e-9), design.Series!.Value with { ShiftCap = 0 });
         var (rf, rx, rl, rm, cm) = (3.3e3, 1.5e3, 56e3, 3.3e3, 47e-9);
         Assert.Equal((rf, rx, legCap), (design.FeedbackResistor, design.ShuntResistor, design.PresenceCap));
         foreach (var presence in new[] { 0.0, 0.1, 0.25, 0.5, 0.75, 1.0 }) {

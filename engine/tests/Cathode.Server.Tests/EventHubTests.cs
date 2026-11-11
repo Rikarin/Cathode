@@ -20,9 +20,9 @@ public sealed class EventHubTests {
         // While the client is stalled: a burst of 30 Hz frames, MIDI activity and a few rig events among them.
         for (var i = 0; i < 1_000; i++) {
             hub.PublishFrame("telemetry", Frame(i), ContractsJsonContext.Default.Telemetry);
-            hub.PublishActivity(new MidiActivity("midi", 0xB0, 1, i % 128), ContractsJsonContext.Default.MidiActivity);
+            hub.PublishActivity(new("midi", 0xB0, 1, i % 128), ContractsJsonContext.Default.MidiActivity);
             if (i % 100 == 0) {
-                hub.Publish(new RigEvent("sceneChanged", i, Scene: i / 100 % 8), ContractsJsonContext.Default.RigEvent);
+                hub.Publish(new("sceneChanged", i, Scene: i / 100 % 8), ContractsJsonContext.Default.RigEvent);
             }
         }
 
@@ -53,12 +53,12 @@ public sealed class EventHubTests {
         var serving = hub.ServeAsync(socket, stop.Token);
 
         for (var i = 0; i < EventHub.EventCapacity + 10; i++) {
-            hub.Publish(new RigEvent("paramChanged", i), ContractsJsonContext.Default.RigEvent);
+            hub.Publish(new("paramChanged", i), ContractsJsonContext.Default.RigEvent);
         }
 
         socket.Resume();
         await ServerFixture.Eventually(() => socket.Has("resync"));
-        hub.Publish(new RigEvent("sceneChanged", 5_000), ContractsJsonContext.Default.RigEvent);
+        hub.Publish(new("sceneChanged", 5_000), ContractsJsonContext.Default.RigEvent);
         await ServerFixture.Eventually(() => socket.Has("sceneChanged"));
         await stop.CancelAsync();
         await serving;

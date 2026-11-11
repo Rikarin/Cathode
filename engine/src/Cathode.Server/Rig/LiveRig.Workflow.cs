@@ -250,7 +250,7 @@ public sealed partial class LiveRig {
         return requested
             .Where(a => slots.Contains(a.Key)
                 && assets.Get(a.Value) is { } asset
-                && Stores.AssetStore.Fits(a.Key, asset.Kind)
+                && AssetStore.Fits(a.Key, asset.Kind)
             )
             .ToDictionary(static a => a.Key, static a => a.Value);
     }
@@ -365,7 +365,7 @@ public sealed partial class LiveRig {
         foreach (var (slot, reference) in source.Assets ?? []) {
             if (slots.Contains(slot)
                 && assets.Get(reference) is { } asset
-                && Stores.AssetStore.Fits(slot, asset.Kind)) {
+                && AssetStore.Fits(slot, asset.Kind)) {
                 target.Assets[slot] = reference;
             }
         }

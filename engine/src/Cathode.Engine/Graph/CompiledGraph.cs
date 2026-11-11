@@ -509,8 +509,8 @@ public sealed class CompiledGraph : IDisposable {
         var delay = dryDelays?[slot];
         var latent = delay is not null;
         if (delay is not null) {
-            var delayedLeft = this.dryLeft.Span[..io.Length];
-            var delayedRight = this.dryRight.Span[..io.Length];
+            var delayedLeft = dryLeft.Span[..io.Length];
+            var delayedRight = dryRight.Span[..io.Length];
             io.Left.CopyTo(delayedLeft);
             io.Right.CopyTo(delayedRight);
             delay.Process(delayedLeft, delayedRight);
@@ -530,9 +530,9 @@ public sealed class CompiledGraph : IDisposable {
                     io.Left.Clear();
                     io.Right.Clear();
                 } else if (latent) {
-                    this.dryLeft.Span[..io.Length]
+                    dryLeft.Span[..io.Length]
                         .CopyTo(io.Left); // the input, as late as the block would have made it
-                    this.dryRight.Span[..io.Length].CopyTo(io.Right);
+                    dryRight.Span[..io.Length].CopyTo(io.Right);
                 }
 
                 return; // fully bypassed THRU leaves the input as it is (delayed by a latent block's latency)

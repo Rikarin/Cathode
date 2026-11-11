@@ -271,7 +271,7 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
             { "Savage 120", 1, 1, 1 },
             { "Savage 120 Clean", 1, 1, 1 },
             { "Savage 120", 1, 1, 1 },
-            { "Fireball 60", 0, 0, 0 },
+            { "Fireball 60", 0, 0, 0 }
         };
 
     /// <summary>

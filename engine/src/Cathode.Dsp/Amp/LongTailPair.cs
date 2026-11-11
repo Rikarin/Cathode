@@ -67,7 +67,11 @@ public sealed record CathodyneDesign(
 ///         low), and with push-pull loading they matter.
 ///     </para>
 /// </remarks>
-public abstract class PhaseInverter {
+/// <param name="range">
+///     The table's span, ± volts of input: both sides are saturated or cut off beyond it (60 V for a single
+///     inverter stage; less for a chain with gain ahead of its splitter, whose linear region is narrower).
+/// </param>
+public abstract class PhaseInverter(double range = 60) {
     protected const int Points = 1_025;
 
     internal double[] a = new double[Points];
@@ -77,16 +81,16 @@ public abstract class PhaseInverter {
     internal double[] gridVoltages = new double[Points];
     internal double[] leakReturns = new double[Points];
     internal double[] cathodeResistances = new double[Points];
-    internal readonly double step;
+    internal readonly double step = 2 * range / (Points - 1);
 
     // Per point: a, b and their slopes times the step, side by side for Evaluate (packed by Differentiate).
     readonly double[] outputs = new double[4 * Points];
-    internal readonly double inverseStep;
+    internal readonly double inverseStep = (Points - 1) / (2 * range);
 
     static readonly Dictionary<(PhaseInverterDesign, double), PhaseInverter> Cache = [];
 
     /// <summary>± volts of input the table spans; flat beyond.</summary>
-    public double Range { get; }
+    public double Range { get; } = range;
 
     /// <summary>The driven grid's DC voltage, where its grid leak returns.</summary>
     public double RestGrid { get; protected init; }
@@ -104,16 +108,6 @@ public abstract class PhaseInverter {
     ///     and by Zab per ampere drawn from B, and so on.
     /// </summary>
     public (double Zaa, double Zab, double Zba, double Zbb) OutputImpedance { get; protected init; }
-
-    /// <param name="range">
-    ///     The table's span, ± volts of input: both sides are saturated or cut off beyond it (60 V for a single
-    ///     inverter stage; less for a chain with gain ahead of its splitter, whose linear region is narrower).
-    /// </param>
-    protected PhaseInverter(double range = 60) {
-        Range = range;
-        step = 2 * range / (Points - 1);
-        inverseStep = (Points - 1) / (2 * range);
-    }
 
     /// <summary>
     ///     The (cached) table for <paramref name="design" />. Control thread: builds it on first use. With a

@@ -95,7 +95,7 @@ public sealed class PresetNavigator(Library library, PresetStore presets, LiveRi
 
         // Standing nowhere: next starts from before the first, previous from after the last.
         var from = index >= 0 ? index : step > 0 ? -1 : stops.Count;
-        return stops[(((from + step) % stops.Count) + stops.Count) % stops.Count];
+        return stops[((from + step) % stops.Count + stops.Count) % stops.Count];
     }
 
     /// <summary>

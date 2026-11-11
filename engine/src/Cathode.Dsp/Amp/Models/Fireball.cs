@@ -63,10 +63,10 @@ namespace Cathode.Dsp.Amp.Models;
 ///         plate and the centre tap, across a primary resistance it does not give; 31 mA a tube, the middle of the
 ///         Powerball drawing's 28 to 34 mA, is assumed), the primary (3.8k plate to plate, the same load a tube as the
 ///         Powerball's assumed 1.9k for four) and the supply's 60 Ω source resistance are typical values; the tapers of
-///         the redraw's 220k treble and 22k middle are not printed (linear here, as on 625) nor the bass's (audio, as on
-///         625); which way the presence rheostat turns is not on the drawing (here up is more resistance and less
-///         feedback, as on the Mesa Marks); one Master knob for Master A and Master B (two equal 1M linear pots behind a
-///         relay); the loop is empty with its balance fully dry (the return jack is normalled to the send, so both of
+///         the redraw's 220k treble and 22k middle are not printed (linear here, as on 625) nor the bass's (audio, as
+///         on 625); which way the presence rheostat turns is not on the drawing (here up is more resistance and less
+///         feedback, as on the Mesa Marks); one Master knob for Master A and Master B (two equal 1M linear pots behind
+///         a relay); the loop is empty with its balance fully dry (the return jack is normalled to the send, so both of
 ///         the balance's 10k inputs carry the send: one into the mix, the other into the pot's grounded end). Left out:
 ///         the J175 mute T1 on the stack's output through R25 10k, which acts only while switching channels.
 ///     </para>
@@ -142,14 +142,7 @@ public static class Fireball {
         net.Resistor(net.Input, StageNetlist.Ground, 1e6);
         net.Capacitor(TriodeParts.CommonCathode(net, net.Input, PreampRail, 100e3, 1e3, 22e-6), coupled, 47e-9);
         net.Resistor(coupled, StageNetlist.Ground, 2.2e6);
-        net.Capacitor(coupled, cut, 1e-9);
-        net.SwitchedCapacitor(coupled, cut, 1e-9, SwitchRole.Fat);
-        net.Resistor(cut, StageNetlist.Ground, 220e3);
-        net.Resistor(cut, top, 100e3);
-        var wiper = net.Pot(top, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Gain);
-        net.SwitchedCapacitor(top, wiper, 100e-12, SwitchRole.Bright, CapacitorRole.Bright);
-        net.Resistor(wiper, StageNetlist.Ground, 470e3);
-        net.Output = wiper;
+        net.Output = EnglParts.Gain(net, (coupled, cut, top), 1e-9, 220e3, false, 470e3);
         return net;
     }
 
@@ -162,13 +155,8 @@ public static class Fireball {
         var (coupled, series, ultra, clean) = (net.Node(), net.Node(), net.Node(), net.Node());
         net.Capacitor(net.Input, coupled, 47e-9);
         net.Resistor(coupled, StageNetlist.Ground, 2.2e6);
-        net.Capacitor(coupled, series, 1e-9);
-        net.Resistor(series, ultra, 100e3);
-        net.Resistor(ultra, StageNetlist.Ground, 220e3);
-        net.Capacitor(ultra, StageNetlist.Ground, 1e-9);
-        net.Resistor(coupled, clean, 1e6);
-        net.Capacitor(coupled, clean, 100e-12);
-        net.Resistor(clean, StageNetlist.Ground, 22e3);
+        EnglParts.Divider(net, (coupled, series, ultra), 1e-9, 100e3, 220e3, 1e-9);
+        EnglParts.CleanDivider(net, coupled, clean);
         return (ultra, clean);
     }
 
@@ -180,13 +168,7 @@ public static class Fireball {
         var net = new StageNetlist();
         var (grid, _) = Networks(net);
         var (supply, plate, cathode) = (net.Node(), net.Node(), net.Node());
-        net.Supply(supply, PreampRail);
-        net.Resistor(supply, plate, 330e3);
-        net.Capacitor(supply, plate, 1e-9, CapacitorRole.Plate);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 3.3e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 10e-6);
-        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-        net.Output = plate;
+        net.Output = EnglParts.ColdClipper(net, (grid, supply, plate, cathode), PreampRail, 10e-6);
         return net;
     }
 
@@ -230,17 +212,21 @@ public static class Fireball {
     /// </summary>
     static StageNetlist Stack() {
         var net = new StageNetlist();
-        var (coupled, slope, trebleTop, bassTop, middleTop, output) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var at = (Coupled: net.Node(), Slope: net.Node(), TrebleTop: net.Node(), BassTop: net.Node(),
+            MiddleTop: net.Node());
+        var (coupled, trebleTop, output) = (at.Coupled, at.TrebleTop, net.Node());
         net.Capacitor(net.Input, coupled, 100e-9);
         net.Resistor(coupled, StageNetlist.Ground, 2.2e6);
         net.Capacitor(coupled, trebleTop, 250e-12, CapacitorRole.Stack);
-        net.Resistor(coupled, slope, 68e3);
-        var treble = net.Pot(trebleTop, bassTop, new(220e3, PotTaper.Linear), PotRole.Treble);
-        net.Capacitor(slope, bassTop, 22e-9, CapacitorRole.Stack);
-        net.Rheostat(bassTop, middleTop, new(1e6, PotTaper.Audio), PotRole.Bass);
-        var middle = net.Pot(middleTop, StageNetlist.Ground, new(22e3, PotTaper.Linear), PotRole.Middle);
-        net.Capacitor(slope, middle, 15e-9, CapacitorRole.Stack);
+        var (treble, _) = EnglParts.StackPots(
+            net,
+            at,
+            68e3,
+            22e-9,
+            15e-9,
+            220e3,
+            22e3
+        );
         net.Resistor(treble, output, 470e3);
         net.Resistor(output, StageNetlist.Ground, 100e3);
         net.SwitchedResistor(output, StageNetlist.Ground, 22e3, 0, SwitchRole.Switch3);

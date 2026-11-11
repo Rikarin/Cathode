@@ -9,7 +9,6 @@ using Cathode.Server.Realtime;
 using Cathode.Server.Rig;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
-using System.Net.Http.Json;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -89,7 +88,7 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         var bound = server.Graph!.Modifiers[0];
         Assert.Equal(ModSource.Lfo2, bound.Source2);
         Assert.Equal(ModOperation.Multiply, bound.Operation);
-        Assert.Equal(new ModShape(1f, 0.5f, 0f, 0.5f, 2f, 0f), bound.Shape);
+        Assert.Equal(new(1f, 0.5f, 0f, 0.5f, 2f, 0f), bound.Shape);
     }
 
     [Theory]
@@ -685,7 +684,7 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         using var cancelled = await client.GetAsync("/api/v1/midi/learn", Token);
         server.Services.GetRequiredService<MidiRouter>().OnMidi([new(0xB0, 20, 127, 0)]);
 
-        Assert.Equal(new MidiLearnRequest("bypass", "delay1"), armed);
+        Assert.Equal(new("bypass", "delay1"), armed);
         Assert.Equal(HttpStatusCode.NoContent, cancelled.StatusCode);
         var global = (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!;
         Assert.DoesNotContain(global.MidiMappings, static m => m.Number == 20);
