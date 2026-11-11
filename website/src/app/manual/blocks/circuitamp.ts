@@ -55,6 +55,7 @@ Leave a few dB of headroom in *Level*; a Cab block after the amp removes them.
   Mark IIC+ Rhythm), Mark IV (and its clean and crunch channels, Mark IV Rhythm 1 and Rhythm 2), Mark V (and its
   channels 1 and 2, Mark V Clean and Mark V Crunch), TriAxis, Legacy VL100, Powerball, Savage 120 (and Savage 120
   Clean, its clean and first crunch channel), Fireball 60, Prometheus.
+- **Loud, clean and heavy (doom, drone, a fuzz in front):** Sunn Model T.
 - **Bass:** SVT (and its second channel, SVT Channel 2), SVT-CL, Portaflex B-15N (and both its channels jumpered, Portaflex B-15N Jumped), Bassman 135, Bass 400, and the solid-state GK 800RB.
 - **Solid state:** JC-120, GK 800RB and Valvestate 8080 (a tube preamp into a transistor power amp). Their tube-only
   knobs are hidden.
@@ -745,7 +746,8 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'Dual Rectifier 3-Ch Clean':
         'Mesa/Boogie Dual Rectifier three-channel Solo Head, channel 1: Clean, and Pushed for a crunch.',
       'Triple Rectifier Orange': 'Mesa/Boogie Triple Rectifier, channel 2 (orange), with Raw, Vintage and Modern.',
-      'Triple Rectifier Clean': 'Mesa/Boogie Triple Rectifier, channel 1: Clean, and Pushed for a crunch.'
+      'Triple Rectifier Clean': 'Mesa/Boogie Triple Rectifier, channel 1: Clean, and Pushed for a crunch.',
+      'Sunn Model T': 'Sunn Model T (1973, 150 W, four 6550), Brite and Normal channels: the doom and drone amp.'
     },
     pretube: {
       Stock: "The schematic's own preamp tubes.",

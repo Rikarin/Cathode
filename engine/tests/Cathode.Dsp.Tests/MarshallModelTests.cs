@@ -73,6 +73,20 @@ public partial class AmpStageTests {
                 -35
             },
             {
+                "model t input",
+                false,
+                false,
+                0.5,
+                -40
+            },
+            {
+                "model t input",
+                true,
+                false,
+                3.0,
+                -35
+            },
+            {
                 "follower stack",
                 false,
                 false,
@@ -108,6 +122,7 @@ public partial class AmpStageTests {
             "jcm800 input" => (MarshallParts.JCM800Input(290), 0.0),
             "jtm45 input" => ((NetworkStageDesign)JTM45.Design.Preamp[0], 0.0),
             "plexi 100w input" => ((NetworkStageDesign)SuperLead100.Design.Preamp[0], 0.0),
+            "model t input" => ((NetworkStageDesign)SunnModelT.Design.Preamp[0], 0.0),
             "follower stack" => (MarshallParts.FollowerStack("V2B", 300, 100e3, MarshallParts.JTM45Stack, 1e6), 175.0),
             _ => ((NetworkStageDesign)LaneyGH100L.Design.Preamp[0], 0.0)
         };

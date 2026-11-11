@@ -122,6 +122,7 @@ export const AMP_MODELS: Record<string, { family: AmpFamily; basedOn: string }> 
   'Savage 120 Clean': { family: 'highgain', basedOn: 'Engl Savage 120, channel 1 (Clean and Crunch 1)' },
   'Fireball 60': { family: 'highgain', basedOn: 'Engl Fireball 60' },
   'Quick Rod': { family: 'highgain', basedOn: 'Splawn Quickrod' },
+  'Sunn Model T': { family: 'highgain', basedOn: 'Sunn Model T (first generation, 1973)' },
   Prometheus: { family: 'highgain', basedOn: 'Lichtlaerm Audio Prometheus, lead channel' },
   'Prometheus Clean': { family: 'highgain', basedOn: 'Lichtlaerm Audio Prometheus, clean channel' },
 

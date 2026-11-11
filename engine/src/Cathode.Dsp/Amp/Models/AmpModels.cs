@@ -120,6 +120,7 @@ public sealed partial record AmpDesign {
         Peavey6505Plus.Design,
         Peavey6505Plus.Rhythm,
         PeaveyClassic30.Design,
-        Fireball.Design
+        Fireball.Design,
+        SunnModelT.Design
     ];
 }
