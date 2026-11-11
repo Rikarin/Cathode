@@ -521,6 +521,10 @@ The fixes below came out of a second full audit of the code (issues #163 to #356
   all three tone knobs at 0 (#196).
 - Amp: the Powerball's preamp follows a hand-corrected copy of Engl's drawing, so its lead has a high-gain amp's gain
   instead of a fuzz's, cuts the lows between its stages and no longer needs the assumed supply filter (#512).
+- Amp: the Fireball 60's preamp follows a redraw of the E625 with the parts Engl's drawing leaves out, so Ultra has a
+  high-gain amp's gain and a note gets quieter as it dies away, instead of staying a square wave; the clean channel is
+  much quieter than Ultra, as its 22k divider makes it. Its Depth switch works (on the Fat switch), and the assumed
+  resistor and supply filter are gone (#525).
 - Amp: the Bass 400 is rated 300 W, not the 400 of its name; its 1.2k output transformer is kept, now checked against
   what its six 6550 deliver (#300).
 - Amp: the Mark IIC+ and Mark IV run on the factory sheets' supply voltages (B+ 480 V, 397 V and 392 V preamp rails) and

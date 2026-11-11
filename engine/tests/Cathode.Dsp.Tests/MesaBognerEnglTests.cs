@@ -128,8 +128,10 @@ public partial class AmpStageTests {
 
     /// <summary>
     ///     The Fireball's rows of <see cref="MesaEnglChains" />: Ultra's four stages, and the clean channel's three.
-    ///     V1A's and V2A's cathodes are unbypassed, so the cuts hold far better than on the Powerball: measured -56
-    ///     and -24 dB in Ultra, -55 and -54 dB clean.
+    ///     With the redraw's preamp (#525) V2A has 1 nF across its 330k plate resistor and a bypassed cathode, the
+    ///     Powerball's V6A and its weak spot: measured -20.7 dB at 2 mV and -8.3 dB at 50 mV in Ultra (the Powerball's
+    ///     lead: -8.4 dB at 50 mV), -49.0 and -47.8 dB clean. As 625 drew it, with V1A's and V2A's cathodes
+    ///     unbypassed, it held -56 and -24 dB in Ultra.
     /// </summary>
     public static TheoryData<string, bool, int, double, double> FireballChains =>
         new() {
@@ -138,28 +140,28 @@ public partial class AmpStageTests {
                 false,
                 4,
                 0.002,
-                -50
+                -18
             },
             {
                 "Fireball 60",
                 false,
                 4,
                 0.05,
-                -20
+                -6
             },
             {
                 "Fireball 60",
                 true,
                 3,
                 0.002,
-                -48
+                -45
             },
             {
                 "Fireball 60",
                 true,
                 3,
                 0.05,
-                -48
+                -45
             }
         };
 
@@ -626,6 +628,30 @@ public class MesaBognerEnglTests(ITestOutputHelper output) {
             + $"{rectifier:0.0}; 0.1 V against 0.2 mV: {dynamics:0.0} dB"
         );
         Assert.InRange(powerball, Math.Min(peavey, rectifier) - 8, Math.Max(peavey, rectifier) + 8);
+        Assert.True(dynamics > 15, $"a 0.2 mV note plays only {dynamics:0.0} dB below a 0.1 V one");
+    }
+
+    /// <summary>
+    ///     Issue #525, the Fireball 60 with the Powerball's symptom of #512: any note a square wave that does not get
+    ///     quieter as it decays. The same measurement as the Powerball's: Ultra's gain against the 5150's and the Dual
+    ///     Rectifier's, and a 0.2 mV note against a 0.1 V one.
+    /// </summary>
+    [Fact]
+    public void Fireball_ultra_has_a_high_gain_amps_gain_and_follows_the_playing() {
+        static double At(string type, float amplitude) {
+            using var block = Create(type);
+            return Level(block, 220, amplitude) - Analysis.ToDb(amplitude / Math.Sqrt(2));
+        }
+
+        var (fireball, peavey, rectifier) = (At("Fireball 60", 1e-6f), At("5150", 1e-6f), At("Dual Rectifier", 1e-6f));
+        using var loud = Create("Fireball 60");
+        using var quiet = Create("Fireball 60");
+        var dynamics = Level(loud, 220, 0.1f) - Level(quiet, 220, 2e-4f);
+        output.WriteLine(
+            $"Gain at 220 Hz, stock knobs: Fireball 60 {fireball:0.0} dB, 5150 {peavey:0.0}, Dual Rectifier "
+            + $"{rectifier:0.0}; 0.1 V against 0.2 mV: {dynamics:0.0} dB"
+        );
+        Assert.InRange(fireball, Math.Min(peavey, rectifier) - 8, Math.Max(peavey, rectifier) + 8);
         Assert.True(dynamics > 15, $"a 0.2 mV note plays only {dynamics:0.0} dB below a 0.1 V one");
     }
 

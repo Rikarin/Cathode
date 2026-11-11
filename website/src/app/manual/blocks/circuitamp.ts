@@ -322,7 +322,8 @@ forward in the mids, and the Presence knob then works on that top range only.`,
 does on amps that have one. Hidden where the model has its own Fat switch, and where its preamp has no tone stack.
 
 On the Powerball it is *Bottom*, the amp's own low boost: its three Bottom buttons (channel 1, Lo Lead and Hi Lead) on
-one switch, which acts on the mode that plays. A gentle lift of the lows, strongest in channel 1.`,
+one switch, which acts on the mode that plays. A gentle lift of the lows, strongest in channel 1. On the Fireball 60 it
+is *Depth*: a second 1 nF beside the one ahead of the gain, which lets more lows into the preamp in both channels.`,
 
     cutsw: `A 150 Hz high-pass at the input (if *Low Cut* is set higher, the higher one wins). Tightens a boomy amp or a
 dark guitar and keeps the low end from smearing high-gain sounds. Hidden on the SVT, which has its own *Bass Cut*.`,
@@ -688,7 +689,7 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'Savage 120 Clean':
         'Engl Savage 120, channel 1: Clean and (Switch 3) Crunch 1, with Bright, Preshape and Contour. A bright, tight clean that Preshape fattens and pushes.',
       'Fireball 60':
-        'Engl Fireball 60: the Ultra channel and (Switch 3) the clean channel, into two 6L6: high gain with few controls. A resistor the drawing leaves out and two supply filter nodes are assumed, both from the Powerball.',
+        'Engl Fireball 60: the Ultra channel and (Switch 3) the clean channel, into two 6L6: high gain with few controls, and its Depth switch. The factory drawing of its preamp is wrong, so the preamp follows a redraw of the E625 that has the parts the drawing leaves out.',
       SVT: 'Ampeg SVT, channel one: the classic tube bass amp, with its Mid-Range and Mid Freq, Ultra Hi, Ultra Lo and Bass Cut.',
       'SVT Channel 2':
         'Ampeg SVT, channel two: the plainer channel, Volume, Bass and Treble with Ultra Hi and Ultra Lo and no midrange controls. With Ultra Lo off its volume network cuts the lows, as on the amp.',
@@ -924,7 +925,7 @@ away and back: every knob returns to the model's stock setting.
 **Differences from the Axe-Fx.** Cathode's expert controls scale real components (a cap, a resistor, a tube's curve)
 rather than behaviour, and a control the model has no part for is hidden and does nothing. Some models rest on
 assumed values where the schematic was incomplete or wrong (the Powerball's preamp, taken from a hand-corrected copy
-of the factory drawing, the Fireball's two extra supply filter nodes, the Prometheus as a whole, several output
+of the factory drawing, the Fireball's preamp, taken from a redraw of it, the Prometheus as a whole, several output
 transformers); the model descriptions say where.
 
 **CPU.** The amp runs a full circuit at twice the sample rate (at rates below 64 kHz), so it is the heaviest block in

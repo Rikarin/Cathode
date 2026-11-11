@@ -4,102 +4,92 @@ namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
 ///     Engl Fireball 60 (E625): the Ultra (lead) channel, and the clean channel on Switch 3. V1A (1M grid leak, 100k,
-///     1k unbypassed), 47 nF into the 1M audio gain (100 pF from its top to its wiper with Bright), the wiper on V1B's
-///     grid; V1B (100k, 1.5k ‖ 22 µF), 47 nF with 2.2M to ground. Ultra: 100k into V2A's grid (330k, 3.3k
-///     unbypassed), 47 nF with 470k to ground, 330k into V2B's grid with 470k to ground. Clean: V2A is out of the path
-///     (its output is grounded at V2B's bypassed cathode) and 1M joins V1B's coupling cap to the same 330k. V2B (100k,
-///     1.5k ‖ 22 µF), 100 nF with 2.2M to ground into the stack (1 nF; 68k slope; 47 nF bass cap, 1M audio bass
-///     rheostat; a 20k linear middle under the bass with 47 nF on its wiper; 250k linear treble), 470k from the treble
-///     wiper (220k to ground from there in Ultra), 330k into V3A's grid with 220k to ground; V3A, the loop's send
-///     follower (100k ‖ 47 nF plate, 1k cathode), 1 µF into the loop and its balance pot, 10k into V3B's 100k grid
-///     leak; V3B (100k, 1.5k ‖ 22 µF), 100 nF and 100k into the 1M linear master; 100 nF into a long-tail pair (100k
-///     grid leak to the bias junction; 82k/100k, 470 Ω, 22k tail on a 3.3k feedback shunt) and two 6L6GC (2.2k
-///     stoppers, 470 Ω screens, 47 nF, 330k bias feeds) at 430 V. The feedback runs from the 8 Ω tap through the 250k
-///     audio presence rheostat and 56k into the 3.3k: the presence is the amount of feedback, with no cap.
+///     1k ‖ 22 µF), 47 nF with 2.2M to ground, 1 nF (2 nF with Depth) with 220k to ground, 100k into the 1M audio gain
+///     (100 pF from its top to its wiper with Bright, 470k from the wiper to ground), the wiper on V1B's grid; V1B
+///     (100k, 1.5k ‖ 22 µF), 47 nF with 2.2M to ground. Ultra: 1 nF and 100k into V2A's grid with 220k ‖ 1 nF to ground
+///     (330k ‖ 1 nF plate, 3.3k ‖ 10 µF), 47 nF with 470k to ground, 220k into V2B's grid with 470k to ground. Clean:
+///     V2A is out of the path (its output grounded) and 1M ‖ 100 pF over 22k, then the same 220k, feed V2B. V2B (100k,
+///     1.5k ‖ 22 µF), 100 nF with 2.2M to ground into the stack (250 pF; 68k slope; 22 nF bass cap, 1M audio bass
+///     rheostat; a 22k linear middle under the bass with 15 nF on its wiper; 220k linear treble), 470k from the treble
+///     wiper over 100k (and 22k in Ultra), 330k into V3A's grid with 220k to ground; V3A, the loop's send follower
+///     (100k ‖ 47 nF plate, 1k cathode), 1 µF into the loop and its balance pot, 10k into V3B's 100k grid leak; V3B
+///     (100k, 1.5k ‖ 22 µF), 100 nF and 100k into the 1M linear master; 100 nF into a long-tail pair (100k grid leak to
+///     the bias junction; 82k/100k, 470 Ω, 22k tail on a 3.3k feedback shunt) and two 6L6GC (2.2k stoppers, 470 Ω
+///     screens, 47 nF, 330k bias feeds) at 430 V. The feedback runs from the 8 Ω tap through the 250k audio presence
+///     rheostat and 56k into the 3.3k: the presence is the amount of feedback, with no cap.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Source: the Engl factory drawing "625" (ENGL Gerätebau GmbH, one sheet, a vector PDF made in March 2003),
-///         https://schematicheaven.net/bargainbin/engl_fireball.pdf; the copy at
+///         Two sources. The first is the Engl factory drawing "625" (ENGL Gerätebau GmbH, one sheet, a vector PDF made
+///         in March 2003), https://schematicheaven.net/bargainbin/engl_fireball.pdf; the copy at
 ///         https://el34world.com/charts/Schematics/files/Engl/Engl_fireball.pdf is the same file. It shows two 6L6GC,
 ///         so it is the Fireball 60; no drawing of the Fireball 100 (E635) was found, and a forum poster says the
-///         published Fireball drawings do not match the 100, so there is no 100 variant here. Every value above is
-///         read from the drawing except the two assumptions marked below. It prints B+ 450 V and 430 V for the two
-///         positions of the standby switch; 430 V is taken as the running voltage.
+///         published Fireball drawings do not match the 100, so there is no 100 variant here. It prints B+ 450 V and
+///         430 V for the two positions of the standby switch; 430 V is taken as the running voltage. Its preamp cannot
+///         be the amp's, as the Powerball's drawing 645-1 could not (issue #512): V2A's grid is drawn tied to ground,
+///         the Depth switch's cap sits across a wire, and four stages are coupled by 47 nF with almost no divider. The
+///         model built from it had 66 dB of gain at Gain 5 (the 5150 and the Dual Rectifier have about 38) and played a
+///         0.2 mV note within 2 dB of a 0.1 V one (issue #525): a square wave whatever was played.
 ///     </para>
 ///     <para>
-///         The drawing leaves parts out, as forum posters say of Engl's published drawings. Three places:
+///         The second is a redraw of the E625's preamp alone, "Engl Fireball E625", dated 7 April 2010 (one sheet,
+///         drawn in Illustrator CS3; its author is not named on it). It draws every stage from the input to the masters
+///         with the networks 625 leaves out, and they are the ones the hand-corrected copy of the Powerball's drawing
+///         found on that amp: 1 nF into 220k ahead of a gain with 470k on its wiper, a 1 nF series cap into V2A's
+///         divider with 1 nF across its lower leg, 1 nF across V2A's 330k plate resistor, and the Powerball's Clean
+///         divider (1M ‖ 100 pF over 22k). The model follows it from the input to V3A's grid: the values above, the
+///         bypassed cathodes of V1A (22 µF) and V2A (10 µF), the Depth switch (C22 1 nF across C13), the stack (250 pF,
+///         220k treble, 22 nF, 15 nF, 22k middle; 625 has 1 nF, 250k, 47 nF, 47 nF and 20k), R3 100k after R27 470k,
+///         R28 22k in Ultra where 625 has 220k, and C15 22 µF for the preamp's filter cap (625's CE3, 10 µF). Its
+///         relay K1 is read with S as Ultra: there S1 takes V2A's output to V2B's 220k and S2 grounds R28; at O, O1
+///         takes the clean divider and O2 grounds V2A's output. From V3A on, the redraw and 625 differ in small parts
+///         (C17 100 nF, C25 10 µF, no 100k ahead of the masters, 10k loop pots); there 625 is kept. The redraw's rail
+///         label, 320 V, is not used: the rails are 625's chain (below).
 ///     </para>
 ///     <para>
-///         <b>Assumption, not on 625:</b> V2A's grid is drawn tied straight to ground below R12 100k, which would
-///         silence the Ultra channel, so the lower leg of that divider is missing. The model puts 470k there, the
-///         lower leg of the Hi divider (100k over 470k) ahead of the same stage (330k plate, 3.3k cathode, 47 nF and
-///         2.2M before it) on Engl's Powerball drawing 645-1. The Ultra channel's gain depends on it: 100k over 470k
-///         passes 0.82 of V1B's output.
+///         The supply as drawn on 625: CE16 100 µF, R81 470 Ω to the screens' CE17 47 µF, R82 and R83 (2.2k each) to
+///         CE18 22 µF (V3 and the inverter), R84 4.7k to the preamp's node (V1 and V2), 22 µF as the redraw has it.
+///         Neither prints voltages below B+, so the rails are the chain's rest voltages at assumed draws, 0.75 mA a
+///         triode as on the Powerball. With the redraw's preamp the model is silent on that supply after a loud input
+///         stops, so the two filter nodes once assumed below it (10k into 22 µF each, docs/06 §3.7) are gone.
 ///     </para>
 ///     <para>
-///         The Depth switch S2A is drawn with C3 1.5 nF between two points of the same wire (V1A's coupling cap and
-///         the gain pot's top), so as drawn it does nothing; it is left out and the panel has no switch for it. V4B's
-///         grid is drawn tied straight to the feedback node with R45 150k to the bias junction and no capacitor, which
-///         would cut that triode off; the model's long-tail pair has the usual AC-grounded second grid, which needs
-///         no value from the missing part.
+///         V4B's grid is drawn on 625 tied straight to the feedback node with R45 150k to the bias junction and no
+///         capacitor, which would cut that triode off; the model's long-tail pair has the usual AC-grounded second
+///         grid, which needs no value from the missing part.
 ///     </para>
 ///     <para>
-///         The supply as drawn: CE16 100 µF, R81 470 Ω to the screens' CE17 47 µF, R82 and R83 (2.2k each) to CE18
-///         22 µF (V3 and the inverter), R84 4.7k to CE3 10 µF (V1 and V2). The drawing prints no voltages below B+, so
-///         the rails are the chain's rest voltages at assumed draws, 0.75 mA a triode as on the Powerball.
-///     </para>
-///     <para>
-///         <b>Assumption, not on 625:</b> as drawn, with V1 and V2 all on CE3, the model motorboats after a loud
-///         input stops, in both channels and down to gain 1 with the master full (-16 to -29 dB two seconds after
-///         the stop), as the Powerball model did on its drawing's single node. The gain pot does not break that
-///         loop: V1B, V2A and V2B come after it. So the model adds the Powerball model's assumed filter: two RC
-///         nodes below CE3, each 10k into 22 µF, V1B and V2A on the first, V1A on the second, V2B left on CE3. With
-///         them every case of the after-the-stop test is silent; 10 µF nodes still pass, 4.7 µF fail, and a single
-///         extra node fails at full gain.
-///     </para>
-///     <para>
-///         Guesses and simplifications, marked: the idle current (the drawing gives the bias as 2.2 to 2.7 V between
-///         either plate and the centre tap, across a primary resistance it does not give; 31 mA a tube, the middle of
-///         the Powerball drawing's 28 to 34 mA, is assumed), the primary (3.8k plate to plate, the same load a tube as
-///         the Powerball's assumed 1.9k for four) and the supply's 60 Ω source resistance are typical values; which
-///         way the presence rheostat turns is not on the drawing (here up is more resistance and less feedback, as on
-///         the Mesa Marks); the Ultra relay RE1B puts R24 220k on V2B's cathode, an AC ground through its 22 µF, here
-///         on ground; one Master knob for Master A and Master B (two equal 1M linear pots behind a relay); the loop is
-///         empty with its balance fully dry (the return jack is normalled to the send, so both of the balance's 10k
-///         inputs carry the send: one into the mix, the other into the pot's grounded end). Left out: the J175 mute T1
-///         on the stack's output through R25 10k, which acts only while switching channels.
+///         Guesses and simplifications, marked: the idle current (625 gives the bias as 2.2 to 2.7 V between either
+///         plate and the centre tap, across a primary resistance it does not give; 31 mA a tube, the middle of the
+///         Powerball drawing's 28 to 34 mA, is assumed), the primary (3.8k plate to plate, the same load a tube as the
+///         Powerball's assumed 1.9k for four) and the supply's 60 Ω source resistance are typical values; the tapers of
+///         the redraw's 220k treble and 22k middle are not printed (linear here, as on 625) nor the bass's (audio, as on
+///         625); which way the presence rheostat turns is not on the drawing (here up is more resistance and less
+///         feedback, as on the Mesa Marks); one Master knob for Master A and Master B (two equal 1M linear pots behind a
+///         relay); the loop is empty with its balance fully dry (the return jack is normalled to the send, so both of
+///         the balance's 10k inputs carry the send: one into the mix, the other into the pot's grounded end). Left out:
+///         the J175 mute T1 on the stack's output through R25 10k, which acts only while switching channels.
 ///     </para>
 /// </remarks>
 public static class Fireball {
-    // The rails at rest, from the chain at its assumed draws (the drawing prints none below B+): CE18, V3 and the
-    // inverter, the screens' CE17 less 4.4k × 6 mA; CE3 (V2B) less 4.7k × 3 mA; the first assumed node (V1B, V2A) less
-    // 10k × 2.25 mA; the second (V1A) less 10k × 0.75 mA.
+    // The rails at rest, from 625's chain at its assumed draws (neither drawing prints them): CE18, V3 and the
+    // inverter, the screens' CE17 less 4.4k × 6 mA; the preamp's node (V1, V2) less 4.7k × 3 mA.
     const double InverterRail = 399;
-    const double V2BRail = 385;
-    const double SecondRail = 362;
-    const double V1ARail = 355;
+    const double PreampRail = 385;
 
     public static AmpDesign Design { get; } = new(
         "Fireball 60",
         [
-            new NetworkStageDesign("V1A", InputAndGain()) { SupplyNode = 3 },
-            new TriodeStageDesign("V1B", TriodeModel.Ecc83, SecondRail, 100e3, 1.5e3, 22e-6) { SupplyNode = 2 },
+            new NetworkStageDesign("V1A", InputAndGain()) { SupplyNode = 1 },
+            new TriodeStageDesign("V1B", TriodeModel.Ecc83, PreampRail, 100e3, 1.5e3, 22e-6) { SupplyNode = 1 },
             new ChannelSwitchStageDesign(
                 "Channel",
                 SwitchRole.Switch3,
                 [
-                    new NetworkStageDesign("V2A", UltraStage()) { SupplyNode = 2 },
-                    // R16 470k loads V2A's coupling cap; R18 330k into the grid.
-                    new NetworkStageDesign("V2B", LastStage(470e3, 330e3)) { SupplyNode = 1 }
+                    new NetworkStageDesign("V2A", UltraStage()) { SupplyNode = 1 },
+                    new NetworkStageDesign("V2B", UltraLastStage()) { SupplyNode = 1 }
                 ],
-                [
-                    // R9 2.2M and V2A's idle divider (R12 100k over the assumed 470k) load V1B's coupling cap; R10 1M
-                    // and R18 330k into the grid.
-                    new NetworkStageDesign("Clean V2B", LastStage(1 / (1 / 2.2e6 + 1 / 570e3), 1.33e6)) {
-                        SupplyNode = 1
-                    }
-                ]
+                [new NetworkStageDesign("Clean V2B", CleanLastStage()) { SupplyNode = 1 }]
             ) { SupplyNode = 1 },
             new NetworkStageDesign("Stack", Stack()) { SupplyNode = 1 },
             new NetworkStageDesign("V3A", Follower()),
@@ -134,66 +124,126 @@ public static class Fireball {
         ),
         -7
     ) {
-        Panel = AmpPanel.Standard with { Depth = null, Cut = null, Switch3 = "Clean" },
-        // From CE18 (V3 and the inverter): R84 4.7k to CE3 10 µF (V1, V2 as drawn). The drawing prints no voltages, so
-        // each of the four triodes below CE18 draws an equal share of the preamp's 6 mA, 0.75 mA.
-        // ASSUMPTION, not on Engl 625: two more nodes, 10k into 22 µF under CE3 for V1B and V2A, and 10k into 22 µF
-        // under that for V1A (CE3 keeps V2B), the filter the Powerball model assumes for the same reason. As drawn,
-        // with all four on CE3, the model motorboats after loud playing in both channels (docs/06 §3.7). With these
-        // nodes 10 µF still passes and 4.7 µF fails; one extra node alone fails at full gain.
-        PreampSupply = new(
-            [
-                new(4.7e3, 10e-6, 0.75e-3), new(10e3, 22e-6, 1.5e-3, 1), new(10e3, 22e-6, 0.75e-3, 2)
-            ]
-        )
+        Panel = AmpPanel.Standard with { Depth = null, Cut = null, Switch3 = "Clean", Fat = "Depth" },
+        // From CE18 (V3 and the inverter): R84 4.7k (the redraw's R15) to the preamp's 22 µF (the redraw's C15; 625's
+        // CE3 is 10 µF), V1 and V2. Neither drawing prints voltages, so each of the four triodes draws an equal share
+        // of the preamp's 6 mA, 0.75 mA.
+        PreampSupply = new([new(4.7e3, 22e-6, 3e-3)])
     };
 
     /// <summary>
-    ///     V1A and the gain: R1 1M grid leak; R3 100k plate; R2 1k cathode, unbypassed; C1 47 nF into the top of the 1M
-    ///     audio gain P1, its wiper on V1B's grid; with Bright, C4 100 pF from the top to the wiper.
+    ///     V1A and the gain: R19 1M grid leak; R1 100k plate; R2 1k ‖ C6 22 µF; C2 47 nF with R23 2.2M to ground; C13
+    ///     1 nF (with Depth, C22 1 nF across it) with R5 220k to ground; R4 100k into the top of the 1M audio gain, its
+    ///     wiper on V1B's grid with R22 470k to ground; with Bright, C19 100 pF from the top to the wiper.
     /// </summary>
     static StageNetlist InputAndGain() {
         var net = new StageNetlist();
-        var top = net.Node();
+        var (coupled, cut, top) = (net.Node(), net.Node(), net.Node());
         net.Resistor(net.Input, StageNetlist.Ground, 1e6);
-        net.Capacitor(TriodeParts.CommonCathode(net, net.Input, V1ARail, 100e3, 1e3), top, 47e-9);
+        net.Capacitor(TriodeParts.CommonCathode(net, net.Input, PreampRail, 100e3, 1e3, 22e-6), coupled, 47e-9);
+        net.Resistor(coupled, StageNetlist.Ground, 2.2e6);
+        net.Capacitor(coupled, cut, 1e-9);
+        net.SwitchedCapacitor(coupled, cut, 1e-9, SwitchRole.Fat);
+        net.Resistor(cut, StageNetlist.Ground, 220e3);
+        net.Resistor(cut, top, 100e3);
         var wiper = net.Pot(top, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Gain);
         net.SwitchedCapacitor(top, wiper, 100e-12, SwitchRole.Bright, CapacitorRole.Bright);
+        net.Resistor(wiper, StageNetlist.Ground, 470e3);
         net.Output = wiper;
         return net;
     }
 
     /// <summary>
-    ///     V2A, in Ultra only: C5 47 nF with R9 2.2M to ground; R12 100k into the grid over the assumed 470k (see the
-    ///     class remarks: the drawing ties the grid to ground); R15 330k plate; R14 3.3k cathode, unbypassed. R10 1M
-    ///     hangs open on the relay.
+    ///     V1B's coupling, on <paramref name="net" />: C3 47 nF with R18 2.2M to ground. Both channels' networks hang
+    ///     on the node after it, which is returned: the Ultra one (C4 1 nF, R7 100k into V2A's grid with R25 220k ‖ C8
+    ///     1 nF to ground) and the clean one (R20 1M ‖ C21 100 pF over R21 22k).
     /// </summary>
-    static StageNetlist UltraStage() => PaddedStage(2.2e6, 100e3, (SecondRail, 330e3, 3.3e3, 0));
+    static (int Ultra, int Clean) Networks(StageNetlist net) {
+        var (coupled, series, ultra, clean) = (net.Node(), net.Node(), net.Node(), net.Node());
+        net.Capacitor(net.Input, coupled, 47e-9);
+        net.Resistor(coupled, StageNetlist.Ground, 2.2e6);
+        net.Capacitor(coupled, series, 1e-9);
+        net.Resistor(series, ultra, 100e3);
+        net.Resistor(ultra, StageNetlist.Ground, 220e3);
+        net.Capacitor(ultra, StageNetlist.Ground, 1e-9);
+        net.Resistor(coupled, clean, 1e6);
+        net.Capacitor(coupled, clean, 100e-12);
+        net.Resistor(clean, StageNetlist.Ground, 22e3);
+        return (ultra, clean);
+    }
 
     /// <summary>
-    ///     V2B: 47 nF with <paramref name="load" /> to ground, <paramref name="series" /> into the grid with R17 470k
-    ///     to ground; R20 100k plate; R19 1.5k ‖ CE5 22 µF.
+    ///     V2A, in Ultra: <see cref="Networks" />, the clean divider a load; R17 330k ‖ C20 1 nF plate; R9 3.3k ‖ C14
+    ///     10 µF.
     /// </summary>
-    static StageNetlist LastStage(double load, double series) =>
-        PaddedStage(load, series, (V2BRail, 100e3, 1.5e3, 22e-6));
+    static StageNetlist UltraStage() {
+        var net = new StageNetlist();
+        var (grid, _) = Networks(net);
+        var (supply, plate, cathode) = (net.Node(), net.Node(), net.Node());
+        net.Supply(supply, PreampRail);
+        net.Resistor(supply, plate, 330e3);
+        net.Capacitor(supply, plate, 1e-9, CapacitorRole.Plate);
+        net.CathodeResistor(cathode, StageNetlist.Ground, 3.3e3);
+        net.Capacitor(cathode, StageNetlist.Ground, 10e-6);
+        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
+        net.Output = plate;
+        return net;
+    }
+
+    /// <summary>V2B in Ultra: C7 47 nF with R24 470k to ground, then <see cref="LastStage" /> from there.</summary>
+    static StageNetlist UltraLastStage() {
+        var net = new StageNetlist();
+        var coupled = net.Node();
+        net.Capacitor(net.Input, coupled, 47e-9);
+        net.Resistor(coupled, StageNetlist.Ground, 470e3);
+        LastStage(net, coupled);
+        return net;
+    }
 
     /// <summary>
-    ///     The stack: C11 100 nF with R21 2.2M to ground; C13 1 nF to the 250k linear treble's top; R22 68k slope; C14
-    ///     47 nF to the 1M audio bass rheostat's top (the treble's bottom); the bass's bottom on the top of the 20k
-    ///     linear middle, with C16 47 nF from the slope on its wiper; R23 470k from the treble wiper, and in Ultra R24
-    ///     220k from there to ground.
+    ///     V2B in the clean channel: <see cref="Networks" />, the Ultra one a load (V2A's grid draws nothing), then
+    ///     <see cref="LastStage" /> from the clean divider's tap.
+    /// </summary>
+    static StageNetlist CleanLastStage() {
+        var net = new StageNetlist();
+        var (_, clean) = Networks(net);
+        LastStage(net, clean);
+        return net;
+    }
+
+    /// <summary>
+    ///     V2B from <paramref name="from" />, on <paramref name="net" />: R11 220k into the grid with R10 470k to
+    ///     ground; R12 100k plate; R13 1.5k ‖ C1 22 µF. Its plate is the output.
+    /// </summary>
+    static void LastStage(StageNetlist net, int from) {
+        var grid = net.Node();
+        net.Resistor(from, grid, 220e3);
+        net.Resistor(grid, StageNetlist.Ground, 470e3);
+        net.Output = TriodeParts.CommonCathode(net, grid, PreampRail, 100e3, 1.5e3, 22e-6);
+    }
+
+    /// <summary>
+    ///     The stack: C9 100 nF with R26 2.2M to ground; C10 250 pF to the 220k linear treble's top; R14 68k slope;
+    ///     C11 22 nF to the 1M audio bass rheostat's top (the treble's bottom); the bass's bottom on the top of the 22k
+    ///     linear middle, with C12 15 nF from the slope on its wiper; R27 470k from the treble wiper over R3 100k, and
+    ///     in Ultra R28 22k from there to ground.
     /// </summary>
     static StageNetlist Stack() {
         var net = new StageNetlist();
-        var at = (Coupled: net.Node(), Slope: net.Node(), TrebleTop: net.Node(), BassTop: net.Node(),
-            MiddleTop: net.Node());
-        net.Capacitor(net.Input, at.Coupled, 100e-9);
-        net.Resistor(at.Coupled, StageNetlist.Ground, 2.2e6);
-        net.Capacitor(at.Coupled, at.TrebleTop, 1e-9, CapacitorRole.Stack);
-        var (treble, _) = EnglParts.StackPots(net, at, 68e3, 47e-9, 47e-9);
-        var output = net.Node();
+        var (coupled, slope, trebleTop, bassTop, middleTop, output) =
+            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        net.Capacitor(net.Input, coupled, 100e-9);
+        net.Resistor(coupled, StageNetlist.Ground, 2.2e6);
+        net.Capacitor(coupled, trebleTop, 250e-12, CapacitorRole.Stack);
+        net.Resistor(coupled, slope, 68e3);
+        var treble = net.Pot(trebleTop, bassTop, new(220e3, PotTaper.Linear), PotRole.Treble);
+        net.Capacitor(slope, bassTop, 22e-9, CapacitorRole.Stack);
+        net.Rheostat(bassTop, middleTop, new(1e6, PotTaper.Audio), PotRole.Bass);
+        var middle = net.Pot(middleTop, StageNetlist.Ground, new(22e3, PotTaper.Linear), PotRole.Middle);
+        net.Capacitor(slope, middle, 15e-9, CapacitorRole.Stack);
         net.Resistor(treble, output, 470e3);
-        net.SwitchedResistor(output, StageNetlist.Ground, 220e3, 0, SwitchRole.Switch3);
+        net.Resistor(output, StageNetlist.Ground, 100e3);
+        net.SwitchedResistor(output, StageNetlist.Ground, 22e3, 0, SwitchRole.Switch3);
         net.Output = output;
         return net;
     }
@@ -202,7 +252,7 @@ public static class Fireball {
     ///     V3A, the loop's send follower: R26 330k into the grid with R27 220k to ground; R29 100k ‖ C17 47 nF to the
     ///     rail; R28 1k cathode; CE6 1 µF to the send. The empty loop with the balance fully dry: R31 10k into the mix
     ///     (the two 50k tracks from there to ground), R32 10k to ground, R33 10k into V3B's grid with R34 100k to
-    ///     ground.
+    ///     ground. (625's part numbers.)
     /// </summary>
     static StageNetlist Follower() {
         var (net, send) = EnglParts.SendFollower(InverterRail, 330e3, 220e3, 47e-9, 1e-6);
@@ -213,26 +263,6 @@ public static class Fireball {
         net.Resistor(mix, ret, 10e3);
         net.Resistor(ret, StageNetlist.Ground, 100e3);
         net.Output = ret;
-        return net;
-    }
-
-    /// <summary>
-    ///     A stage behind its coupling cap and grid divider: 47 nF with <paramref name="load" /> to ground,
-    ///     <paramref name="series" /> into the grid with 470k to ground, and the triode on <paramref name="tube" />'s
-    ///     rail, plate resistor, cathode resistor and bypass cap.
-    /// </summary>
-    static StageNetlist PaddedStage(
-        double load,
-        double series,
-        (double Rail, double Plate, double Cathode, double Bypass) tube
-    ) {
-        var net = new StageNetlist();
-        var (coupled, grid) = (net.Node(), net.Node());
-        net.Capacitor(net.Input, coupled, 47e-9);
-        net.Resistor(coupled, StageNetlist.Ground, load);
-        net.Resistor(coupled, grid, series);
-        net.Resistor(grid, StageNetlist.Ground, 470e3);
-        net.Output = TriodeParts.CommonCathode(net, grid, tube.Rail, tube.Plate, tube.Cathode, tube.Bypass);
         return net;
     }
 }
