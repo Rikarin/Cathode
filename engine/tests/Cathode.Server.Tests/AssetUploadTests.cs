@@ -156,7 +156,7 @@ public sealed class AssetUploadTests : IAsyncLifetime {
         );
 
         using var http = await old.ConnectedClientAsync();
-        var asset = Assert.Single((await http.GetFromJsonAsync<AssetInfo[]>("/api/v1/assets", Token))!);
+        var asset = Assert.Single(await http.UserAssetsAsync(Token)); // the factory impulse responses are listed too
 
         Assert.Equal(("Mine.nam", true, true), (asset.Name, asset.Favorite, asset.Slimmable));
         Assert.Contains(
