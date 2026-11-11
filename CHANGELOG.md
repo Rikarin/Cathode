@@ -527,6 +527,11 @@ The fixes below came out of a second full audit of the code (issues #163 to #356
   high-gain amp's gain and a note gets quieter as it dies away, instead of staying a square wave; the clean channel is
   much quieter than Ultra, as its 22k divider makes it. Its Depth switch works (on the Fat switch), and the assumed
   resistor and supply filter are gone (#525).
+- Amp: the power amp's phase inverter takes the feedback of the sample it plays, not of the one before, where its input
+  network's grid leak returns to the feedback. The delay had cut the top end of the high-feedback models at 44.1 and
+  48 kHz (up to 2.4 dB at 8 kHz and 5 dB at 14 kHz on the Savage 120 and the Powerball) and made them sound different
+  at 192 kHz; every model with that input network (54 of them, most Fenders, Marshalls, Mesas and Engls) now sounds
+  the same at every sample rate, with a little more treble than before on the ones with the most feedback.
 - Amp: the Bass 400 is rated 300 W, not the 400 of its name; its 1.2k output transformer is kept, now checked against
   what its six 6550 deliver (#300).
 - Amp: the Mark IIC+ and Mark IV run on the factory sheets' supply voltages (B+ 480 V, 397 V and 392 V preamp rails) and

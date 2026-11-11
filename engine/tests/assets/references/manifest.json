@@ -591,12 +591,12 @@
         }
       },
       "targets": {
-        "esr": 0.7,
+        "esr": 0.82,
         "mrstft": 1.01,
         "harmonicsDb": 12.0,
         "responseDb": 2.0
       },
-      "notes": "Vibrato channel (V4B and the reverb mix divider). Knobs not stated: chosen by the small-signal response fit (1.1 dB RMS). Achieved (2026-10): ESRpre 0.599, ESR 0.238, MRSTFT 0.899 (Blackface type before: 0.496 / 0.205 / 0.781; the Blackface lacks the third stage but its fit settled at a lower calibration)."
+      "notes": "Vibrato channel (V4B and the reverb mix divider). Knobs not stated: chosen by the small-signal response fit (1.1 dB RMS). Achieved (2026-10): ESRpre 0.599, ESR 0.238, MRSTFT 0.899 (Blackface type before: 0.496 / 0.205 / 0.781; the Blackface lacks the third stage but its fit settled at a lower calibration). 2026-11-11: ESRpre 0.669, ESR 0.250, MRSTFT 0.873 before the power amp's inverter grid stopped taking the last sample's feedback; 0.711 / 0.255 / 0.869 after (harmonics 11.6 to 11.5 dB, response 1.1 dB), so the ESR guard is 0.82."
     },
     {
       "id": "pel-jcm900-a-g4",

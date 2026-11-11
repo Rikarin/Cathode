@@ -164,8 +164,12 @@ public readonly record struct PowerSettings(
 ///     </para>
 ///     <para>
 ///         With an <see cref="InverterInputDesign" />, the phase inverter's driven grid draws grid current through the
-///         previous stage's output resistance and its coupling cap, solved per sample ahead of the power stage (the
-///         feedback's share of the inverter's cathode movement is left out of the grid's bias there).
+///         previous stage's output resistance and its coupling cap, solved per sample ahead of the power stage. Its
+///         leak returns to the pair's cathode side, which the feedback moves, so the grid follows the feedback in
+///         part: the solve gives that share (<see cref="PushPullStage.InputFollows" />) to the device, which drives the
+///         pair with this sample's feedback, and the network is solved again at that feedback before its cap advances.
+///         Taking the last sample's feedback there instead put a sample's delay into the loop, which at 96 kHz cost an
+///         Engl's high-feedback power amp up to 5 dB at 14 kHz.
 ///     </para>
 /// </remarks>
 public sealed class PowerAmp {
@@ -210,6 +214,8 @@ public sealed class PowerAmp {
     double saturationGain; // M / L: the extra magnetising current's slope well beyond the knee
     double excess; // the extra magnetising current for the coming sample
     double sourceResistance = 30e3; // the previous stage's output resistance (inverter input, single-ended grid)
+    double inverterSource; // the input network's open-circuit voltage behind the coupling cap, this sample
+    double inverterSolved; // the inverter's grid at the last sample's feedback, this sample (DriveInverter)
     double inverterHistory;
     double inverterHalfStep;
     double inverterRest; // the driven grid's AC voltage at rest, where the leak carries the grid current
@@ -782,9 +788,18 @@ public sealed class PowerAmp {
             stage.BiasSwing = t.Tick();
         }
 
-        stage.Input = Design.InverterInput is null ? input : DriveInverter(input);
+        var fedBefore = stage.Fed;
+        if (Design.InverterInput is null) {
+            stage.Input = input;
+        } else {
+            DriveInverter(input, fedBefore);
+        }
+
         Prime(ref stage);
         root.Tick();
+        if (Design.InverterInput is not null) {
+            AdvanceInverter(stage.Fed, stage.Fed - fedBefore);
+        }
 
         // The supply and the cathode bias, from this sample's currents.
         var supply = Design.PowerSupply;
@@ -1114,19 +1129,48 @@ public sealed class PowerAmp {
     /// <summary>
     ///     The phase inverter's input network with grid current: the previous stage's open-circuit voltage
     ///     <paramref name="input" /> behind its output resistance and the coupling cap, into the grid leak and the
-    ///     grid. One scalar Newton solve for the grid voltage; returns it (AC) and advances the cap.
+    ///     grid. One scalar Newton solve for the grid voltage at the feedback of the last sample,
+    ///     <paramref name="fed" />, and how far the grid follows the feedback from there: the grid leak returns to
+    ///     the pair's cathode side, which the feedback moves, so the grid moves with it. The device takes both
+    ///     (<see cref="PushPullStage.InputFollows" />) and drives the pair with this sample's feedback, so that none of
+    ///     the loop runs a sample behind; <see cref="AdvanceInverter" /> advances the cap once the sample is solved.
+    /// </summary>
+    /// <remarks>
+    ///     The grid used to take the last sample's feedback as it was: a sample's delay in the part of the loop that
+    ///     runs through the leak, small where the source is stiff and the whole of it where the leak dominates (an
+    ///     Engl's master pot into its 100k leak). At 96 kHz that took 2.4 dB off the Savage 120's 8 kHz and 5 dB off
+    ///     its 14 kHz, and 0.6 dB off the Savage 120 Clean's level against 192 kHz (#525's nightly).
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    void DriveInverter(double input, double fed) {
+        var series = sourceResistance + inverterHalfStep;
+        inverterSource = input - inverterHistory;
+        var v = SolveInverterGrid(inverterSource, 1 / series, fed, InverterGrid, out var follows);
+        inverterSolved = v;
+        ref var stage = ref root.Device;
+        stage.InputFollows = follows;
+        stage.Input = v - inverterRest - follows * fed;
+    }
+
+    /// <summary>
+    ///     Advances the inverter's coupling cap for the grid voltage of the solved sample: the input network solved
+    ///     again at this sample's feedback <paramref name="fed" />, from where <see cref="DriveInverter" />'s slope
+    ///     puts it. Under grid current the grid is not linear in the feedback, and a cap charged from the linear
+    ///     estimate drifts at low frequencies.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    double DriveInverter(double input) {
+    void AdvanceInverter(double fed, double fedChange) {
         var series = sourceResistance + inverterHalfStep;
-        var e = input - inverterHistory;
-        // The second grid, a sample behind: the cathode follows the pair's common mode.
-        var v = SolveInverterGrid(e, 1 / series, root.Device.Fed, InverterGrid);
-        var current = (e - v) / series;
+        var v = SolveInverterGrid(
+            inverterSource,
+            1 / series,
+            fed,
+            inverterSolved + root.Device.InputFollows * fedChange
+        );
+        var current = (inverterSource - v) / series;
         InverterCurrent = current;
         inverterHistory += 2 * inverterHalfStep * current;
         InverterGrid = v;
-        return v - inverterRest;
     }
 
     /// <summary>
@@ -1136,7 +1180,23 @@ public sealed class PowerAmp {
     ///     until the leak carries it.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    double SolveInverterGrid(double source, double conductance, double fed, double start) {
+    double SolveInverterGrid(double source, double conductance, double fed, double start) =>
+        SolveInverterGrid(source, conductance, fed, start, out _);
+
+    /// <summary>
+    ///     <see cref="SolveInverterGrid(double, double, double, double)" />, and how far the grid follows the feedback
+    ///     there.
+    /// </summary>
+    /// <param name="source">The source's voltage, AC.</param>
+    /// <param name="conductance">The conductance it drives the grid through.</param>
+    /// <param name="fed">The feedback at the pair's cathode side, where the leak returns.</param>
+    /// <param name="start">Where the Newton solve starts.</param>
+    /// <param name="follows">
+    ///     The grid's movement per volt of <paramref name="fed" /> at the solution: the leak's and the grid current's
+    ///     share of the grid's conductance to everything but the source.
+    /// </param>
+    double SolveInverterGrid(double source, double conductance, double fed, double start, out double follows) {
+        follows = 0;
         var leak = 1 / Design.InverterInput!.GridLeak;
         var e = source;
         var v = start;
@@ -1165,6 +1225,7 @@ public sealed class PowerAmp {
             var bootstrap = inverterGridTables.LeakReturn(v - fed, out var returnSlope) + fed;
             var f = (e - v) * conductance - (v - bootstrap) * leak - ig;
             var slope = -conductance - (1 - returnSlope) * leak - currentSlope;
+            follows = (slope + conductance) / slope;
             var step = f / slope;
             v -= step;
             if (Math.Abs(step) < 1e-9 + 1e-9 * Math.Abs(v)) {
@@ -1704,8 +1765,18 @@ struct GridSystems {
 ///     follow the plates.
 /// </remarks>
 struct PushPullStage : INonlinearDevice {
-    /// <summary>The phase inverter's grid voltage (AC), set per sample.</summary>
+    /// <summary>
+    ///     The phase inverter's grid voltage (AC), set per sample: with <see cref="InputFollows" />, its part that does
+    ///     not move with the feedback.
+    /// </summary>
     public double Input;
+
+    /// <summary>
+    ///     How far the phase inverter's grid follows the feedback within the sample (0 to 1): its input network's leak
+    ///     returns to the pair's cathode side, which the feedback moves. The pair is driven by
+    ///     <see cref="Input" /> − (1 − this) × the feedback; 0 without an input network.
+    /// </summary>
+    public double InputFollows;
 
     /// <summary>B+ at the centre tap relative to each side's cathode, set per sample.</summary>
     public double SupplyA;
@@ -2136,9 +2207,10 @@ struct PushPullStage : INonlinearDevice {
         Fed = fed;
         double ea, eb;
         if (singleEnded) {
-            (ea, eb) = (Input - fed, 0);
+            (ea, eb) = (Input - (1 - InputFollows) * fed, 0);
         } else {
-            (ea, eb) = phaseInverter.Evaluate(loop is null ? Input - fed : loop.Process(Input - fed), out _, out _);
+            var driven = Input - (1 - InputFollows) * fed;
+            (ea, eb) = phaseInverter.Evaluate(loop is null ? driven : loop.Process(driven), out _, out _);
             if (hasCut) {
                 var common = 0.5 * (ea + eb);
                 var difference = cut.Process(ea - eb);
@@ -2215,6 +2287,7 @@ struct PushPullStage : INonlinearDevice {
         GridB = GridOffsetB;
         GridCurrents = 0;
         Fed = 0;
+        InputFollows = 0;
     }
 
     public void FlushDenormals() {
@@ -2234,11 +2307,13 @@ struct PushPullStage : INonlinearDevice {
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     readonly (double A, double B) PushPullDrive(double fed, double fedSlope, out double slopeA, out double slopeB) {
+        var share = 1 - InputFollows;
+        var driven = Input - share * fed;
         var (ea, eb) = loop is null
-            ? phaseInverter.Evaluate(Input - fed, out slopeA, out slopeB)
-            : ThroughLoop(Input - fed, out slopeA, out slopeB);
-        slopeA *= -fedSlope;
-        slopeB *= -fedSlope;
+            ? phaseInverter.Evaluate(driven, out slopeA, out slopeB)
+            : ThroughLoop(driven, out slopeA, out slopeB);
+        slopeA *= -share * fedSlope;
+        slopeB *= -share * fedSlope;
         if (hasCut) {
             var common = 0.5 * (ea + eb);
             var difference = cut.Peek(ea - eb);
@@ -2280,7 +2355,8 @@ struct PushPullStage : INonlinearDevice {
 
         double ea, eb, slopeA, slopeB;
         if (singleEnded) {
-            (ea, eb, slopeA, slopeB) = (Input - fed, 0, -fedSlope, 0);
+            var share = 1 - InputFollows;
+            (ea, eb, slopeA, slopeB) = (Input - share * fed, 0, -share * fedSlope, 0);
         } else {
             (ea, eb) = PushPullDrive(fed, fedSlope, out slopeA, out slopeB);
         }

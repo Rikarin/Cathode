@@ -213,9 +213,12 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         if (audible) {
             // A class-A amp (cathode bias, EL84) draws nearly the same current loud or quiet: its preamp sees little
             // sag. Behind a slow preamp node (0.3 s or more) and the decoupling chain below it, little of the sag
-            // reaches the stages within the render.
+            // reaches the stages within the render. The AFD100's preamp clips at every stage at Gain 7, which hides
+            // a bias raised to +100 %: -57.6 dB, and -60.6 dB once the power amp's inverter grid took this sample's
+            // feedback (it had taken the last sample's); -100 % is far louder.
             var supply = AmpDesign.All[type].Power.PowerSupply;
-            var limit = index != CircuitAmpBlock.PreampSag ? -60
+            var limit = index == CircuitAmpBlock.PreampBias && AmpDesign.All[type].Name == "AFD100" && value > 0 ? -65
+                : index != CircuitAmpBlock.PreampSag ? -60
                 : AmpDesign.All[type].Power.CathodeBias ? -80
                 : supply.PreampResistance * supply.PreampCap >= 0.3 ? -70
                 : -60;
