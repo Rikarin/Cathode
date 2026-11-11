@@ -72,7 +72,7 @@ A user who runs no editor (a "headless rig on a mini-PC") starts only Host + Ser
 
 ```
 cathode/
-├─ engine/                                  # .NET 10 solution (Cathode.slnx)
+├─ engine/                                  # .NET 11 solution (Cathode.slnx)
 │  ├─ src/
 │  │  ├─ Cathode.Dsp/                      # pure DSP: blocks, filters, oversampling, convolution, the
 │  │  │                                     #   managed AIDA-X models; no I/O, no threads, no allocation

@@ -1,6 +1,6 @@
 # Cathode engine
 
-The .NET 10 audio engine. The design is described in [docs/02-architecture.md](../docs/02-architecture.md).
+The .NET 11 audio engine. The design is described in [docs/02-architecture.md](../docs/02-architecture.md).
 
 | Project | Role |
 |---|---|
@@ -63,7 +63,7 @@ dotnet publish src/Cathode.Host -c Release -r osx-arm64 -o out && ./out/cathode-
 Reamp (`POST /api/v1/live/render`) renders a recording through the working copy offline. The Server starts a second host for it, `cathode-host --render --job <job.json>` (the job is a `RenderJob`: graph, rig values, input and output file). It looks for `cathode-host` beside itself, where the packages put it; a development Server is told where it is:
 
 ```bash
-dotnet run -c Release --project src/Cathode.Server -- --Cathode:Engine:SocketPath=/tmp/cathode-host.sock --Cathode:Engine:HostPath=$PWD/src/Cathode.Host/bin/Release/net10.0/cathode-host.dll
+dotnet run -c Release --project src/Cathode.Server -- --Cathode:Engine:SocketPath=/tmp/cathode-host.sock --Cathode:Engine:HostPath=$PWD/src/Cathode.Host/bin/Release/net11.0/cathode-host.dll
 ```
 
 Measure an impulse response: a sine sweep plays on outputs 1 and 2, input 1 records, and the trimmed IR is written as a WAV. The desktop app's IRs page runs the same command:

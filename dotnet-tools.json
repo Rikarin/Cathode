@@ -7,7 +7,7 @@
       "commands": [
         "skala"
       ],
-      "rollForward": false
+      "rollForward": true
     }
   }
 }

@@ -113,7 +113,7 @@ microphone names belong to their owners and are used only to say which equipment
 
 | Folder | What's in it |
 |---|---|
-| [`engine/`](engine) | The C# (.NET 10) engine: the DSP library, the NativeAOT real-time host (`cathode-host`), the ASP.NET Core server (`cathode-server`, REST and WebSocket API), the native audio and NAM shims (`engine/native`), tests and tools. See [engine/README.md](engine/README.md). |
+| [`engine/`](engine) | The C# (.NET 11) engine: the DSP library, the NativeAOT real-time host (`cathode-host`), the ASP.NET Core server (`cathode-server`, REST and WebSocket API), the native audio and NAM shims (`engine/native`), tests and tools. See [engine/README.md](engine/README.md). |
 | [`editor/`](editor) | The Angular editor and the Electron desktop app (an Nx workspace). See [editor/README.md](editor/README.md). |
 | [`website/`](website) | The project's website: an Angular page prerendered to static HTML. See [website/README.md](website/README.md). |
 | [`packaging/`](packaging) | The headless rig package: build script, installer and systemd services. |
@@ -125,7 +125,7 @@ of parameters and pages) and that drives the DSP, the API's validation, the edit
 
 ### Build
 
-You need the .NET 10 SDK, Node with pnpm, and CMake with a C and C++20 compiler (on Linux, also `libasound2-dev`).
+You need the .NET 11 SDK, Node with pnpm, and CMake with a C and C++20 compiler (on Linux, also `libasound2-dev`).
 
 ```bash
 cd engine && native/build.sh && dotnet build -c Release

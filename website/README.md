@@ -46,7 +46,7 @@ every route it prerendered (`tools/postbuild.mjs`), so a new prerendered page is
 - `src/app/content.ts`: every list on the home page (amp families, block groups, platforms). Keep it in step with the README
   and `docs/07-amp-catalogue.md` and `docs/08-blocks-parity.md`.
 - `src/app/catalog/`: the `/catalog` page's data. `engine.generated.ts` is written by `pnpm catalog` (needs the
-  .NET 10 SDK), which reads the engine's block registry: every block and its types, the drive and wah circuits with
+  .NET 11 SDK), which reads the engine's block registry: every block and its types, the drive and wah circuits with
   what each is modelled after, and the Cab block's speakers, microphones and cabinets. Run it after the engine gains a
   block, a type or a model, and commit the result. What each amp is based on is kept by hand in `amp-models.ts` from
   `docs/07-amp-catalogue.md`; a model missing there shows under "Other". The home page's counts come from here too.
@@ -54,7 +54,7 @@ every route it prerendered (`tools/postbuild.mjs`), so a new prerendered page is
   order in `guide/chapters.ts`; its block reference has one `blocks/<typeId>.ts` per block, which says what the block
   and each of its knobs do (`types.ts` is the shape of both). Everything else about a knob (its name, range, default,
   unit, page, choices, and its name on each Amp model) is read from the engine into `engine-params.generated.ts` by
-  `pnpm manual` (needs the .NET 10 SDK); run it when a block gains or changes a parameter, and commit the result.
+  `pnpm manual` (needs the .NET 11 SDK); run it when a block gains or changes a parameter, and commit the result.
   The `website` workflow fails when either generated file differs from what the engine writes, when a knob has no
   description or an editor keyboard shortcut is missing from the keyboard-shortcuts chapter (`manual:check --strict`),
   when a file is not formatted, or when the prerendered build fails.

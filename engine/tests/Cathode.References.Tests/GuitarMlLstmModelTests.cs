@@ -70,8 +70,8 @@ public class GuitarMlLstmModelTests {
         };
 
         var input = Signals.Concat(Signals.Sine(220, 44_100, 2_000, 0.5f), Signals.Noise(2_000, 9, 0.8f));
-        using var model = GuitarMlLstmModel.Parse(JsonDocument.Parse(proteus.ToJsonString()).RootElement);
-        using var aida = AidaModel.Parse(JsonDocument.Parse(keras.ToJsonString()).RootElement);
+        using var model = GuitarMlLstmModel.Parse(JsonElement.Parse(proteus.ToJsonString()));
+        using var aida = AidaModel.Parse(JsonElement.Parse(keras.ToJsonString()));
         var expected = new float[input.Length];
         aida.Process(input, expected); // no Reset: it would pre-warm, and the PyTorch runner starts from zero state
 
@@ -119,7 +119,7 @@ public class GuitarMlLstmModelTests {
                               "rec.bias_ih_l0": [0, 0, 0, 0], "rec.bias_hh_l0": [0, 0, 0, 0],
               """
             + """ "lin.weight": [[1]], "lin.bias": [0]}}""";
-        using var model = GuitarMlLstmModel.Parse(JsonDocument.Parse(json).RootElement);
+        using var model = GuitarMlLstmModel.Parse(JsonElement.Parse(json));
 
         Assert.Throws<ArgumentException>(() => model.SetConditioning([]));
         model.SetConditioning([0.5]);

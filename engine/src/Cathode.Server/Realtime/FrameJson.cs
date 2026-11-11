@@ -34,7 +34,7 @@ public static class FrameJson {
         return options;
     }
 
-    static JsonTypeInfo<T> Info<T>() => (JsonTypeInfo<T>)Options.GetTypeInfo(typeof(T));
+    static JsonTypeInfo<T> Info<T>() => Options.GetTypeInfo<T>();
 
     sealed class FiniteSingle : JsonConverter<float> {
         public override float Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>

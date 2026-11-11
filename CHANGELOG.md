@@ -174,6 +174,8 @@ The fixes below came out of a second full audit of the code (issues #163 to #356
   so it reacts to your guitar as the real amp did. The new **Calibrated Input** switch is on by default. Presets with
   such a capture now drive it at the calibrated level: at the default 1 V calibration a file made at +12 dBu gets
   about 13 dB less drive than before. Turn the switch off, or raise **Input**, for the old drive.
+- **The engine runs on .NET 11** (SDK 11.0.100, runtime and ASP.NET Core 11.0.0): the self-contained server and the
+  NativeAOT host carry the .NET 11 runtime, and building from source needs the .NET 11 SDK.
 
 ### Internal
 

@@ -1,12 +1,12 @@
 {
-  "openapi": "3.1.1",
+  "openapi": "3.2.0",
   "info": {
     "title": "cathode-server | v1",
     "version": "1.0.0"
   },
   "servers": [
     {
-      "url": "http://localhost/"
+      "url": "http://localhost"
     }
   ],
   "paths": {
@@ -6679,34 +6679,25 @@
   },
   "tags": [
     {
-      "name": "cathode-server"
-    },
-    {
       "name": "Assets"
-    },
-    {
-      "name": "Catalog"
-    },
-    {
-      "name": "Live"
-    },
-    {
-      "name": "Presets"
-    },
-    {
-      "name": "Block Library"
-    },
-    {
-      "name": "Library"
-    },
-    {
-      "name": "Setlists"
     },
     {
       "name": "Banks"
     },
     {
+      "name": "Block Library"
+    },
+    {
+      "name": "Catalog"
+    },
+    {
       "name": "Global"
+    },
+    {
+      "name": "Library"
+    },
+    {
+      "name": "Live"
     },
     {
       "name": "Looper"
@@ -6715,10 +6706,19 @@
       "name": "MIDI"
     },
     {
+      "name": "Presets"
+    },
+    {
+      "name": "Setlists"
+    },
+    {
       "name": "Snapshots"
     },
     {
       "name": "Templates"
+    },
+    {
+      "name": "cathode-server"
     }
   ]
 }

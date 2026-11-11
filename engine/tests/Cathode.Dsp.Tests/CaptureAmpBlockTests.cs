@@ -22,7 +22,7 @@ public class CaptureAmpBlockTests : IDisposable {
     [InlineData("gru", 2, false)]
     public void Aida_model_matches_a_reference_evaluation_of_the_keras_layout(string type, int depth, bool skip) {
         var spec = SyntheticModel.Create(type, 8, depth, skip, 7);
-        using var model = AidaModel.Parse(JsonDocument.Parse(spec.Json).RootElement);
+        using var model = AidaModel.Parse(JsonElement.Parse(spec.Json));
         var input = Signals.Noise(2_000, 3, 0.5f);
 
         var actual = new float[input.Length];
@@ -40,7 +40,7 @@ public class CaptureAmpBlockTests : IDisposable {
     public void Aida_metadata_sets_loudness_and_input_gain() {
         var json = SyntheticModel.Create("lstm", 4, 1, false, 1).Json.TrimEnd('}')
             + ""","in_gain":-6.5,"out_gain":4,"samplerate":44100}""";
-        using var model = AidaModel.Parse(JsonDocument.Parse(json).RootElement);
+        using var model = AidaModel.Parse(JsonElement.Parse(json));
 
         Assert.Equal(-22, model.Loudness);
         Assert.Equal(-6.5, model.InputGainDb);
@@ -76,9 +76,7 @@ public class CaptureAmpBlockTests : IDisposable {
 
     [Fact]
     public void Processing_does_not_allocate() {
-        using var model = AidaModel.Parse(
-            JsonDocument.Parse(SyntheticModel.Create("lstm", 16, 1, true, 2).Json).RootElement
-        );
+        using var model = AidaModel.Parse(JsonElement.Parse(SyntheticModel.Create("lstm", 16, 1, true, 2).Json));
         var buffer = Signals.Noise(64, 1);
 
         var bytes = AllocationProbe.Measure(() => model.Process(buffer, buffer), () => model.Process(buffer, buffer));
@@ -112,10 +110,8 @@ public class CaptureAmpBlockTests : IDisposable {
     [InlineData(true)]
     public void Aida_in_gain_scales_the_input_before_the_layers_and_the_skip(bool skip) {
         var spec = SyntheticModel.Create("lstm", 8, 1, skip, 11);
-        using var plain = AidaModel.Parse(JsonDocument.Parse(spec.Json).RootElement);
-        using var gained = AidaModel.Parse(
-            JsonDocument.Parse(spec.Json.TrimEnd('}') + ""","in_gain":-6}""").RootElement
-        );
+        using var plain = AidaModel.Parse(JsonElement.Parse(spec.Json));
+        using var gained = AidaModel.Parse(JsonElement.Parse(spec.Json.TrimEnd('}') + ""","in_gain":-6}"""));
         var input = Signals.Noise(2_000, 4, 0.5f);
         var scaled = input.Select(static x => x * (float)Decibels.ToGain(-6.0)).ToArray();
 
