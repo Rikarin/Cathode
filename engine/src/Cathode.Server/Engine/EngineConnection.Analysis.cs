@@ -97,10 +97,24 @@ public sealed partial class EngineConnection {
             return;
         }
 
+        var levels = RtaLevels(rtaSpectrum, rtaWindow, settings, region.SampleRate);
+        rtaLevels = levels;
+        hub.PublishFrame(
+            "rta",
+            new("rta", settings.Frequencies, levels, fromBlock ? "block" : "output"),
+            FrameJson.RtaFrame
+        );
+    }
+
+    /// <summary>
+    ///     The band levels of one window in dBFS (a full-scale sine reads 0), no lower than −120, and no lower than
+    ///     the last frame's less the decay.
+    /// </summary>
+    float[] RtaLevels(PowerSpectrum spectrum, float[] window, RtaSettings settings, double sampleRate) {
         var centers = settings.Centers;
-        rtaSpectrum.Clear();
-        var levels = rtaSpectrum.AddFrame(rtaWindow)
-            ? FractionalOctave.Bands(rtaSpectrum.Mean(), region.SampleRate, centers, settings.BandsPerOctave)
+        spectrum.Clear();
+        var levels = spectrum.AddFrame(window)
+            ? FractionalOctave.Bands(spectrum.Mean(), sampleRate, centers, settings.BandsPerOctave)
             : [..centers.Select(static _ => -200f)];
 
         // A full-scale sine: power N/4 in its bin (window-normalised), so shift by 10 log10(N/2) and the sine's 3 dB.
@@ -118,12 +132,7 @@ public sealed partial class EngineConnection {
             }
         }
 
-        rtaLevels = levels;
-        hub.PublishFrame(
-            "rta",
-            new("rta", settings.Frequencies, levels, fromBlock ? "block" : "output"),
-            FrameJson.RtaFrame
-        );
+        return levels;
     }
 
     sealed class RtaSettings(int bandsPerOctave, float decayMs, SpectrumWindow window) {

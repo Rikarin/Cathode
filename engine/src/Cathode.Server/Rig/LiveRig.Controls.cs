@@ -104,28 +104,43 @@ public sealed partial class LiveRig {
 
         var errors = new List<string>();
         foreach (var m in modifiers) {
-            var block = blocks.GetValueOrDefault(m.Block);
-            var descriptor = block is null ? null : catalog.Descriptor(block.Type);
-            var engage = m.Param == ModNames.EngageParam && block is not null && !BuiltInTypes.IsBuiltIn(block.Type);
-            if (descriptor is null || (!engage && descriptor.IndexOf(m.Param) < 0)) {
-                errors.Add($"No parameter '{m.Param}' on block '{m.Block}'.");
-            } else if (!ModNames.TryParseSource(m.Source, out _)) {
-                errors.Add($"Unknown modifier source '{m.Source}'.");
-            } else if (!ModNames.TryParseCurve(m.Curve, out _)) {
-                errors.Add($"Unknown curve '{m.Curve}'.");
-            } else if (ShapeErrors(m) is { } shapeProblem) {
-                errors.Add(shapeProblem);
-            } else if (EngageErrors(m) is { } problem) {
+            if (ModifierError(m, blocks.GetValueOrDefault(m.Block)) is { } problem) {
                 errors.Add(problem);
-            } else if (m.Channel is { } scope
-                       && Preset.ChannelNames.IndexOf(scope) is var index
-                       && (index < 0 || index >= descriptor.Channels)) {
-                errors.Add($"Block '{m.Block}' has no channel '{scope}'.");
             }
         }
 
         errors.AddRange(CountErrors(modifiers));
         return errors;
+    }
+
+    /// <summary>
+    ///     The first thing wrong with a modifier on <paramref name="block" /> (null when its block does not exist), or
+    ///     null.
+    /// </summary>
+    string? ModifierError(PresetModifier m, PresetBlock? block) {
+        var descriptor = block is null ? null : catalog.Descriptor(block.Type);
+        var engage = m.Param == ModNames.EngageParam && block is not null && !BuiltInTypes.IsBuiltIn(block.Type);
+        if (descriptor is null || (!engage && descriptor.IndexOf(m.Param) < 0)) {
+            return $"No parameter '{m.Param}' on block '{m.Block}'.";
+        }
+
+        if (!ModNames.TryParseSource(m.Source, out _)) {
+            return $"Unknown modifier source '{m.Source}'.";
+        }
+
+        if (!ModNames.TryParseCurve(m.Curve, out _)) {
+            return $"Unknown curve '{m.Curve}'.";
+        }
+
+        if ((ShapeErrors(m) ?? EngageErrors(m)) is { } problem) {
+            return problem;
+        }
+
+        return m.Channel is { } scope
+            && Preset.ChannelNames.IndexOf(scope) is var index
+            && (index < 0 || index >= descriptor.Channels)
+                ? $"Block '{m.Block}' has no channel '{scope}'."
+                : null;
     }
 
     /// <summary>What is wrong with a modifier's second source, operation or response settings, or null.</summary>
