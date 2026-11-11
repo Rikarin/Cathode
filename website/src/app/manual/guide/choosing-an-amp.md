@@ -23,9 +23,9 @@ The classic clean platform: scooped mids, sparkling top, and plenty of headroom 
 
 ### Later Fenders
 
-**Hot Rod Deluxe**, **Blues Junior**, **Vibro-King**.
+**Hot Rod Deluxe**, **Blues Junior**, **Pro Junior**, **Vibro-King**.
 
-More gain and a master volume. The Hot Rod Deluxe has a clean channel (**Normal Ch**) and a drive channel with **More Drive**.
+More gain and a master volume. The Hot Rod Deluxe has a clean channel (**Normal Ch**) and a drive channel with **More Drive**. The Pro Junior is the exception: two knobs, **Volume** and **Tone**, no master and no tone stack, so the Volume alone sets how hard its two EL84s are driven, and Tone goes from dark to very bright.
 
 ### Marshall: the early amps
 

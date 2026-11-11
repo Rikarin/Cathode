@@ -41,6 +41,7 @@ export const AMP_MODELS: Record<string, { family: AmpFamily; basedOn: string }> 
   'Vibro-King': { family: 'fender', basedOn: 'Fender Vibro-King' },
   'Hot Rod Deluxe': { family: 'fender', basedOn: 'Fender Hot Rod Deluxe III' },
   'Blues Junior': { family: 'fender', basedOn: 'Fender Blues Junior' },
+  'Pro Junior': { family: 'fender', basedOn: 'Fender Pro Junior' },
   'Scout GA-17RVT': { family: 'fender', basedOn: 'Gibson Scout GA-17RVT' },
 
   // Marshall and British

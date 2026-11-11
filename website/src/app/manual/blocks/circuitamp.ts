@@ -679,6 +679,7 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'Princeton AA964': 'Fender blackface-era Princeton AA964 (no reverb).',
       'Vibro-King': 'Fender Vibro-King with its optical vibrato and Fat switch.',
       'Blues Junior': 'Fender Blues Junior III: small EL84 combo with a Fat switch.',
+      'Pro Junior': 'Fender Pro Junior: 15 W EL84 combo with only Volume and Tone, and no master.',
       'BE-100': 'Friedman BE-100, BE channel: hot-rodded Marshall crunch and lead, with Sat, C45 and Voice switches.',
       'BE-100 HBE': "The BE-100's HBE channel: more gain.",
       'Silver Jubilee': 'Marshall Silver Jubilee 2555, with its rhythm clip and lead modes.',

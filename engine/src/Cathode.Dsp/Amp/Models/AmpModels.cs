@@ -114,6 +114,7 @@ public sealed partial record AmpDesign {
         SvtClassic.Design,
         Gk800Rb.Design,
         OrangeGraphic.Design,
-        OrangeGraphic.Or80
+        OrangeGraphic.Or80,
+        ProJunior.Design
     ];
 }
