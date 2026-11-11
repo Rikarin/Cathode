@@ -54,7 +54,7 @@ Leave a few dB of headroom in *Level*; a Cab block after the amp removes them.
   Mark IIC+ Rhythm), Mark IV (and its clean and crunch channels, Mark IV Rhythm 1 and Rhythm 2), Mark V (and its
   channels 1 and 2, Mark V Clean and Mark V Crunch), TriAxis, Legacy VL100, Powerball, Savage 120 (and Savage 120
   Clean, its clean and first crunch channel), Prometheus.
-- **Bass:** SVT (and its second channel, SVT Channel 2), Portaflex B-15N (and both its channels jumpered, Portaflex B-15N Jumped), Bassman 135, Bass 400.
+- **Bass:** SVT (and its second channel, SVT Channel 2), SVT-CL, Portaflex B-15N (and both its channels jumpered, Portaflex B-15N Jumped), Bassman 135, Bass 400.
 - **Solid state:** JC-120 and Valvestate 8080 (a tube preamp into a transistor power amp). Their tube-only knobs are
   hidden.
 
@@ -220,8 +220,8 @@ rectifiers instead of silicon: more sag), *Crunch* on the SLO-100's normal chann
 (a bass boost), *Bite Up* on the Prometheus, *Preshape* on the Savage 120 Clean (it takes the signal past the
 clean channel's shaping network: much louder and fuller, and it overdrives sooner), *Gain Hi* on the Powerball (the amp's Gain Lo/Hi button: the hotter Hi Lead in the lead channel, Crunch in place of
 Clean in channel 1), *Mark IV Mode* on
-the Mark V, *C45* on the BE-100, *Rhythm Clip* on the Silver Jubilee, *Ultra Lo* on the SVT and B-15. It switches the
-same parts the real switch does.
+the Mark V, *C45* on the BE-100, *Rhythm Clip* on the Silver Jubilee, *Ultra Lo* on the SVT, SVT-CL and B-15. It
+switches the same parts the real switch does.
 
 Where the amp has one three-position switch, the model shows its two outer positions as two switches and both off is
 the middle position: *Bite Up* and *Bite Down* on the Prometheus, *Ultra Lo* and *Bass Cut* on the SVT, *IIC+ Mode*
@@ -232,7 +232,8 @@ once, so with both on the model takes the second of each pair as named here and 
     switch3: `A model's third switch, where it has one: *Spongy* on the Rectifiers (a lower supply voltage, modelled as
 90 % mains, for a softer, saggier feel), *Bass Shift* on the Mark IIC+, *Bite Down* on the Prometheus, *Mid Gain*
 on the Mark IV (the amp's Harmonics / Mid Gain switch; off is Harmonics), *Bright* on the Mark V, *Bass Cut* on the
-SVT, *Voice* on the BE-100, *Low Power* on the Silver Jubilee, *Tone Shift* on the DSL100, *3rd Gear* on the Quick Rod,
+SVT, *-15 dB Input* on the SVT-CL (the padded jack, for active or hot basses), *Voice* on the BE-100, *Low Power* on
+the Silver Jubilee, *Tone Shift* on the DSL100, *3rd Gear* on the Quick Rod,
 *Smooth* on the Savage 120 (its second lead voice: less gain into the tone stack and one more tube stage after it, so
 the sound is rounder and the tone knobs do less; off is Rough), *Channel 1* on the Powerball (its Clean and Crunch
 channel, chosen by *Gain Hi*, with its own gain, tone stack and *Bright*; off is the lead channel), *Crunch 1* on the
@@ -243,7 +244,9 @@ on.`,
     control1: `A model's own extra knob, where it has one: a second volume (*Normal Vol* on Plexis and Bassmans,
 *Mic Vol* on the Tweed Deluxe, *Loudness 2*, *Volume II*), a lead drive (*Lead Drive* on the Mark IIC+ and IV,
 *Lead 1 Drive*, *Overdrive*, *Drive*), a channel master (*R1 Master* and *R2 Master* on the Mark IV's rhythm
-channels), an output level after the masters (*Output* on the Rect-o-Verb), or a tone control (*Edge* on the Hot Cat, *Mid Freq* on the SVT, *Hi Treble*
+channels), an output level after the masters (*Output* on the Rect-o-Verb), or a tone control (*Edge* on the Hot Cat, *Mid Freq* on the SVT, *Frequency* on the SVT-CL (the
+five-position switch that sets where *Middle* works: 220 Hz, 450 Hz, 800 Hz, 1.6 kHz or 3 kHz, at 0, 2.5, 5, 7.5 and
+10), *Hi Treble*
 on the JC-120, *Mid Focused* on the Powerball, *Cut* on the Prometheus, a low cut before its gain stages), or a
 second gain (*Crunch 1 Gain* on the Savage 120 Clean, shown with *Crunch 1* on). On jumped
 Plexi-style amps the two volumes blend the bright and normal channels. On the Quick Rod it is the *Solo Boost*, which
@@ -647,6 +650,8 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       SVT: 'Ampeg SVT, channel one: the classic tube bass amp, with its Mid-Range and Mid Freq, Ultra Hi, Ultra Lo and Bass Cut.',
       'SVT Channel 2':
         'Ampeg SVT, channel two: the plainer channel, Volume, Bass and Treble with Ultra Hi and Ultra Lo and no midrange controls. With Ultra Lo off its volume network cuts the lows, as on the amp.',
+      'SVT-CL':
+        'Ampeg SVT-CL (SVT Classic): the 1990s SVT, with Gain and Master, Ultra Hi and Ultra Lo, a five-position midrange Frequency switch and the -15 dB input.',
       'Portaflex B-15N': 'Ampeg B-15N Portaflex: warm, round vintage bass. One channel: its two are the same circuit.',
       'Portaflex B-15N Jumped':
         'Ampeg B-15N Portaflex with a cable from channel one to channel two, so both play. Each channel has its own controls: Volume 1, Bass 1, Treble 1, Ultra Hi 1 and Ultra Lo 1; Volume 2 (Control 1), Bass 2 (the Middle knob), Treble 2 (Control 2), Ultra Hi 2 (the Bright switch) and Ultra Lo 2 (Switch 3). Set one channel deep and the other bright and blend them with the volumes.',

@@ -88,9 +88,9 @@ The JC-120 is a glassy, very clean transistor amp: no breakup, so effects stay p
 
 ### Bass and others
 
-**SVT** and its second channel, **SVT Channel 2**, **Portaflex B-15N** and **Portaflex B-15N Jumped** (both its channels at once), **Bassman 135**, **Bass 400**, and the small Gibson **Scout GA-17RVT**.
+**SVT** and its second channel, **SVT Channel 2**, **SVT-CL**, **Portaflex B-15N** and **Portaflex B-15N Jumped** (both its channels at once), **Bassman 135**, **Bass 400**, and the small Gibson **Scout GA-17RVT**.
 
-Bass amps work on guitar too: the SVT and Bass 400 make thick, heavy crunch; the Portaflex is warm and round.
+The SVT is the 1970 amp; the SVT-CL is the version made since the 1990s, with a Gain and a Master, so it can be driven at any volume, and five midrange frequencies instead of three. Bass amps work on guitar too: the SVT, SVT-CL and Bass 400 make thick, heavy crunch; the Portaflex is warm and round.
 
 ## The front panel
 

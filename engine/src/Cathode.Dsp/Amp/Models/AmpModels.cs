@@ -110,6 +110,7 @@ public sealed partial record AmpDesign {
         Evh5150III.CleanCrunch,
         Savage120.Clean,
         Svt.ChannelTwo,
-        PortaflexB15.Jumped
+        PortaflexB15.Jumped,
+        SvtClassic.Design
     ];
 }

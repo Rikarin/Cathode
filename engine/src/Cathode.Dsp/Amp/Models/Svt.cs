@@ -84,7 +84,7 @@ public static class Svt {
         "SVT",
         [
             InputStage("V1A"), FollowerStage(), VolumeStage(), ToneStack(), MidrangeLoop(), OutputStage(false),
-            ClampStage()
+            AmpegParts.Clamp(100e3, 1e3, NewtonTolerance)
         ],
         Power(),
         -5
@@ -112,7 +112,7 @@ public static class Svt {
     /// </summary>
     public static AmpDesign ChannelTwo { get; } = new(
         "SVT Channel 2",
-        [InputStage("V2A"), ChannelTwoVolumeStage(), OutputStage(true), ClampStage()],
+        [InputStage("V2A"), ChannelTwoVolumeStage(), OutputStage(true), AmpegParts.Clamp(100e3, 1e3, NewtonTolerance)],
         Power(),
         -5
     ) {
@@ -381,22 +381,6 @@ public static class Svt {
         net.Triode(rail, grid, cathode, TriodeModel.Ecc82);
         net.Output = cathode;
         return new("V5", net) { MaxIterations = 64, Tolerance = NewtonTolerance };
-    }
-
-    /// <summary>
-    ///     The follower's 0.1 µF out with 100k, and the power amp's input: 1k into antiparallel silicon diodes to
-    ///     ground and its 470k leak. Out at the power amp's first grid.
-    /// </summary>
-    static NetworkStageDesign ClampStage() {
-        var net = new StageNetlist();
-        var (output, clamp) = (net.Node(), net.Node());
-        net.Capacitor(net.Input, output, 0.1e-6);
-        net.Resistor(output, StageNetlist.Ground, 100e3);
-        net.Resistor(output, clamp, 1e3);
-        net.Diodes(clamp, StageNetlist.Ground, DiodeModel.Silicon, 1, 1);
-        net.Resistor(clamp, StageNetlist.Ground, 470e3);
-        net.Output = clamp;
-        return new("Clamp", net) { Tolerance = NewtonTolerance };
     }
 
     /// <summary>The capacitance that resonates with <see cref="MidInductor" /> at <paramref name="hertz" />.</summary>

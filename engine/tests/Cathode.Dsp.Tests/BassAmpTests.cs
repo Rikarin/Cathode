@@ -16,6 +16,7 @@ public partial class AmpStageTests {
         new() {
             { "SVT", 0.001, -30 },
             { "SVT Channel 2", 0.001, -30 },
+            { "SVT-CL", 0.001, -30 },
             { "Portaflex B-15N", 0.01, -30 },
             { "Portaflex B-15N Jumped", 0.01, -30 },
             { "JC-120", 0.02, -40 }
