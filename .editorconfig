@@ -45,6 +45,11 @@ dotnet_diagnostic.SK7083.severity = none
 [engine/src/Cathode.Contracts/ContractsJsonContext.cs]
 dotnet_diagnostic.SK7081.severity = none
 
+# The amp model registry (AmpDesign.All) names every amp model's class, one line per model, as the list a model's saved
+# index is taken from: its type coupling (SK7081) is the number of models, and splitting it would only split that list.
+[engine/src/Cathode.Dsp/Amp/Models/AmpModels.cs]
+dotnet_diagnostic.SK7081.severity = none
+
 # The DSP library: a per-sample kernel or a circuit solver is one routine per algorithm on purpose (the hot path stays
 # inline and allocation-free, and it reads against the circuit or the paper it implements), and a circuit is one file.
 # Splitting them buys nothing a reader of the schematic wants, and every split is a re-verification against the
