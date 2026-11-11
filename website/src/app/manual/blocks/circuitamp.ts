@@ -48,7 +48,8 @@ Leave a few dB of headroom in *Level*; a Cab block after the amp removes them.
 - **Smooth, vocal overdrive:** ODS 97, ODS 70s, Cornford MK50H II, Lone Star, Subway Blues.
 - **Hot-rodded British and modern rock:** Silver Jubilee, JCM900 4100 and 4502, DSL100, JVM410H, BE-100 and
   BE-100 HBE, AFD100, Quick Rod, Laney GH100L, Hot Rod Deluxe.
-- **High gain:** SLO-100, 5150, 5150III (and its clean and crunch channels, 5150III Clean/Crunch), Dual Rectifier and
+- **High gain:** SLO-100, 5150, 6505+ (and its rhythm channel, 6505+ Rhythm), 5150III (and its clean and crunch
+  channels, 5150III Clean/Crunch), Dual Rectifier and
   Dual Rectifier 3-Ch (each with its other channels: Dual Rectifier Orange, Dual Rectifier 3-Ch Orange and Clean),
   Triple Rectifier (with Triple Rectifier Orange and Clean), Rect-o-Verb, Mark IIC+ (and its clean rhythm channel,
   Mark IIC+ Rhythm), Mark IV (and its clean and crunch channels, Mark IV Rhythm 1 and Rhythm 2), Mark V (and its
@@ -121,7 +122,8 @@ as well as treble.`,
 below its corner frequency (at 10, down to a tenth of the stock amount), so the power amp's gain and its
 interaction with the speaker load rise in the bass: more thump and chest. It is on the models whose originals have a
 resonance or depth control (*Resonance* on the 5150s, Cornford and JVM, *Depth Punch* on the Powerball, *Depth Boost*
-on the Savage). At 0 the feedback is stock. The DSL100's *Deep* is a switch, as on the amp: see *Bright*.`,
+on the Savage). At 0 the feedback is stock. On the 6505+ it is the amp's own network, a 1M pot with a cap across
+it in series with the feedback resistor: at 10 the feedback below about 500 Hz falls to a twenty-fourth. The DSL100's *Deep* is a switch, as on the amp: see *Bright*.`,
 
     cut: `The Vox-style cut control (AC30, AC15, DC-30): a pot and cap across the phase inverter's outputs that shunt
 treble away before the power tubes. Turning it **up** removes more treble (it works backwards to a treble knob). Use it
@@ -213,6 +215,8 @@ Each switches the real components on the model's schematic. Some worth knowing:
   master and *Output* is the amp's Output control after the effects loop's tube stage.
 - **TriAxis, *Yellow*:** with *Red* (Switch 2), the preamp's mode switches.
 - **AFD100, *AFD*:** off is the #34 mode, on is AFD.
+- **6505+ Rhythm, *Crunch*:** takes the pad ahead of the rhythm channel's first stage out, about 20 dB more gain:
+  the clean channel becomes a crunch channel. *Bright* is the channel's own switch.
 - **JC-120, *Distortion On*:** the effect channel's distortion (on the real amp, the switch at the bottom of the
   Distortion pot's travel, and the footswitch): the *Distortion* knob (Control 2) and the diode clipper ahead of the
   tone stack come in. Off, as the amp is usually played, the knob does nothing and is not shown.
@@ -625,6 +629,10 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
         'Mesa/Boogie Mark IIC+ rhythm channel: the same amp without the lead circuit, clean to a light break-up, with the five-band EQ.',
       '5150':
         'Peavey 5150 lead channel: aggressive high gain, tight and bright. Switch 1 for the rhythm channel with its Crunch and Bright switches.',
+      '6505+':
+        "Peavey 5150 II (6505+) lead channel, from the factory drawing: tighter in the low end than the 5150, with the amp's own presence and resonance networks.",
+      '6505+ Rhythm':
+        'Peavey 5150 II (6505+) rhythm channel: a bright, scooped clean, and a crunch channel with Crunch (Switch 1) on.',
       'Dual Rectifier':
         'Mesa/Boogie Dual Rectifier (two-channel, 1993), red channel, with Modern, Tube Rectifier and Spongy switches. Thick, saturated modern high gain.',
       '5150III':

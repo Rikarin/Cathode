@@ -116,6 +116,8 @@ public sealed partial record AmpDesign {
         OrangeGraphic.Design,
         OrangeGraphic.Or80,
         ProJunior.Design,
-        ChampAA764.Design
+        ChampAA764.Design,
+        Peavey6505Plus.Design,
+        Peavey6505Plus.Rhythm
     ];
 }
