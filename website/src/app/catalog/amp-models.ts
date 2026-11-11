@@ -85,6 +85,7 @@ export const AMP_MODELS: Record<string, { family: AmpFamily; basedOn: string }> 
   // Vox, class A and boutique
   AC30: { family: 'boutique', basedOn: 'Vox AC30 Top Boost (and the Normal channel)' },
   AC15: { family: 'boutique', basedOn: 'Vox AC15 (EF86)' },
+  AC15C1: { family: 'boutique', basedOn: 'Vox AC15C1 (Custom)' },
   'DC-30': { family: 'boutique', basedOn: 'Matchless DC-30' },
   Chieftain: { family: 'boutique', basedOn: 'Matchless Chieftain' },
   'Hot Cat 30': { family: 'boutique', basedOn: 'Bad Cat Hot Cat 30' },

@@ -129,6 +129,7 @@ public sealed partial record AmpDesign {
         RandallRG100ES.Design,
         Supro1624T.Design,
         Thunderbolt.Design,
-        Silvertone1484.Design
+        Silvertone1484.Design,
+        AC15C1.Design
     ];
 }

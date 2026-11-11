@@ -40,31 +40,23 @@ public static class DC30 {
                 [Ef86()]
             )
         ],
-        new(
+        VoxParts.PowerAmp(
             "4 x EL84",
-            PentodeModel.EL84,
             2,
             350,
-            100,
             0.04,
-            true,
+            62,
             250e-6,
             30,
-            new LongTailPairDesign(TriodeModel.Ecc83, 308, 100e3, 100e3, 47e3, 1.2e3),
+            308,
+            0.01e-6,
             0.047e-6,
-            220e3,
-            1.5e3,
             2.2e-9,
-            new(250e3, PotTaper.ReverseAudio), // log track, its resistance falling fastest as the cut comes in
-            new(1, 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6),
-            false,
-            new(4e3),
+            4e3,
             SpeakerDesign.OpenBack2x12,
             // The 22k droppers from the 338 V screen node to the stages' 308-320 V: about 1 mA as one node.
             new(60, 33e-6, 120, 33e-6, 22e3, 33e-6, 1e-3, RectifierModel.GZ34),
-            InverterInput: new(0.01e-6, 1e6),
-            ShuntMaster: new Pot(1e6, PotTaper.Audio),
-            CathodeResistor: 62
+            shuntMaster: new Pot(1e6, PotTaper.Audio)
         ),
         -8
     ) {
