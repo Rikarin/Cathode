@@ -27,7 +27,8 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
         "Princeton AA964",
         "Vibro-King",
         "Blues Junior",
-        "Pro Junior"
+        "Pro Junior",
+        "Champ AA764"
     ];
 
     public static TheoryData<string> Models => [..Names];
@@ -140,6 +141,74 @@ public class FenderUsAmpTests(ITestOutputHelper output) {
     public void The_princetons_output_transformer_is_the_125A10Bs_8500_ohms(string model) {
         Assert.Equal(8.5e3, Design(model).Power.Transformer.PlateToPlate);
         Assert.Equal(6.6e3, Design("Deluxe Reverb").Power.Transformer.PlateToPlate);
+    }
+
+    /// <summary>
+    ///     The Champ AA764 against the voltages on Fender's drawing, which gives them to within 20 %: V1A's plate 200 V
+    ///     and cathode 1.8 V, V1B's plate 205 V, the 12AX7's node 330 V, and the 6V6 with 350 V on its screen and 19 V
+    ///     on its 470 Ω cathode resistor (40 mA).
+    /// </summary>
+    [Fact]
+    public void The_champ_aa764_rests_at_the_drawings_voltages() {
+        var channel = new AmpChannel(Design("Champ AA764"), 96_000);
+        var first = (ToneStackStage)channel.Stages[0];
+        var power = channel.Power;
+        output.WriteLine(
+            $"V1A plate {first.RestDriven:0.0} V, cathode {first.RestCathode:0.00} V; V1B plate "
+            + $"{channel.Stages[1].RestOutput:0.0} V; B+ {power.Supply:0.0} V, screen {power.ScreenSupply:0.0} V, "
+            + $"preamp {power.PreampVoltage:0.0} V; 6V6 cathode {power.CathodeVoltage:0.0} V across "
+            + $"{power.CathodeResistor:0} Ω, {power.PlateCurrents.A * 1e3:0.0} mA plate"
+        );
+        Assert.Equal(200, first.RestDriven, 0.2 * 200);
+        Assert.Equal(1.8, first.RestCathode, 0.2 * 1.8);
+        Assert.Equal(205, channel.Stages[1].RestOutput, 0.2 * 205);
+        Assert.Equal(330, power.PreampVoltage, 0.1 * 330);
+        Assert.Equal(350, power.ScreenSupply, 0.1 * 350);
+        Assert.Equal(470, power.CathodeResistor, 6);
+        Assert.Equal(19, power.CathodeVoltage, 0.2 * 19);
+    }
+
+    /// <summary>
+    ///     The Champ AA764's stack is the blackface one with 15k under the bass pot where the Princeton has 6.8k, so
+    ///     its mid scoop is shallower: with the tone knobs at noon, 500 Hz sits closer to 100 Hz than on the Princeton
+    ///     AA964.
+    /// </summary>
+    [Fact]
+    public void The_champ_aa764s_15k_fills_the_mids_the_princetons_6k8_scoops() {
+        Assert.Equal(30e3, ((ToneStackStageDesign)Design("Champ AA764").Preamp[0]).Stack.Middle.Ohms);
+        Assert.Equal(13.6e3, ((ToneStackStageDesign)Design("Princeton AA964").Preamp[0]).Stack.Middle.Ohms);
+        var champ = Tilt("Champ AA764", 500, 100, (CircuitAmpBlock.Bass, 5f));
+        var princeton = Tilt("Princeton AA964", 500, 100, (CircuitAmpBlock.Bass, 5f));
+        output.WriteLine($"500 Hz over 100 Hz: Champ AA764 {champ:0.0} dB, Princeton AA964 {princeton:0.0} dB");
+        Assert.True(champ > princeton + 1);
+    }
+
+    /// <summary>
+    ///     The Champ AA764's power amp is the 5F1's 6V6 stage on the AA764 drawing's supply (360 V on 20 µF, 1k, 10k)
+    ///     and feedback (2.7k from the speaker into the 47 Ω under V1B's cathode); the panel is Volume, Treble and
+    ///     Bass, with nothing else on it.
+    /// </summary>
+    [Fact]
+    public void The_champ_aa764_has_the_drawings_supply_feedback_and_panel() {
+        var design = Design("Champ AA764");
+        var (power, tweed) = (design.Power, Design("Champ 5F1").Power);
+        Assert.Equal(PowerTopology.SingleEnded, power.Topology);
+        Assert.Equal(360, power.Supply);
+        Assert.Equal((20e-6, 1e3, 20e-6, 10e3, 20e-6), Chain(power.PowerSupply));
+        Assert.Equal((16e-6, 10e3, 8e-6, 22e3, 8e-6), Chain(tweed.PowerSupply));
+        Assert.Same(RectifierModel.FiveY3, power.PowerSupply.Rectifier);
+        Assert.Equal((2.7e3, 47), (power.Feedback.FeedbackResistor, power.Feedback.ShuntResistor));
+        Assert.Equal(
+            (tweed.CathodeResistor, tweed.CathodeBypass, tweed.CouplingCap, tweed.GridLeak),
+            (power.CathodeResistor, power.CathodeBypass, power.CouplingCap, power.GridLeak)
+        );
+
+        var panel = design.Panel;
+        Assert.Equal(("Volume", "Bass", "Treble"), (panel.Gain, panel.Bass, panel.Treble));
+        Assert.Null(panel.Middle ?? panel.Presence ?? panel.Master ?? panel.Bright ?? panel.TremoloRate);
+
+        static (double, double, double, double, double) Chain(PowerSupplyDesign supply) =>
+            (supply.Reservoir, supply.ChokeResistance, supply.ScreenCap, supply.PreampResistance, supply.PreampCap);
     }
 
     /// <summary>

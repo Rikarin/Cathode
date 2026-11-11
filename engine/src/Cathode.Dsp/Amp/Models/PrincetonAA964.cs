@@ -92,19 +92,28 @@ public static class PrincetonAA964 {
     /// </summary>
     static NetworkStageDesign SecondStage() {
         var net = new StageNetlist();
+        var plate = FeedbackTriode(net, 290);
+        var output = net.Node();
+        net.Capacitor(plate, output, 22e-9);
+        net.Resistor(output, StageNetlist.Ground, 10e6);
+        net.Output = output;
+        return new("V1B", net);
+    }
+
+    /// <summary>
+    ///     V1B as the AA964 and the Champ AA764 (<see cref="ChampAA764" />) draw it: 100k from
+    ///     <paramref name="supply" />, 1.5k ‖ 25 µF above the 47 Ω the feedback returns to, with its grid-plate
+    ///     capacitance; its grid is the netlist's input. Returns the plate's node.
+    /// </summary>
+    internal static int FeedbackTriode(StageNetlist net, double supply) {
         var (plate, cathode, feedback, rail) = (net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(rail, 290);
+        net.Supply(rail, supply);
         net.Resistor(rail, plate, 100e3);
         net.CathodeResistor(cathode, feedback, 1.5e3);
         net.Capacitor(cathode, feedback, 25e-6);
         net.Resistor(feedback, StageNetlist.Ground, 47);
         net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
         net.Capacitor(net.Input, plate, Ab763.GridPlate);
-
-        var output = net.Node();
-        net.Capacitor(plate, output, 22e-9);
-        net.Resistor(output, StageNetlist.Ground, 10e6);
-        net.Output = output;
-        return new("V1B", net);
+        return plate;
     }
 }

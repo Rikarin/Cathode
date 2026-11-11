@@ -48,6 +48,7 @@ public class SpeakerLoadTests(ITestOutputHelper output) {
         }
 
         Assert.Same(SpeakerDesign.OpenBack1x8, Design("Champ 5F1").Power.Speaker);
+        Assert.Same(SpeakerDesign.OpenBack1x8, Design("Champ AA764").Power.Speaker);
         Assert.Same(SpeakerDesign.OpenBack1x15, Design("Vibroverb AB763").Power.Speaker);
         Assert.True(SpeakerDesign.OpenBack1x10.Resonance > SpeakerDesign.OpenBack1x12.Resonance);
         Assert.True(SpeakerDesign.OpenBack1x8.Resonance > SpeakerDesign.OpenBack1x10.Resonance);

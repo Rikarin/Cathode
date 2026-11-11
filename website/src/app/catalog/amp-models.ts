@@ -33,6 +33,7 @@ export const AMP_MODELS: Record<string, { family: AmpFamily; basedOn: string }> 
   'Tweed Twin 5F8-A': { family: 'fender', basedOn: 'Fender high-power Tweed Twin 5F8-A' },
   'Tweed Twin 5F8-A Jumped': { family: 'fender', basedOn: 'Fender Tweed Twin 5F8-A, channels jumpered' },
   'Champ 5F1': { family: 'fender', basedOn: 'Fender Champ 5F1 (tweed)' },
+  'Champ AA764': { family: 'fender', basedOn: 'Fender Champ AA764 (blackface and silverface)' },
   'Princeton 5F2-A': { family: 'fender', basedOn: 'Fender Princeton 5F2-A (tweed)' },
   'Concert 6G12': { family: 'fender', basedOn: 'Fender Concert 6G12 (brownface)' },
   'Super 6G4': { family: 'fender', basedOn: 'Fender Super 6G4 (brownface)' },
