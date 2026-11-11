@@ -136,8 +136,8 @@ import { UiStore } from '../state/ui.store';
             <xui-select
               class="w-full"
               [aria-labelledby]="labelId()"
-              [filterable]="false"
-              [items]="options()"
+              [filterable]="searchable()"
+              [items]="listed()"
               [value]="options()[shown()] ?? null"
               (valueChange)="set(Math.max(0, options().indexOf($event ?? '')))"
             />
@@ -209,6 +209,11 @@ export class ParamControl {
   readonly accent = input<string | null>(null);
   /** `rack` lines controls up as knob-sized cells; `sidebar` stacks a choice as a label over a full-width select. */
   readonly variant = input<'rack' | 'sidebar'>('rack');
+  /**
+   * The sidebar's select lists its choices alphabetically with a filter field above them, for a long list such as the
+   * amp's types. The value still maps to the engine's own order.
+   */
+  readonly searchable = input(false);
   /** Emits each value the user sets, after it has gone to the live rig (the Cab panel unmutes an edited slot). */
   readonly edited = output<number>();
 
@@ -218,6 +223,12 @@ export class ParamControl {
     return this.live.valueOf(block, this.live.channelOf(block.id), this.param().id) ?? this.param().default;
   });
   protected readonly options = computed(() => this.param().options ?? []);
+  /** The choices as the select lists them: {@link options}, sorted by name when {@link searchable}. */
+  protected readonly listed = computed(() =>
+    this.searchable()
+      ? [...this.options()].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
+      : this.options()
+  );
   protected readonly Math = Math;
 
   protected readonly editing = signal(false);

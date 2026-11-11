@@ -10,6 +10,8 @@ The fixes below came out of a second full audit of the code (issues #163 to #356
 
 ### Added
 
+- Editor: the amp's Type list is in alphabetical order and has a filter field: type part of a name to find a model
+  among the hundred and more.
 - Editor: the access token no longer stays in the browser's address bar once it is remembered; Settings ▸ Audio setup
   ▸ Home Screen shortcut puts it there on request for a shortcut or bookmark that opens signed in (#189).
 - Docs: the ODS 70s model's notes and the amp catalogue state that the source drawings show no Master volume, so the
