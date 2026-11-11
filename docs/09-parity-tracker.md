@@ -340,6 +340,7 @@ These were reported as left over or deliberately deferred, and are not assigned 
 | Mesa Rectifier orange channels and channels 1–2 | ⬜ | |
 | Cornford MK50H II second master | ⬜ | |
 | Tiny Terror post-inverter master and grid-side tone | ⬜ | Both are still the library's stand-ins (`TinyTerror.cs`): the Volume is the shunt master across the inverter's outputs, not the dual pot after the coupling caps, and the Tone is the cut across the inverter's plates, not across the grids after the Volume. Since #96 that cut is wired as the amp's Tone, on the Presence knob and named Tone (up is brighter); it is no longer labelled "Cut" |
+| Orange OR120 / OR80 HF Drive on V2A's own degeneration | ⬜ | The Boost's branch (1k pot, 2 mH, 0.47 µF across V2A's 1k5) acts on the feedback only (`OrangeGraphic.cs`): a loop stage's cathode resistance is fixed, so the knob lifts the treble less than the amp's. Needs the cathode's impedance as a filter inside the power amp's solve (`LoopStage`). The choke is left out too (#359) |
 | Valvestate current feedback | ⬜ | |
 | JCM900 Output Power Select; 4100 US (4 × 5881) | ⬜ | |
 | Real OT primaries for the brownface/Bassman/Scout models | ⏸ | Need measurements or datasheets |

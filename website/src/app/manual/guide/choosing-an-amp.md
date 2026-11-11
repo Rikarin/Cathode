@@ -41,9 +41,9 @@ A master volume and more preamp gain: hard rock, classic metal, punk. The JCM800
 
 ### Other British amps
 
-**Hiwatt DR103**, **Hiwatt DR504**, **Laney GH100L**, **Cornford MK50H II**, **Tiny Terror**.
+**Hiwatt DR103**, **Hiwatt DR504**, **Laney GH100L**, **Cornford MK50H II**, **Tiny Terror**, **OR120**, **OR80**.
 
-Hiwatts are loud, clean and firm, with huge headroom and a tight low end: big chords that only break up when hit hard. The Laney GH100L sits between a Marshall and a modern high-gain amp. The Tiny Terror is a small, simple, mid-forward crunch amp.
+Hiwatts are loud, clean and firm, with huge headroom and a tight low end: big chords that only break up when hit hard. The Laney GH100L sits between a Marshall and a modern high-gain amp. The Tiny Terror is a small, simple, mid-forward crunch amp. The OR120 and OR80 are the 1970s Orange Graphic heads: no master volume, a Bass and Treble pair, the six-position **FAC** bass cut and the **HF Drive**, which adds gain and bite; thick and fuzzy when turned up.
 
 ### Vox and class A
 

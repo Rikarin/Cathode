@@ -12,7 +12,7 @@ namespace Cathode.Dsp.Tests;
 ///     stage and tone stack inside the feedback loop.
 /// </summary>
 public partial class AmpStageTests {
-    public static TheoryData<string> DriverPowerAmps => ["Major 1967", "Major 1967 open loop", "Bass 400"];
+    public static TheoryData<string> DriverPowerAmps => ["Major 1967", "Major 1967 open loop", "Bass 400", "OR120"];
 
     /// <summary>
     ///     The bias tremolo hook (<see cref="PowerAmpDesign.BiasTremolo" />) acts after the inverter, on the grid
@@ -206,7 +206,8 @@ public partial class AmpStageTests {
     /// <summary>
     ///     The power amps whole against the reference, with a stiff supply: the Major's V2A, tone stack, cathodyne,
     ///     ECC82 pair and ultralinear KT88s with the feedback into V2A's cathode (and without it); the Bass 400's two
-    ///     differential stages and six 6550.
+    ///     differential stages and six 6550; the Orange Graphic's V2A with its 1000 pF, cathodyne and four EL34 with the
+    ///     feedback into V2A's cathode.
     /// </summary>
     [Theory]
     [MemberData(nameof(DriverPowerAmps))]
@@ -216,6 +217,11 @@ public partial class AmpStageTests {
             "Major 1967" => (MarshallMajor.Design.Power with { PowerSupply = stiff }, 0.3),
             "Major 1967 open loop" => (MarshallMajor.Design.Power with { PowerSupply = stiff, HasFeedback = false },
                 0.1),
+            // The HF Drive's branch is out: the loop stage keeps V2A's cathode on the whole 1k5 (see OrangeGraphic).
+            "OR120" => (
+                OrangeGraphic.Design.Power with {
+                    PowerSupply = stiff, Feedback = OrangeGraphic.Design.Power.Feedback with { PresenceCap = 1e-12 }
+                }, 0.3),
             _ => (MesaBass400.Design.Power with { PowerSupply = stiff }, 0.05)
         };
         var controls = new AmpControls(0.5, 0.7, 0.4, 0.6, 1, false);

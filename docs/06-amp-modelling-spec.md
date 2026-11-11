@@ -749,6 +749,35 @@ machine at a load average of 150–210, where the Plexi read 8.4–10.7 / 15.0�
   every triode of the clean chains clips on loud noise), and the JVM's Orange/Red and the JMP-1's OD a little over the
   high-gain guitar budget; no solver shortcut was tried (each needs a −60 dB golden comparison).
 
+**As built (#359, Orange Graphic Mk II).** Two types appended to `AmpDesign.All`, **OR120** and **OR80**
+(`OrangeGraphic.cs`), from the factory drawing "Orange Amplifier Graphic MK II, 120 Watt" of 1972 (schematicheaven
+`orange_mkii1972.pdf`) and B. Hickmott's 2004 redraw of it (`orange_graphic_mkii_or120.pdf`):
+- **Preamp**: 68k into V1A (220k, 2k2 with 50 µF); 0.068 µF onto a Baxandall network (100k, the 1M-A Bass with 2200 pF
+  and 0.022 µF, 22k; 1500 pF, the 1M-A Treble, 0.01 µF; 100k between the wipers) and the 1M-A Volume with 330 pF from
+  its top to its wiper; V1B (220k, 2k2 with 50 µF); 0.068 µF and the six-way FAC, which adds 4700 pF, 4700 pF, 2200 pF,
+  1000 pF and 330 pF in series step by step (`SelectedCapacitor` on Control 1; into the 320k after it the corners are 7,
+  113, 219, 445, 942 and 2440 Hz); 100k into V2A's grid with 220k to ground.
+- **Power amp**: V2A (100k with 1000 pF, 1k5 unbypassed) is inside the feedback loop (`PowerAmpDesign.Loop`, as the
+  Major's V2A), 15k from the 16 Ω tap to its cathode; V2B is a plain cathodyne (`CathodyneDesign`: 100k, 1k5 over 100k),
+  0.068 µF to 220k bias feeds, 2k4 stoppers, 1k screen resistors, four EL34 (OR120) or two (OR80, by the 1973 sheet's
+  note). The HF Drive (the drawing's Boost: a 1k-B pot, 2 mH and 0.47 µF in series across the 1k5) is the feedback's
+  presence branch without the choke, on the Presence knob.
+- **Rails** from the 1974 Musonic sheet's boxed readings (the 1972 drawing has none; same choke, 33k, 33k chain): 470 V
+  at the screens, 370 V at V2, 330 V at V1, as a two-node `PreampSupplyDesign`. The model's V1A plate rests at 175 V
+  (sheet 170 V) and the cathodyne's at 274 V (275 V).
+- **Guessed**: 480 V at the plates (the reading at A is illegible), 35 mA an EL34 (the library EL34 needs −46 V for it,
+  the sheet says −37 V), both output transformers (1.7k and 3.4k plate to plate), the FAC's direction (full range at 0).
+- **Simplified**: the HF Drive acts on the feedback only. In the amp its branch also lowers V2A's own degeneration, so
+  the amp's knob lifts the treble more than the model's (11 dB at 2.5 kHz in the model from 0 to 10). The loop stage
+  would need the cathode's impedance as a filter in the power amp's solve. V2A draws no grid current. One input; the
+  echo send and return are open.
+- **Later sheets** (1973, 1974) give V2A a 390k plate resistor and 2k2 stoppers; not built.
+- **Validation**: the preamp chain against the reference simulator −58 dB (2 mV) and −52 dB (50 mV)
+  (`British_vintage_chains_match_the_reference`); the power amp with V2A in the loop −30 dB closed loop and −46 dB open
+  loop, the HF Drive's branch out (`Driver_power_amps_match_the_reference_in_the_time_domain`, whose reference circuit
+  now takes a plain cathodyne behind a loop stage); panels, sweeps, audible controls, monotonic gain, the FAC's steps
+  and the HF Drive in `BritishVintageAmpTests`.
+
 ### 3.3 Vox and class-A boutique
 
 **AC30 Top Boost** — https://www.ampbooks.com/mobile/classic-circuits/vox-ac30/, https://www.voxac30.org.uk/vox_ac30_top_boost_circuit.html (JMI OS/010 drawing images on that site)

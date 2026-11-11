@@ -112,6 +112,8 @@ public sealed partial record AmpDesign {
         Svt.ChannelTwo,
         PortaflexB15.Jumped,
         SvtClassic.Design,
-        Gk800Rb.Design
+        Gk800Rb.Design,
+        OrangeGraphic.Design,
+        OrangeGraphic.Or80
     ];
 }
