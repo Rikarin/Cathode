@@ -91,3 +91,39 @@ test('each scene recalls the channel and bypass state of every block', async ({ 
   await drive.click();
   await expect(editor.knob('Drive')).toHaveAttribute('aria-valuenow', '9');
 });
+
+test('a finger’s double tap on a knob opens its value field, and the field stays open to type in', async ({
+  window,
+  editor
+}) => {
+  await editor.addBlock(2, 2, 'Delay');
+  const knob = editor.knob('Mix');
+  const box = await knob.boundingBox();
+  if (!box) {
+    throw new Error('The Mix knob is not on the page');
+  }
+
+  // Real touches through the browser, which also sends each tap's compatibility mouse events and click.
+  const session = await window.context().newCDPSession(window);
+  await session.send('Emulation.setTouchEmulationEnabled', { enabled: true });
+  const point = { x: Math.round(box.x + box.width / 2), y: Math.round(box.y + box.height / 2) };
+  const tap = async () => {
+    await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [point] });
+    await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  };
+  const before = await knob.getAttribute('aria-valuenow');
+  await tap();
+  await tap();
+
+  const field = window.getByRole('textbox', { name: 'Mix value' });
+  await expect(field).toBeFocused();
+  // Still open and focused once the browser has sent everything that follows a tap.
+  await window.waitForTimeout(500);
+  await expect(field).toBeFocused();
+  await expect(knob).toHaveAttribute('aria-valuenow', before ?? '');
+
+  await field.fill('80');
+  await field.press('Enter');
+  await expect(knob).toHaveAttribute('aria-valuenow', '80');
+  await session.send('Emulation.setTouchEmulationEnabled', { enabled: false });
+});

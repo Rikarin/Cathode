@@ -85,6 +85,16 @@ test.describe('when on', () => {
       }
 
       expect(await frames).toBeGreaterThan(0);
+
+      // A browser may keep ⌘1–8 and ⌘T for its own tabs, so the bare keys do the same there: 2 is scene 2, on both
+      // editors, and T opens the tuner.
+      await tablet.getByRole('grid', { name: 'Signal grid' }).press('2');
+      for (const page of [tablet, window]) {
+        await expect(page.getByRole('radiogroup', { name: 'Scene' }).getByRole('radio', { name: '2' })).toBeChecked();
+      }
+
+      await tablet.getByRole('grid', { name: 'Signal grid' }).press('t');
+      await expect(tablet.getByRole('dialog', { name: 'Tuner' })).toBeVisible();
     } finally {
       await browser.close();
     }

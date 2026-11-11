@@ -206,11 +206,14 @@ for (const line of readFileSync(join(manual, 'guide', 'keyboard-shortcuts.md'), 
 
   const keys = listed.get(group) ?? new Set();
   listed.set(group, keys);
-  // "⌘1 to ⌘8" lists every digit between; "A, B, C, D" and "Delete or ⌫" list each key.
-  const range = /^(\S*?)(\d) to \1(\d)$/.exec(cell);
-  const parts = range
-    ? Array.from({ length: range[3] - range[2] + 1 }, (_, i) => `${range[1]}${Number(range[2]) + i}`)
-    : cell.split(/, | or /);
+  // "A, B, C, D" and "Delete or ⌫" list each key; "⌘1 to ⌘8" lists every digit between, and so does each side of
+  // "⌘1 to ⌘8 or 1 to 8".
+  const parts = cell.split(/, | or /).flatMap(part => {
+    const range = /^(\S*?)(\d) to \1(\d)$/.exec(part);
+    return range
+      ? Array.from({ length: range[3] - range[2] + 1 }, (_, i) => `${range[1]}${Number(range[2]) + i}`)
+      : [part];
+  });
   for (const part of parts) {
     const mods = [...part].filter(
       (char, i) => modifiers.includes(char) && [...part].slice(0, i).every(c => modifiers.includes(c))

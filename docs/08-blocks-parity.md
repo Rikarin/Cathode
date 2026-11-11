@@ -1030,6 +1030,7 @@ These come from Fractal's software-editor documentation rather than the Blocks G
     - ⌥ held or F1 shows Block Info.
   - Other: ⌘T tuner, ⌘Y redo.
   - `?` lists every shortcut.
+  - Bare-key aliases for the keys a browser may keep for itself: T (tuner), L (Preset Leveling), 1–8 (scenes), PgUp/PgDn (presets) and ⇧PgUp/⇧PgDn (songs).
   - ⌘L opens Preset Leveling and ⌘I resets the channel (the PS stream's dialog and endpoint). Every preset change from the keyboard or the pickers asks before discarding unsaved edits.
 - **Preferences:** knob mode (linear or circular), wheel (normal, reverse or off), tooltips, meter refresh rate, and the default Circuit Amp view.
 - **Preset commands:** revert to saved, clear (with a confirmation), one-click timestamped snapshots kept on the Server, and templates (save as, new from).

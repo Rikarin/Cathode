@@ -47,9 +47,9 @@ From left to right:
 Under the navigation bar is a second bar for the preset you are playing.
 
 - **Compare A / B:** two versions of the preset to switch between while you tweak. Click **B** to start a second version from the current one, change it, then flick between **A** and **B** to compare. Both keep their edits until you load another preset.
-- **Scene 1 to 8:** click to switch scenes, or press ⌘1 to ⌘8.
+- **Scene 1 to 8:** click to switch scenes, or press ⌘1 to ⌘8 (or just 1 to 8).
 - **The preset and scene display:** two lines, each with up and down arrows.
-  - The top line shows the preset's number (its slot in its bank) and name. A dot after the name means unsaved changes. Click it (or press **P**) to open the preset picker. The arrows step to the next or previous preset (⌘PgDn, ⌘PgUp).
+  - The top line shows the preset's number (its slot in its bank) and name. A dot after the name means unsaved changes. Click it (or press **P**) to open the preset picker. The arrows step to the next or previous preset (⌘PgDn and ⌘PgUp, or PgDn and PgUp).
   - Beside it, the **bank** the preset is in (**No bank** for a preset loaded from a setlist or kept in no bank). Click it to choose another bank: its first preset loads, and the arrows go on through that bank. See [Next and previous](/manual/presets-and-scenes#loading-presets).
   - The bottom line shows the scene's number and name. Click the name to rename the scene. The arrows step through the eight scenes.
 - **Recent presets:** the clock icon lists the last presets you loaded in this editor.

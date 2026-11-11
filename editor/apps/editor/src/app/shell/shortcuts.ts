@@ -15,6 +15,16 @@ export interface Shortcut {
   mod?: boolean;
   shift?: boolean;
   alt?: boolean;
+  /**
+   * The command this is a second binding of: the key runs that command's handler, and the shortcut list shows it on
+   * that command's row ("⌘T or T").
+   */
+  aliasOf?: string;
+  /**
+   * On an alias: the binding to name in a browser, where the command's own key may never reach the page (see
+   * {@link Shortcuts}). Such an alias is a bare key, which a browser always delivers.
+   */
+  browser?: boolean;
 }
 
 export type ShortcutGroup = 'Presets' | 'Scenes' | 'Channels' | 'Blocks' | 'Grid' | 'Edit' | 'Other';
@@ -37,6 +47,16 @@ const scenes: Shortcut[] = [1, 2, 3, 4, 5, 6, 7, 8].map(n => ({
   mod: true
 }));
 
+/** The scenes again on the bare digits: a browser may keep ⌘1–8 or Ctrl+1–8 for its own tabs. */
+const sceneAliases: Shortcut[] = [1, 2, 3, 4, 5, 6, 7, 8].map(n => ({
+  id: `scene${n}Alias`,
+  group: 'Scenes',
+  label: `Scene ${n}`,
+  code: `Digit${n}`,
+  aliasOf: `scene${n}`,
+  browser: true
+}));
+
 const channels: Shortcut[] = ['A', 'B', 'C', 'D'].map(c => ({
   id: `channel${c}`,
   group: 'Channels',
@@ -44,12 +64,20 @@ const channels: Shortcut[] = ['A', 'B', 'C', 'D'].map(c => ({
   key: c.toLowerCase()
 }));
 
+/** The fields of a bare-key alias a browser delivers for command `id`, whose own key the browser may keep. */
+function browserAlias(id: string): Pick<Shortcut, 'aliasOf' | 'browser'> {
+  return { aliasOf: id, browser: true };
+}
+
 /**
  * Every shortcut, in the order the help overlay lists them. They clash neither with each other (a test checks) nor
  * with the desktop app's menu, which is Electron's default (⌘C/⌘V/⌘X/⌘A edit, ⌘R reload, ⌘W, ⌘M, ⌘Q, ⌥⌘I).
  *
  * The editor also runs in a plain browser (a headless rig, an iPad), which keeps some keys for itself and never hands
- * them to the page: ⌘T/Ctrl+T (new tab) for certain. A command bound to such a key needs an alias a browser delivers.
+ * them to the page: ⌘T/Ctrl+T (new tab) for certain, and, depending on the browser and the system, the keys that
+ * switch its tabs (Ctrl+PgUp/PgDn, ⌘1–8 or Ctrl+1–8) and ⌘L/Ctrl+L (the address bar). Each command bound to such a
+ * key has an alias on a bare key (`aliasOf`, `browser`), which no browser keeps: T, L, 1–8, and PgUp/PgDn (with ⇧ for
+ * songs). The aliases work in the desktop app too; in a browser the tooltips name them ({@link hintedShortcut}).
  */
 export const Shortcuts: readonly Shortcut[] = [
   { id: 'presetPicker', group: 'Presets', label: 'Open the preset picker (a name, or a bank slot number)', key: 'p' },
@@ -57,11 +85,37 @@ export const Shortcuts: readonly Shortcut[] = [
   { id: 'presetNext', group: 'Presets', label: 'Next preset', key: 'PageDown', mod: true },
   { id: 'songPrevious', group: 'Presets', label: 'Previous setlist song', key: 'PageUp', mod: true, shift: true },
   { id: 'songNext', group: 'Presets', label: 'Next setlist song', key: 'PageDown', mod: true, shift: true },
+  {
+    id: 'presetPreviousAlias',
+    group: 'Presets',
+    label: 'Previous preset',
+    key: 'PageUp',
+    ...browserAlias('presetPrevious')
+  },
+  { id: 'presetNextAlias', group: 'Presets', label: 'Next preset', key: 'PageDown', ...browserAlias('presetNext') },
+  {
+    id: 'songPreviousAlias',
+    group: 'Presets',
+    label: 'Previous setlist song',
+    key: 'PageUp',
+    shift: true,
+    ...browserAlias('songPrevious')
+  },
+  {
+    id: 'songNextAlias',
+    group: 'Presets',
+    label: 'Next setlist song',
+    key: 'PageDown',
+    shift: true,
+    ...browserAlias('songNext')
+  },
   { id: 'reload', group: 'Presets', label: 'Reload the preset', key: 'F5' },
   { id: 'save', group: 'Presets', label: 'Save', key: 's', mod: true },
   { id: 'saveAs', group: 'Presets', label: 'Save as…', key: 's', mod: true, shift: true },
   { id: 'level', group: 'Presets', label: 'Preset Leveling', key: 'l', mod: true },
+  { id: 'levelAlias', group: 'Presets', label: 'Preset Leveling', key: 'l', ...browserAlias('level') },
   ...scenes,
+  ...sceneAliases,
   ...channels,
   { id: 'channelNext', group: 'Channels', label: 'Next channel on the selected block', key: 'x' },
   { id: 'channelReset', group: 'Channels', label: 'Reset the channel', key: 'i', mod: true },
@@ -80,13 +134,13 @@ export const Shortcuts: readonly Shortcut[] = [
   { id: 'cable', group: 'Grid', label: 'Cable from the block (then the arrows and ↵; Esc cancels)', key: 'k' },
   { id: 'selectCable', group: 'Grid', label: 'Select the next cable of the block', key: 'k', shift: true },
   { id: 'remove', group: 'Grid', label: 'Remove the block or cable', key: 'Delete' },
-  { id: 'removeBackspace', group: 'Grid', label: 'Remove (alias)', key: 'Backspace' },
+  { id: 'removeBackspace', group: 'Grid', label: 'Remove the block or cable', key: 'Backspace', aliasOf: 'remove' },
   { id: 'undo', group: 'Edit', label: 'Undo', key: 'z', mod: true },
   { id: 'redo', group: 'Edit', label: 'Redo', key: 'z', mod: true, shift: true },
-  { id: 'redoAlias', group: 'Edit', label: 'Redo (alias)', key: 'y', mod: true },
+  { id: 'redoAlias', group: 'Edit', label: 'Redo', key: 'y', mod: true, aliasOf: 'redo' },
   { id: 'tuner', group: 'Other', label: 'Tuner', key: 't', mod: true },
   // A browser keeps ⌘T/Ctrl+T for a new tab and never hands it to the page, so the tuner has a bare key as well.
-  { id: 'tunerAlias', group: 'Other', label: 'Tuner (alias; the one that works in a browser)', key: 't' },
+  { id: 'tunerAlias', group: 'Other', label: 'Tuner', key: 't', ...browserAlias('tuner') },
   { id: 'mute', group: 'Other', label: 'Mute or unmute every output', key: 'm' },
   { id: 'clearClips', group: 'Other', label: 'Reset every clip light', key: 'k', mod: true },
   { id: 'settings', group: 'Other', label: 'Settings', key: ',', mod: true },
@@ -143,6 +197,29 @@ export function shortcutHint(id: string, mac = isMac()): string {
 
   const shift = shortcut.shift && shortcut.key !== '?';
   return `${shortcut.alt ? '⌥' : ''}${shift ? '⇧' : ''}${shortcut.mod ? '⌘' : ''}${keyName(shortcut)}`;
+}
+
+/**
+ * The binding of command `id` to name in a tooltip or a menu: its own in the desktop app (`window.cathode`); in a
+ * plain browser, which may keep that key for itself, the bare-key alias when the command has one.
+ */
+export function hintedShortcut(id: string, desktop = typeof window !== 'undefined' && !!window.cathode): string {
+  return desktop ? id : (Shortcuts.find(s => s.aliasOf === id && s.browser)?.id ?? id);
+}
+
+/**
+ * The commands of a group as the shortcut list shows them: a row per command, with the keys of each of its bindings
+ * (its own first, then its aliases).
+ */
+export function shortcutRows(
+  group: ShortcutGroup,
+  mac = isMac()
+): { id: string; label: string; bindings: string[][] }[] {
+  return Shortcuts.filter(s => s.group === group && !s.aliasOf).map(s => ({
+    id: s.id,
+    label: shortcutLabel(s, mac),
+    bindings: [s, ...Shortcuts.filter(alias => alias.aliasOf === s.id)].map(binding => shortcutKeys(binding, mac))
+  }));
 }
 
 /** A shortcut's label for the shortcut list: a modifier it mentions (⌥) reads as the platform names it. */
@@ -237,7 +314,7 @@ export function yieldsToControl(shortcut: Shortcut): boolean {
  * that never touch the preset (mute is the panic button). Every other shortcut acts on the rig behind the dialog, where
  * the user cannot see what it did, so it waits until the dialog is closed.
  */
-const WithDialogOpen: ReadonlySet<string> = new Set(['tuner', 'tunerAlias', 'settings', 'help', 'mute', 'clearClips']);
+const WithDialogOpen: ReadonlySet<string> = new Set(['tuner', 'settings', 'help', 'mute', 'clearClips']);
 
 /** Whether a modal dialog (Settings, the Tuner, a confirmation…) is open: xUI marks its overlay pane `aria-modal`. */
 export function isDialogOpen(target: EventTarget | null): boolean {
@@ -271,11 +348,14 @@ export function findShortcut(
   );
 }
 
-/** A shortcut's keys by its id, for a tooltip or a menu item: `'save' | cthShortcut` is "⌘S", or "Ctrl+S" off macOS. */
+/**
+ * A command's keys by its id, for a tooltip or a menu item: `'save' | cthShortcut` is "⌘S", or "Ctrl+S" off macOS. In
+ * a browser it is the key the browser delivers: `'tuner' | cthShortcut` is "T" there ({@link hintedShortcut}).
+ */
 @Pipe({ name: 'cthShortcut' })
 export class ShortcutHint implements PipeTransform {
   transform(id: string): string {
-    return shortcutHint(id);
+    return shortcutHint(hintedShortcut(id));
   }
 }
 
@@ -291,7 +371,7 @@ export class ShortcutService {
   readonly blockInfo = signal(false);
   readonly altHeld = signal(false);
 
-  /** Registers handlers by shortcut id; returns a function that removes them again. */
+  /** Registers handlers by command id (an alias runs its command's handler); returns a function that removes them. */
   register(handlers: Record<string, () => void>): () => void {
     for (const [id, handler] of Object.entries(handlers)) {
       this.handlers.set(id, handler);
@@ -318,17 +398,19 @@ export class ShortcutService {
     }
 
     const shortcut = findShortcut(event);
+    // An alias is another key for its command: the command's handler, and the command's rules.
+    const command = shortcut?.aliasOf ?? shortcut?.id;
     if (shortcut && yieldsToControl(shortcut) && controlTakesKey(event.target, event.key)) {
       return false; // Space on a focused button presses it; it does not bypass the selected block
     }
 
-    if ((shortcut?.id === 'copy' || shortcut?.id === 'cut') && hasSelectedText(event.target)) {
+    if ((command === 'copy' || command === 'cut') && hasSelectedText(event.target)) {
       return false; // the selected text is what the user means to copy, not the block
     }
 
     // Behind a modal dialog the rig is out of sight: only the shortcuts that are safe there run.
-    const blocked = shortcut && !WithDialogOpen.has(shortcut.id) && isDialogOpen(event.target);
-    const handler = shortcut && !blocked && this.handlers.get(shortcut.id);
+    const blocked = command && !WithDialogOpen.has(command) && isDialogOpen(event.target);
+    const handler = command && !blocked && this.handlers.get(command);
     if (!handler) {
       if (event.metaKey && event.key.toLowerCase() === 'a') {
         event.preventDefault(); // an editor, not a document: select-all would only paint every label blue

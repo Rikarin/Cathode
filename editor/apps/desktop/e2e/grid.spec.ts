@@ -186,3 +186,48 @@ test('a block dragged onto the cable through a shunt joins the signal path, and 
   await expect(window.getByTestId('cable-shunt-r2c3>shunt-r2c4')).toHaveCount(1);
   await expect(window.locator('[data-testid^="cable-drive1"], [data-testid$=">drive1"]')).toHaveCount(0);
 });
+
+test('a block dragged onto another swaps places with it, and each keeps its cables’ place in the chain', async ({
+  window,
+  editor
+}) => {
+  await editor.addBlock(2, 2, 'Drive');
+  await editor.addBlock(2, 3, 'Delay');
+  const drive = editor.block('Drive', 'drive1');
+  const delay = editor.block('Delay', 'delay1');
+  await expect(window.getByTestId('cable-drive1>delay1')).toHaveCount(1);
+
+  await drive.dragTo(delay);
+  await expect(drive).toHaveAccessibleName(/row 3, column 4$/);
+  await expect(delay).toHaveAccessibleName(/row 3, column 3$/);
+  // The chain runs the other way round now: Delay into Drive.
+  await expect(window.getByTestId('cable-delay1>drive1')).toHaveCount(1);
+  await expect(window.getByTestId('cable-drive1>delay1')).toHaveCount(0);
+
+  // Undo puts them back.
+  await window.getByRole('button', { name: 'Undo' }).click();
+  await expect(drive).toHaveAccessibleName(/row 3, column 3$/);
+  await expect(delay).toHaveAccessibleName(/row 3, column 4$/);
+});
+
+test('a block that sums to mono is marked when a stereo effect sits before it', async ({ window, editor }) => {
+  // A Delay spreads left and right; an Amp after it models one channel, so the spread is lost there.
+  await editor.addBlock(2, 2, 'Delay');
+  await expect(window.getByTestId('mono-hint')).toHaveCount(0);
+  await editor.addBlock(2, 3, 'Amp');
+  const hint = editor.block('Amp', 'circuitamp1').getByTestId('mono-hint');
+  await expect(hint).toHaveText('MONO');
+  await expect(hint).toHaveAccessibleName(
+    /^Sums to mono: the stereo width of Delay \(delay1\) before it is lost here\./
+  );
+
+  // The Delay itself is not marked, and neither is a Drive, which runs left and right through their own circuits.
+  await expect(editor.block('Delay', 'delay1').getByTestId('mono-hint')).toHaveCount(0);
+  await editor.addBlock(2, 4, 'Drive');
+  await expect(window.getByTestId('mono-hint')).toHaveCount(1);
+
+  // With the Delay after the Amp nothing is lost: swap them, and the mark goes.
+  await editor.block('Delay', 'delay1').dragTo(editor.block('Amp', 'circuitamp1'));
+  await expect(editor.block('Amp', 'circuitamp1')).toHaveAccessibleName(/row 3, column 3$/);
+  await expect(window.getByTestId('mono-hint')).toHaveCount(0);
+});

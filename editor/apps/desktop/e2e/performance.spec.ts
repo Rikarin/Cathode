@@ -234,3 +234,102 @@ test('MIDI learn is armed and cancelled, and a footswitch layout gets switches a
   await window.reload();
   await expect(window.getByRole('region', { name: 'Footswitches' }).getByLabel('Switch 1 label')).toHaveValue('Verse');
 });
+
+test('a knob on the global Perform page shows in every preset that has its block', async ({ window, editor }) => {
+  await editor.addBlock(2, 2, 'Delay');
+  await editor.knob('Mix').click({ button: 'right' });
+  await window.getByRole('menuitem', { name: 'Add to the global Perform page' }).click();
+
+  // It is on the Global page, not the preset's.
+  await window.getByRole('link', { name: 'Perform' }).click();
+  const pages = window.getByRole('radiogroup', { name: 'Page' });
+  await expect(window.getByText('Nothing on this page yet')).toBeVisible();
+  await pages.getByRole('radio', { name: 'Global' }).click();
+  const grid = window.getByTestId('perform-grid');
+  await expect(grid.getByRole('toolbar')).toHaveCount(1);
+
+  // Turning it turns the block's knob.
+  const mix = grid.getByRole('slider', { name: /Mix/ });
+  await mix.focus();
+  await mix.press('End');
+  await expect(mix).toHaveAttribute('aria-valuenow', '100');
+  await window.getByRole('link', { name: 'Editor' }).click();
+  await editor.block('Delay', 'delay1').click();
+  await expect(editor.knob('Mix')).toHaveAttribute('aria-valuenow', '100');
+
+  // A preset without that block has nothing to show for it; with the block back, the control is back.
+  window.once('dialog', dialog => void dialog.accept().catch(() => undefined));
+  await window.getByRole('button', { name: 'New preset', exact: true }).click();
+  await expect(editor.block('Delay', 'delay1')).toHaveCount(0);
+  await window.getByRole('link', { name: 'Perform' }).click();
+  await pages.getByRole('radio', { name: 'Global' }).click();
+  await expect(grid.getByRole('slider', { name: /Mix/ })).toHaveCount(0);
+
+  await window.getByRole('link', { name: 'Editor' }).click();
+  await editor.addBlock(2, 2, 'Delay');
+  await window.getByRole('link', { name: 'Perform' }).click();
+  await pages.getByRole('radio', { name: 'Global' }).click();
+  await expect(grid.getByRole('slider', { name: /Mix/ })).toBeVisible();
+
+  // Removed here, it is gone for every preset.
+  await window.getByRole('button', { name: /^Remove .*Mix$/ }).click();
+  await expect(window.getByText('Nothing on this page yet')).toBeVisible();
+});
+
+test('a footswitch goes on to another layout, and the preset gives it an action and a label of its own', async ({
+  window
+}) => {
+  await window.getByRole('link', { name: 'Global' }).click();
+  const footswitches = window.getByRole('region', { name: 'Footswitches' });
+  const active = footswitches.getByRole('combobox', { name: 'Active footswitch layout' });
+
+  // Two layouts; the second, just made, is the active one and gets a switch.
+  await footswitches.getByRole('button', { name: 'New layout' }).click();
+  await expect(active).toContainText('Layout 1');
+  await footswitches.getByRole('button', { name: 'New layout' }).click();
+  await expect(active).toContainText('Layout 2');
+  await footswitches.getByRole('button', { name: 'Add switch' }).click();
+  const switches = footswitches.getByRole('table', { name: 'Footswitches on this view' });
+  await expect(switches.getByLabel('Switch 1 label')).toBeVisible();
+
+  // After its action the switch goes on to Layout 1.
+  const link = switches.getByLabel('Switch 1 layout link').getByRole('combobox');
+  await link.click();
+  await window.getByRole('option', { name: 'Layout 1', exact: true }).click();
+  await expect(link).toContainText('Layout 1');
+
+  // The loaded preset gives the switch its own action: that is an edit to the preset, and it brings a hold action and
+  // a label of its own.
+  await expect(window.getByLabel('unsaved changes')).toHaveCount(0);
+  const own = switches.getByRole('combobox', { name: 'Switch 1 in this preset action' });
+  await own.click();
+  await window.getByRole('option', { name: 'tuner', exact: true }).click();
+  await expect(own).toContainText('tuner');
+  await expect(window.getByLabel('unsaved changes')).toBeVisible();
+  await expect(switches.getByRole('combobox', { name: 'Switch 1 hold in this preset action' })).toBeVisible();
+  const label = switches.getByLabel('In this preset, label of switch 1');
+  await label.fill('Tune');
+  await label.press('Enter');
+
+  // The link is a global setting and the override is in the working copy: both are there after a reload.
+  await window.reload();
+  const reloaded = window.getByRole('region', { name: 'Footswitches' });
+  const linkAgain = reloaded.getByLabel('Switch 1 layout link').getByRole('combobox');
+  await expect(linkAgain).toContainText('Layout 1');
+  await expect(reloaded.getByRole('combobox', { name: 'Switch 1 in this preset action' })).toContainText('tuner');
+  await expect(reloaded.getByLabel('In this preset, label of switch 1')).toHaveValue('Tune');
+
+  // (none) takes the preset's own action away, and its hold action and label with it.
+  await reloaded.getByRole('combobox', { name: 'Switch 1 in this preset action' }).click();
+  await window.getByRole('option', { name: '(none)', exact: true }).click();
+  await expect(reloaded.getByLabel('In this preset, label of switch 1')).toHaveCount(0);
+  await expect(reloaded.getByRole('combobox', { name: 'Switch 1 hold in this preset action' })).toHaveCount(0);
+
+  // Deleting the layout the switch goes on to leaves the switch where it is.
+  await reloaded.getByRole('combobox', { name: 'Active footswitch layout' }).click();
+  await window.getByRole('option', { name: 'Layout 1', exact: true }).click();
+  await window.getByTestId('delete-layout').click();
+  await window.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click();
+  await expect(reloaded.getByRole('combobox', { name: 'Active footswitch layout' })).toContainText('Layout 2');
+  await expect(linkAgain).not.toContainText('Layout 1');
+});
