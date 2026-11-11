@@ -84,11 +84,11 @@ Modern metal and hard rock. The 5150 and 5150III are tight and aggressive, with 
 
 **JC-120** and **Valvestate 8080**.
 
-The JC-120 is a glassy, very clean transistor amp: no breakup, so effects stay pristine. Classic for chorus, new wave, jazz and ambient. The Valvestate 8080 has a tube preamp stage into a solid-state power amp. Tube-only settings (bias, tubes, transformer, speaker load) are not shown on solid-state models.
+The JC-120 is a glassy, very clean transistor amp: no breakup, so effects stay pristine. Its famous chorus is the Chorus block's JC-120 type. Classic for chorus, new wave, jazz and ambient. The Valvestate 8080 has a tube preamp stage into a solid-state power amp. Tube-only settings (bias, tubes, transformer, speaker load) are not shown on solid-state models.
 
 ### Bass and others
 
-**SVT**, **Portaflex B-15N**, **Bassman 135**, **Bass 400**, and the small Gibson **Scout GA-17RVT**.
+**SVT** and its second channel, **SVT Channel 2**, **Portaflex B-15N** and **Portaflex B-15N Jumped** (both its channels at once), **Bassman 135**, **Bass 400**, and the small Gibson **Scout GA-17RVT**.
 
 Bass amps work on guitar too: the SVT and Bass 400 make thick, heavy crunch; the Portaflex is warm and round.
 

@@ -752,7 +752,11 @@ public enum PowerTopology {
 ///     The cathode resistor's bypass cap (cathode bias; per side with separate
 ///     cathodes).
 /// </param>
-/// <param name="RatedPower">Output power at the onset of clipping, in watts (scales the block's output level).</param>
+/// <param name="RatedPower">
+///     Output power at the onset of clipping, in watts. It sizes the output transformer's core where the transformer
+///     names no <see cref="OutputTransformerDesign.SaturationFlux" />: the knee sits at eight times the flux of this
+///     power at 40 Hz.
+/// </param>
 /// <param name="PhaseInverter">The phase inverter driving the output tubes (ignored when single-ended).</param>
 /// <param name="CouplingCap">Phase inverter plates to the power-tube grids.</param>
 /// <param name="GridLeak">Power-tube grid leaks (bias feed).</param>

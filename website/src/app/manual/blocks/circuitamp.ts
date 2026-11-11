@@ -54,7 +54,7 @@ Leave a few dB of headroom in *Level*; a Cab block after the amp removes them.
   Mark IIC+ Rhythm), Mark IV (and its clean and crunch channels, Mark IV Rhythm 1 and Rhythm 2), Mark V (and its
   channels 1 and 2, Mark V Clean and Mark V Crunch), TriAxis, Legacy VL100, Powerball, Savage 120 (and Savage 120
   Clean, its clean and first crunch channel), Prometheus.
-- **Bass:** SVT, Portaflex B-15N, Bassman 135, Bass 400.
+- **Bass:** SVT (and its second channel, SVT Channel 2), Portaflex B-15N (and both its channels jumpered, Portaflex B-15N Jumped), Bassman 135, Bass 400.
 - **Solid state:** JC-120 and Valvestate 8080 (a tube preamp into a transistor power amp). Their tube-only knobs are
   hidden.
 
@@ -89,6 +89,8 @@ low end gets flubby, turn Bass down before reaching for an EQ.`,
     middle: `The tone stack's middle control. On Fender and Marshall stacks it sets the depth of the stack's natural mid
 scoop: at 0 the mids are scooped hardest, at 10 the stack is closest to flat and loudest. Many Fender and Vox amps have
 no middle knob; there the stack's mid resistor is fixed at the stock value.
+
+On the Portaflex B-15N Jumped, which has no middle control, this knob is *Bass 2*, channel two's bass.
 
 On the Powerball this is *Mid Open*, the lead channel's middle pot that works with the Focused switch off (see
 Control 1 and Switch 1); in its channel 1 it is the one middle knob.`,
@@ -642,10 +644,14 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
         'Engl Savage 120, channel 2: the lead, Rough and (Switch 3) Smooth, and Crunch 2 on the Bright switch. Aggressive, mid-forward high gain.',
       'Savage 120 Clean':
         'Engl Savage 120, channel 1: Clean and (Switch 3) Crunch 1, with Bright, Preshape and Contour. A bright, tight clean that Preshape fattens and pushes.',
-      SVT: 'Ampeg SVT: the classic tube bass amp, with Ultra Hi, Ultra Lo and Bass Cut.',
+      SVT: 'Ampeg SVT, channel one: the classic tube bass amp, with its Mid-Range and Mid Freq, Ultra Hi, Ultra Lo and Bass Cut.',
+      'SVT Channel 2':
+        'Ampeg SVT, channel two: the plainer channel, Volume, Bass and Treble with Ultra Hi and Ultra Lo and no midrange controls. With Ultra Lo off its volume network cuts the lows, as on the amp.',
       'Portaflex B-15N': 'Ampeg B-15N Portaflex: warm, round vintage bass. One channel: its two are the same circuit.',
+      'Portaflex B-15N Jumped':
+        'Ampeg B-15N Portaflex with a cable from channel one to channel two, so both play. Each channel has its own controls: Volume 1, Bass 1, Treble 1, Ultra Hi 1 and Ultra Lo 1; Volume 2 (Control 1), Bass 2 (the Middle knob), Treble 2 (Control 2), Ultra Hi 2 (the Bright switch) and Ultra Lo 2 (Switch 3). Set one channel deep and the other bright and blend them with the volumes.',
       'JC-120':
-        'Roland JC-120 Jazz Chorus (chorus and reverb off): a solid-state clean, very flat and bright, with its diode Distortion on Switch 1.',
+        'Roland JC-120 Jazz Chorus (the 1984 one-channel circuit, reverb off): a solid-state clean, very flat and bright, with its diode Distortion on Switch 1. For its chorus, put a [Chorus block](/manual/blocks/chorus) of type JC-120 after the amp and cab.',
       'Hot Rod Deluxe': 'Fender Hot Rod Deluxe, Normal and Drive channels with More Drive.',
       'Champ 5F1': 'Fender tweed Champ 5F1: single-ended, one knob, breaks up almost at once.',
       'Vibroverb AB763': 'Fender Vibroverb AB763 with its optical vibrato.',

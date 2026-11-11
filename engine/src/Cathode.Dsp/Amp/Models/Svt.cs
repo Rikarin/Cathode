@@ -3,7 +3,8 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Ampeg SVT (1970, 6550 version, about 300 W), channel one: the 12DW7 input stage (its 12AX7 half, 220k plate,
+///     Ampeg SVT (1970, 6550 version, about 300 W), channel one (channel two is <see cref="ChannelTwo" />): the 12DW7
+///     input stage (its 12AX7 half, 220k plate,
 ///     3.3k unbypassed) DC-coupled to its 12AU7 half as a cathode follower; the Bass Cut / Ultra Lo network (a bridged
 ///     pair of 2 nF
 ///     caps for the cut, a 150k / 2 nF / 68k twin-T notch near 500 Hz for Ultra Lo) into the 1M volume with its 500 pF
@@ -42,17 +43,24 @@ namespace Cathode.Dsp.Amp.Models;
 ///     <para>
 ///         Not modelled: the input jacks' switching beyond Bright; the 120 pF across the 47k feedback resistor
 ///         (<see cref="FeedbackDesign" /> has no cap there: it rolls the power amp's closed-loop gain off from 28 kHz,
-///         about −0.5 dB at 10 kHz); and channel two, which loads the mix node as 100k into 150k. The block has no
-///         control left to select it with (the SVT's panel uses the bright switch and all three model switches), so it
-///         needs a type of its own or a fourth switch. What the same redraw shows of it, for whoever builds it: V2
+///         about −0.5 dB at 10 kHz); and both channels played at once (a cable between their inputs), which needs
+///         both channels' controls, more than the block has. In this type channel two is idle and loads the mix node
+///         as 100k into 150k.
+///     </para>
+///     <para>
+///         Channel two is a type of its own, <see cref="ChannelTwo" /> ("SVT Channel 2"): the SVT's panel already
+///         uses the bright switch and all three model switches, so there is no control left to select it with, and
+///         as its own type it gets its own Volume, Bass, Treble, Ultra Hi and Ultra Lo. From the same redraw: V2
 ///         (12AX7), the same input network as channel one into a first half on 220k and 3.3k unbypassed; 0.1 µF from
-///         its plate to a node N; from N, 10M ‖ 1 nF into the 1M linear volume and 0.1 µF + 68k + 1M to ground; the
-///         Ultra Low switch (two poles) shorts the 10M ‖ 1 nF and the 1M at once, as drawn; 500 pF from the volume's
-///         top to its wiper on the Ultra High switch; the second half on 100k and 3.3k unbypassed; 0.1 µF into the
-///         same Baxandall as channel one's (220k, 47 pF, 1 nF, 10 nF, 22k, 470 pF, 120k, 1M pots); 100k from the
-///         treble wiper to the mix node. Read that way Ultra Low gives about +3 dB at 40 Hz and −9 dB at 500 Hz against
-///         the other position (a divider estimate with 140k behind the plate), which is the manual's +2 dB and −10 dB:
-///         those figures fit channel two better than channel one's twin-T (see <c>BassAmpTests</c>).
+///         its plate to a node N; from N, 10M ‖ 1 nF into the 1M linear volume, and 0.1 µF + 68k + 1M to ground; the
+///         Ultra Low switch (two poles) shorts the 10M ‖ 1 nF and the 1M at once, which is the position drawn; 500 pF
+///         from the volume's top to its wiper on the Ultra High switch; the second half on 100k and 3.3k unbypassed;
+///         0.1 µF into the same Baxandall as channel one's (220k, 47 pF, 1 nF, 10 nF, 22k, 470 pF, 120k, 1M pots);
+///         100k from the treble wiper to the mix node, with no midrange loop. Read that way Ultra Lo gives about +4 dB
+///         at 40 Hz and −8 dB at 500 Hz against the other position, close to the manual's +2 dB and −10 dB: those
+///         figures fit channel two better than channel one's twin-T (see <c>BassAmpTests</c>). With Ultra Lo off the
+///         10M ‖ 1 nF is a bass cut of its own (−12 dB at 40 Hz, flat from about 1 kHz), as drawn. Channel one, idle,
+///         loads the mix node through its 100k and 0.1 µF into the midrange loop's output tap (6.8k ‖ 47k: 5.9k).
 ///     </para>
 /// </remarks>
 public static class Svt {
@@ -74,7 +82,55 @@ public static class Svt {
 
     public static AmpDesign Design { get; } = new(
         "SVT",
-        [InputStage(), FollowerStage(), VolumeStage(), ToneStack(), MidrangeLoop(), OutputStage(), ClampStage()],
+        [
+            InputStage("V1A"), FollowerStage(), VolumeStage(), ToneStack(), MidrangeLoop(), OutputStage(false),
+            ClampStage()
+        ],
+        Power(),
+        -5
+    ) {
+        Panel = new() {
+            Gain = "Volume",
+            Presence = null,
+            Depth = null,
+            Cut = null,
+            Master = null,
+            Bright = "Bright Input",
+            Switch1 = "Ultra Hi",
+            Switch2 = "Ultra Lo",
+            Switch3 = "Bass Cut",
+            Control1 = "Mid Freq",
+            // One three-position rocker on the amp (Ultra Lo / off / Bass Cut): with both on it is Bass Cut.
+            ThreeWay = [new(SwitchRole.Switch2, SwitchRole.Switch3)]
+        }
+    };
+
+    /// <summary>
+    ///     Channel two into the same mixer, output follower and power amp (see the remarks): V2A, the Ultra Lo
+    ///     network, the volume with its Ultra Hi cap and V2B, the Baxandall, and 100k into the mix node. It has no
+    ///     midrange loop, so no Mid-Range, Mid Freq or Bass Cut.
+    /// </summary>
+    public static AmpDesign ChannelTwo { get; } = new(
+        "SVT Channel 2",
+        [InputStage("V2A"), ChannelTwoVolumeStage(), OutputStage(true), ClampStage()],
+        Power(),
+        -5
+    ) {
+        Panel = new() {
+            Gain = "Volume",
+            Middle = null,
+            Presence = null,
+            Depth = null,
+            Cut = null,
+            Master = null,
+            Bright = "Bright Input",
+            Switch1 = "Ultra Hi",
+            Switch2 = "Ultra Lo"
+        }
+    };
+
+    /// <summary>The power amp both channels drive (see the summary and the remarks).</summary>
+    static PowerAmpDesign Power() =>
         new(
             "6 x 6550",
             PentodeModel.SixtyFiveFifty,
@@ -111,30 +167,14 @@ public static class Svt {
             SpeakerDesign.Closed8x10,
             new(40, 41e-6, 50e3, 0.5, 8.2e3, 40e-6, 6e-3, RectifierModel.Silicon),
             ScreenSupply: 350
-        ),
-        -5
-    ) {
-        Panel = new() {
-            Gain = "Volume",
-            Presence = null,
-            Depth = null,
-            Cut = null,
-            Master = null,
-            Bright = "Bright Input",
-            Switch1 = "Ultra Hi",
-            Switch2 = "Ultra Lo",
-            Switch3 = "Bass Cut",
-            Control1 = "Mid Freq",
-            // One three-position rocker on the amp (Ultra Lo / off / Bass Cut): with both on it is Bass Cut.
-            ThreeWay = [new(SwitchRole.Switch2, SwitchRole.Switch3)]
-        }
-    };
+        );
 
     /// <summary>
-    ///     V1A: the Normal input's 47k (the Bright input's 100k ‖ 470 pF with <see cref="SwitchRole.Bright" />) and
-    ///     5.6M leak, the 12AX7 half (220k, 3.3k unbypassed); out at its plate.
+    ///     V1A, and channel two's V2A, which is the same circuit: the Normal input's 47k (the Bright input's 100k ‖
+    ///     470 pF with <see cref="SwitchRole.Bright" />) and 5.6M leak, the 12AX7 half (220k, 3.3k unbypassed); out at
+    ///     its plate.
     /// </summary>
-    static NetworkStageDesign InputStage() {
+    static NetworkStageDesign InputStage(string name) {
         var net = new StageNetlist();
         var (grid, plate, cathode, rail) = (net.Node(), net.Node(), net.Node(), net.Node());
         net.Supply(rail, Preamp);
@@ -145,7 +185,7 @@ public static class Svt {
         net.Resistor(cathode, StageNetlist.Ground, 3.3e3);
         net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
         net.Output = plate;
-        return new("V1A", net) { Tolerance = NewtonTolerance };
+        return new(name, net) { Tolerance = NewtonTolerance };
     }
 
     /// <summary>
@@ -189,39 +229,79 @@ public static class Svt {
         net.Resistor(w, arm, 150e3);
         net.SwitchedResistor(arm, top, Open, Wire, SwitchRole.Switch2);
 
+        return VolumeInto(net, top, "V3A", TriodeModel.Ecc82, 47e3, 1.5e3);
+    }
+
+    /// <summary>
+    ///     Channel two's volume network on V2A's plate and V2B: 0.1 µF to a node N; from N, 10M ‖ 1 nF into the 1M
+    ///     linear volume and 0.1 µF + 68k + 1M to ground; Ultra Lo (<see cref="SwitchRole.Switch2" />) shorts the 10M
+    ///     ‖ 1 nF and the 1M; the 500 pF Ultra Hi cap (<see cref="SwitchRole.Switch1" />) from the volume's top to its
+    ///     wiper; V2B (12AX7 half, 100k, 3.3k unbypassed). Out at its plate.
+    /// </summary>
+    static NetworkStageDesign ChannelTwoVolumeStage() {
+        var net = new StageNetlist();
+        var (n, shunt, foot, top) = (net.Node(), net.Node(), net.Node(), net.Node());
+        net.Capacitor(net.Input, n, 0.1e-6);
+        net.Capacitor(n, shunt, 0.1e-6);
+        net.Resistor(shunt, foot, 68e3);
+        net.Resistor(foot, StageNetlist.Ground, 1e6);
+        net.SwitchedResistor(foot, StageNetlist.Ground, Open, Wire, SwitchRole.Switch2);
+        net.Resistor(n, top, 10e6);
+        net.Capacitor(n, top, 1e-9);
+        net.SwitchedResistor(n, top, Open, Wire, SwitchRole.Switch2);
+
+        return VolumeInto(net, top, "V2B", TriodeModel.Ecc83, 100e3, 3.3e3);
+    }
+
+    /// <summary>
+    ///     Either channel's 1M linear volume from <paramref name="top" /> to ground with the 500 pF Ultra Hi cap
+    ///     (<see cref="SwitchRole.Switch1" />) from its top to its wiper, and the triode its wiper drives
+    ///     (<paramref name="tube" /> on <paramref name="plateResistor" />, <paramref name="cathodeResistor" />
+    ///     unbypassed); the stage is <paramref name="net" /> so far with these, out at the plate.
+    /// </summary>
+    static NetworkStageDesign VolumeInto(
+        StageNetlist net,
+        int top,
+        string name,
+        TriodeModel tube,
+        double plateResistor,
+        double cathodeResistor
+    ) {
         var wiper = net.Pot(top, StageNetlist.Ground, new(1e6, PotTaper.Linear), PotRole.Gain);
         net.SwitchedCapacitor(top, wiper, 500e-12, SwitchRole.Switch1, CapacitorRole.Bright);
         var (plate, cathode, rail) = (net.Node(), net.Node(), net.Node());
         net.Supply(rail, Preamp);
-        net.Resistor(rail, plate, 47e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
-        net.Triode(plate, wiper, cathode, TriodeModel.Ecc82);
+        net.Resistor(rail, plate, plateResistor);
+        net.CathodeResistor(cathode, StageNetlist.Ground, cathodeResistor);
+        net.Triode(plate, wiper, cathode, tube);
         net.Output = plate;
-        return new("V3A", net) { Tolerance = NewtonTolerance };
+        return new(name, net) { Tolerance = NewtonTolerance };
     }
 
     /// <summary>
-    ///     The passive Baxandall: 0.1 µF in, 220k to the bass pot's top and 47 pF to the treble pot's, the 1M bass pot
-    ///     with 1 nF and 10 nF from its wiper, 22k to ground, 470 pF to the 1M treble pot's bottom, 120k between the
-    ///     wipers; out at the treble wiper. The tapers are not marked (taken as linear, as a Baxandall's usually are).
+    ///     Channel one's Baxandall as a stage of its own (<see cref="Baxandall" />); out at the treble wiper.
     /// </summary>
     static NetworkStageDesign ToneStack() {
         var net = new StageNetlist();
-        var (input, bassTop, bassBottom, trebleTop, trebleBottom) = (net.Node(), net.Node(), net.Node(), net.Node(),
-            net.Node());
-        net.Capacitor(net.Input, input, 0.1e-6);
-        net.Resistor(input, bassTop, 220e3);
-        net.Capacitor(input, trebleTop, 47e-12, CapacitorRole.Stack);
-        var bass = net.Pot(bassTop, bassBottom, new(1e6, PotTaper.Linear), PotRole.Bass);
-        net.Capacitor(bassTop, bass, 1e-9, CapacitorRole.Stack);
-        net.Capacitor(bass, bassBottom, 10e-9, CapacitorRole.Stack);
-        net.Resistor(bassBottom, StageNetlist.Ground, 22e3);
-        net.Capacitor(StageNetlist.Ground, trebleBottom, 470e-12, CapacitorRole.Stack);
-        var treble = net.Pot(trebleTop, trebleBottom, new(1e6, PotTaper.Linear), PotRole.Treble);
-        net.Resistor(bass, treble, 120e3);
-        net.Output = treble;
+        net.Output = Baxandall(net);
         return new("Baxandall", net);
     }
+
+    /// <summary>
+    ///     The passive Baxandall, the same in both channels, from <paramref name="net" />'s input
+    ///     (<see cref="AmpegParts.Baxandall" /> with 47 pF to the treble pot's top and 470 pF to its bottom). Returns
+    ///     the treble wiper.
+    /// </summary>
+    static int Baxandall(StageNetlist net) =>
+        AmpegParts.Baxandall(
+            net,
+            net.Input,
+            AmpegParts.StackNodes.In(net),
+            PotRole.Bass,
+            PotRole.Treble,
+            47e-12,
+            470e-12
+        );
 
     /// <summary>
     ///     The midrange loop: 0.01 µF into V3B (12AX7 half: 220k, 560 then 7.5k to ground, its 1M leak returning above
@@ -270,18 +350,30 @@ public static class Svt {
     }
 
     /// <summary>
-    ///     The mix and output: 0.1 µF and 100k into the mix node (channel two's 100k into about 150k beside it), 0.02
-    ///     µF into the 6C4 follower (1k then 47k, its 1M leak above the 1k); out at its cathode.
+    ///     The mix and output. Channel one: 0.1 µF and 100k into the mix node, channel two's 100k into about 150k
+    ///     beside it. Channel two (<paramref name="channelTwo" />): its Baxandall, here in the same stage because
+    ///     the mixing resistors load it (a Thévenin cut would make a resistance of its reactive output), 100k from its
+    ///     treble wiper into the mix node, and channel one's 100k and 0.1 µF into the midrange loop's output tap (6.8k
+    ///     ‖ 47k) beside it. Then 0.02 µF into the 6C4 follower (1k then 47k, its 1M leak above the 1k); out at its
+    ///     cathode.
     /// </summary>
-    static NetworkStageDesign OutputStage() {
+    static NetworkStageDesign OutputStage(bool channelTwo) {
         var net = new StageNetlist();
-        var (coupled, mix, idle, grid, cathode, bias, rail) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (coupled, mix, idle) = (net.Node(), net.Node(), net.Node());
+        if (channelTwo) {
+            net.Resistor(Baxandall(net), mix, 100e3);
+            net.Resistor(mix, coupled, 100e3);
+            net.Capacitor(coupled, idle, 0.1e-6);
+            net.Resistor(idle, StageNetlist.Ground, 6.8e3 * 47e3 / (6.8e3 + 47e3));
+        } else {
+            net.Capacitor(net.Input, coupled, 0.1e-6);
+            net.Resistor(coupled, mix, 100e3);
+            net.Resistor(mix, idle, 100e3);
+            net.Resistor(idle, StageNetlist.Ground, 150e3);
+        }
+
+        var (grid, cathode, bias, rail) = (net.Node(), net.Node(), net.Node(), net.Node());
         net.Supply(rail, Preamp);
-        net.Capacitor(net.Input, coupled, 0.1e-6);
-        net.Resistor(coupled, mix, 100e3);
-        net.Resistor(mix, idle, 100e3);
-        net.Resistor(idle, StageNetlist.Ground, 150e3);
         net.Capacitor(mix, grid, 0.02e-6);
         net.Resistor(grid, bias, 1e6);
         net.Resistor(cathode, bias, 1e3);

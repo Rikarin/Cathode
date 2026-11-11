@@ -13,7 +13,13 @@ namespace Cathode.Dsp.Tests;
 /// </summary>
 public partial class AmpStageTests {
     public static TheoryData<string, double, double> BassChains =>
-        new() { { "SVT", 0.001, -30 }, { "Portaflex B-15N", 0.01, -30 }, { "JC-120", 0.02, -40 } };
+        new() {
+            { "SVT", 0.001, -30 },
+            { "SVT Channel 2", 0.001, -30 },
+            { "Portaflex B-15N", 0.01, -30 },
+            { "Portaflex B-15N Jumped", 0.01, -30 },
+            { "JC-120", 0.02, -40 }
+        };
 
     [Theory]
     [MemberData(nameof(BassChains))]
@@ -101,7 +107,8 @@ public partial class AmpStageTests {
 public class BassAmpTests(ITestOutputHelper output) {
     const double Rate = 48_000;
 
-    static readonly string[] Models = ["SVT", "Portaflex B-15N", "JC-120"];
+    static readonly string[] Models =
+        ["SVT", "SVT Channel 2", "Portaflex B-15N", "Portaflex B-15N Jumped", "JC-120"];
 
     public static TheoryData<string> Types => [..Models];
 
@@ -113,16 +120,35 @@ public class BassAmpTests(ITestOutputHelper output) {
         );
         Assert.Equal("Mid Freq", Label("control1", "SVT"));
         Assert.Equal("Bright Input", Label("bright", "SVT"));
+        // Channel two has no midrange loop: no Mid-Range, no Mid Freq, and its Ultra Lo is a plain switch (no Bass
+        // Cut).
+        Assert.Equal(
+            ["Ultra Hi", "Ultra Lo", string.Empty],
+            new[] { "switch1", "switch2", "switch3" }.Select(static id => Label(id, "SVT Channel 2"))
+        );
+        Assert.Empty(Label("middle", "SVT Channel 2"));
+        Assert.Empty(Label("control1", "SVT Channel 2"));
+        Assert.Equal("Bright Input", Label("bright", "SVT Channel 2"));
         Assert.Equal(
             ["Ultra Hi", "Ultra Lo"],
             new[] { "switch1", "switch2" }.Select(static id => Label(id, "Portaflex B-15N"))
+        );
+        // Jumped, channel two has its own controls on the block's free ones.
+        const string Jumped = "Portaflex B-15N Jumped";
+        Assert.Equal(
+            ["Volume 1", "Bass 1", "Bass 2", "Treble 1", "Volume 2", "Treble 2"],
+            new[] { "gain", "bass", "middle", "treble", "control1", "control2" }.Select(static id => Label(id, Jumped))
+        );
+        Assert.Equal(
+            ["Ultra Hi 1", "Ultra Lo 1", "Ultra Lo 2", "Ultra Hi 2"],
+            new[] { "switch1", "switch2", "switch3", "bright" }.Select(static id => Label(id, Jumped))
         );
         Assert.Equal("Hi Treble", Label("control1", "JC-120"));
         Assert.Equal("Distortion", Label("control2", "JC-120"));
         Assert.Equal("Distortion On", Label("switch1", "JC-120"));
         Assert.Empty(Label("switch2", "JC-120"));
         foreach (var type in Models) {
-            Assert.Equal("Volume", Label("gain", type));
+            Assert.StartsWith("Volume", Label("gain", type), StringComparison.Ordinal);
             Assert.Empty(Label("master", type));
             Assert.Empty(Label("presence", type));
             Assert.Empty(Label("cut", type));
@@ -269,6 +295,34 @@ public class BassAmpTests(ITestOutputHelper output) {
     }
 
     /// <summary>
+    ///     Channel two's Ultra Lo, as Piazza's redraw has it (the switch shorts 10M ‖ 1 nF ahead of the volume and
+    ///     the 1M under a 0.1 µF + 68k shunt), gives the manual's figures, about +2 dB at 40 Hz and −10 dB at 500 Hz;
+    ///     its Ultra Hi is the same 500 pF across the volume as channel one's. And it is another circuit than channel
+    ///     one: no midrange loop, so the Middle knob does nothing and the response is not channel one's.
+    /// </summary>
+    [Fact]
+    public void Svt_channel_two_ultra_switches_shape_as_the_manual_says() {
+        static double At(string type, double frequency, params (int Index, float Value)[] settings) =>
+            Level(type, frequency, 1e-3f, [(CircuitAmpBlock.Gain, 3f), ..settings]);
+
+        const string Two = "SVT Channel 2";
+        var notch = At(Two, 500, (CircuitAmpBlock.Switch2, 1f)) - At(Two, 500);
+        var lows = At(Two, 40, (CircuitAmpBlock.Switch2, 1f)) - At(Two, 40);
+        var hi = At(Two, 8_000, (CircuitAmpBlock.Switch1, 1f)) - At(Two, 8_000);
+        var middle = At(Two, 800, (CircuitAmpBlock.Middle, 10f)) - At(Two, 800, (CircuitAmpBlock.Middle, 0f));
+        var tilt = At(Two, 100) - At(Two, 2_000) - (At("SVT", 100) - At("SVT", 2_000));
+        output.WriteLine(
+            $"Channel two Ultra Lo: {notch:0.0} dB at 500 Hz, {lows:0.0} dB at 40 Hz; Ultra Hi {hi:0.0} dB at 8 kHz; "
+            + $"Middle moves 800 Hz {middle:0.00} dB; 100 Hz against 2 kHz is {tilt:0.0} dB from channel one's"
+        );
+        Assert.InRange(notch, -12, -7);
+        Assert.InRange(lows, 1, 5);
+        Assert.InRange(hi, 4, 14);
+        Assert.InRange(Math.Abs(middle), 0, 0.01);
+        Assert.True(Math.Abs(tilt) > 3, $"channel two's response is channel one's ({tilt:0.0} dB)");
+    }
+
+    /// <summary>
     ///     The Mid-Range pot boosts and cuts around the Mid Freq selector's frequency, and little elsewhere.
     /// </summary>
     [Fact]
@@ -306,6 +360,64 @@ public class BassAmpTests(ITestOutputHelper output) {
         output.WriteLine($"Ultra Lo: lows {low:0.0} dB over 1 kHz; Ultra Hi {high:0.0} dB at 8 kHz");
         Assert.InRange(low, 3, 15);
         Assert.InRange(high, 3, 15);
+    }
+
+    /// <summary>
+    ///     The jumped B-15N (#310) is the one-channel type with channel two added, not another amp: with Volume 2 at 0
+    ///     its response has the one-channel type's shape (the level differs: channel two's stack then loads the mix
+    ///     node in place of the stand-in). Each channel's controls act on that channel alone: with only channel two
+    ///     up, channel one's tone knobs and switches move nothing and channel two's do what channel one's do on the
+    ///     one-channel type; and both channels up are louder than either.
+    /// </summary>
+    [Fact]
+    public void Portaflex_jumped_channels_have_their_own_controls() {
+        const string One = "Portaflex B-15N";
+        const string Jumped = "Portaflex B-15N Jumped";
+
+        static double At(string type, double frequency, params (int Index, float Value)[] settings) =>
+            Level(type, frequency, 1e-3f, settings);
+
+        (int, float)[] first = [(CircuitAmpBlock.Gain, 3f), (CircuitAmpBlock.Control1, 0f)];
+        (int, float)[] second = [(CircuitAmpBlock.Gain, 0f), (CircuitAmpBlock.Control1, 3f)];
+        var plain = At(One, 60, (CircuitAmpBlock.Gain, 3f)) - At(One, 2_000, (CircuitAmpBlock.Gain, 3f));
+        var alone = At(Jumped, 60, first) - At(Jumped, 2_000, first);
+        output.WriteLine(
+            $"60 Hz against 2 kHz: one channel {plain:0.00} dB, jumped with Volume 2 at 0 {alone:0.00} dB"
+        );
+        Assert.InRange(alone - plain, -1, 1);
+
+        // Channel two alone: its own Bass 2, Treble 2, Ultra Hi 2 and Ultra Lo 2, not channel one's.
+        double Two(double frequency, params (int Index, float Value)[] settings) =>
+            At(Jumped, frequency, [..second, ..settings]);
+
+        var bass2 = Two(60, (CircuitAmpBlock.Middle, 10f)) - Two(60, (CircuitAmpBlock.Middle, 0f));
+        var treble2 = Two(5_000, (CircuitAmpBlock.Control2, 10f)) - Two(5_000, (CircuitAmpBlock.Control2, 0f));
+        var hi2 = Two(8_000, (CircuitAmpBlock.Bright, 1f)) - Two(8_000);
+        var lo2 = Two(60, (CircuitAmpBlock.Switch3, 1f))
+            - Two(60)
+            - (Two(1_000, (CircuitAmpBlock.Switch3, 1f)) - Two(1_000));
+        var bass1 = Two(60, (CircuitAmpBlock.Bass, 10f)) - Two(60, (CircuitAmpBlock.Bass, 0f));
+        var hi1 = Two(8_000, (CircuitAmpBlock.Switch1, 1f)) - Two(8_000);
+        output.WriteLine(
+            $"Channel two alone: Bass 2 {bass2:0.0} dB at 60 Hz, Treble 2 {treble2:0.0} dB at 5 kHz, Ultra Hi 2 "
+            + $"{hi2:0.0} dB at 8 kHz, Ultra Lo 2 {lo2:0.0} dB at 60 Hz over 1 kHz; channel one's Bass moves it "
+            + $"{bass1:0.0} dB, its Ultra Hi {hi1:0.0} dB"
+        );
+        Assert.True(bass2 > 10, $"Bass 2 {bass2:0.0} dB");
+        Assert.True(treble2 > 10, $"Treble 2 {treble2:0.0} dB");
+        Assert.InRange(hi2, 3, 15);
+        Assert.InRange(lo2, 3, 15);
+        // Channel one's stack still hangs on the mix node, so its knobs load channel two a little.
+        Assert.InRange(Math.Abs(bass1), 0, 3);
+        Assert.InRange(Math.Abs(hi1), 0, 0.5);
+
+        (int, float)[] both = [(CircuitAmpBlock.Gain, 3f), (CircuitAmpBlock.Control1, 3f)];
+        var sum = At(Jumped, 1_000, both);
+        output.WriteLine(
+            $"1 kHz: both {sum:0.0} dB, channel one {At(Jumped, 1_000, first):0.0} dB, two "
+            + $"{At(Jumped, 1_000, second):0.0} dB"
+        );
+        Assert.True(sum > At(Jumped, 1_000, first) + 3 && sum > At(Jumped, 1_000, second) + 3, "the channels add");
     }
 
     /// <summary>

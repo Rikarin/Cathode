@@ -97,6 +97,105 @@ public class ModulationParityTests {
         Assert.InRange(Analysis.Rms(output.AsSpan(4_800)) / Analysis.Rms(noise.AsSpan(4_800)), 0.7, 1.4);
     }
 
+    // The JC-120 type: the Jazz Chorus's chorus (#311)
+
+    static ChorusBlock JazzChorus(params (int Index, float Value)[] settings) =>
+        TestBlocks.Create<ChorusBlock>(
+            [
+                (ChorusBlock.Type, ChorusBlock.JazzChorus),
+                (ChorusBlock.Mix, 100f),
+                (ChorusBlock.Delay, (float)JazzChorusPath.ShortestDelayMs),
+                ..settings
+            ]
+        );
+
+    /// <summary>
+    ///     As on the amp, one side is dry and the other is the chorus alone: the left output is the left input, and
+    ///     the right output is silent until the bucket brigade's shortest delay (1024 stages at 350 kHz: 1.46 ms, 70
+    ///     samples) has passed.
+    /// </summary>
+    [Fact]
+    public void Jazz_chorus_leaves_the_left_dry_and_puts_the_delayed_signal_alone_on_the_right() {
+        using var chorus = JazzChorus((ChorusBlock.Depth, 0f));
+        var input = Signals.Impulse(2_000);
+
+        var (left, right) = BlockRender.Stereo(chorus, input, input, static _ => 64);
+
+        Assert.Equal(1.46, JazzChorusPath.ShortestDelayMs, 2);
+        Assert.Equal(6.4, JazzChorusPath.LongestDelayMs, 2);
+        Assert.Equal(input, left);
+        var delay = (int)(JazzChorusPath.ShortestDelayMs * 48);
+        Assert.True(Analysis.Peak(right.AsSpan(0, delay - 1)) < 1e-6, "the right side has dry signal in it");
+        Assert.True(Analysis.Peak(right.AsSpan(delay - 1, 40)) > 0.05, "the chorus arrives after the delay");
+    }
+
+    /// <summary>
+    ///     Roland's marked voltages: 300 mV of chorus for 290 mV dry at 1 kHz. The drawn filters around the delay
+    ///     line take the top off it: 5 kHz is several decibels down and 10 kHz far down.
+    /// </summary>
+    [Fact]
+    public void Jazz_chorus_wet_level_and_band_follow_the_drawing() {
+        static double Wet(double frequency) {
+            using var chorus = JazzChorus((ChorusBlock.Depth, 0f));
+            var input = Signals.Sine(frequency, Rate, 24_000, 0.1f);
+            var (_, right) = BlockRender.Stereo(chorus, input, input, static _ => 64);
+            return Analysis.ToDb(Analysis.Rms(right.AsSpan(12_000)) / Analysis.Rms(input.AsSpan(12_000)));
+        }
+
+        var (low, mid, high, top) = (Wet(200), Wet(1_000), Wet(5_000), Wet(10_000));
+        Assert.InRange(
+            mid,
+            Analysis.ToDb(JazzChorusPath.MarkedGain) - 0.3,
+            Analysis.ToDb(JazzChorusPath.MarkedGain) + 0.3
+        );
+        Assert.InRange(low - mid, -3, 3);
+        Assert.InRange(high - mid, -12, -1);
+        Assert.True(top - mid < -10, $"10 kHz is {top - mid:0.0} dB from 1 kHz");
+    }
+
+    /// <summary>
+    ///     The type's defaults are the amp's sweep (a triangle from the shortest delay to the longest, all chorus on
+    ///     the right), and the controls of the other type's two lines and voices are hidden on it.
+    /// </summary>
+    [Fact]
+    public void Jazz_chorus_defaults_are_the_amps_sweep_and_the_two_line_controls_are_hidden() {
+        var info = ChorusBlock.Info;
+        float Default(string id) => info.Params.Single(p => p.Id == id).DefaultFor(ChorusBlock.JazzChorus);
+
+        Assert.Equal(100f, Default("mix"));
+        Assert.Equal(JazzChorusPath.ShortestDelayMs, Default("delay"), 3);
+        Assert.Equal(JazzChorusPath.LongestDelayMs, Default("delay") + Default("depth") / 100 * 5, 3);
+        Assert.Equal("Triangle", Lfo.ShapeNames[(int)Default("lfoType")]);
+        Assert.Equal(1f, Default("rate"));
+        string[] hidden = [
+            "voices", "spread", "dimension", "width", "rightRate", "rightDepth", "rightTime", "phaseReverse",
+            "lfo2Rate", "lfo2Depth", "stereoSpread"
+        ];
+        foreach (var p in info.Params) {
+            var labels = p.TypeLabels;
+            Assert.Equal(hidden.Contains(p.Id), labels is not null && labels[ChorusBlock.JazzChorus].Length == 0);
+            Assert.True(labels is null || labels[0] == p.Name, $"{p.Id} is renamed or hidden on the Chorus type");
+            Assert.Equal(p.Default, p.DefaultFor(0));
+        }
+    }
+
+    /// <summary>The sweep moves the pitch on the right only, and the sound stays bounded at full drive.</summary>
+    [Fact]
+    public void Jazz_chorus_sweeps_the_right_side() {
+        using var chorus = JazzChorus((ChorusBlock.Depth, 98.7f), (ChorusBlock.Rate, 2f), (ChorusBlock.LfoType, 1f));
+        var input = Signals.Sine(1_000, Rate, 48_000, 0.5f);
+
+        var (left, right) = BlockRender.Stereo(chorus, input, input, static _ => 64);
+
+        Assert.Equal(input, left);
+        Assert.True(Analysis.AllFinite(right));
+        Assert.InRange(Analysis.Peak(right), 0.3, 1.0);
+        // A swept delay shifts the pitch, so the right side no longer nulls against a fixed delay of the input.
+        using var still = JazzChorus((ChorusBlock.Depth, 0f));
+        var (_, fixedRight) = BlockRender.Stereo(still, input, input, static _ => 64);
+        Assert.True(Analysis.NullResidualDb(right.AsSpan(24_000), fixedRight.AsSpan(24_000)) > -20);
+    }
+
     // Flanger
 
     [Fact]

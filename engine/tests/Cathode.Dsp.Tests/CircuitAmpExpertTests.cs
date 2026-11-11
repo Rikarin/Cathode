@@ -113,8 +113,9 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
                         // (about −69 dB, against −50 dB with the old scooped default).
                         && !(index == CircuitAmpBlock.SupplyTime
                             && (design == TriAxis.Lead1 || design == TriAxis.Lead2))
-                        // A 400 W bass amp at this level is far below the core's knee (−65 dB at drive 10).
-                        && !(index == CircuitAmpBlock.TransformerDrive && design.Power.RatedPower >= 400);
+                        // The Bass 400's core at this level is far below its knee (−65 dB at drive 10 when it
+                        // was sized for 400 W; about as far at its 300 W).
+                        && !(index == CircuitAmpBlock.TransformerDrive && design == MesaBass400.Design);
                     data.Add(type, index, value, audible);
                 }
             }
@@ -608,7 +609,10 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
             Hidden("presag")
         );
         // Preamp Tube: a 12AX7 to replace (the B-15N runs 6SL7s on the 5751's curves, the Scout 6EU7s).
-        Assert.Equal(["Portaflex B-15N", "JC-120", "Scout GA-17RVT"], Hidden("pretube"));
+        Assert.Equal(
+            ["Portaflex B-15N", "JC-120", "Scout GA-17RVT", "Portaflex B-15N Jumped"],
+            Hidden("pretube")
+        );
         // Bright Cap: a bright cap that is not across a master.
         Assert.Contains("Champ 5F1", Hidden("brightcap"));
         Assert.Contains("Hot Rod Deluxe", Hidden("brightcap"));

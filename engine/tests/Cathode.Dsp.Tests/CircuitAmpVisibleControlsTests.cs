@@ -56,6 +56,11 @@ public class CircuitAmpVisibleControlsTests(ITestOutputHelper output) {
         // 300 W of 6550s behind direct-coupled followers: the test's drive never pulls grid current through the
         // coupling caps Excursion Time scales.
         ["SVT: ptbiastime"] = "the power grids do not conduct at any drive the test reaches",
+        // The same power amp behind channel two, which drives it about 4 dB less than channel one. Its screens are on
+        // a winding of their own (a stiff stand-in in the model), so the node Screen Q acts on barely moves: on
+        // channel one the change just clears the test's −90 dB, on channel two it does not.
+        ["SVT Channel 2: ptbiastime"] = "the power grids do not conduct at any drive the test reaches",
+        ["SVT Channel 2: screenq"] = "the screens' own winding holds their node at channel two's drive",
         // A cathode-biased class-A pair on one cathode: its plates stay above it even driven flat out.
         ["Scout GA-17RVT: suppressor"] = "the plates never swing below the cathode",
         // No master, and the loop return's divider (10k and 33k into 15k + 22k) ahead of the inverter: its grid
