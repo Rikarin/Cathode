@@ -41,7 +41,6 @@ import { XuiInputImports } from '@xui/input';
 import { XuiSegmentedControlImports } from '@xui/segmented-control';
 import { XuiSelectImports } from '@xui/select';
 import { XuiSwitchImports } from '@xui/switch';
-import { XuiTableImports } from '@xui/table';
 import { XuiTextImports } from '@xui/text';
 import { NumberSteppers } from '../controls/number-steppers';
 import { ConnectionService } from '../core/connection';
@@ -126,7 +125,6 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
     XuiSegmentedControlImports,
     XuiSelectImports,
     XuiSwitchImports,
-    XuiTableImports,
     XuiTextImports
   ],
   providers: [provideIcons({ matAddRound, matDeleteRound, matEditRound, matSettingsInputComponentRound })],
@@ -422,24 +420,39 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
             </xui-callout>
           }
 
-          <xui-table>
-            <xui-tr>
-              <xui-th>Message</xui-th>
-              <xui-th>Action</xui-th>
-              <xui-th>Target</xui-th>
-              <xui-th>Value</xui-th>
-              <xui-th><span class="sr-only">Remove</span></xui-th>
-            </xui-tr>
+          <!-- One grid template for the header and every row, so the columns line up (as the footswitch table). -->
+          <div role="table" aria-label="MIDI mappings" class="flex flex-col gap-1">
+            <div
+              role="row"
+              class="text-foreground-muted grid grid-cols-[minmax(9rem,12rem)_minmax(8rem,11rem)_minmax(10rem,1fr)_5rem_2rem] items-center gap-3 ps-3 pe-1 text-xs font-medium"
+            >
+              <span role="columnheader">Message</span>
+              <span role="columnheader">Action</span>
+              <span role="columnheader">Target</span>
+              <span role="columnheader" class="text-end">Value</span>
+              <span role="columnheader"><span class="sr-only">Remove</span></span>
+            </div>
             @for (mapping of s.midiMappings; track mapping.id) {
-              <xui-tr>
-                <xui-td
-                  >{{ mapping.message.toUpperCase() }} {{ mapping.number }} ·
-                  {{ mapping.channel === 0 ? 'any channel' : 'ch ' + mapping.channel }}</xui-td
-                >
-                <xui-td>{{ mapping.action }}</xui-td>
-                <xui-td>{{ targetLabel(mapping.action, mapping.target, actionContext()) }}</xui-td>
-                <xui-td>{{ shownValue(mapping.action, mapping.value) ?? '' }}</xui-td>
-                <xui-td>
+              <div
+                role="row"
+                class="bg-surface-raised grid grid-cols-[minmax(9rem,12rem)_minmax(8rem,11rem)_minmax(10rem,1fr)_5rem_2rem] items-center gap-3 rounded-md py-1 ps-3 pe-1 text-sm"
+              >
+                <span role="cell" class="flex min-w-0 items-baseline gap-2">
+                  <span class="text-foreground font-mono font-medium tabular-nums"
+                    >{{ mapping.message.toUpperCase() }} {{ mapping.number }}</span
+                  >
+                  <span class="text-foreground-muted truncate text-xs">{{
+                    mapping.channel === 0 ? 'any channel' : 'ch ' + mapping.channel
+                  }}</span>
+                </span>
+                <span role="cell" class="truncate">{{ mapping.action }}</span>
+                <span role="cell" class="text-foreground-muted truncate">{{
+                  targetLabel(mapping.action, mapping.target, actionContext()) || '—'
+                }}</span>
+                <span role="cell" class="text-end font-mono tabular-nums">{{
+                  shownValue(mapping.action, mapping.value) ?? '—'
+                }}</span>
+                <span role="cell">
                   <button
                     type="button"
                     xuiButton
@@ -451,12 +464,14 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
                   >
                     <ng-icon xui name="matDeleteRound" size="sm" />
                   </button>
-                </xui-td>
-              </xui-tr>
+                </span>
+              </div>
             } @empty {
-              <xui-tr><xui-td class="text-foreground-muted">No mappings yet: use MIDI learn below.</xui-td></xui-tr>
+              <div role="row" class="bg-surface-raised rounded-md px-3 py-2.5 text-sm">
+                <span role="cell" class="text-foreground-muted">No mappings yet: use MIDI learn below.</span>
+              </div>
             }
-          </xui-table>
+          </div>
 
           <div class="flex flex-wrap items-end gap-3">
             <div class="flex w-full max-w-xl flex-col gap-1">
