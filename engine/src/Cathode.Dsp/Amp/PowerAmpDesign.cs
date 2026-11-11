@@ -260,19 +260,8 @@ public sealed record FeedbackDesign(
         double frequency = 1
     ) {
         var branch = Branch ?? new ShuntBranch(0, 0);
-        var c = PresenceCap / frequency;
-        var (rf, rx) = (FeedbackResistor, ShuntResistor);
-
-        // The presence part's admittance n(s) / d(s), each first order: n0 + n1 s over d0 + d1 s.
-        double n0, n1, d0, d1;
-        if (PresenceIsShunt) {
-            var p = Presence.Fraction(presence);
-            var (a, b) = ((1 - p) * rx, p * rx);
-            (n0, n1, d0, d1) = (1, b * c, rx, a * b * c);
-        } else {
-            var rp = PresenceSeries + Presence.Ohms * (1 - Presence.Fraction(presence));
-            (n0, n1, d0, d1) = (1, (rp + rx) * c, rx, rx * rp * c);
-        }
+        var rf = FeedbackResistor;
+        var (n0, n1, d0, d1) = PresenceAdmittance(presence, PresenceCap / frequency, PresenceSeries);
 
         // β = d (1 + s τ_b) / ((d + R_f n) (1 + s τ_b) + s R_f C_b d) = d (1 + s τ_b) / (c0 + c1 s + c2 s²).
         var tb = branch.Resistor * branch.Cap;
@@ -281,6 +270,22 @@ public sealed record FeedbackDesign(
         var c1 = p1 + p0 * tb + rf * branch.Cap * d0;
         var c2 = p1 * tb + rf * branch.Cap * d1;
         return Sections(d0, d1 / d0, tb, (c0, c1, c2));
+    }
+
+    /// <summary>
+    ///     The presence part's admittance n(s) / d(s), each first order: n0 + n1 s over d0 + d1 s, with the presence
+    ///     cap <paramref name="c" /> and <paramref name="series" /> ohms ahead of the pot where it is a rheostat.
+    /// </summary>
+    (double N0, double N1, double D0, double D1) PresenceAdmittance(double presence, double c, double series) {
+        var rx = ShuntResistor;
+        if (PresenceIsShunt) {
+            var p = Presence.Fraction(presence);
+            var (a, b) = ((1 - p) * rx, p * rx);
+            return (1, b * c, rx, a * b * c);
+        }
+
+        var rp = series + Presence.Ohms * (1 - Presence.Fraction(presence));
+        return (1, (rp + rx) * c, rx, rx * rp * c);
     }
 
     /// <summary>
@@ -533,19 +538,8 @@ public sealed record FeedbackDesign(
         double deepFrequency = 1
     ) {
         var deep = Deep ?? throw new InvalidOperationException("The feedback network has no Deep branch.");
-        var c = PresenceCap / frequency;
-        var (rf, rx) = (FeedbackResistor, ShuntResistor);
-
-        // The presence part's admittance n(s) / d(s), each first order (as BranchTimes).
-        double n0, n1, d0, d1;
-        if (PresenceIsShunt) {
-            var p = Presence.Fraction(presence);
-            var (a, b) = ((1 - p) * rx, p * rx);
-            (n0, n1, d0, d1) = (1, b * c, rx, a * b * c);
-        } else {
-            var rp = Presence.Ohms * (1 - Presence.Fraction(presence));
-            (n0, n1, d0, d1) = (1, (rp + rx) * c, rx, rx * rp * c);
-        }
+        var rf = FeedbackResistor;
+        var (n0, n1, d0, d1) = PresenceAdmittance(presence, PresenceCap / frequency, 0);
 
         // The branch: 1 / Z = s C / q(s), q = 1 + s R C + s² L C.
         var cap = deep.Cap / deepFrequency;

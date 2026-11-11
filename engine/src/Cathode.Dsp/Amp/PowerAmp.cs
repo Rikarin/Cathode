@@ -1460,12 +1460,17 @@ struct FirstOrder {
     /// <summary>
     ///     Bilinear transform of (n0 + n1 s) / (d0 + d1 s) at <paramref name="rate" />, keeping the state.
     /// </summary>
-    public void Design(double n0, double n1, double d0, double d1, double rate) {
+    public void Design(double n0, double n1, double d0, double d1, double rate) =>
+        (B0, b1, a1) = Bilinear(n0, n1, d0, d1, rate);
+
+    /// <summary>
+    ///     The coefficients of (n0 + n1 s) / (d0 + d1 s) under the bilinear transform at <paramref name="rate" />:
+    ///     (B0 + B1 z⁻¹) / (1 + A1 z⁻¹).
+    /// </summary>
+    public static (double B0, double B1, double A1) Bilinear(double n0, double n1, double d0, double d1, double rate) {
         var k = 2 * rate;
         var norm = 1 / (d0 + d1 * k);
-        B0 = (n0 + n1 * k) * norm;
-        b1 = (n0 - n1 * k) * norm;
-        a1 = (d0 - d1 * k) * norm;
+        return ((n0 + n1 * k) * norm, (n0 - n1 * k) * norm, (d0 - d1 * k) * norm);
     }
 
     /// <summary>The output for <paramref name="x" /> without advancing.</summary>
@@ -1506,13 +1511,8 @@ struct SecondOrder {
     ///     Bilinear transform of (n0 + n1 s) / (d0 + d1 s) at <paramref name="rate" />, keeping the state.
     /// </summary>
     public void Design(double n0, double n1, double d0, double d1, double rate) {
-        var k = 2 * rate;
-        var norm = 1 / (d0 + d1 * k);
-        B0 = (n0 + n1 * k) * norm;
-        b1 = (n0 - n1 * k) * norm;
-        a1 = (d0 - d1 * k) * norm;
-        b2 = 0;
-        a2 = 0;
+        (B0, b1, a1) = FirstOrder.Bilinear(n0, n1, d0, d1, rate);
+        (b2, a2) = (0, 0);
     }
 
     /// <summary>
