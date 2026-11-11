@@ -5,6 +5,7 @@ import { EventStream } from '../core/events';
 import { BlockPresetsStore } from '../state/block-presets.store';
 import { CatalogStore } from '../state/catalog.store';
 import { GlobalStore } from '../state/global.store';
+import { LibraryStore } from '../state/library.store';
 import { LiveStore } from '../state/live.store';
 import { PreferencesStore } from '../state/preferences.store';
 import { UiStore } from '../state/ui.store';
@@ -94,6 +95,8 @@ describe('BlockEditor', () => {
           provide: BlockPresetsStore,
           useValue: { refresh, forType: (type: string) => library.filter(p => p.type === type) }
         },
+        // The page asks the Library only for the capture an Amp NAM block plays (whether it has sizes).
+        { provide: LibraryStore, useValue: { models: signal([]) } },
         { provide: UiStore, useValue: { blockPage, saveBlockOpen: signal(false) } },
         { provide: PreferencesStore, useValue: { ampView } }
       ]
