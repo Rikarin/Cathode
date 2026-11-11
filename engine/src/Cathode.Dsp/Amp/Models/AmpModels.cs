@@ -111,6 +111,7 @@ public sealed partial record AmpDesign {
         Savage120.Clean,
         Svt.ChannelTwo,
         PortaflexB15.Jumped,
-        SvtClassic.Design
+        SvtClassic.Design,
+        Gk800Rb.Design
     ];
 }

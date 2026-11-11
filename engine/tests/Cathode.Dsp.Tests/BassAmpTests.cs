@@ -19,7 +19,8 @@ public partial class AmpStageTests {
             { "SVT-CL", 0.001, -30 },
             { "Portaflex B-15N", 0.01, -30 },
             { "Portaflex B-15N Jumped", 0.01, -30 },
-            { "JC-120", 0.02, -40 }
+            { "JC-120", 0.02, -40 },
+            { "GK 800RB", 0.002, -40 }
         };
 
     [Theory]
@@ -105,13 +106,13 @@ public partial class AmpStageTests {
 ///     panels, knob sweeps without instability, monotonic volume, their switches doing what the manuals say, the JC-120
 ///     against Roland's signal-voltage annotations, and the solid-state power amp.
 /// </summary>
-public class BassAmpTests(ITestOutputHelper output) {
+public partial class BassAmpTests(ITestOutputHelper output) {
     const double Rate = 48_000;
 
     static readonly string[] Models =
         ["SVT", "SVT Channel 2", "Portaflex B-15N", "Portaflex B-15N Jumped", "JC-120"];
 
-    public static TheoryData<string> Types => [..Models];
+    public static TheoryData<string> Types => [..Models, Gk];
 
     [Fact]
     public void Panels_name_the_real_controls_and_hide_the_rest() {
@@ -531,17 +532,7 @@ public class BassAmpTests(ITestOutputHelper output) {
             }
         }
 
-        return (Amplitude(Bin), Amplitude(3 * Bin), y.Max(Math.Abs));
-
-        double Amplitude(int bin) {
-            var (re, im) = (0.0, 0.0);
-            for (var n = 0; n < N; n++) {
-                re += y[n] * Math.Cos(2 * Math.PI * bin * n / N);
-                im += y[n] * Math.Sin(2 * Math.PI * bin * n / N);
-            }
-
-            return 2 * Math.Sqrt(re * re + im * im) / N;
-        }
+        return (Harmonic(y, Bin), Harmonic(y, 3 * Bin), y.Max(Math.Abs));
     }
 
     /// <summary>

@@ -605,12 +605,12 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
         );
         // Preamp Sag: not a rack preamp on its own supply, nor a solid-state amp's regulated rails.
         Assert.Equal(
-            ["JC-120", "TriAxis Rhythm", "TriAxis Lead 1", "TriAxis Lead 2", "Valvestate 8080", "JMP-1"],
+            ["JC-120", "TriAxis Rhythm", "TriAxis Lead 1", "TriAxis Lead 2", "Valvestate 8080", "JMP-1", "GK 800RB"],
             Hidden("presag")
         );
         // Preamp Tube: a 12AX7 to replace (the B-15N runs 6SL7s on the 5751's curves, the Scout 6EU7s).
         Assert.Equal(
-            ["Portaflex B-15N", "JC-120", "Scout GA-17RVT", "Portaflex B-15N Jumped"],
+            ["Portaflex B-15N", "JC-120", "Scout GA-17RVT", "Portaflex B-15N Jumped", "GK 800RB"],
             Hidden("pretube")
         );
         // Bright Cap: a bright cap that is not across a master.

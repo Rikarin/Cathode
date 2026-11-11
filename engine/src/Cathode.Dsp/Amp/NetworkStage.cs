@@ -42,7 +42,10 @@ public enum ElementKind {
     OpAmp,
 
     /// <summary>An op-amp that never reaches its rails, as a linear voltage source inside the adaptor.</summary>
-    Amplifier
+    Amplifier,
+
+    /// <summary>An N-channel junction FET (<see cref="Wdf.Jfet" />): drain A, gate B, source C.</summary>
+    Jfet
 }
 
 /// <summary>
@@ -86,6 +89,8 @@ public sealed record StageElement(ElementKind Kind, int A, int B, double Value) 
 
     public OpAmpModel OpAmp { get; init; }
 
+    public JfetModel Jfet { get; init; }
+
     /// <summary>
     ///     A rotary selector's values (<see cref="StageNetlist.SelectedCapacitor" />), the first at the knob's zero and
     ///     the last at ten; null for none.
@@ -110,7 +115,8 @@ public sealed record StageElement(ElementKind Kind, int A, int B, double Value) 
 ///     (resistors, capacitors, inductors), pots turned by front-panel knobs, elements switched by front-panel switches,
 ///     supply rails that follow the preamp's sag, and up to five triodes, or a pentode, or one or two diode clippers (a
 ///     triode with one or two clippers, and two triodes with two, also work), or one or two op-amps (one op-amp with a
-///     diode clipper also works), besides any number of linear amplifiers. The source drives <see cref="Input" />
+///     diode clipper also works), or one junction FET, besides any number of linear amplifiers. The source drives
+///     <see cref="Input" />
 ///     through the previous stage's output resistance; the stage's output is the voltage at <see cref="Output" />.
 /// </summary>
 /// <remarks>
@@ -276,6 +282,13 @@ public sealed class StageNetlist {
         Add(new(ElementKind.OpAmp, nonInverting, inverting, rails) { C = output, OpAmp = model });
 
     /// <summary>
+    ///     An N-channel junction FET (<see cref="Wdf.Jfet" />). Bias it from <see cref="Supply" /> rails (negative
+    ///     volts for a rail below ground).
+    /// </summary>
+    public void Jfet(int drain, int gate, int source, JfetModel model) =>
+        Add(new(ElementKind.Jfet, drain, gate, 0) { C = source, Jfet = model });
+
+    /// <summary>
     ///     An op-amp whose signal never reaches its rails (a return buffer, a summing stage, a stage's make-up gain),
     ///     as an ideal amplifier of open-loop gain <paramref name="gain" /> with its output referred to ground: a
     ///     voltage-controlled voltage source inside the adaptor, so the stage has no device to solve for it. Use
@@ -357,6 +370,7 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
                     or ElementKind.Pentode
                     or ElementKind.Diodes
                     or ElementKind.OpAmp
+                    or ElementKind.Jfet
             )
             .OrderBy(static e => e.Kind)
             .ToArray();
@@ -371,6 +385,7 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
                     ElementKind.Triode => 'T',
                     ElementKind.Pentode => 'P',
                     ElementKind.Diodes => 'D',
+                    ElementKind.Jfet => 'J',
                     _ => 'O'
                 }
             )
@@ -454,9 +469,10 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
                 ),
                 sampleRate
             ),
+            "J" => new NetworkStage<Jfet>(this, devices, (_, _) => new(devices[0].Jfet), sampleRate),
             _ => throw new NotSupportedException(
-                $"{Name}: a network stage takes T, TT, TTT, TTTT, P, D, DD, TD, TDD, TTDD, O, OO or DO "
-                + "(triodes, a pentode, diode clippers, op-amps)."
+                $"{Name}: a network stage takes T, TT, TTT, TTTT, P, D, DD, TD, TDD, TTDD, O, OO, DO or J "
+                + "(triodes, a pentode, diode clippers, op-amps, a junction FET)."
             )
         };
     }
@@ -591,7 +607,8 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
         var ports = new List<(int, int)>();
         foreach (var d in devices) {
             switch (d.Kind) {
-                case ElementKind.Triode:
+                case ElementKind.Triode or ElementKind.Jfet:
+                    // A FET's ports are a triode's: (gate, source) then (drain, source).
                     net.Triode(d.A, d.B, d.C);
                     ports.Add((d.B, d.C));
                     ports.Add((d.A, d.C));
@@ -959,7 +976,11 @@ public sealed class NetworkStage<TDevice> : AmpStage, IRailModulation where TDev
                     b[row] = dc ? e.Value * supplyScale * scale : 0;
                     break;
                 }
-                case ElementKind.Triode or ElementKind.Pentode or ElementKind.Diodes or ElementKind.OpAmp:
+                case ElementKind.Triode
+                    or ElementKind.Pentode
+                    or ElementKind.Diodes
+                    or ElementKind.OpAmp
+                    or ElementKind.Jfet:
                     // The devices: linearised through their ports below.
                     break;
             }

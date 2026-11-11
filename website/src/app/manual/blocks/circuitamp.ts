@@ -54,9 +54,9 @@ Leave a few dB of headroom in *Level*; a Cab block after the amp removes them.
   Mark IIC+ Rhythm), Mark IV (and its clean and crunch channels, Mark IV Rhythm 1 and Rhythm 2), Mark V (and its
   channels 1 and 2, Mark V Clean and Mark V Crunch), TriAxis, Legacy VL100, Powerball, Savage 120 (and Savage 120
   Clean, its clean and first crunch channel), Prometheus.
-- **Bass:** SVT (and its second channel, SVT Channel 2), SVT-CL, Portaflex B-15N (and both its channels jumpered, Portaflex B-15N Jumped), Bassman 135, Bass 400.
-- **Solid state:** JC-120 and Valvestate 8080 (a tube preamp into a transistor power amp). Their tube-only knobs are
-  hidden.
+- **Bass:** SVT (and its second channel, SVT Channel 2), SVT-CL, Portaflex B-15N (and both its channels jumpered, Portaflex B-15N Jumped), Bassman 135, Bass 400, and the solid-state GK 800RB.
+- **Solid state:** JC-120, GK 800RB and Valvestate 8080 (a tube preamp into a transistor power amp). Their tube-only
+  knobs are hidden.
 
 **Two amps in one preset.** You can use the block twice, for example a clean amp and a lead amp on separate rows
 switched by scenes, or two amps blended in parallel. See [the grid](/manual/the-grid) and
@@ -167,7 +167,7 @@ Rectifiers, the *Modern* switch takes the feedback out as on the real amp.`,
     bright: `On the models that have it, the bright switch: a small cap across the volume or gain pot that lets treble
 bypass the pot. The boost is biggest with the pot turned down and fades as you turn it up. Some models give it their
 own name and meaning: *Brilliance* (AC15), *Brilliant* (Prometheus Clean), *Thick* (Lone Star), *Raw* (Rectifiers),
-*Bright Input* (SVT, Portaflex), *Sat* (BE-100), *OD2* (Quick Rod). On the Mark IIC+ it pulls both brights, Volume 1's
+*Bright Input* (SVT, Portaflex), *Sat* (BE-100), *OD2* (Quick Rod), *Hi Boost* (GK 800RB). On the Mark IIC+ it pulls both brights, Volume 1's
 and the Lead Master's. On the DSL100 it is the amp's *Deep* switch, which is not a bright at all: it puts the amp's
 resonant network (a simulated inductor, tuned to about 53 Hz) across the feedback, for a broad lift in the bass. On the
 three-channel Dual Rectifier and the Triple Rectifier, *Raw* and *Modern* (Switch 1) are the amp's one Raw / Vintage /
@@ -213,7 +213,10 @@ Each switches the real components on the model's schematic. Some worth knowing:
 - **AFD100, *AFD*:** off is the #34 mode, on is AFD.
 - **JC-120, *Distortion On*:** the effect channel's distortion (on the real amp, the switch at the bottom of the
   Distortion pot's travel, and the footswitch): the *Distortion* knob (Control 2) and the diode clipper ahead of the
-  tone stack come in. Off, as the amp is usually played, the knob does nothing and is not shown.`,
+  tone stack come in. Off, as the amp is usually played, the knob does nothing and is not shown.
+- **GK 800RB, *Contour*:** the amp's Mid Contour filter, a notch of about 10 dB at 500 Hz for a rounder sound.
+  *Lo Cut* (Switch 2) rolls the bass off below about 200 Hz, and *-10 dB* (Switch 3) is the input attenuator for a
+  hot bass.`,
 
     switch2: `A model's second switch, where it has one: for example *Tube Rectifier* on the Rectifiers (5U4 tube
 rectifiers instead of silicon: more sag), *Crunch* on the SLO-100's normal channel and the 5150's rhythm channel, *Deep* on the Mark IIC+
@@ -234,7 +237,7 @@ once, so with both on the model takes the second of each pair as named here and 
 on the Mark IV (the amp's Harmonics / Mid Gain switch; off is Harmonics), *Bright* on the Mark V, *Bass Cut* on the
 SVT, *-15 dB Input* on the SVT-CL (the padded jack, for active or hot basses), *Voice* on the BE-100, *Low Power* on
 the Silver Jubilee, *Tone Shift* on the DSL100, *3rd Gear* on the Quick Rod,
-*Smooth* on the Savage 120 (its second lead voice: less gain into the tone stack and one more tube stage after it, so
+*-10 dB* on the GK 800RB (its input attenuator), *Smooth* on the Savage 120 (its second lead voice: less gain into the tone stack and one more tube stage after it, so
 the sound is rounder and the tone knobs do less; off is Rough), *Channel 1* on the Powerball (its Clean and Crunch
 channel, chosen by *Gain Hi*, with its own gain, tone stack and *Bright*; off is the lead channel), *Crunch 1* on the
 Savage 120 Clean (one more tube stage behind its own *Crunch 1 Gain*; off is Clean). *Bite Down* and
@@ -247,7 +250,8 @@ on.`,
 channels), an output level after the masters (*Output* on the Rect-o-Verb), or a tone control (*Edge* on the Hot Cat, *Mid Freq* on the SVT, *Frequency* on the SVT-CL (the
 five-position switch that sets where *Middle* works: 220 Hz, 450 Hz, 800 Hz, 1.6 kHz or 3 kHz, at 0, 2.5, 5, 7.5 and
 10), *Hi Treble*
-on the JC-120, *Mid Focused* on the Powerball, *Cut* on the Prometheus, a low cut before its gain stages), or a
+on the JC-120, *Mid Focused* on the Powerball, *Cut* on the Prometheus, a low cut before its gain stages, *Lo Mid* on
+the GK 800RB, the 250 Hz band of its four-band EQ; *Middle* is its *Hi Mid*, at 1 kHz), or a
 second gain (*Crunch 1 Gain* on the Savage 120 Clean, shown with *Crunch 1* on). On jumped
 Plexi-style amps the two volumes blend the bright and normal channels. On the Quick Rod it is the *Solo Boost*, which
 starts at 0: the boost is off there, as on the amp until you press its footswitch; turn it up for the solo lift.`,
@@ -257,7 +261,8 @@ Rectifiers (a preamp presence control there), *Lead Volume* on the Savage (Crunc
 Savage 120 Clean (the Clean or the Crunch volume), *Channel Volume* on the Powerball (the volume of the mode that plays: Lo or Hi Lead,
 Clean or Crunch), *OD Level* on the ODS,
 *Dynamic Voice* on the TriAxis, the 4 kHz band of the Bass 400's EQ, *Distortion* on the JC-120 (the gain ahead of its
-diode clipper, from about 2× to 48×; it shows, and acts, only with the *Distortion On* switch on).`,
+diode clipper, from about 2× to 48×; it shows, and acts, only with the *Distortion On* switch on), *Boost* on the
+GK 800RB (up to 18 dB more into its FET stage after the EQ: turn it up and *Master* down for the amp's growl).`,
 
     eq1: `The first band of a graphic EQ that is part of the model's own circuit (the Mesa Mark IIC+, IV and V's 80 Hz
 slider, the Bass 400's 34 Hz). ±12 dB maps onto the slider's travel; 0 is the slider centred. Hidden on models without
@@ -655,6 +660,8 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'Portaflex B-15N': 'Ampeg B-15N Portaflex: warm, round vintage bass. One channel: its two are the same circuit.',
       'Portaflex B-15N Jumped':
         'Ampeg B-15N Portaflex with a cable from channel one to channel two, so both play. Each channel has its own controls: Volume 1, Bass 1, Treble 1, Ultra Hi 1 and Ultra Lo 1; Volume 2 (Control 1), Bass 2 (the Middle knob), Treble 2 (Control 2), Ultra Hi 2 (the Bright switch) and Ultra Lo 2 (Switch 3). Set one channel deep and the other bright and blend them with the volumes.',
+      'GK 800RB':
+        'Gallien-Krueger 800RB (1982): the solid-state rock bass head. Four-band EQ, Contour, Lo Cut and Hi Boost, and a FET Boost for its growl. Full-range mode into the 300 W amp.',
       'JC-120':
         'Roland JC-120 Jazz Chorus (the 1984 one-channel circuit, reverb off): a solid-state clean, very flat and bright, with its diode Distortion on Switch 1. For its chorus, put a [Chorus block](/manual/blocks/chorus) of type JC-120 after the amp and cab.',
       'Hot Rod Deluxe': 'Fender Hot Rod Deluxe, Normal and Drive channels with More Drive.',
