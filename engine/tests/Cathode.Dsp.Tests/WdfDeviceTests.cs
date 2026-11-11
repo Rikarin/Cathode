@@ -287,6 +287,7 @@ public class WdfDeviceTests(ITestOutputHelper output) {
     [InlineData("KT88", -15.0, 140e-3, 11.5e-3)]
     [InlineData("6550", -14.0, 140e-3, 11e-3)]
     [InlineData("6AQ5", -12.5, 45e-3, 4.1e-3)]
+    [InlineData("6973", -15.0, 46e-3, 4.8e-3)]
     public void Pentode_presets_have_the_datasheet_current_and_slope(
         string tube,
         double vg1,
@@ -301,6 +302,7 @@ public class WdfDeviceTests(ITestOutputHelper output) {
             "KT66" => PentodeModel.KT66,
             "KT88" => PentodeModel.KT88,
             "6550" => PentodeModel.SixtyFiveFifty,
+            "6973" => PentodeModel.SixtyNineSeventyThree,
             _ => PentodeModel.SixAQ5
         };
         var current = new double[3];

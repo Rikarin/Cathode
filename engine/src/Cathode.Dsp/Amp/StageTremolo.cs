@@ -440,8 +440,51 @@ public sealed record GridDriveTremoloDesign(
     /// </summary>
     public bool Inverted { get; init; }
 
+    /// <summary>
+    ///     Where the tube in the stage is not the oscillator but one its plate drives (the Supro 1624T's cathode
+    ///     follower on the Tremolo channel's cathode): the network from the oscillator's plate to that tube's grid. The
+    ///     source then swings by the plate's swing times the network's gain at the rate, the depth turning the
+    ///     network's Intensity control, with no clamp: the netlist puts the network's resistance between the source
+    ///     and the grid, which limits the grid current. Null when the source is the oscillator's own grid.
+    /// </summary>
+    public TremoloDriveDesign? Drive { get; init; }
+
     internal override AmpStage Wrap(NetworkStageDesign design, AmpStage stage, double sampleRate) =>
         new GridDriveTremoloStage(this, stage, Modulated.Create(sampleRate), sampleRate);
+}
+
+/// <summary>
+///     The path from a tremolo oscillator's plate to the grid of another tube that it drives
+///     (<see cref="GridDriveTremoloDesign.Drive" />): <paramref name="CouplingCap" /> and
+///     <paramref name="SeriesResistor" /> in series to a node with <paramref name="ShuntCap" /> to ground, then
+///     <paramref name="SecondResistor" /> to the grid's node, where the <paramref name="Intensity" /> pot, wired as a
+///     rheostat, and <paramref name="IntensityCap" /> go to ground. At 0 the rheostat grounds the grid's node.
+/// </summary>
+public sealed record TremoloDriveDesign(
+    double CouplingCap,
+    double SeriesResistor,
+    double ShuntCap,
+    double SecondResistor,
+    Pot Intensity,
+    double IntensityCap
+) {
+    /// <summary>
+    ///     The grid node's swing per volt at the oscillator's plate, at <paramref name="frequency" /> hertz and
+    ///     Intensity rotation <paramref name="intensity" /> (the plate taken as a stiff source: the oscillator's
+    ///     <see cref="PhaseShiftOscillatorDesign.PlateLoad" /> stands for this network there).
+    /// </summary>
+    public double Gain(double frequency, double intensity) {
+        var rheostat = Intensity.Fraction(intensity) * Intensity.Ohms;
+        if (!(rheostat > 0) || !(frequency > 0)) {
+            return 0;
+        }
+
+        var omega = 2 * Math.PI * frequency;
+        var grid = 1 / new Complex(1 / rheostat, omega * IntensityCap);
+        var node = 1 / (new Complex(0, omega * ShuntCap) + 1 / (SecondResistor + grid));
+        var first = node / (node + SeriesResistor + new Complex(0, -1 / (omega * CouplingCap)));
+        return (first * grid / (SecondResistor + grid)).Magnitude;
+    }
 }
 
 /// <summary>The runtime of a <see cref="GridDriveTremoloDesign" />.</summary>
@@ -450,6 +493,7 @@ public sealed class GridDriveTremoloStage : PairedAmpStage {
     readonly AmpStage modulated;
     readonly IRailModulation rails;
     readonly OscillatorTable table;
+    readonly double clamp; // the swing beyond which the driven grid's positive peaks are clamped
     double sampleRate;
     double restInput;
     double smoothing;
@@ -495,6 +539,7 @@ public sealed class GridDriveTremoloStage : PairedAmpStage {
         this.modulated = modulated;
         rails = (IRailModulation)modulated;
         table = design.Oscillator.Table;
+        clamp = design.Drive is null ? table.Bias : double.PositiveInfinity;
         this.sampleRate = sampleRate;
         Step();
     }
@@ -514,7 +559,9 @@ public sealed class GridDriveTremoloStage : PairedAmpStage {
         }
 
         var share = Design.FullSwing && depth > 0 ? 1 : depth;
-        target = share * OscillatorTable.At(table.Amplitudes, position);
+        target = Design.Drive is { } drive
+            ? table.PlateAt(1, position).Magnitude * drive.Gain(Frequency, depth)
+            : share * OscillatorTable.At(table.Amplitudes, position);
         if (depth > 0 && direction < 0) {
             direction = 1; // re-engaged while fading out: the modulated netlist is still running
         } else if (depth > 0 && fade == 0 && direction == 0) {
@@ -554,7 +601,7 @@ public sealed class GridDriveTremoloStage : PairedAmpStage {
         var norm = 1.5 - 0.5 * (s * s + c * c);
         sine = s * norm;
         cosine = c * norm;
-        var grid = swing * sine - Math.Max(swing - table.Bias, 0);
+        var grid = swing * sine - Math.Max(swing - clamp, 0);
         rails.OffsetRail(Design.Source, Design.Inverted ? -grid : grid);
         var wet = modulated.Tick(input);
         if (direction == 0) {

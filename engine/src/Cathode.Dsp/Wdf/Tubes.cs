@@ -194,6 +194,19 @@ public readonly record struct PentodeModel(
     public static PentodeModel SixAQ5 { get; } = new(9.535, 1.35, 2_257, 7_733, 56.43, 32.88);
 
     /// <summary>
+    ///     6973 beam power tube, a nine-pin miniature (Valco's Supro, Gretsch and Airline amps). Fitted with Ex 1.35 by
+    ///     least squares on log errors to RCA's sheet (10-60, with its curves 92CM-9380 and 92CM-9389): the class-A
+    ///     point 250 V plate and screen, -15 V (46 mA, 3.5 mA screen, 4.8 mS), the fixed-bias idle points 350 / 280 V,
+    ///     -22 V (29 mA, 1.75 mA a tube) and 400 / 290 V, -25 V (25 mA, 1.25 mA), and points read from the curves at
+    ///     250 V on the plate: 141, 105, 73 and 27 mA at 0, -5, -10 and -20 V with 250 V on the screen, and 172, 111,
+    ///     81 and 50 mA at zero bias with 300, 200, 150 and 100 V on it. It gives 46.3 mA, 3.5 mA and 5.0 mS at the
+    ///     class-A point, 31.0 / 1.76 mA and 24.7 / 1.0 mA at the idle points, and 144, 108, 74 and 25 mA on the 250 V
+    ///     curves; the zero-bias currents at low screen voltages come out up to 16 % low (41.9 mA at 100 V), and r_p
+    ///     88k against the sheet's 73k. μ is 10, which the three screen currents ask for.
+    /// </summary>
+    public static PentodeModel SixtyNineSeventyThree { get; } = new(10, 1.35, 1_589, 6_400, 46.2, 22);
+
+    /// <summary>
     ///     The tube with both knees sharpened by <paramref name="hardness" />: the cut-off knee K_p multiplied by it
     ///     and the plate knee K_vb divided by it, so the tube goes into cut-off and into plate saturation more abruptly
     ///     (or, below 1, more gently), with the current well inside its range unchanged. The Circuit Amp's Power Tube

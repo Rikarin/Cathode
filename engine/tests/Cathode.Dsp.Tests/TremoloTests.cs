@@ -20,7 +20,7 @@ public class TremoloTests(ITestOutputHelper output) {
     static readonly string[] Names = [
         "Deluxe 6G3", "Vibrolux 6G11", "Scout GA-17RVT", "Princeton AA964", "Princeton Reverb", "Deluxe Reverb",
         "Twin Reverb", "Super Reverb", "Vibroverb AB763", "Vibrolux Reverb AA964", "Bandmaster AB763",
-        "Tremolux AA763", "Vibro-King", "18 W 1974X"
+        "Tremolux AA763", "Vibro-King", "18 W 1974X", "Supro 1624T"
     ];
 
     const string Bluesbreaker = "Bluesbreaker 1962";
@@ -337,6 +337,7 @@ public class TremoloTests(ITestOutputHelper output) {
         Assert.Equal("Intensity", Label("tremdepth", Bluesbreaker));
         Assert.Equal("Speed", Label("tremrate", Bluesbreaker));
         Assert.True(new AmpChannel(Design(Bluesbreaker), 96_000).HasTremolo);
+        Assert.Equal("Intensity", Label("tremdepth", "Supro 1624T"));
         Assert.Equal("Bias Trem Rate", Label("tremrate", "Plexi 100W"));
         Assert.Equal("Bias Trem Depth", Label("tremdepth", "Plexi 100W"));
         foreach (var name in Names) {

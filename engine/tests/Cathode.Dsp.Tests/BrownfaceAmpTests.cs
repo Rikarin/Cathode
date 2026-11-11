@@ -11,13 +11,15 @@ namespace Cathode.Dsp.Tests;
 ///     at full drive (finite, bounded, Newton converging), every control audible, volume and master monotonic; the
 ///     harmonic vibrato (its rate from the oscillator's ladder, its depth from the Intensity knob, the two bands
 ///     alternating, the pedal stopping it); the Bassman 135's gain staging against the AC test points on CBS's drawing;
-///     the 6EU7 and 6AQ5 fits against their datasheets and the Scout's operating points against Gibson's drawing.
+///     the 6EU7 and 6AQ5 fits against their datasheets and the Scout's operating points against Gibson's drawing. The
+///     Supro 1624T rides along (another small US combo with one Volume and a tremolo): its 6973 fit against RCA's
+///     sheet, its idle point against AmpBooks' figures, its paraphase inverter's balance, its Tone and its inputs.
 /// </summary>
 public class BrownfaceAmpTests(ITestOutputHelper output) {
     const double Rate = 48_000;
 
     static readonly string[] Models = [
-        "Concert 6G12", "Super 6G4", "Deluxe 6G3", "Vibrolux 6G11", "Bassman 135", "Scout GA-17RVT"
+        "Concert 6G12", "Super 6G4", "Deluxe 6G3", "Vibrolux 6G11", "Bassman 135", "Scout GA-17RVT", "Supro 1624T"
     ];
 
     public static TheoryData<string> Types => [..Models];
@@ -350,6 +352,142 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
         output.WriteLine($"Scout V2A plate {a:0.0} V (drawing 120), V2B {b:0.0} V (130)");
         Assert.InRange(a, 110, 130);
         Assert.InRange(b, 115, 140);
+    }
+
+    /// <summary>
+    ///     The 6973 fit against RCA's sheet (10-60): the class-A point and the fixed-bias idle points to 8 % (the
+    ///     screen at the 400 V point, 1.0 mA against 1.25, apart), the transconductance, and the 250 V curves read from
+    ///     92CM-9380 and 92CM-9389 to 17 %.
+    /// </summary>
+    [Fact]
+    public void The_6973_fit_follows_rcas_sheet() {
+        var tube = new Pentode(PentodeModel.SixtyNineSeventyThree);
+        var current = new double[3];
+        var jacobian = new double[9];
+
+        (double Plate, double Screen) At(double vp, double vg2, double vg1) {
+            tube.Evaluate([vg1, vg2, vp], current, jacobian, 3);
+            return (current[2] * 1e3, current[1] * 1e3);
+        }
+
+        // Tabulated: (plate V, screen V, grid V, mA, screen mA) per tube.
+        (double Vp, double Vg2, double Vg1, double Ip, double Ig2)[] tabulated = [
+            (250, 250, -15, 46, 3.5), (350, 280, -22, 29, 1.75), (400, 290, -25, 25, 1.25)
+        ];
+        foreach (var (vp, vg2, vg1, ip, ig2) in tabulated) {
+            var (plate, screen) = At(vp, vg2, vg1);
+            output.WriteLine($"6973 {vp} / {vg2} V, {vg1} V: {plate:0.0} mA ({ip}), screen {screen:0.00} mA ({ig2})");
+            Assert.InRange(plate / ip, 0.92, 1.08);
+            Assert.InRange(screen / ig2, vp == 400 ? 0.75 : 0.92, 1.08);
+        }
+
+        At(250, 250, -15);
+        output.WriteLine($"6973 transconductance {jacobian[6] * 1e3:0.00} mS (4.8)");
+        Assert.InRange(jacobian[6] * 1e3, 4.4, 5.2);
+
+        // Read from the curves at 250 V on the plate: (screen V, grid V, mA).
+        (double Vg2, double Vg1, double Ip)[] curves = [
+            (250, 0, 141), (250, -5, 105), (250, -10, 73), (250, -20, 27), (300, 0, 172), (200, 0, 111), (150, 0, 81),
+            (100, 0, 50)
+        ];
+        foreach (var (vg2, vg1, ip) in curves) {
+            var (plate, _) = At(250, vg2, vg1);
+            output.WriteLine($"6973 250 / {vg2} V, {vg1} V: {plate:0.0} mA ({ip})");
+            Assert.InRange(plate / ip, 0.83, 1.17);
+        }
+    }
+
+    /// <summary>
+    ///     The Supro's idle point against AmpBooks' figures for this circuit: 350 V on the 6973 plates, about 23 V on
+    ///     their shared 250 Ω at about 92 mA, 290 V on the 12AX7 plate resistors.
+    /// </summary>
+    [Fact]
+    public void The_supro_idles_at_ampbooks_figures() {
+        var power = new AmpChannel(Supro1624T.Design, 96_000).Power;
+        var (plate, _) = power.PlateCurrents;
+        var (screen, _) = power.ScreenCurrents;
+        var total = 2 * (plate + screen);
+        output.WriteLine(
+            $"B+ {power.Supply:0.0} V, screens {power.ScreenSupply:0.0} V, preamp {power.PreampVoltage:0.0} V, "
+            + $"cathode {power.CathodeVoltage:0.0} V at {total * 1e3:0.0} mA ({plate * 1e3:0.0} + {screen * 1e3:0.0} "
+            + "a tube)"
+        );
+        Assert.InRange(power.Supply, 345, 355);
+        Assert.InRange(power.CathodeVoltage, 21, 26);
+        Assert.InRange(total, 0.084, 0.104);
+        Assert.InRange(power.PreampVoltage, 280, 300);
+
+        var inverter = (FixedParaphase)PhaseInverter.For(Supro1624T.Design.Power.PhaseInverter);
+        output.WriteLine(
+            $"V2B plate {inverter.RestPlateA:0.0} V, cathode {inverter.RestCathode:0.00} V, "
+            + $"{inverter.RestCurrent * 1e3:0.00} mA; V2A plate {inverter.RestPlateB:0.0} V"
+        );
+        // AmpBooks: 167 V from plate to cathode on the 12AX7 it works the inverter's headroom out for.
+        Assert.InRange(inverter.RestPlateA - inverter.RestCathode, 155, 180);
+        Assert.InRange(inverter.RestPlateB, 110, 180);
+    }
+
+    /// <summary>
+    ///     The Supro's paraphase: the second triode turns the first plate's swing over, and at the 6973 grids (each
+    ///     output behind its plate's resistance into its own grid leak) the second side gets a little more than the
+    ///     first, as AmpBooks works out for these parts (1.16 times).
+    /// </summary>
+    [Fact]
+    public void The_supro_paraphase_drives_the_second_side_a_little_harder() {
+        var design = (FixedParaphaseDesign)Supro1624T.Design.Power.PhaseInverter;
+        var inverter = (FixedParaphase)PhaseInverter.For(design);
+        var (a, b) = inverter.Evaluate(1, out _, out _);
+        var (a2, b2) = inverter.Evaluate(-1, out _, out _);
+        var z = inverter.OutputImpedance;
+        var leak = Supro1624T.Design.Power.GridLeak;
+        Assert.Equal(design.DividerTop + design.DividerBottom, leak);
+        var first = b * leak / (leak + z.Zbb);
+        var second = -a * leak / (leak + z.Zaa);
+        output.WriteLine(
+            $"+1 V at the first plate: outputs {a:0.000} / {b:0.000} V (-1 V: {a2:0.000} / {b2:0.000}); plate "
+            + $"resistances {z.Zbb / 1e3:0.0}k and {z.Zaa / 1e3:0.0}k; at the grids {first:0.000} and {second:0.000} "
+            + $"V, ratio {second / first:0.00}; tap {inverter.TapRatio:0.0000}"
+        );
+        Assert.Equal(1, b, 1e-9);
+        Assert.True(a < 0 && a2 > 0, "the second plate does not turn the first over");
+        Assert.InRange(second / first, 1.0, 1.35);
+
+        // Driven hard, the second triode cuts off: its plate stops rising while the first plate goes on falling.
+        inverter.Evaluate(1, out var slope, out _);
+        var (cut, _) = inverter.Evaluate(-0.95 * inverter.Range, out var flat, out _);
+        output.WriteLine($"second plate {cut:0.0} V up with the first plate {0.95 * inverter.Range:0} V down");
+        Assert.True(Math.Abs(flat) < 0.05 * Math.Abs(slope), "the second triode does not cut off");
+    }
+
+    /// <summary>
+    ///     The Supro's Tone takes treble off as it is turned down, and its Treble input, through 0.005 µF, thins the
+    ///     lows that the Standard input passes.
+    /// </summary>
+    [Fact]
+    public void The_supro_tone_and_treble_input_do_what_the_panel_says() {
+        static double Level(double hertz, params (int Index, float Value)[] settings) {
+            using var block = Create("Supro 1624T", [(CircuitAmpBlock.Gain, 3f), ..settings]);
+            var rendered = BlockRender.Mono(block, Signals.Sine(hertz, Rate, 24_000, 1e-3f), 64);
+            return Analysis.ToDb(Analysis.Rms(rendered.AsSpan(12_000)));
+        }
+
+        foreach (var channel in new[] { 0f, 1f }) {
+            (int, float) played = (CircuitAmpBlock.Switch1, channel);
+            var dark = Level(3_000, played, (CircuitAmpBlock.Treble, 0f));
+            var bright = Level(3_000, played, (CircuitAmpBlock.Treble, 10f));
+            var low = Level(100, played, (CircuitAmpBlock.Treble, 10f));
+            var lowDark = Level(100, played, (CircuitAmpBlock.Treble, 0f));
+            var thin = Level(100, played, (CircuitAmpBlock.Treble, 10f), (CircuitAmpBlock.Bright, 1f));
+            var thinHigh = Level(3_000, played, (CircuitAmpBlock.Treble, 10f), (CircuitAmpBlock.Bright, 1f));
+            output.WriteLine(
+                $"channel {channel + 1}: 3 kHz {dark:0.0} dB at Tone 0, {bright:0.0} dB at 10 (100 Hz: {lowDark:0.0}, "
+                + $"{low:0.0}); Treble input {thin:0.0} dB at 100 Hz, {thinHigh:0.0} dB at 3 kHz"
+            );
+            Assert.True(bright - dark > 6, "the Tone hardly moves the treble");
+            Assert.True(Math.Abs(low - lowDark) < 3, "the Tone moves the bass");
+            Assert.True(low - thin > 6, "the Treble input passes the lows");
+            Assert.True(thinHigh - bright > -1, "the Treble input loses treble");
+        }
     }
 
     [Fact]

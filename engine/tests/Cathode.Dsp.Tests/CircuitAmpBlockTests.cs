@@ -57,6 +57,7 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
             : design.Tube == PentodeModel.EL34 ? 25
             : design.Tube == PentodeModel.SixV6GT ? 14
             : design.Tube == PentodeModel.SixAQ5 ? 12
+            : design.Tube == PentodeModel.SixtyNineSeventyThree ? 12
             : 30;
         output.WriteLine(
             $"{design.Name}: B+ {power.Supply:0.0} V, screen node {power.ScreenSupply:0.0} V, preamp node "
@@ -73,7 +74,10 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
         // The Champ AA764's one 6V6 sits on the drawing's 470 Ω with its screen 10 V under a 360 V B+: the drawing's
         // own 19 V and 350 V are 40 mA and about 12.5 W; the model's tube draws 47 mA there (22 V, inside the
         // drawing's 20 %), which with B+ for the plate's voltage, as here, is 14.6 W.
+        // The Supro 1624T's 6973s on their shared 250 Ω run past the rating too: AmpBooks has about 23 V there at about
+        // 92 mA for the pair with 327 V from plate to cathode, some 14 W a tube of the 6973's 12 W.
         var hot = design.CathodeBias && design.Tube == PentodeModel.EL84 ? 1.45
+            : design.CathodeBias && design.Tube == PentodeModel.SixtyNineSeventyThree ? 1.25
             : design.CathodeBias && design.Tube == PentodeModel.EL34 ? 1.5
             : AmpDesign.All[type] == ChampAA764.Design ? 1.05
             : design.CathodeBias && design.Tube == PentodeModel.SixV6GT ? 1

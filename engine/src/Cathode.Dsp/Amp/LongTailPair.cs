@@ -131,6 +131,7 @@ public abstract class PhaseInverter {
                     CathodyneDesign cathodyne => new Cathodyne(cathodyne, load),
                     DriverChainDesign chain => new DriverChain(chain),
                     FloatingParaphaseDesign paraphase => new FloatingParaphase(paraphase),
+                    FixedParaphaseDesign paraphase => new FixedParaphase(paraphase),
                     CathodyneDriverDesign driver => new CathodyneDriver(driver),
                     DifferentialDriverDesign driver => new DifferentialDriver(driver),
                     _ => throw new ArgumentException($"Unknown phase inverter {design}.", nameof(design))

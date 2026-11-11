@@ -45,6 +45,7 @@ export const AMP_MODELS: Record<string, { family: AmpFamily; basedOn: string }> 
   'Pro Junior': { family: 'fender', basedOn: 'Fender Pro Junior' },
   'Scout GA-17RVT': { family: 'fender', basedOn: 'Gibson Scout GA-17RVT' },
   'Classic 30': { family: 'fender', basedOn: 'Peavey Classic 30' },
+  'Supro 1624T': { family: 'fender', basedOn: 'Supro 1624T Dual-Tone (Valco, 1960s)' },
 
   // Marshall and British
   JTM45: { family: 'british', basedOn: 'Marshall JTM45' },
