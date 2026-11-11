@@ -156,7 +156,7 @@ public static class Fireball {
         var net = new StageNetlist();
         var top = net.Node();
         net.Resistor(net.Input, StageNetlist.Ground, 1e6);
-        net.Capacitor(EnglParts.Triode(net, net.Input, V1ARail, 100e3, 1e3, 0), top, 47e-9);
+        net.Capacitor(TriodeParts.CommonCathode(net, net.Input, V1ARail, 100e3, 1e3), top, 47e-9);
         var wiper = net.Pot(top, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Gain);
         net.SwitchedCapacitor(top, wiper, 100e-12, SwitchRole.Bright, CapacitorRole.Bright);
         net.Output = wiper;
@@ -232,7 +232,7 @@ public static class Fireball {
         net.Resistor(coupled, StageNetlist.Ground, load);
         net.Resistor(coupled, grid, series);
         net.Resistor(grid, StageNetlist.Ground, 470e3);
-        net.Output = EnglParts.Triode(net, grid, tube.Rail, tube.Plate, tube.Cathode, tube.Bypass);
+        net.Output = TriodeParts.CommonCathode(net, grid, tube.Rail, tube.Plate, tube.Cathode, tube.Bypass);
         return net;
     }
 }

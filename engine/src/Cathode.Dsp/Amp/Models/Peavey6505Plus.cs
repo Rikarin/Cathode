@@ -175,7 +175,7 @@ public static class Peavey6505Plus {
     ///     whole circuit to no better than -23 dB.
     /// </summary>
     static int Coupled(StageNetlist net) {
-        var plate = PeaveyParts.Triode(net, net.Input, V1Rail, 210e3, 1.82e3, 1e-6);
+        var plate = TriodeParts.CommonCathode(net, net.Input, V1Rail, 210e3, 1.82e3, 1e-6);
         var coupled = net.Node();
         net.Capacitor(plate, coupled, 22e-9);
         net.Resistor(coupled, StageNetlist.Ground, 1e6);
@@ -204,7 +204,7 @@ public static class Peavey6505Plus {
         net.Resistor(top, wiper, 1e6);
         net.Capacitor(top, wiper, 1e-9, CapacitorRole.Bright);
         net.Resistor(wiper, grid, 470e3);
-        net.Output = PeaveyParts.Triode(net, grid, V1Rail, 100e3, 1.82e3, 1e-6);
+        net.Output = TriodeParts.CommonCathode(net, grid, V1Rail, 100e3, 1.82e3, 1e-6);
         return net;
     }
 
@@ -230,7 +230,7 @@ public static class Peavey6505Plus {
         net.Resistor(wiper, grid, 470e3);
         net.Capacitor(wiper, grid, 470e-12);
         net.Resistor(grid, StageNetlist.Ground, 470e3);
-        net.Output = PeaveyParts.Triode(net, grid, V1Rail, 220e3, 2.2e3, 0.33e-6);
+        net.Output = TriodeParts.CommonCathode(net, grid, V1Rail, 220e3, 2.2e3, 0.33e-6);
         return net;
     }
 

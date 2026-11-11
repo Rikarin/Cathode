@@ -7,8 +7,8 @@ namespace Cathode.Dsp.Amp.Models;
 ///     and 610-2): two power tubes a side in fixed bias, 2.2k stoppers, 47 nF from a long-tail pair with 82k and 100k
 ///     plate resistors and 470 Ω under its cathodes, 100 nF into its first grid with 100k to the bias junction, and a
 ///     closed 4x12. And the stages those two drawings and the Fireball's (625) share: the loop's send follower, the
-///     return stage with the master, a gain stage's triode and the stack's pots. Each model passes its own drawing's
-///     values.
+///     return stage with the master and the stack's pots (a gain stage's triode is
+///     <see cref="TriodeParts.CommonCathode" />). Each model passes its own drawing's values.
 /// </summary>
 static class EnglParts {
     /// <summary>
@@ -61,31 +61,6 @@ static class EnglParts {
             supply,
             InverterInput: new(100e-9, 100e3)
         );
-
-    /// <summary>
-    ///     An ECC83 on <paramref name="grid" />: <paramref name="plateResistor" /> to <paramref name="rail" />,
-    ///     <paramref name="cathodeResistor" /> to ground with <paramref name="bypass" /> across it (0: unbypassed).
-    ///     Returns the plate.
-    /// </summary>
-    public static int Triode(
-        StageNetlist net,
-        int grid,
-        double rail,
-        double plateResistor,
-        double cathodeResistor,
-        double bypass
-    ) {
-        var (supply, plate, cathode) = (net.Node(), net.Node(), net.Node());
-        net.Supply(supply, rail);
-        net.Resistor(supply, plate, plateResistor);
-        net.CathodeResistor(cathode, StageNetlist.Ground, cathodeResistor);
-        if (bypass > 0) {
-            net.Capacitor(cathode, StageNetlist.Ground, bypass);
-        }
-
-        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-        return plate;
-    }
 
     /// <summary>
     ///     The pots of a stack with one middle pot, from the node after its input cap: <paramref name="slope" /> to

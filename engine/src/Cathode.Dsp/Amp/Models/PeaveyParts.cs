@@ -58,31 +58,6 @@ public static class PeaveyParts {
     /// <summary>The post stage V3A (<see cref="PostStage" />) on the V2 rail.</summary>
     public static AmpStageDesign Post(double rail) => new NetworkStageDesign("V3A", PostStage(rail)) { SupplyNode = 1 };
 
-    /// <summary>
-    ///     A common-cathode 12AX7 on <paramref name="grid" />: <paramref name="plateResistor" /> from
-    ///     <paramref name="rail" />, <paramref name="cathodeResistor" /> to ground with <paramref name="bypass" />
-    ///     across it (0: unbypassed). Returns the plate.
-    /// </summary>
-    public static int Triode(
-        StageNetlist net,
-        int grid,
-        double rail,
-        double plateResistor,
-        double cathodeResistor,
-        double bypass = 0
-    ) {
-        var (supply, plate, cathode) = (net.Node(), net.Node(), net.Node());
-        net.Supply(supply, rail);
-        net.Resistor(supply, plate, plateResistor);
-        net.CathodeResistor(cathode, StageNetlist.Ground, cathodeResistor);
-        if (bypass > 0) {
-            net.Capacitor(cathode, StageNetlist.Ground, bypass);
-        }
-
-        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
-        return plate;
-    }
-
     /// <summary>V2B: 22 nF into 330k ‖ 1 nF to ground, 220k to the grid; 220k plate, 1.82k ‖ 1 µF.</summary>
     static StageNetlist ThirdGain(double rail) {
         var net = new StageNetlist();
@@ -91,7 +66,7 @@ public static class PeaveyParts {
         net.Resistor(coupled, StageNetlist.Ground, 330e3);
         net.Capacitor(coupled, StageNetlist.Ground, 1e-9);
         net.Resistor(coupled, grid, 220e3);
-        net.Output = Triode(net, grid, rail, 220e3, 1.82e3, 1e-6);
+        net.Output = TriodeParts.CommonCathode(net, grid, rail, 220e3, 1.82e3, 1e-6);
         return net;
     }
 
@@ -105,7 +80,7 @@ public static class PeaveyParts {
         net.Resistor(net.Input, series, 1e6);
         net.Capacitor(series, grid, 22e-9);
         net.Resistor(grid, StageNetlist.Ground, 1e6);
-        var plate = Triode(net, grid, rail, 100e3, 2.2e3);
+        var plate = TriodeParts.CommonCathode(net, grid, rail, 100e3, 2.2e3);
         var output = net.Node();
         net.Capacitor(plate, output, 22e-9);
         net.Resistor(output, grid, 1e6);
@@ -122,7 +97,7 @@ public static class PeaveyParts {
         var grid = net.Node();
         net.Capacitor(net.Input, grid, 47e-9);
         net.Resistor(grid, StageNetlist.Ground, 1e6);
-        var plate = Triode(net, grid, rail, 68e3, 3.3e3, 4.7e-9);
+        var plate = TriodeParts.CommonCathode(net, grid, rail, 68e3, 3.3e3, 4.7e-9);
         var (coupled, inverter) = (net.Node(), net.Node());
         net.Capacitor(plate, coupled, 22e-9);
         net.Resistor(coupled, StageNetlist.Ground, 1e6);
