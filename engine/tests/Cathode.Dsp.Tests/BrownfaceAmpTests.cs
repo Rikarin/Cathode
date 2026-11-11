@@ -13,13 +13,15 @@ namespace Cathode.Dsp.Tests;
 ///     alternating, the pedal stopping it); the Bassman 135's gain staging against the AC test points on CBS's drawing;
 ///     the 6EU7 and 6AQ5 fits against their datasheets and the Scout's operating points against Gibson's drawing. The
 ///     Supro 1624T rides along (another small US combo with one Volume and a tremolo): its 6973 fit against RCA's
-///     sheet, its idle point against AmpBooks' figures, its paraphase inverter's balance, its Tone and its inputs.
+///     sheet, its idle point against AmpBooks' figures, its paraphase inverter's balance, its Tone and its inputs. So
+///     does the Silvertone 1484: its 6CG7 fit, operating points against Sears' drawing, channels and tone controls.
 /// </summary>
 public class BrownfaceAmpTests(ITestOutputHelper output) {
     const double Rate = 48_000;
 
     static readonly string[] Models = [
-        "Concert 6G12", "Super 6G4", "Deluxe 6G3", "Vibrolux 6G11", "Bassman 135", "Scout GA-17RVT", "Supro 1624T"
+        "Concert 6G12", "Super 6G4", "Deluxe 6G3", "Vibrolux 6G11", "Bassman 135", "Scout GA-17RVT", "Supro 1624T",
+        "Twin Twelve 1484"
     ];
 
     public static TheoryData<string> Types => [..Models];
@@ -46,6 +48,13 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
             new[] { "gain", "bass", "middle", "treble", "master", "presence", "bright" }
                 .Where(static id => !string.IsNullOrEmpty(Label(id, "Scout GA-17RVT")))
         );
+        Assert.Equal(["Channel 2", string.Empty, string.Empty], Switches("Twin Twelve 1484"));
+        Assert.Equal(
+            ["gain", "bass", "treble"],
+            new[] { "gain", "bass", "middle", "treble", "master", "presence", "bright" }
+                .Where(static id => !string.IsNullOrEmpty(Label(id, "Twin Twelve 1484")))
+        );
+        Assert.Equal("Volume", Label("gain", "Twin Twelve 1484"));
         foreach (var type in Models) {
             Assert.Empty(Label("cut", type));
             Assert.Empty(Label("depth", type));
@@ -488,6 +497,93 @@ public class BrownfaceAmpTests(ITestOutputHelper output) {
             Assert.True(low - thin > 6, "the Treble input passes the lows");
             Assert.True(thinHigh - bright > -1, "the Treble input loses treble");
         }
+    }
+
+    /// <summary>
+    ///     The 6CG7 fit reproduces Tung-Sol's tabulated 6SN7GT points, and the Silvertone 1484 rests where Sears'
+    ///     drawing says: V1 at 100 V and 1.1 V, V2 at 93 V and 1.1 V, V3A at 100 V and 4 V, the cathodyne at 225 V and
+    ///     125 V, the output stage at 480 V with 340 V screens and −36 V of bias.
+    /// </summary>
+    [Fact]
+    public void The_silvertone_rests_at_the_voltages_on_its_drawing() {
+        // Tung-Sol 6SN7GT: (plate V, grid V, mA, mS).
+        (double Vp, double Vg, double Ip, double Gm)[] sheet = [(90, 0, 10, 3.0), (250, -8, 9, 2.6)];
+        var cg7 = new Triode(TriodeModel.SixCG7);
+        foreach (var (vp, vg, ip, gm) in sheet) {
+            var i = OperatingPoint.PlateCurrent(cg7, vg, vp) * 1e3;
+            var g = (OperatingPoint.PlateCurrent(cg7, vg + 1e-3, vp) - OperatingPoint.PlateCurrent(cg7, vg - 1e-3, vp))
+                / 2e-3
+                * 1e3;
+            output.WriteLine($"6CG7 {vp} V {vg} V: {i:0.00} mA ({ip}), {g:0.00} mS ({gm})");
+            Assert.InRange(i / ip, 0.9, 1.1);
+            Assert.InRange(g / gm, 0.9, 1.1);
+        }
+
+        var design = Silvertone1484.Design;
+        var channel = new AmpChannel(design, Rate);
+        var input = (NetworkStage<FastTriode>)channel.Stages[0];
+        var mixer = (NetworkStage<Devices<FastTriode, Devices<FastTriode, FastTriode>>>)channel.Stages[1];
+        var driver = (NetworkStage<FastTriode>)channel.Stages[2];
+        var inverter = PhaseInverter.For(design.Power.PhaseInverter);
+
+        static (double Plate, double Cathode) Rest<T>(NetworkStage<T> stage) where T : struct, INonlinearDevice {
+            var triode = stage.Design.Netlist.Elements.First(static e => e.Kind == ElementKind.Triode);
+            return (stage.RestVoltage(triode.A), stage.RestVoltage(triode.C));
+        }
+
+        (string Name, double Value, double Drawing, double Tolerance)[] points = [
+            ("V1 plate", Rest(input).Plate, 100, 0.2), ("V1 cathode", Rest(input).Cathode, 1.1, 0.2),
+            ("V2 plate", Rest(mixer).Plate, 93, 0.2), ("V2 cathode", Rest(mixer).Cathode, 1.1, 0.2),
+            ("V3A plate", Rest(driver).Plate, 100, 0.3), ("V3A cathode", Rest(driver).Cathode, 4, 0.3),
+            ("cathodyne plate", inverter.RestPlateA, 225, 0.1), ("cathodyne junction", inverter.RestPlateB, 125, 0.1),
+            ("B+", channel.Power.Supply, 480, 0.02), ("screens", channel.Power.ScreenSupply, 340, 0.02),
+            ("bias", channel.Power.GridBias, -36, 0.05)
+        ];
+        foreach (var (name, value, drawing, _) in points) {
+            output.WriteLine($"{name}: {value:0.00} V (drawing {drawing})");
+        }
+
+        Assert.All(points, static p => Assert.InRange(p.Value / p.Drawing, 1 - p.Tolerance, 1 + p.Tolerance));
+    }
+
+    /// <summary>
+    ///     The Silvertone's two channels: Channel 1's feedback resistor (1M from the stack's input back to the grid)
+    ///     and Channel 2's 330k in series each cost gain, Channel 1's more (Channel 2 is about 5 dB louder with the
+    ///     tremolo's photocell dark, as it is modelled), and the Bass and Treble pots lift their ends of the band.
+    /// </summary>
+    [Fact]
+    public void The_silvertone_channels_and_tone_controls_do_what_the_drawing_says() {
+        static double Level(double hz, bool second, float bass, float treble) {
+            using var block = Create(
+                "Twin Twelve 1484",
+                (CircuitAmpBlock.Gain, 3f),
+                (CircuitAmpBlock.Bass, bass),
+                (CircuitAmpBlock.Treble, treble),
+                (CircuitAmpBlock.Switch1, second ? 1f : 0f)
+            );
+            var rendered = BlockRender.Mono(block, Signals.Sine(hz, Rate, 24_000, 1e-3f), 64);
+            return Analysis.ToDb(Analysis.MagnitudeAt(rendered.AsSpan(12_000), hz, Rate));
+        }
+
+        foreach (var second in new[] { false, true }) {
+            var name = second ? "Channel 2" : "Channel 1";
+            var bass = Level(80, second, 10, 5) - Level(80, second, 0, 5);
+            var bassAtTreble = Level(4_000, second, 10, 5) - Level(4_000, second, 0, 5);
+            var treble = Level(4_000, second, 5, 10) - Level(4_000, second, 5, 0);
+            var trebleAtBass = Level(80, second, 5, 10) - Level(80, second, 5, 0);
+            output.WriteLine(
+                $"{name}: Bass {bass:0.0} dB at 80 Hz ({bassAtTreble:0.0} at 4 kHz), "
+                + $"Treble {treble:0.0} dB at 4 kHz ({trebleAtBass:0.0} at 80 Hz)"
+            );
+            Assert.True(bass > 6, $"{name}: Bass moves 80 Hz by {bass:0.0} dB");
+            Assert.True(treble > 10, $"{name}: Treble moves 4 kHz by {treble:0.0} dB");
+            Assert.True(Math.Abs(bassAtTreble) < bass / 2);
+            Assert.True(Math.Abs(trebleAtBass) < treble / 2);
+        }
+
+        var difference = Level(1_000, true, 5, 5) - Level(1_000, false, 5, 5);
+        output.WriteLine($"Channel 2 against Channel 1 at 1 kHz: {difference:+0.0;-0.0} dB");
+        Assert.InRange(difference, 2, 8);
     }
 
     [Fact]

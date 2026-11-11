@@ -43,6 +43,8 @@ Leave a few dB of headroom in *Level*; a Cab block after the amp removes them.
 - **Tweed (raw, compressed, early breakup):** Champ 5F1, Princeton 5F2-A, Tweed Deluxe 5E3, Bassman 5F6-A, Tweed
   Twin. The *Jumped* versions run both channels at once, the classic way to play them. The Supro 1624T belongs
   here by its sound: a small 1960s combo with no feedback that goes thick and gritty when turned up.
+- **1960s mail-order and garage:** Twin Twelve 1484 (Silvertone): no feedback, loose and ragged when turned up;
+  *Channel 2* is its second channel. Its tremolo and reverb are not built.
 - **British crunch and classic rock:** JTM45, Plexi, Plexi 100W, 1959SLP, 1987X, 1959T Tremolo, Bluesbreaker 1962,
   18 W 1974X, Major 1967, Super Bass 100, JCM800 2203 and 2204, JCM800 2210 and 2205, Hiwatt DR103 and DR504, OR120
   and OR80.
@@ -750,6 +752,8 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
         'Peavey Classic 30: a four-EL84 combo, Lead channel (Pre and Post) and Normal channel, with its Boost switch.',
       'Supro 1624T':
         'Supro 1624T Dual-Tone: two 6973s and a paraphase inverter, thick and gritty when cranked; tremolo on its second channel.',
+      'Twin Twelve 1484':
+        'Silvertone 1484 Twin Twelve, both channels: a raw 60s 6L6 head with no feedback (its tremolo and reverb are not built).',
       'Major 1967': 'Marshall Major 1967, 200 W: huge, loud and clean until it is very loud.',
       'Bass 400': 'Mesa/Boogie Bass 400 with its graphic EQ.',
       'JVM410H Clean/Crunch': 'Marshall JVM410H Clean and Crunch channels.',
