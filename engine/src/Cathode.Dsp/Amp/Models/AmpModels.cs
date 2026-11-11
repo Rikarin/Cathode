@@ -127,6 +127,7 @@ public sealed partial record AmpDesign {
         JCM2210.Head50,
         Tsl100.Design,
         RandallRG100ES.Design,
-        Supro1624T.Design
+        Supro1624T.Design,
+        Thunderbolt.Design
     ];
 }

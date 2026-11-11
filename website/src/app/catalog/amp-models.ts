@@ -138,6 +138,7 @@ export const AMP_MODELS: Record<string, { family: AmpFamily; basedOn: string }> 
   'Portaflex B-15N': { family: 'bass', basedOn: 'Ampeg B-15-N Portaflex (1968)' },
   'Portaflex B-15N Jumped': { family: 'bass', basedOn: 'Ampeg B-15-N Portaflex (1968), channels jumpered' },
   'Bassman 135': { family: 'bass', basedOn: 'Fender Bassman 135 (bass)' },
+  'Thunderbolt S6420': { family: 'bass', basedOn: 'Supro Thunderbolt S6420 (1966)' },
   'Bass 400': { family: 'bass', basedOn: 'Mesa/Boogie Bass 400' },
   'GK 800RB': { family: 'bass', basedOn: 'Gallien-Krueger 800RB (1982)' },
   'JC-120': { family: 'bass', basedOn: 'Roland JC-120 Jazz Chorus' },

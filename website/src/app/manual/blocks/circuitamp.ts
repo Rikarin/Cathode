@@ -58,7 +58,8 @@ Leave a few dB of headroom in *Level*; a Cab block after the amp removes them.
   channels 1 and 2, Mark V Clean and Mark V Crunch), TriAxis, Legacy VL100, Powerball, Savage 120 (and Savage 120
   Clean, its clean and first crunch channel), Fireball 60, Prometheus.
 - **Loud, clean and heavy (doom, drone, a fuzz in front):** Sunn Model T.
-- **Bass:** SVT (and its second channel, SVT Channel 2), SVT-CL, Portaflex B-15N (and both its channels jumpered, Portaflex B-15N Jumped), Bassman 135, Bass 400, and the solid-state GK 800RB.
+- **Bass:** SVT (and its second channel, SVT Channel 2), SVT-CL, Portaflex B-15N (and both its channels jumpered, Portaflex B-15N Jumped), Bassman 135, Bass 400, Thunderbolt S6420 (a 1 x 15 bass combo that guitarists play
+  for its thick, early breakup), and the solid-state GK 800RB.
 - **Solid state:** JC-120, GK 800RB, Valvestate 8080 (a tube preamp into a transistor power amp) and RG100ES (JFET
   stages, a tight metal sound). Their tube-only knobs are hidden.
 
@@ -771,7 +772,9 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'Triple Rectifier Clean': 'Mesa/Boogie Triple Rectifier, channel 1: Clean, and Pushed for a crunch.',
       'Sunn Model T': 'Sunn Model T (1973, 150 W, four 6550), Brite and Normal channels: the doom and drone amp.',
       'Super Bass 100':
-        'Marshall 1992 Super Bass, 100 W: the Super Lead without its bright caps, darker and fuller, for guitar or bass.'
+        'Marshall 1992 Super Bass, 100 W: the Super Lead without its bright caps, darker and fuller, for guitar or bass.',
+      'Thunderbolt S6420':
+        'Supro Thunderbolt: a 35 W 1 x 15 bass combo from 1966 with Volume and Tone, better known under a guitar.'
     },
     pretube: {
       Stock: "The schematic's own preamp tubes.",
