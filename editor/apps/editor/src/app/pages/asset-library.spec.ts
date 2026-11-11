@@ -127,7 +127,7 @@ describe('AssetList', () => {
 
   it('marks a file that came with Cathode, and offers neither Rename nor Delete while one is selected', async () => {
     const { library, assets, fixture, element, rows } = await render(2);
-    library.cabGrids.set([{ ...asset(0), factory: true } as AssetInfo, asset(1)]);
+    library.cabGrids.set([{ ...asset(0), factory: true }, asset(1)]);
     await settle(fixture);
     const button = (label: string) =>
       [...element.querySelectorAll<HTMLButtonElement>('footer button')].find(b => b.textContent.trim() === label);

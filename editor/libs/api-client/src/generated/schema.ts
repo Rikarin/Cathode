@@ -1383,6 +1383,7 @@ export interface paths {
       cookie?: never;
     };
     get: operations['GetSetlist'];
+    /** Stores the setlist under the id of the route and answers with it, its new revision in 'revision' and as the ETag. With If-Match (the revision it was read at), refused with 412 when it was stored or deleted in between (another editor); without, it replaces whatever is stored. */
     put: operations['PutSetlist'];
     post?: never;
     delete: operations['DeleteSetlist'];
@@ -1415,6 +1416,7 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
+    /** Stores the bank under the id of the route and answers with it, its new revision in 'revision' and as the ETag. With If-Match (the revision it was read at), refused with 412 when it was stored or deleted in between (another editor); without, it replaces whatever is stored. */
     put: operations['PutBank'];
     post?: never;
     delete: operations['DeleteBank'];
@@ -1782,6 +1784,12 @@ export interface components {
       /** @default false */
       allChannels: boolean;
     };
+    /**
+     * @description An asset in the store. `Factory` is true for one that came with Cathode: it cannot be renamed or deleted
+     *     (its colour tag and favourite flag are the user's), and is left out of a backup. `Slimmable` is set on
+     *     NAM captures only: true when the file holds more than one size of its model (NAM A2), so the Amp NAM block's
+     *     Size does something on it.
+     */
     AssetInfo: {
       ref: string;
       name: string;
@@ -1793,6 +1801,8 @@ export interface components {
       color?: null | string;
       /** @default false */
       favorite: boolean;
+      slimmable?: null | boolean;
+      factory?: null | boolean;
     };
     AssetMetadataRequest: {
       name?: null | string;
@@ -1811,6 +1821,14 @@ export interface components {
     Bank: {
       id: string;
       name: string;
+      /**
+       * Format: int64
+       * @description How many times the Server has stored this bank: set by the Server on every save (what a client sends here is
+       *     ignored), and answered as the ETag. Sent back as `If-Match` on a PUT, it makes the Server refuse the
+       *     save (412) when another editor stored the bank in between. Null in a file from before revisions and for the factory
+       *     bank.
+       */
+      revision?: null | number;
       /** @description True for the factory bank, which lists the factory presets and cannot be changed; null otherwise. */
       factory?: null | boolean;
       /** @description Preset id per slot; null or missing slots are empty. */
@@ -2640,10 +2658,20 @@ export interface components {
        */
       source2?: null | string;
       /**
-       * @description How string? PresetModifier.Source2 joins string PresetModifier.Source: `add` (the sum, held within 0-1) or
-       *     `multiply`. Null is `add`.
+       * @description How string? PresetModifier.Source2 joins string PresetModifier.Source: `add` (the sum, held within 0-1),
+       *     `multiply` or `subtract` (the first less the second, held at 0). Null is `add`.
        */
       operation?: null | string;
+      /**
+       * Format: float
+       * @description Multiplies string PresetModifier.Source's value (0-1) before anything else. Null is 1.
+       */
+      scale1?: null | number;
+      /**
+       * Format: float
+       * @description Multiplies string? PresetModifier.Source2's value (0-1) before the operation. Null is 1.
+       */
+      scale2?: null | number;
       /**
        * Format: float
        * @description The response to the source, applied before string PresetModifier.Curve: the output (0-1) with the source at
@@ -2681,6 +2709,20 @@ export interface components {
       /** Format: float */
       releaseMs: number;
       /**
+       * @description How often the parameter is written: `fast` (every control sub-block, at most 64 frames),
+       *     `medium` (at most every 5 ms) or `slow` (at most every 20 ms). A slower rate costs less on a
+       *     parameter its block recomputes on, and steps more coarsely. Null is `fast`; engage modifiers ignore
+       *     it.
+       */
+      updateRate?: null | string;
+      /**
+       * @description PC Reset: true holds the parameter (or the block's bypass, for an engage modifier) at the value the preset
+       *     stores when the preset loads, until one of the modifier's external controllers (ext1-16) sends a value;
+       *     then the modifier takes over. It does nothing on a modifier without an external source. Null is false: the
+       *     modifier follows the controller's last value from the moment the preset loads.
+       */
+      pcReset?: null | boolean;
+      /**
        * @description Engage modifiers only: `position` (engaged at or above the threshold) or `moving` (engaged as
        *     soon as the value moves from where it rested, off again once it is back below the threshold). Null is
        *     `position`.
@@ -2697,6 +2739,12 @@ export interface components {
        *     is bypassed; engaging is immediate. Null is 0.
        */
       offDelayMs?: null | number;
+      /**
+       * @description Engage modifiers only: true puts the off region above float? PresetModifier.Threshold instead of below it, so the
+       *     block is engaged at or below the threshold (a pedal that switches its block off at the toe). Null is
+       *     false.
+       */
+      offAbove?: null | boolean;
       /**
        * @description The channel (A-D) the modifier applies on, or null for every channel of its block. On another channel the
        *     parameter keeps that channel's own value.
@@ -2871,6 +2919,13 @@ export interface components {
     Setlist: {
       id: string;
       name: string;
+      /**
+       * Format: int64
+       * @description How many times the Server has stored this setlist: set by the Server on every save (what a client sends here is
+       *     ignored), and answered as the ETag. Sent back as `If-Match` on a PUT, it makes the Server refuse the
+       *     save (412) when another editor stored the setlist in between. Null in a file from before revisions.
+       */
+      revision?: null | number;
       entries: components['schemas']['SetlistEntry'][];
     };
     SetlistEntry: {

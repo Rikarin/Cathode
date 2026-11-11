@@ -2911,6 +2911,7 @@
         "tags": [
           "Setlists"
         ],
+        "summary": "Stores the setlist under the id of the route and answers with it, its new revision in \u0027revision\u0027 and as the ETag. With If-Match (the revision it was read at), refused with 412 when it was stored or deleted in between (another editor); without, it replaces whatever is stored.",
         "operationId": "PutSetlist",
         "parameters": [
           {
@@ -2998,6 +2999,7 @@
         "tags": [
           "Banks"
         ],
+        "summary": "Stores the bank under the id of the route and answers with it, its new revision in \u0027revision\u0027 and as the ETag. With If-Match (the revision it was read at), refused with 412 when it was stored or deleted in between (another editor); without, it replaces whatever is stored.",
         "operationId": "PutBank",
         "parameters": [
           {
@@ -3848,8 +3850,21 @@
           "favorite": {
             "type": "boolean",
             "default": false
+          },
+          "slimmable": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "factory": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
-        }
+        },
+        "description": "An asset in the store. \u0060Factory\u0060 is true for one that came with Cathode: it cannot be renamed or deleted\n(its colour tag and favourite flag are the user\u0027s), and is left out of a backup. \u0060Slimmable\u0060 is set on\nNAM captures only: true when the file holds more than one size of its model (NAM A2), so the Amp NAM block\u0027s\nSize does something on it."
       },
       "AssetMetadataRequest": {
         "type": "object",
@@ -3917,6 +3932,14 @@
           },
           "name": {
             "type": "string"
+          },
+          "revision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "How many times the Server has stored this bank: set by the Server on every save (what a client sends here is\nignored), and answered as the ETag. Sent back as \u0060If-Match\u0060 on a PUT, it makes the Server refuse the\nsave (412) when another editor stored the bank in between. Null in a file from before revisions and for the factory\nbank.",
+            "format": "int64"
           },
           "factory": {
             "type": [
@@ -5852,7 +5875,23 @@
               "null",
               "string"
             ],
-            "description": "How string? PresetModifier.Source2 joins string PresetModifier.Source: \u0060add\u0060 (the sum, held within 0-1) or\n\u0060multiply\u0060. Null is \u0060add\u0060."
+            "description": "How string? PresetModifier.Source2 joins string PresetModifier.Source: \u0060add\u0060 (the sum, held within 0-1),\n\u0060multiply\u0060 or \u0060subtract\u0060 (the first less the second, held at 0). Null is \u0060add\u0060."
+          },
+          "scale1": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Multiplies string PresetModifier.Source\u0027s value (0-1) before anything else. Null is 1.",
+            "format": "float"
+          },
+          "scale2": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Multiplies string? PresetModifier.Source2\u0027s value (0-1) before the operation. Null is 1.",
+            "format": "float"
           },
           "start": {
             "type": [
@@ -5910,6 +5949,20 @@
             "type": "number",
             "format": "float"
           },
+          "updateRate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "How often the parameter is written: \u0060fast\u0060 (every control sub-block, at most 64 frames),\n\u0060medium\u0060 (at most every 5 ms) or \u0060slow\u0060 (at most every 20 ms). A slower rate costs less on a\nparameter its block recomputes on, and steps more coarsely. Null is \u0060fast\u0060; engage modifiers ignore\nit."
+          },
+          "pcReset": {
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "description": "PC Reset: true holds the parameter (or the block\u0027s bypass, for an engage modifier) at the value the preset\nstores when the preset loads, until one of the modifier\u0027s external controllers (ext1-16) sends a value;\nthen the modifier takes over. It does nothing on a modifier without an external source. Null is false: the\nmodifier follows the controller\u0027s last value from the moment the preset loads."
+          },
           "mode": {
             "type": [
               "null",
@@ -5932,6 +5985,13 @@
             ],
             "description": "Engage modifiers only: how long, in ms (0-5000), the value must stay below the threshold before the block\nis bypassed; engaging is immediate. Null is 0.",
             "format": "float"
+          },
+          "offAbove": {
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "description": "Engage modifiers only: true puts the off region above float? PresetModifier.Threshold instead of below it, so the\nblock is engaged at or below the threshold (a pedal that switches its block off at the toe). Null is\nfalse."
           },
           "channel": {
             "type": [
@@ -6379,6 +6439,14 @@
           },
           "name": {
             "type": "string"
+          },
+          "revision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "How many times the Server has stored this setlist: set by the Server on every save (what a client sends here is\nignored), and answered as the ETag. Sent back as \u0060If-Match\u0060 on a PUT, it makes the Server refuse the\nsave (412) when another editor stored the setlist in between. Null in a file from before revisions.",
+            "format": "int64"
           },
           "entries": {
             "type": "array",
