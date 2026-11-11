@@ -14,7 +14,7 @@ Every real amp we model, plan to model, or might model, with where it stands in 
 - Add a capture you found to `engine/tests/assets/references/manifest.json` (see `docs/06-amp-modelling-spec.md` §4).
   Tone3000 ("T3K" licence) and CC BY-NC files are local-only: never commit them.
 
-Last updated: 2026-11-10 (88 types, through the Quick Rod, AFD100, DSL100 and JMP-1; duplicate rows merged and the counts redone; a row for each amp issue #357 to #509, a status for each variant the wiki names, and the AC15 and Dr Z Route 66 drawings read).
+Last updated: 2026-11-11 (122 types, through the AC15C1; duplicate rows merged and the counts redone; a row for each amp issue #357 to #509, a status for each variant the wiki names, and the AC15 and Dr Z Route 66 drawings read).
 
 ## Status key
 
@@ -122,7 +122,7 @@ Last updated: 2026-11-10 (88 types, through the Quick Rod, AFD100, DSL100 and JM
 | Bogner Uberschall | ⏸ Waiting (two redraws that disagree on the stack topology and several caps) | — | — | A factory drawing or a third trace | 4x12 closed |
 | Diezel Herbert | ⏸ Waiting (nothing found; the service manual gives only the tube functions) | — | — | Schematic | 4x12 closed |
 | Engl Powerball | ✅ Done, channel 2 Lo/Hi with its noise gate and channel 1 Clean/Crunch, with the Bottom switches. Two sources: the factory drawing E645-1, whose preamp is known to be wrong (as drawn it has 25 dB more gain than a 5150 and motorboats), and a copy of it corrected by hand from photographs of a disassembled amp ([guitar-gear.ru](https://guitar-gear.ru/forum/topic/4085-cхема-engl-powerball/), post 22, 2016: one person's trace, with its own "?" marks), whose interstage networks the model follows (docs/06 §3.4, §3.7) | Powerball: lead; Switch 3 "Channel 1", Switch 2 "Gain Hi" (Hi Lead / Crunch), Fat "Bottom", Cut "Gate Threshold" | — | A second trace or a service manual to confirm the corrected copy (its "?" values, channel 1's treble caps, the feedback network); Powerball II | 4x12 closed, Vintage 30 |
-| Engl Savage 120 | ✅ Done (factory drawing E610-2; no voltages printed, the preamp rails derived from its drawn chain; 4 × 6550 per Engl's E610 specification): channel 2 (Lead and Crunch 2, each Rough or Smooth, with Hi Balance) and channel 1 (Clean and Crunch 1, with Bright, Preshape and Contour) | Savage 120: lead, Rough; Switch 3 "Smooth", Bright "Crunch 2", Cut "Hi Balance". Savage 120 Clean (type 92): Clean; Switch 3 "Crunch 1", Switch 2 "Preshape" | — | Captures with settings (the pelennor "Savage" file is an Axe-Fx capture: never use it); the LT1011 optocoupler's on resistance (Smooth's pad); which position of the Preshape switch is "on", and whether Smooth works in Crunch 2 (the relay logic on sheet 2 was not traced) | 4x12 closed |
+| Engl Savage 120 | ✅ Done (factory drawing E610-2; no voltages printed, the preamp rails derived from its drawn chain; 4 × 6550 per Engl's E610 specification): channel 2 (Lead and Crunch 2, each Rough or Smooth, with Hi Balance) and channel 1 (Clean and Crunch 1, with Bright, Preshape and Contour) | Savage 120: lead, Rough; Switch 3 "Smooth", Bright "Crunch 2", Cut "Hi Balance". Savage 120 Clean (type 99): Clean; Switch 3 "Crunch 1", Switch 2 "Preshape" | — | Captures with settings (the pelennor "Savage" file is an Axe-Fx capture: never use it); the LT1011 optocoupler's on resistance (Smooth's pad); which position of the Preshape switch is "on", and whether Smooth works in Crunch 2 (the relay logic on sheet 2 was not traced) | 4x12 closed |
 | Engl Fireball 60 | ✅ Done (factory drawing 625, one vector sheet, 2003: two 6L6GC, so the 60), the Ultra channel and the clean channel; the presence is the drawn rheostat in series with the feedback. The drawing leaves parts out: V2A's grid is drawn grounded, so the lower leg of its divider is **assumed** (470k, as on the Powerball's drawing); it motorboats as drawn, so the Powerball's **assumed** two 10k / 22 µF supply nodes below CE3 are added (docs/06 §3.7); the Depth switch is drawn across a wire and is ⏸; no voltages below B+ (the rails derived from the drawn chain); idle current and output transformer typical. Fireball 100 (E635) ⏸: no drawing found | Fireball 60: Ultra; Switch 3 "Clean" | — | A second source for the V2A divider, the V1/V2 supply filtering and the Depth switch; a Fireball 100 drawing; captures with settings | 4x12 closed, Vintage 30 |
 | Revv Generator 120 | ⏸ Waiting (nothing published: no schematic, trace or redraw found; specs only, 5 × 12AX7, 4 × EL34) | — | — | Schematic | 4x12 closed |
 | Fryette (VHT) Deliverance / Sig:X | ⏸ Waiting (Fryette releases no schematics; only a modified 2-channel D60 drawing as a PedalPCB forum attachment of unknown origin, and a "retro-engineered Deliverance" mentioned on MEF whose file was not found; nothing for the 120 or Sig:X) | — | — | Schematic or trace | 4x12 closed |
@@ -197,69 +197,68 @@ the B-15 runs on the Circuit Amp's closed 8 × 10 speaker curve.
 ## Counts
 
 Counted over every table in this file, including the two sections added from Fractal's lists and the issues table at
-the end (recounted 2026-11-10). Each row is counted once by its status; the ↪ rows (seven in the Axe-Fx sections, and
+the end (recounted 2026-11-11). Each row is counted once by its status; the ↪ rows (seven in the Axe-Fx sections, and
 the issues whose amp has a row above) point at an amp counted in its own row, and the wiki's variants are not counted. A row can stand for
 more than one type (a Jumped variant, a second channel) and two rows can share one, so the Done count is not the
 number of types.
 
 | Status | Rows |
 |---|---|
-| ✅ Done (79, one of them partly), done as a variant of another model (1), or covered by another type (1) | 81 |
+| ✅ Done (95, two of them partly), done as a variant of another model (1), or covered by another type (1) | 97 |
 | 🔨 In progress | 0 |
-| 📋 Planned (schematic found, not built yet), 67 of them rows of the issues table | 67 |
-| ⏸ Waiting on a schematic or better data, 16 of them rows of the issues table | 70 |
+| 📋 Planned (schematic found, not built yet), 53 of them rows of the issues table | 53 |
+| ⏸ Waiting on a schematic or better data, 16 of them rows of the issues table | 69 |
 | 💤 Not planned (not researched yet) | 2 |
 
 ### Circuit Amp types by index
 
-The Circuit Amp block has 98 types. The "Cathode type" column above names them; this is their order in the Type list.
+The Circuit Amp block has 122 types. The "Cathode type" column above names them; this is their order in the Type list.
 
 | # | Type | # | Type | # | Type |
 |---|---|---|---|---|---|
-| 0 | Blackface | 30 | Express | 60 | Bluesbreaker 1962 |
-| 1 | Plexi | 31 | Lone Star | 61 | Hiwatt DR504 |
-| 2 | AC30 | 32 | Mark V | 62 | Cornford MK50H II |
-| 3 | AC15 | 33 | Rect-o-Verb | 63 | Tiny Terror |
-| 4 | DC-30 | 34 | Triple Rectifier | 64 | Liverpool |
-| 5 | Prometheus | 35 | Powerball | 65 | ODS 70s |
-| 6 | Prometheus Clean | 36 | Savage 120 | 66 | Dual Rectifier 3-Ch |
-| 7 | JCM800 2203 | 37 | SVT | 67 | Subway Blues |
-| 8 | JCM800 2204 | 38 | Portaflex B-15N | 68 | TriAxis Rhythm |
-| 9 | JTM45 | 39 | JC-120 | 69 | TriAxis Lead 1 |
-| 10 | Plexi 100W | 40 | Hot Rod Deluxe | 70 | TriAxis Lead 2 |
-| 11 | Laney GH100L | 41 | Champ 5F1 | 71 | JCM900 4502 |
-| 12 | Deluxe Reverb | 42 | Vibroverb AB763 | 72 | JCM900 4100 |
-| 13 | Twin Reverb | 43 | Vibrolux Reverb AA964 | 73 | Valvestate 8080 |
-| 14 | Super Reverb | 44 | Bandmaster AB763 | 74 | JVM410H OD |
-| 15 | Princeton Reverb | 45 | Tweed Twin 5F8-A | 75 | Concert 6G12 |
-| 16 | Bassman 5F6-A | 46 | Tweed Twin 5F8-A Jumped | 76 | Super 6G4 |
-| 17 | Bassman 5F6-A Jumped | 47 | Tremolux AA763 | 77 | Deluxe 6G3 |
-| 18 | Tweed Deluxe 5E3 | 48 | Princeton 5F2-A | 78 | Vibrolux 6G11 |
-| 19 | Tweed Deluxe 5E3 Jumped | 49 | Princeton AA964 | 79 | Bassman 135 |
-| 20 | SLO-100 | 50 | Vibro-King | 80 | Scout GA-17RVT |
-| 21 | Mark IIC+ | 51 | Blues Junior | 81 | Major 1967 |
-| 22 | 5150 | 52 | BE-100 | 82 | Bass 400 |
-| 23 | Dual Rectifier | 53 | BE-100 HBE | 83 | JVM410H Clean/Crunch |
-| 24 | 5150III | 54 | Silver Jubilee | 84 | DSL100 |
-| 25 | Mark IV | 55 | 18 W 1974X | 85 | JMP-1 |
-| 26 | Legacy VL100 | 56 | Hiwatt DR103 | 86 | Quick Rod |
-| 27 | Chieftain | 57 | 1959SLP | 87 | AFD100 |
-| 28 | Hot Cat 30 | 58 | 1987X | 88 | Mark IIC+ Rhythm |
-| 29 | ODS 97 | 59 | 1959T Tremolo | 89 | Mark IV Rhythm 1 |
-|  |  |  |  | 90 | Mark IV Rhythm 2 |
-|  |  |  |  | 91 | Dual Rectifier 3-Ch Orange |
-|  |  |  |  | 92 | Dual Rectifier Orange |
-|  |  |  |  | 93 | Dual Rectifier 3-Ch Clean |
-|  |  |  |  | 94 | Triple Rectifier Orange |
-|  |  |  |  | 95 | Triple Rectifier Clean |
-|  |  |  |  | 96 | Mark V Clean |
-|  |  |  |  | 97 | Mark V Crunch |
-|  |  |  |  | 92 | SVT Channel 2 |
-|  |  |  |  | 93 | Portaflex B-15N Jumped |
-|  |  |  |  | 92 | Champ AA764 |
-|  |  |  |  | 92 | TSL100 |
+| 0 | Blackface | 41 | Champ 5F1 | 82 | Bass 400 |
+| 1 | Plexi | 42 | Vibroverb AB763 | 83 | JVM410H Clean/Crunch |
+| 2 | AC30 | 43 | Vibrolux Reverb AA964 | 84 | DSL100 |
+| 3 | AC15 | 44 | Bandmaster AB763 | 85 | JMP-1 |
+| 4 | DC-30 | 45 | Tweed Twin 5F8-A | 86 | Quick Rod |
+| 5 | Prometheus | 46 | Tweed Twin 5F8-A Jumped | 87 | AFD100 |
+| 6 | Prometheus Clean | 47 | Tremolux AA763 | 88 | Mark IIC+ Rhythm |
+| 7 | JCM800 2203 | 48 | Princeton 5F2-A | 89 | Mark IV Rhythm 1 |
+| 8 | JCM800 2204 | 49 | Princeton AA964 | 90 | Mark IV Rhythm 2 |
+| 9 | JTM45 | 50 | Vibro-King | 91 | Dual Rectifier 3-Ch Orange |
+| 10 | Plexi 100W | 51 | Blues Junior | 92 | Dual Rectifier Orange |
+| 11 | Laney GH100L | 52 | BE-100 | 93 | Dual Rectifier 3-Ch Clean |
+| 12 | Deluxe Reverb | 53 | BE-100 HBE | 94 | Triple Rectifier Orange |
+| 13 | Twin Reverb | 54 | Silver Jubilee | 95 | Triple Rectifier Clean |
+| 14 | Super Reverb | 55 | 18 W 1974X | 96 | Mark V Clean |
+| 15 | Princeton Reverb | 56 | Hiwatt DR103 | 97 | Mark V Crunch |
+| 16 | Bassman 5F6-A | 57 | 1959SLP | 98 | 5150III Clean/Crunch |
+| 17 | Bassman 5F6-A Jumped | 58 | 1987X | 99 | Savage 120 Clean |
+| 18 | Tweed Deluxe 5E3 | 59 | 1959T Tremolo | 100 | SVT Channel 2 |
+| 19 | Tweed Deluxe 5E3 Jumped | 60 | Bluesbreaker 1962 | 101 | Portaflex B-15N Jumped |
+| 20 | SLO-100 | 61 | Hiwatt DR504 | 102 | SVT-CL |
+| 21 | Mark IIC+ | 62 | Cornford MK50H II | 103 | GK 800RB |
+| 22 | 5150 | 63 | Tiny Terror | 104 | OR120 |
+| 23 | Dual Rectifier | 64 | Liverpool | 105 | OR80 |
+| 24 | 5150III | 65 | ODS 70s | 106 | Pro Junior |
+| 25 | Mark IV | 66 | Dual Rectifier 3-Ch | 107 | Champ AA764 |
+| 26 | Legacy VL100 | 67 | Subway Blues | 108 | 6505+ |
+| 27 | Chieftain | 68 | TriAxis Rhythm | 109 | 6505+ Rhythm |
+| 28 | Hot Cat 30 | 69 | TriAxis Lead 1 | 110 | Classic 30 |
+| 29 | ODS 97 | 70 | TriAxis Lead 2 | 111 | Fireball 60 |
+| 30 | Express | 71 | JCM900 4502 | 112 | Sunn Model T |
+| 31 | Lone Star | 72 | JCM900 4100 | 113 | Super Bass 100 |
+| 32 | Mark V | 73 | Valvestate 8080 | 114 | JCM800 2210 |
+| 33 | Rect-o-Verb | 74 | JVM410H OD | 115 | JCM800 2205 |
+| 34 | Triple Rectifier | 75 | Concert 6G12 | 116 | TSL100 |
+| 35 | Powerball | 76 | Super 6G4 | 117 | RG100ES |
+| 36 | Savage 120 | 77 | Deluxe 6G3 | 118 | Supro 1624T |
+| 37 | SVT | 78 | Vibrolux 6G11 | 119 | Thunderbolt S6420 |
+| 38 | Portaflex B-15N | 79 | Bassman 135 | 120 | Twin Twelve 1484 |
+| 39 | JC-120 | 80 | Scout GA-17RVT | 121 | AC15C1 |
+| 40 | Hot Rod Deluxe | 81 | Major 1967 |  |  |
 
-Types 81 to 93, the newest, are:
+Types 81 to 121, the newest, are:
 
 | # | Type | Family | Modelled after |
 |---|---|---|---|
@@ -274,11 +273,36 @@ Types 81 to 93, the newest, are:
 | 89 | Mark IV Rhythm 1 | Mesa/Boogie | Mesa/Boogie Mark IV, Rhythm 1, the clean channel (the lead channel is type 25) |
 | 90 | Mark IV Rhythm 2 | Mesa/Boogie | Mesa/Boogie Mark IV, Rhythm 2, the crunch channel |
 | 91 | Dual Rectifier 3-Ch Orange | Mesa/Boogie | Mesa/Boogie Dual Rectifier (3-channel), channel 2 |
-| 92 | SVT Channel 2 | Ampeg | Ampeg SVT (1970, 6550), channel two (channel one is type 37) |
-| 93 | Portaflex B-15N Jumped | Ampeg | Ampeg B-15-N Portaflex (1968), both channels jumpered (one channel is type 38) |
-| 92 | Champ AA764 | Fender | Fender Champ AA764 (blackface and silverface, 5 W, one 6V6GT), Volume, Treble and Bass |
-| 92 | TSL100 | Marshall | Marshall JCM2000 TSL100 (Triple Super Lead), Clean, Crunch and Lead with Mid Boost, Tone Shift and Deep |
-| 92 | RG100ES | Randall | Randall RG100ES (solid state, JFET preamp), both channels with the Sustain Boost |
+| 92 | Dual Rectifier Orange | Mesa/Boogie | Mesa/Boogie Dual Rectifier (2-channel, 1993), the orange channel (the red channel is type 23) |
+| 93 | Dual Rectifier 3-Ch Clean | Mesa/Boogie | Mesa/Boogie Dual Rectifier (3-channel), channel 1 (channel 3 is type 66, channel 2 type 91) |
+| 94 | Triple Rectifier Orange | Mesa/Boogie | Mesa/Boogie Triple Rectifier, channel 2 (channel 3 is type 34) |
+| 95 | Triple Rectifier Clean | Mesa/Boogie | Mesa/Boogie Triple Rectifier, channel 1 |
+| 96 | Mark V Clean | Mesa/Boogie | Mesa/Boogie Mark V, channel 1: Clean, Fat and Tweed (channel 3 is type 32) |
+| 97 | Mark V Crunch | Mesa/Boogie | Mesa/Boogie Mark V, channel 2: Edge, Crunch and Mark I |
+| 98 | 5150III Clean/Crunch | EVH | EVH 5150III 100 W head, the green and blue channels (the red channel is type 24) |
+| 99 | Savage 120 Clean | Engl | Engl Savage 120, channel 1: Clean and Crunch 1 (channel 2 is type 36) |
+| 100 | SVT Channel 2 | Ampeg | Ampeg SVT (1970, 6550), channel two (channel one is type 37) |
+| 101 | Portaflex B-15N Jumped | Ampeg | Ampeg B-15-N Portaflex (1968), both channels jumpered (one channel is type 38) |
+| 102 | SVT-CL | Ampeg | Ampeg SVT-CL (SVT Classic, 1994) |
+| 103 | GK 800RB | Gallien-Krueger | Gallien-Krueger 800RB (1982 boards; solid state), full-range mode into the 300 W amp |
+| 104 | OR120 | Orange | Orange OR120 Graphic Mk II ("Pics Only", 120 W, four EL34) |
+| 105 | OR80 | Orange | Orange OR80 Graphic Mk II (80 W, two EL34) |
+| 106 | Pro Junior | Fender | Fender Pro Junior (15 W, two EL84), Volume and Tone |
+| 107 | Champ AA764 | Fender | Fender Champ AA764 (blackface and silverface, 5 W, one 6V6GT), Volume, Treble and Bass |
+| 108 | 6505+ | Peavey | Peavey 5150 II / 6505+, the lead channel |
+| 109 | 6505+ Rhythm | Peavey | Peavey 5150 II / 6505+, the rhythm channel with Crunch and Bright |
+| 110 | Classic 30 | Peavey | Peavey Classic 30 (four EL84), Lead and Normal channels with Boost |
+| 111 | Fireball 60 | Engl | Engl Fireball 60, the Ultra and clean channels |
+| 112 | Sunn Model T | Sunn | Sunn Model T (1973, 150 W, four 6550), Brite and Normal channels |
+| 113 | Super Bass 100 | Marshall | Marshall 1992 Super Bass (100 W), both channels |
+| 114 | JCM800 2210 | Marshall | Marshall JCM800 2210 (100 W, split channel), Boost and Normal channels |
+| 115 | JCM800 2205 | Marshall | Marshall JCM800 2205 (50 W, split channel), Boost and Normal channels |
+| 116 | TSL100 | Marshall | Marshall JCM2000 TSL100 (Triple Super Lead), Clean, Crunch and Lead with Mid Boost, Tone Shift and Deep |
+| 117 | RG100ES | Randall | Randall RG100ES (solid state, JFET preamp), both channels with the Sustain Boost |
+| 118 | Supro 1624T | Supro | Supro 1624T Dual-Tone (Valco, 1960s), both channels with the tremolo |
+| 119 | Thunderbolt S6420 | Supro | Supro Thunderbolt S6420 (1966), Volume and Tone |
+| 120 | Twin Twelve 1484 | Silvertone | Silvertone 1484 Twin Twelve (Sears / Danelectro, 1960s), both channels |
+| 121 | AC15C1 | Vox | Vox AC15C1 (Custom), Top Boost and Normal inputs |
 
 Match quality against the references is in `docs/06-amp-modelling-spec.md` (as-built notes per family) and in the
 manifest's targets. Only the Prometheus clean channel reaches the spec's ESR target; captures with stated knob settings
@@ -457,28 +481,28 @@ One row per issue, as filed. "Schematic" is the issue's own finding: *available*
 (most were seen on a site's index and not opened: check that it can be read before building), *partial* a trace of
 unknown origin or part of the amp, *not confirmed* a lead nobody could check, *none found* nothing. The status follows
 from it: 📋 Planned with a schematic available, ⏸ Waiting otherwise. An amp that already has a row in the tables above
-keeps its status there (↪) and is not counted twice; the 83 others are counted in the Counts table. When
+keeps its status there (↪) and is not counted twice; the 69 others are counted in the Counts table. When
 an issue is built, give the amp a row in its family's table above, with the type's name, and mark it here.
 
 | Issue | Amp, variant or channel | Family | Kind | Priority | Schematic | Status | Typical cab |
 |---|---|---|---|---|---|---|---|
-| [#357](https://github.com/Rikarin/cathode/issues/357) | Ampeg SVT-CL / SVT-2 Pro | Bass | New amp | high | available | 📋 Planned | 8x10 closed |
-| [#358](https://github.com/Rikarin/cathode/issues/358) | Gallien-Krueger 800RB | Bass | New amp | high | available | 📋 Planned | 4x10 / 1x15 |
-| [#359](https://github.com/Rikarin/cathode/issues/359) | Orange OR120 / OR80 Graphic ('Pics Only') | British | New amp | high | available | 📋 Planned | 4x12 closed, Greenback / G12H |
-| [#360](https://github.com/Rikarin/cathode/issues/360) | Fender Pro Junior | Fender | New amp | high | available | 📋 Planned | 1x10 open, Eminence/Jensen |
-| [#361](https://github.com/Rikarin/cathode/issues/361) | Fender Champ AA764 / Vibro Champ AA764 | Fender | New amp | high | available | 📋 Planned | 1x8 open |
+| [#357](https://github.com/Rikarin/cathode/issues/357) | Ampeg SVT-CL / SVT-2 Pro | Bass | New amp | high | available | ↪ See its row above | 8x10 closed |
+| [#358](https://github.com/Rikarin/cathode/issues/358) | Gallien-Krueger 800RB | Bass | New amp | high | available | ↪ See its row above | 4x10 / 1x15 |
+| [#359](https://github.com/Rikarin/cathode/issues/359) | Orange OR120 / OR80 Graphic ('Pics Only') | British | New amp | high | available | ↪ See its row above | 4x12 closed, Greenback / G12H |
+| [#360](https://github.com/Rikarin/cathode/issues/360) | Fender Pro Junior | Fender | New amp | high | available | ↪ See its row above | 1x10 open, Eminence/Jensen |
+| [#361](https://github.com/Rikarin/cathode/issues/361) | Fender Champ AA764 / Vibro Champ AA764 | Fender | New amp | high | available | ↪ See its row above | 1x8 open |
 | [#362](https://github.com/Rikarin/cathode/issues/362) | Peavey 6505+ / 5150 II | High gain | New amp | high | available | ↪ See its row above | 4x12 closed, Sheffield / Vintage 30 |
-| [#363](https://github.com/Rikarin/cathode/issues/363) | Peavey Classic 30 / Classic 50 (and Delta Blues) | High gain | New amp | high | available | 📋 Planned | 1x12 / 4x10 open |
-| [#364](https://github.com/Rikarin/cathode/issues/364) | ENGL Fireball 60 / 100 | High gain | New amp | high | available | 📋 Planned | 4x12 closed, Vintage 30 |
-| [#365](https://github.com/Rikarin/cathode/issues/365) | Sunn Model T | High gain | New amp | high | available | 📋 Planned | 4x12 closed / 6x12 |
-| [#366](https://github.com/Rikarin/cathode/issues/366) | Marshall Super Bass 100 (1992) | Marshall | New amp | high | available | 📋 Planned | 4x12 closed / 4x15 |
-| [#367](https://github.com/Rikarin/cathode/issues/367) | Marshall JCM800 2210 / 2205 (split channel) | Marshall | New amp | high | available | 📋 Planned | 4x12 closed, G12T-75 |
-| [#368](https://github.com/Rikarin/cathode/issues/368) | Marshall JCM2000 TSL100 | Marshall | New amp | high | available | 📋 Planned | 4x12 closed |
+| [#363](https://github.com/Rikarin/cathode/issues/363) | Peavey Classic 30 / Classic 50 (and Delta Blues) | High gain | New amp | high | available | ↪ See its row above | 1x12 / 4x10 open |
+| [#364](https://github.com/Rikarin/cathode/issues/364) | ENGL Fireball 60 / 100 | High gain | New amp | high | available | ↪ See its row above | 4x12 closed, Vintage 30 |
+| [#365](https://github.com/Rikarin/cathode/issues/365) | Sunn Model T | High gain | New amp | high | available | ↪ See its row above | 4x12 closed / 6x12 |
+| [#366](https://github.com/Rikarin/cathode/issues/366) | Marshall Super Bass 100 (1992) | Marshall | New amp | high | available | ↪ See its row above | 4x12 closed / 4x15 |
+| [#367](https://github.com/Rikarin/cathode/issues/367) | Marshall JCM800 2210 / 2205 (split channel) | Marshall | New amp | high | available | ↪ See its row above | 4x12 closed, G12T-75 |
+| [#368](https://github.com/Rikarin/cathode/issues/368) | Marshall JCM2000 TSL100 | Marshall | New amp | high | available | ↪ See its row above | 4x12 closed |
 | [#369](https://github.com/Rikarin/cathode/issues/369) | Randall RG100ES (and RG80 / RG100 Classic) | Solid state | New amp | high | available | ↪ See its row above | 4x12 closed |
 | [#370](https://github.com/Rikarin/cathode/issues/370) | Supro 1624T Dual-Tone | US vintage | New amp | high | available | ↪ See its row above | 1x12 open, Jensen C12Q |
-| [#371](https://github.com/Rikarin/cathode/issues/371) | Supro Thunderbolt S6420 | US vintage | New amp | high | available | 📋 Planned | 1x15 open |
-| [#372](https://github.com/Rikarin/cathode/issues/372) | Silvertone 1484 Twin Twelve | US vintage | New amp | high | available | 📋 Planned | 2x12 closed (separate cab), Jensen C12Q |
-| [#373](https://github.com/Rikarin/cathode/issues/373) | Vox AC15C1 (Custom) | Vox/class A | New amp | high | available | 📋 Planned | 1x12 open, Greenback / Alnico Blue |
+| [#371](https://github.com/Rikarin/cathode/issues/371) | Supro Thunderbolt S6420 | US vintage | New amp | high | available | ↪ See its row above | 1x15 open |
+| [#372](https://github.com/Rikarin/cathode/issues/372) | Silvertone 1484 Twin Twelve | US vintage | New amp | high | available | ↪ See its row above | 2x12 closed (separate cab), Jensen C12Q |
+| [#373](https://github.com/Rikarin/cathode/issues/373) | Vox AC15C1 (Custom) | Vox/class A | New amp | high | available | ↪ See its row above | 1x12 open, Greenback / Alnico Blue |
 | [#374](https://github.com/Rikarin/cathode/issues/374) | Mesa/Boogie Bass 400+ | Bass | Variant | medium | partial | ⏸ Waiting | 8x10 / 2x15 |
 | [#375](https://github.com/Rikarin/cathode/issues/375) | Ampeg SVT-4 Pro / SVT-3 Pro | Bass | New amp | medium | available | 📋 Planned | 8x10 / 4x10 |
 | [#376](https://github.com/Rikarin/cathode/issues/376) | Ampeg V-4B | Bass | New amp | medium | available | 📋 Planned | 2x15 / 8x10 |

@@ -1,4 +1,4 @@
-The Amp block is the heart of almost every preset. Cathode has 88 amp models, each built from the real amp's schematic stage by stage: the preamp tubes, the tone stack, the phase inverter, the power tubes, the output transformer, the speaker load and the power supply. Because the circuit is modelled rather than a set of measured curves, the knobs interact as they do on the real amp, and the expert settings change real components.
+The Amp block is the heart of almost every preset. Cathode has 122 amp models, each built from the real amp's schematic stage by stage: the preamp tubes, the tone stack, the phase inverter, the power tubes, the output transformer, the speaker load and the power supply. Because the circuit is modelled rather than a set of measured curves, the knobs interact as they do on the real amp, and the expert settings change real components.
 
 This chapter helps you choose a model, dial its front panel, and understand the expert settings behind it. For every control, knob by knob, see the [Amp block reference](/manual/blocks/circuitamp).
 
