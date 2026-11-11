@@ -130,8 +130,24 @@ await build({
     ],
     afterExtract: ({ appOutDir, electronPlatformName }) => {
       if (electronPlatformName === 'darwin') {
-        cpSync(join(appOutDir, 'LICENSE'), join(licences, 'LICENSE.electron.txt'));
-        cpSync(join(appOutDir, 'LICENSES.chromium.html'), join(licences, 'LICENSES.chromium.html'));
+        // Electron's zip has the two files beside Electron.app. electron-builder up to 26.8 left them there; newer
+        // ones move them into the bundle's Resources (the first as LICENSE.electron.txt) before this hook runs.
+        const resources = join(appOutDir, 'Electron.app/Contents/Resources');
+        const first = (...paths) => {
+          const found = paths.find(path => existsSync(path));
+          if (!found) {
+            throw new Error(`Electron's licence file is missing: looked for ${paths.join(' and ')}.`);
+          }
+          return found;
+        };
+        cpSync(
+          first(join(appOutDir, 'LICENSE'), join(resources, 'LICENSE.electron.txt')),
+          join(licences, 'LICENSE.electron.txt')
+        );
+        cpSync(
+          first(join(appOutDir, 'LICENSES.chromium.html'), join(resources, 'LICENSES.chromium.html')),
+          join(licences, 'LICENSES.chromium.html')
+        );
       }
     },
     npmRebuild: false,

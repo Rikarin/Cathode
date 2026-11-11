@@ -207,8 +207,8 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         // A REST tap carries no time: the engine stamps it with its own clock when it arrives. So the test paces its
         // taps by that clock, 32,000 samples apart (90 BPM at 48 kHz), not by a wall-clock sleep that a busy machine
         // stretches. A request takes time on that clock too, a quarter of a second on a loaded CI runner (Windows
-        // averaged 79.8 BPM), so the test reads the clock on both sides of each tap: the engine's stamp lies between
-        // the two readings.
+        // averaged 79.8 BPM), so the test reads the clock on both sides of each tap and bounds the engine's stamp by
+        // the two readings (below).
         var engine = server.Host.Engine;
         Assert.Equal(120, (await Live()).Preset.Tempo);
         var start = engine.SampleTime;
@@ -227,12 +227,16 @@ public sealed class ControlsApiTests : IAsyncLifetime {
             Assert.Equal(HttpStatusCode.NoContent, tap.StatusCode);
         }
 
-        // The tempo is the average of the three intervals between the four stamps: no shorter than from the end of
-        // the first request to the start of the last, no longer than from the start of the first to the end of the
-        // last. On an idle machine that is 90 BPM to within one or two, where the preset's 120 could not land.
+        // The tempo is the average of the three intervals between the four stamps (first to last, over three). A
+        // stamp is not taken before its request starts, but it can be taken after the request returns: the Server
+        // answers once the tap is queued for the engine host, which stamps it when it arrives. Loaded Linux and
+        // Windows runners showed that (92.2 BPM against a 92.1 limit, 97.7 against 92.8: about 0.1 s late), so each
+        // stamp is given a quarter of a second after its request. On an idle machine the result is 90 BPM to within
+        // one or two, where the preset's 120 could not land.
+        var late = engine.Spec.SampleRate / 4;
         var perMinute = 60.0 * engine.Spec.SampleRate;
-        var slowest = perMinute * 3 / (after[3] - before[0]);
-        var fastest = perMinute * 3 / (before[3] - after[0]);
+        var slowest = perMinute * 3 / (after[3] + late - before[0]);
+        var fastest = perMinute * 3 / (before[3] - after[0] - late);
         await ServerFixture.Eventually(
             () => engine.Tempo > slowest - 0.01 && engine.Tempo < fastest + 0.01,
             () => $"engine tempo {engine.Tempo}, expected {slowest} to {fastest}"
