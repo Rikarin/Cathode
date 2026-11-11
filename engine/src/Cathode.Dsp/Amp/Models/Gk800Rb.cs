@@ -8,16 +8,15 @@ namespace Cathode.Dsp.Amp.Models;
 ///     4.7k across the 33k, Lo Cut 0.22 µF in series with the 3.3k); the 25k audio Volume with the Hi Boost's 22 nF +
 ///     3.3k from U1a to its wiper; 3.3 µF into U2a (33k to ground; 22k ‖ 560 pF over 4.7k: 5.7×), straight or through
 ///     the Mid Contour filter (U1b: 12k, 120k and a 4.7 nF / 4.7 nF / 33k bridged T against 220k ‖ 560 pF); the Hi-Mid
-///     (U2b, 4.7 nF) and Lo-Mid (U3a, 22 nF) stages, each an inverting stage of 220k / 220k with a 25k pot between
-///     4.7k + 22k from its input and 4.7k from its output, a cap across and a cap from the wiper to the inverting
-///     input; Bass and Treble around U3b (bass: 3.3k + 12k, 25k pot, 3.3k, 0.22 µF across, 22k from the wiper; treble:
-///     3.3k, 25k pot, 3.3k, 4.7 nF from the wiper); 0.22 µF and 4.7k to the effects send, 0.22 µF and 12k from the
-///     return into the 25k Boost pot over 3.3k; the J113 boost stage (4.7k drain load from +15 V through 1k and 10 µF,
-///     12k from the source to −15 V, bypassed by 10 µF + 100 Ω); 0.22 µF onto the two 25k masters; and the 300 W power
-///     amp: an LF353 error amplifier into a common-base level shifter, a PNP voltage amplifier with a bootstrapped
-///     load and, behind a driver each side, three pairs of MJ15022 / MJ15023 with 0.33 Ω emitter resistors on ±85 V, its
-///     feedback 56k over 12k ‖
-///     (1k + 10 µF): 62×.
+///     (U2b, 4.7 nF) and Lo-Mid (U3a, 22 nF) stages, each an inverting stage of 220k / 220k with a 25k pot between 4.7k
+///     + 22k from its input and 4.7k from its output, a cap across and a cap from the wiper to the inverting input;
+///     Bass and Treble around U3b (bass: 3.3k + 12k, 25k pot, 3.3k, 0.22 µF across, 22k from the wiper; treble: 3.3k,
+///     25k pot, 3.3k, 4.7 nF from the wiper); 0.22 µF and 4.7k to the effects send, 0.22 µF and 12k from the return
+///     into the 25k Boost pot over 3.3k; the J113 boost stage (4.7k drain load from +15 V through 1k and 10 µF, 12k
+///     from the source to −15 V, bypassed by 10 µF + 100 Ω); 0.22 µF onto the two 25k masters; and the 300 W power amp:
+///     an LF353 error amplifier into a common-base level shifter, a PNP voltage amplifier with a bootstrapped load and,
+///     behind a driver each side, three pairs of MJ15022 / MJ15023 with 0.33 Ω emitter resistors on ±85 V, its feedback
+///     56k over 12k ‖ (1k + 10 µF): 62×.
 /// </summary>
 /// <remarks>
 ///     <para>

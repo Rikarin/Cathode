@@ -1,7 +1,6 @@
 using Cathode.Dsp.Amp;
 using Cathode.Dsp.Amp.Models;
 using Cathode.Dsp.Blocks;
-using Cathode.Dsp.Wdf;
 using Cathode.Testing;
 
 namespace Cathode.Dsp.Tests;

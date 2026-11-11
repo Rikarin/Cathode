@@ -212,8 +212,8 @@ public static class FriedmanBE100 {
 
     /// <summary>
     ///     The V3B cathode follower, DC-coupled to V3A's plate, on <see cref="Stack" />; the treble wiper through 220k
-    ///     onto 1M and the 1M-A master, whose wiper is the output. Sat: 100 nF and 10k from the cathode to the clamp and
-    ///     its 1M. Voice off: 500 pF at the cathode.
+    ///     onto 1M and the 1M-A master, whose wiper is the output. Sat: 100 nF and 10k from the cathode to the clamp
+    ///     and its 1M. Voice off: 500 pF at the cathode.
     /// </summary>
     static NetworkStageDesign Follower() {
         var net = new StageNetlist();

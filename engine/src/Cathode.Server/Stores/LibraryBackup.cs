@@ -346,7 +346,9 @@ public sealed partial class LibraryBackup(
         return added;
     }
 
-    /// <summary>Replaces the global settings as a <c>PUT /global</c> would; false (with the reason) if invalid.</summary>
+    /// <summary>
+    ///     Replaces the global settings as a <c>PUT /global</c> would; false (with the reason) if invalid.
+    /// </summary>
     bool RestoreSettings(GlobalSettings settings, List<string> skipped) {
         try {
             GlobalValidation.Check(settings);
@@ -471,7 +473,8 @@ public sealed partial class LibraryBackup(
             || (AssetStore.KindOf(name) is { } kind && AssetStore.Extension(kind) == Path.GetExtension(name)));
 
     [GeneratedRegex(
-        """^(manifest\.json|global\.json|assets\.json|assets/[0-9a-f]{64}\.[a-z]+|(presets|factory-marks|block-presets|templates|snapshots|setlists|banks)/[A-Za-z0-9-]{1,64}\.json)\z"""
+        """^(manifest\.json|global\.json|assets\.json|assets/[0-9a-f]{64}\.[a-z]+|"""
+        + """(presets|factory-marks|block-presets|templates|snapshots|setlists|banks)/[A-Za-z0-9-]{1,64}\.json)\z"""
     )]
     private static partial Regex AllowedName();
 }

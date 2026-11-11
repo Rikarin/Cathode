@@ -3,14 +3,14 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     EVH 5150III (100 W), red channel, drawn from the 100S (Stealth): V1A (220k, 1.8k ‖ 1 µF, 10k + 39 pF and 68k at the
-///     input, a 68k + 830 pF
-///     treble shunt on the plate), 470 pF into the gain pot (1M audio, 1 nF bright cap), 470k and 10k into V1B (100k,
-///     1.8k ‖ 1 µF), 1 nF and a 470k/820k divider into the V2A cold clipper (5.1k unbypassed, 100k plate with 1 nF
-///     across it), 330k and 220k into V2B (220k, 1.8k ‖ 1 µF), 1M into V3A (220k, 2.2k unbypassed, 100k leak), 1M
-///     into V3B (220k, 2.2k unbypassed, 22 nF + 1M from plate to grid), 560k into a cathode follower (its grid held
-///     by 220k and 330k ‖ 220 nF), 43k into a 33k + 10 nF shunt and the stack (47k slope, 470 pF, 47 nF bass, 22 nF
-///     middle; 250k linear treble, 1M audio bass, 25k linear middle), the channel volume; a long-tail pair, four 6L6GC.
+///     EVH 5150III (100 W), red channel, drawn from the 100S (Stealth): V1A (220k, 1.8k ‖ 1 µF, 10k + 39 pF and 68k at
+///     the input, a 68k + 830 pF treble shunt on the plate), 470 pF into the gain pot (1M audio, 1 nF bright cap), 470k
+///     and 10k into V1B (100k, 1.8k ‖ 1 µF), 1 nF and a 470k/820k divider into the V2A cold clipper (5.1k unbypassed,
+///     100k plate with 1 nF across it), 330k and 220k into V2B (220k, 1.8k ‖ 1 µF), 1M into V3A (220k, 2.2k unbypassed,
+///     100k leak), 1M into V3B (220k, 2.2k unbypassed, 22 nF + 1M from plate to grid), 560k into a cathode follower
+///     (its grid held by 220k and 330k ‖ 220 nF), 43k into a 33k + 10 nF shunt and the stack (47k slope, 470 pF, 47 nF
+///     bass, 22 nF middle; 250k linear treble, 1M audio bass, 25k linear middle), the channel volume; a long-tail pair,
+///     four 6L6GC.
 /// </summary>
 /// <remarks>
 ///     <para>

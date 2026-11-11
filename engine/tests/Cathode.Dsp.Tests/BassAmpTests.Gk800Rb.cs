@@ -1,7 +1,6 @@
 using Cathode.Dsp.Amp;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Wdf;
-using Cathode.Testing;
 
 namespace Cathode.Dsp.Tests;
 
@@ -56,7 +55,7 @@ public partial class BassAmpTests {
 
         var voicing = Assert.IsType<NetworkStage<OpAmp>>(channel.Stages[1]);
         var contour = voicing.Design.Netlist.Elements.First(static e => e.Kind == ElementKind.Amplifier).C;
-        // Half the drawing's 2 mV: the 300 W amp, loaded with 4 Ω here, would clip at the 41 V the drawing has unloaded.
+        // Half the drawing's 2 mV: the 300 W amp, loaded with 4 Ω here, would clip at the drawing's unloaded 41 V.
         const double Drive = 0.001;
         const int Samples = 96_000;
         const int Settled = Samples / 2;
@@ -91,7 +90,9 @@ public partial class BassAmpTests {
 
     static double Db(double ratio) => 20 * Math.Log10(ratio);
 
-    /// <summary>The amplitude of <paramref name="y" />'s component on bin <paramref name="bin" /> of its length.</summary>
+    /// <summary>
+    ///     The amplitude of <paramref name="y" />'s component on bin <paramref name="bin" /> of its length.
+    /// </summary>
     static double Harmonic(double[] y, int bin) {
         var (re, im) = (0.0, 0.0);
         for (var n = 0; n < y.Length; n++) {

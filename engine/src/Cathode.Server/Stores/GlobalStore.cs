@@ -32,7 +32,9 @@ public sealed class GlobalStore : IDisposable {
     /// <summary>The revision the file holds (under <see cref="writing" />).</summary>
     long written;
 
-    /// <summary>Whether a live change waits for the timer to save and announce it (under <see cref="gate" />).</summary>
+    /// <summary>
+    ///     Whether a live change waits for the timer to save and announce it (under <see cref="gate" />).
+    /// </summary>
     bool unsaved;
 
     bool disposed;

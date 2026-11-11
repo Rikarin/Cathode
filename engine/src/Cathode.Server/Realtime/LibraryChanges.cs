@@ -19,7 +19,9 @@ public sealed class LibraryChanges(EventHub hub) {
     public void Publish(string kind) =>
         hub.Publish(new LibraryChanged("libraryChanged", kind), ContractsJsonContext.Default.LibraryChanged);
 
-    /// <summary>What a store calls after a write: publishes <paramref name="kind" />, or nothing without a hub.</summary>
+    /// <summary>
+    ///     What a store calls after a write: publishes <paramref name="kind" />, or nothing without a hub.
+    /// </summary>
     public static Action? For(LibraryChanges? changes, string kind) =>
         changes is null ? null : () => changes.Publish(kind);
 }

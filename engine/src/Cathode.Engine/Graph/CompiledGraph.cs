@@ -80,7 +80,9 @@ public sealed class CompiledGraph : IDisposable {
     /// <summary>The time constant of the <see cref="CpuMeter" />'s smoothing.</summary>
     public const double CpuSmoothingSeconds = 0.3;
 
-    /// <summary>The meters every slot has, before the block's own: <see cref="PeakMeter" />, <see cref="CpuMeter" />.</summary>
+    /// <summary>
+    ///     The meters every slot has, before the block's own: <see cref="PeakMeter" />, <see cref="CpuMeter" />.
+    /// </summary>
     public const int CommonMeters = 2;
 
     /// <summary>Identifies this graph; commands addressed to another generation are ignored.</summary>
@@ -701,7 +703,9 @@ public struct ModifierBinding(
     public float AttackMs { get; } = attackMs;
     public float ReleaseMs { get; } = releaseMs;
 
-    /// <summary>A second source combined with <see cref="Source" /> (<see cref="Modulation.Combine" />), or null.</summary>
+    /// <summary>
+    ///     A second source combined with <see cref="Source" /> (<see cref="Modulation.Combine" />), or null.
+    /// </summary>
     public ModSource? Source2 { get; init; }
 
     /// <summary>How <see cref="Source2" /> joins <see cref="Source" />.</summary>

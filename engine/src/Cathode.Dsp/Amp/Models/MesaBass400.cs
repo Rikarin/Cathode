@@ -17,22 +17,21 @@ namespace Cathode.Dsp.Amp.Models;
 ///         reading of them could not make out the volume return or V3's coupling) and read by eye at 2-4×. Read: the
 ///         inputs' 47 nF and 1M, V1A 100k with 1.5k ‖ 15 µF, V1B 150k with 1.2k ‖ 15 µF, 47 nF into the 1M volumes with
 ///         120 pF Bright switches, 1.5M (volume 1) and 470k (volume 2) into the mix node with 470k to ground, the
-///         volumes' feet on the ground bus (the return docs/06 could not read); V2A 100k with 1000 Ω ‖ 0.15 µF and 15
-///         µF through 33k that Bass Shift shorts; the stack 250 pF (+ 750 pF Treble Shift), 100k, 47 nF to the treble
-///         pot's foot (the bass cap) and 0.1 µF to the bass pot's foot (the middle cap), 250k bass, 10k middle: the two
-///         caps are the other way round from the Mark IIC+, IV and V and the TriAxis, whose bass cap is the 0.1 µF
-///         (re-read for #299: the sheet draws ".047" between the 100k and the junction of the treble and bass pots,
-///         and ".1" between the 100k and the junction of the bass and mid pots); 47 nF into V2B with 3.3M from the 370 V
-///         node, 33k cathode, 0.1 µF into 15k; the equaliser:
-///         a PNP follower (470k / 1M bias), the six 50k sliders between the op-amp's inputs, each wiper through 470 Ω
-///         (680 Ω on the top band), an inductor and a cap to ground (1 H / 22 µF, 1 H / 2.2 µF, 0.35 H / 1 µF, 0.22 H /
-///         0.22 µF, 0.068 H / 0.15 µF, 0.033 H / 47 nF: 34, 107, 269, 723, 1,570 and 4,040 Hz), 3.3k on the output, 0.1
-///         µF into 3.3k; the 250k master; V3: 33k plates from the 370 V node, the cathodes joined into 33k to -68 V,
-///         V3B's grid on ground; each plate through 47 nF onto 62k to ground and through 470k onto V4's grid with 220k
-///         to ground (V3B's 62k sits on the ground line beside its grid); V4's cathodes joined into 470 Ω; 0.1 µF into
-///         100k feeds from the -63 V bias, 2.2k stoppers, 2.7k screens from the 535 V node; supplies 540 V (A), 535 V
-///         (B, after the choke), 370 V (C, after 10k), -68 V and -63 V. The marked voltages give the preamp's draw
-///         (16.5 mA through the 10k).
+///         volumes' feet on the ground bus (the return docs/06 could not read); V2A 100k with 1000 Ω ‖ 0.15 µF and
+///         15 µF through 33k that Bass Shift shorts; the stack 250 pF (+ 750 pF Treble Shift), 100k, 47 nF to the
+///         treble pot's foot (the bass cap) and 0.1 µF to the bass pot's foot (the middle cap), 250k bass, 10k middle:
+///         the two caps are the other way round from the Mark IIC+, IV and V and the TriAxis, whose bass cap is the
+///         0.1 µF (re-read for #299: the sheet draws ".047" between the 100k and the junction of the treble and bass
+///         pots, and ".1" between the 100k and the junction of the bass and mid pots); 47 nF into V2B with 3.3M from
+///         the 370 V node, 33k cathode, 0.1 µF into 15k; the equaliser: a PNP follower (470k / 1M bias), the six 50k
+///         sliders between the op-amp's inputs, each wiper through 470 Ω (680 Ω on the top band), an inductor and a cap
+///         to ground (1 H / 22 µF, 1 H / 2.2 µF, 0.35 H / 1 µF, 0.22 H / 0.22 µF, 0.068 H / 0.15 µF, 0.033 H / 47 nF:
+///         34, 107, 269, 723, 1,570 and 4,040 Hz), 3.3k on the output, 0.1 µF into 3.3k; the 250k master; V3: 33k
+///         plates from the 370 V node, the cathodes joined into 33k to -68 V, V3B's grid on ground; each plate through
+///         47 nF onto 62k to ground and through 470k onto V4's grid with 220k to ground (V3B's 62k sits on the ground
+///         line beside its grid); V4's cathodes joined into 470 Ω; 0.1 µF into 100k feeds from the -63 V bias, 2.2k
+///         stoppers, 2.7k screens from the 535 V node; supplies 540 V (A), 535 V (B, after the choke), 370 V (C, after
+///         10k), -68 V and -63 V. The marked voltages give the preamp's draw (16.5 mA through the 10k).
 ///     </para>
 ///     <para>
 ///         Guessed (not printed): V4's plate resistors (no value on the sheet: 47k, which with 12AX7s puts the plates

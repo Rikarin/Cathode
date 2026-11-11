@@ -30,7 +30,9 @@ public sealed class MidiClockOut(double sampleRate, Func<string?, byte[], bool> 
     double position; // in frames on the sample clock, never moving back
     double pending; // the fraction of a tick not yet sent
 
-    /// <summary>Any thread: turns the clock on or off and names its output (a port uid, or null for every output).</summary>
+    /// <summary>
+    ///     Any thread: turns the clock on or off and names its output (a port uid, or null for every output).
+    /// </summary>
     public void Configure(bool enabled, string? destination) {
         lock (gate) {
             if (enabled != this.enabled) {

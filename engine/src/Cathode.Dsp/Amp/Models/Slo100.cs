@@ -42,20 +42,19 @@ namespace Cathode.Dsp.Amp.Models;
 ///         351 V under stages built for 380 V (#296).
 ///     </para>
 ///     <para>
-///         The normal channel (Switch 1, with Switch 2 for Crunch and the Bright switch) is read from the
-///         "Soldano Super Lead Overdrive 100W" drawing of 15 March 1996 (el34world, Soldano_slo100.pdf, a clean CAD
-///         redraw of unknown origin with optocoupler channel switching): V1A's 20 nF output feeds both channels; the
-///         Crunch/Clean switch puts 470k in series and 39k across the normal volume (Clean) or neither (Crunch), a 470k
-///         with the bright cap follows, the 500k normal volume, the normal V1B (100k, 2.2k unbypassed), 20 nF into
-///         2.2M ‖ 120 pF over 330k. That node is shared: the cold clipper's 20 nF (2.2M to ground after it) comes
-///         into it through the channel switch's optocoupler, and 220k goes from it to the next stage's grid, so the
-///         330k and the normal channel's 2.2M ‖ 120 pF load the cold clipper on the overdrive channel too (Robinette
-///         gives its AC load as 2.2M ‖ 330k). Robinette's text agrees on the dividers (Crunch passes 52 % at full volume,
-///         Clean 4 %; 13 % after
-///         the second stage). Read with doubt: the drawing wires a short across the overdrive path's 470k ‖ 2 nF (taken
-///         as a drafting error: the overdrive channel keeps it, as in the other sources), and its Bright/Norm switch
-///         looks like it selects the 470 pF in place of the 470k (here it puts the cap across the 470k, as Fractal
-///         describes a bright cap on this channel); the normal volume's taper is not printed (audio assumed).
+///         The normal channel (Switch 1, with Switch 2 for Crunch and the Bright switch) is read from the "Soldano
+///         Super Lead Overdrive 100W" drawing of 15 March 1996 (el34world, Soldano_slo100.pdf, a clean CAD redraw of
+///         unknown origin with optocoupler channel switching): V1A's 20 nF output feeds both channels; the Crunch/Clean
+///         switch puts 470k in series and 39k across the normal volume (Clean) or neither (Crunch), a 470k with the
+///         bright cap follows, the 500k normal volume, the normal V1B (100k, 2.2k unbypassed), 20 nF into 2.2M ‖ 120 pF
+///         over 330k. That node is shared: the cold clipper's 20 nF (2.2M to ground after it) comes into it through the
+///         channel switch's optocoupler, and 220k goes from it to the next stage's grid, so the 330k and the normal
+///         channel's 2.2M ‖ 120 pF load the cold clipper on the overdrive channel too (Robinette gives its AC load as
+///         2.2M ‖ 330k). Robinette's text agrees on the dividers (Crunch passes 52 % at full volume, Clean 4 %; 13 %
+///         after the second stage). Read with doubt: the drawing wires a short across the overdrive path's 470k ‖ 2 nF
+///         (taken as a drafting error: the overdrive channel keeps it, as in the other sources), and its Bright/Norm
+///         switch looks like it selects the 470 pF in place of the 470k (here it puts the cap across the 470k, as
+///         Fractal describes a bright cap on this channel); the normal volume's taper is not printed (audio assumed).
 ///     </para>
 ///     <para>
 ///         Not modelled: in overdrive mode the normal channel stays connected and its out-of-phase signal mixes into

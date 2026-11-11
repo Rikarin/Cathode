@@ -22,17 +22,16 @@ namespace Cathode.Dsp.Amp.Models;
 ///         drawing.
 ///     </para>
 ///     <para>
-///         Where the traces differ. V2's cathodes: Mitchell has 2.2k ‖ 35 µF under V2A and 3.9k unbypassed under
-///         V2B; the other three have them the other way round. Mitchell's is taken: his cathode voltages fit it (1.4 V on
-///         V2A and
-///         2.0 V on V2B, where a 12AX7 on 270k from 337 V settles on 2.2k and on 3.9k: 1.44 V and 1.97 V on the
-///         tables), and so does the divider: 12k in 282k is 1 in 23.5, against a gain in the thirties for a 12AX7 on
-///         an unbypassed 3.9k and about sixty on a bypassed 2.2k. Either way the inverted side is the hotter one. V1's
-///         cathode: 3.9k (Mitchell, Shoup; 3.3k on the other two). The resistor
-///         from the Tone pot's 0.003 µF end to ground: 100k (Mitchell; 110k on Poulos's and Weatherford's; Shoup
-///         draws it at the pot's other end). The last filter cap: 4 µF (Mitchell; Poulos "4 mfd ?", Weatherford "8 ?",
-///         Shoup 40). The input jacks: plain (Shoup draws shorting jacks, which would ground the unused 47k and halve
-///         the signal). The supply nodes: Mitchell's 397 / 390 / 337 / 259 V (Poulos: 380 / 370 / 330 / 230 V).
+///         Where the traces differ. V2's cathodes: Mitchell has 2.2k ‖ 35 µF under V2A and 3.9k unbypassed under V2B;
+///         the other three have them the other way round. Mitchell's is taken: his cathode voltages fit it (1.4 V on
+///         V2A and 2.0 V on V2B, where a 12AX7 on 270k from 337 V settles on 2.2k and on 3.9k: 1.44 V and 1.97 V on the
+///         tables), and so does the divider: 12k in 282k is 1 in 23.5, against a gain in the thirties for a 12AX7 on an
+///         unbypassed 3.9k and about sixty on a bypassed 2.2k. Either way the inverted side is the hotter one. V1's
+///         cathode: 3.9k (Mitchell, Shoup; 3.3k on the other two). The resistor from the Tone pot's 0.003 µF end to
+///         ground: 100k (Mitchell; 110k on Poulos's and Weatherford's; Shoup draws it at the pot's other end). The last
+///         filter cap: 4 µF (Mitchell; Poulos "4 mfd ?", Weatherford "8 ?", Shoup 40). The input jacks: plain (Shoup
+///         draws shorting jacks, which would ground the unused 47k and halve the signal). The supply nodes: Mitchell's
+///         397 / 390 / 337 / 259 V (Poulos: 380 / 370 / 330 / 230 V).
 ///     </para>
 ///     <para>
 ///         As the tables give it: V1 207 V and 2.0 V (the drawing: 197 V and 2.2 V), V2A 160 V and 1.44 V (138 V

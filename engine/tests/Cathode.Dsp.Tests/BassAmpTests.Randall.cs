@@ -1,7 +1,6 @@
 using Cathode.Dsp.Amp;
 using Cathode.Dsp.Blocks;
 using Cathode.Dsp.Wdf;
-using Cathode.Testing;
 
 namespace Cathode.Dsp.Tests;
 
@@ -154,6 +153,8 @@ public partial class BassAmpTests {
     [Fact]
     public void Rg100es_tone_controls_swing_as_the_manual_says() {
         static double Swing(int knob, double frequency) {
+            return At(10) - At(0);
+
             double At(float value) =>
                 Level(
                     Randall,
@@ -164,8 +165,6 @@ public partial class BassAmpTests {
                     (CircuitAmpBlock.Master, 5f),
                     (knob, value)
                 );
-
-            return At(10) - At(0);
         }
 
         var (bass, middle, treble, presence) = (Swing(CircuitAmpBlock.Bass, 50), Swing(CircuitAmpBlock.Middle, 600),

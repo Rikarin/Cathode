@@ -112,7 +112,9 @@ public sealed class ModifierDefinition {
     /// <summary>linear, exp, log or scurve.</summary>
     public string Curve { get; set; } = "linear";
 
-    /// <summary>A second source combined with <see cref="Source" /> by <see cref="Operation" />; null is none.</summary>
+    /// <summary>
+    ///     A second source combined with <see cref="Source" /> by <see cref="Operation" />; null is none.
+    /// </summary>
     public string? Source2 { get; set; }
 
     /// <summary>

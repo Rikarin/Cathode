@@ -1,5 +1,3 @@
-using Cathode.Dsp.Wdf;
-
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>

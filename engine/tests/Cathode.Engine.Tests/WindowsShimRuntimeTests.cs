@@ -39,7 +39,9 @@ public class WindowsShimRuntimeTests {
     public void The_Visual_Cpp_runtime_libraries_are_told_from_Windows_own(string library, bool redistributable) =>
         Assert.Equal(redistributable, IsVisualCppRuntime(library));
 
-    /// <summary>The libraries the Visual C++ Redistributable (or only Visual Studio, for debug ones) installs.</summary>
+    /// <summary>
+    ///     The libraries the Visual C++ Redistributable (or only Visual Studio, for debug ones) installs.
+    /// </summary>
     static bool IsVisualCppRuntime(string library) =>
         RuntimePrefixes.Any(prefix => library.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
 

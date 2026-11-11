@@ -90,9 +90,9 @@ public static class RectoVerb {
                     new NetworkStageDesign("V1A", InputAndGain()) { SupplyNode = 2 },
                     new NetworkStageDesign("V1B", SecondStage(22e3)) { SupplyNode = 1 },
                     new NetworkStageDesign("V2B", ColdClipper()) { SupplyNode = 1 },
-                    // V3A (20 nF into 330k to ground, 220k to the grid; 220k plate; 1.8k ‖ 1 µF) and the follower with the
-                    // stack are the Dual Rectifier's, with this drawing's values: 500 pF treble cap, the middle a rheostat
-                    // with its 20 nF at the top, a 250k presence rheostat and 220k ahead of the lead master.
+                    // V3A (20 nF into 330k to ground, 220k to the grid; 220k plate; 1.8k ‖ 1 µF) and the follower with
+                    // the stack are the Dual Rectifier's, with this drawing's values: 500 pF treble cap, the middle a
+                    // rheostat with its 20 nF at the top, a 250k presence rheostat and 220k ahead of the lead master.
                     new NetworkStageDesign("V3A", DualRectifier.FourthStage(415, 0)),
                     new NetworkStageDesign(
                         "V3B",

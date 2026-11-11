@@ -169,7 +169,9 @@ public sealed class MidiInput(
         }
     }
 
-    /// <summary>Start, Continue and Stop begin a new run of ticks: the tempo holds until a beat of them is in.</summary>
+    /// <summary>
+    ///     Start, Continue and Stop begin a new run of ticks: the tempo holds until a beat of them is in.
+    /// </summary>
     void ResetClock() {
         lock (ticks) {
             ticks.Clear();

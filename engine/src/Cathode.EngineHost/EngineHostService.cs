@@ -79,10 +79,12 @@ public sealed class EngineHostService : IDisposable {
     public Func<string?, byte[], bool> NativeMidiSend { get; set; } = static (destination, bytes) =>
         NativeMidi.Send(destination, bytes);
 
-    /// <summary>Lists the MIDI endpoints (for the MIDI output setting); replaced in tests.</summary>
-    /// <summary>MIDI clock out, sent from the MIDI thread through <see cref="NativeMidiSend" /> while it is on.</summary>
+    /// <summary>
+    ///     MIDI clock out, sent from the MIDI thread through <see cref="NativeMidiSend" /> while it is on.
+    /// </summary>
     public MidiClockOut ClockOut => clockOut ??= new(Engine.Spec.SampleRate, (to, bytes) => NativeMidiSend(to, bytes));
 
+    /// <summary>Lists the MIDI endpoints (for the MIDI output setting); replaced in tests.</summary>
     public Func<IEnumerable<MidiPortInfo>> NativeMidiPorts { get; set; } = static () =>
         NativeMidi.IsAvailable
             ? NativeMidi.Ports().Select(static p => new MidiPortInfo(p.Uid, p.Name, p.IsInput))

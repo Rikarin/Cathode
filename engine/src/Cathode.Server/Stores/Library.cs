@@ -48,7 +48,7 @@ public sealed class Library(
         static (bank, _) => bank
     );
 
-    JsonFileStore<Bank> banks => bankIndex.Store;
+    JsonFileStore<Bank> BankFiles => bankIndex.Store;
 
     public Setlist[] Setlists() =>
         [..setlists.All().Select(static e => e.Item).OrderBy(static s => s.Name, StringComparer.OrdinalIgnoreCase)];
@@ -69,11 +69,11 @@ public sealed class Library(
             .OrderBy(static b => b.Name, StringComparer.OrdinalIgnoreCase)
     ];
 
-    public Bank? Bank(string id) => id == FactoryPresets.BankId ? presets.Factory.Bank() : banks.Get(id);
+    public Bank? Bank(string id) => id == FactoryPresets.BankId ? presets.Factory.Bank() : BankFiles.Get(id);
 
     /// <summary>
-    ///     Stores a setlist under its next revision. With <paramref name="expected" /> (the revision the change was made
-    ///     on), refused with 412 when the stored setlist is at another one: another editor saved it, or deleted it.
+    ///     Stores a setlist under its next revision. With <paramref name="expected" /> (the revision the change was
+    ///     made on), refused with 412 when the stored setlist is at another one: another editor saved or deleted it.
     /// </summary>
     public void Save(Setlist setlist, long? expected = null) {
         lock (gate) {
@@ -103,7 +103,7 @@ public sealed class Library(
         }
 
         lock (gate) {
-            bank.Revision = NextRevision(banks.Get(bank.Id)?.Revision, expected, "bank");
+            bank.Revision = NextRevision(BankFiles.Get(bank.Id)?.Revision, expected, "bank");
             var problems = new List<string>();
             if (bank.Slots.Count > Contracts.Bank.SlotCount) {
                 problems.Add($"A bank has {Contracts.Bank.SlotCount} slots; this one has {bank.Slots.Count}.");
@@ -117,7 +117,7 @@ public sealed class Library(
 
             Reject(problems, "bank");
             bank.Factory = null;
-            banks.Save(bank);
+            BankFiles.Save(bank);
         }
     }
 
@@ -143,7 +143,7 @@ public sealed class Library(
     public bool DeleteBank(string id) =>
         id == FactoryPresets.BankId
             ? throw RigException.Conflict("The factory bank cannot be deleted.")
-            : banks.Delete(id);
+            : BankFiles.Delete(id);
 
     /// <summary>Deletes a preset unless a setlist or bank still uses it (409, naming them).</summary>
     public bool DeletePreset(string id) {

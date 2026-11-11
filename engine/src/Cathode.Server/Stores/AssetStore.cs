@@ -363,7 +363,9 @@ public sealed partial class AssetStore {
     /// <summary>A colour tag as stored: an empty one clears it.</summary>
     static string? NullIfEmpty(string color) => color.Length == 0 ? null : color;
 
-    /// <summary>Deletes an asset; false when the store has none under the reference. A factory asset is a 409.</summary>
+    /// <summary>
+    ///     Deletes an asset; false when the store has none under the reference. A factory asset is a 409.
+    /// </summary>
     public bool Delete(string reference) {
         if (factoryRefs.Contains(reference)) {
             throw RigException.Conflict("A factory asset cannot be deleted.");

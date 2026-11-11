@@ -257,20 +257,19 @@ public sealed record LibraryChanged(string Type, string Kind);
 
 /// <summary>
 ///     Pushed over the WebSocket about 30 times a second. <c>Blocks</c> holds every block meter since the last frame,
-///     by block id and then meter id: each grid block's <c>peak</c> (its output peak, linear) and <c>cpu</c> (the
-///     time the block takes, in percent of real time on the machine that runs the engine, smoothed over 0.3 s), and
-///     the meters some blocks keep of their own, in dB: the Cab's <c>preampIn</c> (the level into the mic preamp, 0 at the
-///     onset of
-///     clipping) and <c>motorReduction</c> (Motor Drive's gain reduction), the Compressor's and the Gate/Expander's
-///     <c>gainReduction</c>, and the Multiband Compressor's <c>lowReduction</c>, <c>midReduction</c> and
-///     <c>highReduction</c>; reductions are positive dB, 0 when the block takes nothing off or is bypassed. The
+///     by block id and then meter id: each grid block's <c>peak</c> (its output peak, linear) and <c>cpu</c> (the time
+///     the block takes, in percent of real time on the machine that runs the engine, smoothed over 0.3 s), and the
+///     meters some blocks keep of their own, in dB: the Cab's <c>preampIn</c> (the level into the mic preamp, 0 at the
+///     onset of clipping) and <c>motorReduction</c> (Motor Drive's gain reduction), the Compressor's and the
+///     Gate/Expander's <c>gainReduction</c>, and the Multiband Compressor's <c>lowReduction</c>, <c>midReduction</c>
+///     and <c>highReduction</c>; reductions are positive dB, 0 when the block takes nothing off or is bypassed. The
 ///     Compressor's <c>detector</c> and <c>output</c> place it on its transfer curve: the level its gain computer reads
 ///     and the level it lets out, -96 at rest. Each is the highest value since the previous frame. The loudness is the
 ///     output's ITU-R BS.1770 momentary (400 ms) and short-term (3 s) level in LUFS. Both come from the shared-memory
-///     telemetry and are absent without it.
-///     <c>Modulation</c> is the current value of every parameter a modifier drives, in the parameter's units, by block
-///     id and then parameter id, as of the frame (not a peak); it is absent when no modifier is driving a parameter.
-///     <c>Controllers</c> is where the rig's sequencer, LFOs and ADSRs stand, also from the shared-memory telemetry.
+///     telemetry and are absent without it. <c>Modulation</c> is the current value of every parameter a modifier
+///     drives, in the parameter's units, by block id and then parameter id, as of the frame (not a peak); it is absent
+///     when no modifier is driving a parameter. <c>Controllers</c> is where the rig's sequencer, LFOs and ADSRs stand,
+///     also from the shared-memory telemetry.
 /// </summary>
 public sealed record Telemetry(
     string Type,

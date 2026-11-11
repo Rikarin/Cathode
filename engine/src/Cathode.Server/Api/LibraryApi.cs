@@ -69,8 +69,8 @@ static class LibraryApi {
     ///     <c>GET /</c> (named <c>List</c> + <paramref name="name" /> + s), and <c>GET</c> (when
     ///     <paramref name="get" /> is given), <c>PUT</c> and <c>DELETE /{id}</c> (<c>Get</c>, <c>Put</c> and
     ///     <c>Delete</c> + <paramref name="name" />) for one kind of library entry. A put stores the entry under the id
-    ///     of its route and answers with it, its new revision as the ETag; with <c>If-Match</c> it is refused (412) when
-    ///     the stored entry is not at that revision.
+    ///     of its route and answers with it, its new revision as the ETag; with <c>If-Match</c> it is refused (412)
+    ///     when the stored entry is not at that revision.
     /// </summary>
     static void MapEntries<T>(
         RouteGroupBuilder group,

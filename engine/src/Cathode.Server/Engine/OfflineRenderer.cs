@@ -26,7 +26,9 @@ public interface IOfflineRenderer {
 /// </summary>
 public sealed partial class HostOfflineRenderer(IOptions<ServerOptions> options, ILogger<HostOfflineRenderer> logger)
     : IOfflineRenderer, IDisposable {
-    /// <summary>A render that takes longer than this is stopped: a stuck process must not hold the queue for ever.</summary>
+    /// <summary>
+    ///     A render that takes longer than this is stopped: a stuck process must not hold the queue for ever.
+    /// </summary>
     static readonly TimeSpan Limit = TimeSpan.FromMinutes(30);
 
     readonly SemaphoreSlim gate = new(1, 1);
@@ -84,7 +86,8 @@ public sealed partial class HostOfflineRenderer(IOptions<ServerOptions> options,
         string jobPath,
         CancellationToken cancellationToken
     ) {
-#pragma warning disable SK2152 // An extension test, not path identity: a development build's host is a .dll for `dotnet`.
+        // An extension test, not path identity: a development build's host is a .dll for `dotnet`.
+#pragma warning disable SK2152
         var managed = host.EndsWith(".dll", StringComparison.OrdinalIgnoreCase);
 #pragma warning restore SK2152
         using var process = new Process();

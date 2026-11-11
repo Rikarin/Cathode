@@ -245,8 +245,8 @@ public sealed class Setlist {
     public string Name { get; set; } = "New Setlist";
 
     /// <summary>
-    ///     How many times the Server has stored this setlist: set by the Server on every save (what a client sends here is
-    ///     ignored), and answered as the ETag. Sent back as <c>If-Match</c> on a PUT, it makes the Server refuse the
+    ///     How many times the Server has stored this setlist: set by the Server on every save (what a client sends here
+    ///     is ignored), and answered as the ETag. Sent back as <c>If-Match</c> on a PUT, it makes the Server refuse the
     ///     save (412) when another editor stored the setlist in between. Null in a file from before revisions.
     /// </summary>
     public long? Revision { get; set; }
@@ -267,8 +267,8 @@ public sealed class Bank {
     /// <summary>
     ///     How many times the Server has stored this bank: set by the Server on every save (what a client sends here is
     ///     ignored), and answered as the ETag. Sent back as <c>If-Match</c> on a PUT, it makes the Server refuse the
-    ///     save (412) when another editor stored the bank in between. Null in a file from before revisions and for the factory
-    ///     bank.
+    ///     save (412) when another editor stored the bank in between. Null in a file from before revisions and for the
+    ///     factory bank.
     /// </summary>
     public long? Revision { get; set; }
 

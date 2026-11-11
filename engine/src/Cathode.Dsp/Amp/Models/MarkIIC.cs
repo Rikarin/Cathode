@@ -3,17 +3,17 @@ using Cathode.Dsp.Wdf;
 namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
-///     Mesa/Boogie Mark IIC+, both channels as two types. Lead (<see cref="Design" />): V1A (150k, 1.5k ‖ 0.47 µF,
-///     with a 15 µF bypass through 15k that the Bass Shift pull shorts) driving the Fender-topology stack directly (100k
-///     slope, 250 pF treble cap, 750 pF more with
-///     Treble Shift, 0.1 µF, 47 nF; 250k treble and bass, 10k middle) and Volume 1 (1M audio, 180 pF pull-bright);
-///     V1B; the lead drive (680k into 1M audio) into the V3A cascade (82k, 120 pF grid-to-cathode), a 270k/68k divider
-///     into the V3B lead stage (270k plate with 1 nF across it, 3.3k with 0.22 µF through 15k, shorted by the
-///     lead-bright pull), a 220k ‖ 250 pF / 100k ‖ 500 pF divider into V2B (1.5k unbypassed), the lead master shunting
-///     the signal into a 150k/4.3k pad, the V4A recovery stage (120k, 1k ‖ 0.47 µF, 15 µF through 15k, shorted by the
-///     deep pull), the master, the five-band graphic EQ, a long-tail pair and Simul-Class power (two 6L6GC in pentode
-///     beside two triode-strapped EL34). Rhythm (<see cref="Rhythm" />): the same amp without the lead circuit, V1B
-///     going straight into V2B through 3.3M ‖ 20 pF, and without the lead master.
+///     Mesa/Boogie Mark IIC+, both channels as two types. Lead (<see cref="Design" />): V1A (150k, 1.5k ‖ 0.47 µF, with
+///     a 15 µF bypass through 15k that the Bass Shift pull shorts) driving the Fender-topology stack directly (100k
+///     slope, 250 pF treble cap, 750 pF more with Treble Shift, 0.1 µF, 47 nF; 250k treble and bass, 10k middle) and
+///     Volume 1 (1M audio, 180 pF pull-bright); V1B; the lead drive (680k into 1M audio) into the V3A cascade (82k,
+///     120 pF grid-to-cathode), a 270k/68k divider into the V3B lead stage (270k plate with 1 nF across it, 3.3k with
+///     0.22 µF through 15k, shorted by the lead-bright pull), a 220k ‖ 250 pF / 100k ‖ 500 pF divider into V2B (1.5k
+///     unbypassed), the lead master shunting the signal into a 150k/4.3k pad, the V4A recovery stage (120k,
+///     1k ‖ 0.47 µF, 15 µF through 15k, shorted by the deep pull), the master, the five-band graphic EQ, a long-tail
+///     pair and Simul-Class power (two 6L6GC in pentode beside two triode-strapped EL34). Rhythm
+///     (<see cref="Rhythm" />): the same amp without the lead circuit, V1B going straight into V2B through
+///     3.3M ‖ 20 pF, and without the lead master.
 /// </summary>
 /// <remarks>
 ///     <para>

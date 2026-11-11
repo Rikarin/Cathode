@@ -69,8 +69,8 @@ public sealed class IrTools(LiveRig rig, AssetStore assets, EngineConnection eng
     }
 
     /// <summary>
-    ///     The Cab block's Align page: a copy of the block on the channel it is running, built here on the Server (the slots'
-    ///     synthesis is the engine's own code), reports each slot's IR head and onset.
+    ///     The Cab block's Align page: a copy of the block on the channel it is running, built here on the Server (the
+    ///     slots' synthesis is the engine's own code), reports each slot's IR head and onset.
     /// </summary>
     public async Task<CabAlignment> CabAlignmentAsync(string blockId) {
         var state = await rig.StateAsync();

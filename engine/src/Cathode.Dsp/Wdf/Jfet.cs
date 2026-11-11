@@ -28,10 +28,10 @@ public readonly record struct JfetModel(
 
     /// <summary>
     ///     2N5484 (and the TIS58 it replaces), N-channel: I_DSS 4.3 mA, V_GS(off) −1.6 V, so 5.4 mS at V_GS = 0. The
-    ///     datasheet (Motorola, Vishay) gives only ranges, 1 to 5 mA, −0.3 to −3 V and 3 to 6 mS; this sample is
-    ///     fitted inside them to the Randall RG100ES drawing (PCB 2146B), whose stages on 2.2k source resistors sit at
-    ///     about 1 V on the source (0.48 mA here) and gain 6.7 from the input jack unbypassed into the 50k gain pot (2.4
-    ///     mS) and 52 bypassed (1.6 mS): 1.8 mS here, between the drawing's two samples.
+    ///     datasheet (Motorola, Vishay) gives only ranges, 1 to 5 mA, −0.3 to −3 V and 3 to 6 mS; this sample is fitted
+    ///     inside them to the Randall RG100ES drawing (PCB 2146B), whose stages on 2.2k source resistors sit at about
+    ///     1 V on the source (0.48 mA here) and gain 6.7 from the input jack unbypassed into the 50k gain pot (2.4 mS)
+    ///     and 52 bypassed (1.6 mS): 1.8 mS here, between the drawing's two samples.
     /// </summary>
     public static JfetModel J2N5484 { get; } = new(4.3e-3, -1.6);
 

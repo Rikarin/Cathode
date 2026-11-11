@@ -67,7 +67,9 @@ public sealed class Reamp(LiveRig rig, IOfflineRenderer renderer) {
         }
     }
 
-    /// <summary>Refuses (400) what is not a WAV file the engine reads, an empty one, or a sample rate it does not run at.</summary>
+    /// <summary>
+    ///     Refuses (400) what is not a WAV file the engine reads, an empty one, or a sample rate it does not run at.
+    /// </summary>
     static void Check(Stream file) {
         WavHeader header;
         try {

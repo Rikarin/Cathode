@@ -26,7 +26,9 @@ public static class OfflineReamp {
     /// <summary>
     ///     Renders the job and writes its output file; returns the frames written and their sample rate.
     /// </summary>
-    /// <exception cref="GraphValidationException">The graph does not compile, or names a parameter there is not.</exception>
+    /// <exception cref="GraphValidationException">
+    ///     The graph does not compile, or names a parameter there is not.
+    /// </exception>
     /// <exception cref="InvalidDataException">The input is not a WAV file this reads, or is empty.</exception>
     public static (int Frames, int SampleRate) Run(RenderJob job, BlockRegistry? registry = null) {
         var input = WavFile.Read(job.Input);
@@ -63,7 +65,9 @@ public static class OfflineReamp {
         return (frames, rate);
     }
 
-    /// <summary>Fills <paramref name="block" /> with the source from frame <paramref name="at" />; silence outside it.</summary>
+    /// <summary>
+    ///     Fills <paramref name="block" /> with the source from frame <paramref name="at" />; silence outside it.
+    /// </summary>
     static void Fill(float[] source, int at, Span<float> block) {
         block.Clear();
         var from = Math.Max(at, 0);
@@ -73,7 +77,9 @@ public static class OfflineReamp {
         }
     }
 
-    /// <summary>Copies the part of <paramref name="block" /> (at frame <paramref name="at" />) inside the output.</summary>
+    /// <summary>
+    ///     Copies the part of <paramref name="block" /> (at frame <paramref name="at" />) inside the output.
+    /// </summary>
     static void Keep(ReadOnlySpan<float> block, float[] output, int at) {
         var from = Math.Max(at, 0);
         var to = Math.Min(at + block.Length, output.Length);

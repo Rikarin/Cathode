@@ -46,9 +46,9 @@ public sealed class PresetStore(
         static (mark, _) => mark
     );
 
-    JsonFileStore<Preset> files => index.Store;
+    JsonFileStore<Preset> Files => index.Store;
 
-    JsonFileStore<FactoryPresetMark> marks => markIndex.Store;
+    JsonFileStore<FactoryPresetMark> MarkFiles => markIndex.Store;
 
     public FactoryPresets Factory => factory;
 
@@ -78,14 +78,14 @@ public sealed class PresetStore(
     /// <summary>A copy of a stored or factory preset (with the user's colour and favourite on a factory one).</summary>
     public Preset? Get(string id) {
         if (!FactoryPresets.IsFactoryId(id)) {
-            return files.Get(id);
+            return Files.Get(id);
         }
 
         if (factory.Get(id) is not { } preset) {
             return null;
         }
 
-        if (marks.Get(id) is { } mark) {
+        if (MarkFiles.Get(id) is { } mark) {
             preset.Color = mark.Color;
             preset.Favorite = mark.Favorite;
         }
@@ -107,7 +107,7 @@ public sealed class PresetStore(
             )
     ];
 
-    public bool Exists(string id) => IsFactory(id) || files.Exists(id);
+    public bool Exists(string id) => IsFactory(id) || Files.Exists(id);
 
     /// <summary>Stores a user preset. The factory's ids are taken (409): a factory preset is saved as a copy.</summary>
     public void Save(Preset preset) {
@@ -117,7 +117,7 @@ public sealed class PresetStore(
 
         PresetShape.Check(preset); // an import takes a client's document as it is
         preset.Factory = null;
-        files.Save(preset);
+        Files.Save(preset);
     }
 
     /// <summary>Sets the user's colour tag and favourite flag of a factory preset.</summary>
@@ -127,19 +127,19 @@ public sealed class PresetStore(
         }
 
         if (color is null && !favorite) {
-            marks.Delete(id);
+            MarkFiles.Delete(id);
         } else {
-            marks.Save(new(id, color, favorite));
+            MarkFiles.Save(new(id, color, favorite));
         }
     }
 
     /// <summary>The user's colour tags and favourite flags on factory presets (for a backup).</summary>
-    public FactoryPresetMark[] Marks() => [..marks.All().Select(static e => e.Item)];
+    public FactoryPresetMark[] Marks() => [..MarkFiles.All().Select(static e => e.Item)];
 
     public bool Delete(string id) =>
         FactoryPresets.IsFactoryId(id)
             ? throw RigException.Conflict("Factory presets cannot be deleted.")
-            : files.Delete(id);
+            : Files.Delete(id);
 
     IEnumerable<PresetSummary> FactorySummaries() {
         var marked = new Dictionary<string, FactoryPresetMark>(StringComparer.Ordinal);

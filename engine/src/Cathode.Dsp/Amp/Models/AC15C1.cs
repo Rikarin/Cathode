@@ -6,22 +6,22 @@ namespace Cathode.Dsp.Amp.Models;
 ///     Vox AC15C1 (Custom), from the factory service manual's drawings "AC15C1 Preamp and Reverb" and "AC15C1 Power
 ///     Stage" (Vox R&amp;D, ISS3, 24/11/2009; service manual AC15C1/C2/CH ver. 2.0,
 ///     https://www.manualslib.com/manual/1520645/Vox-Ac15c1.html): the Top Boost input, or (Switch 1) the Normal input.
-///     Each input has its own half of V1, a 12AX7 (R2/R3 10k at the jack, R8/R21 1M, R9/R20 33k to the grid, R6/R5
-///     100k plates, the cathodes sharing R14 1.5k with C7 22 µF). The Top Boost half (C16 120 pF from its plate to the
+///     Each input has its own half of V1, a 12AX7 (R2/R3 10k at the jack, R8/R21 1M, R9/R20 33k to the grid, R6/R5 100k
+///     plates, the cathodes sharing R14 1.5k with C7 22 µF). The Top Boost half (C16 120 pF from its plate to the
 ///     cathode) couples through C6 470 pF into VR2, the 500k log TB Volume (C8 120 pF across its upper part, C67 10 pF
 ///     from its top to ground), whose wiper is V2's first grid: R34 100k, R19 1.5k with C14 22 µF, DC-coupled to the
-///     second half as a cathode follower (R15 56k, C68 1 nF) into the treble/bass network (C13 56 pF to VR3, the 1M
-///     log Treble; R17 100k to the slope node; C20 22 nF from the Treble's far end and C24 22 nF from the Bass wiper to
+///     second half as a cathode follower (R15 56k, C68 1 nF) into the treble/bass network (C13 56 pF to VR3, the 1M log
+///     Treble; R17 100k to the slope node; C20 22 nF from the Treble's far end and C24 22 nF from the Bass wiper to
 ///     that node; VR4, the 1M log Bass, as a rheostat from the Treble's far end to its wiper; R32 10k from the wiper to
-///     ground). The Normal half couples through C5 22 nF and R1 330k into VR1, the 500k log Normal Volume, with C4 120
-///     pF from the cap to the wiper. Two NJM2147 op-amps on ± 27 V join the channels: U1A takes the Treble's wiper (C19
-///     220 nF, R23 330k over R25 120k) on its non-inverting input and the Normal wiper through R22 470k on its
+///     ground). The Normal half couples through C5 22 nF and R1 330k into VR1, the 500k log Normal Volume, with C4
+///     120 pF from the cap to the wiper. Two NJM2147 op-amps on ± 27 V join the channels: U1A takes the Treble's wiper
+///     (C19 220 nF, R23 330k over R25 120k) on its non-inverting input and the Normal wiper through R22 470k on its
 ///     inverting input (R24 820k feedback); its output goes through R57 56k, beside the reverb's R60 56k and R54 22k to
 ///     ground, into U5A (R55 3.9k over R58 1k), which drives the inverter through C32 100 nF. V3 is a 12AX7 long-tail
 ///     pair (R40/R49 1M, R44 1.2k, R42 47k, R51/R56 100k), C41/C43 100 nF, the Tone Cut (VR8 220k linear in series with
 ///     C58 4.7 nF) and the Master Volume (VR9 500k log as a rheostat) across the two phases, two EL84 (R65/R77 3.3k,
-///     R89/R86 220k, R76/R83 470 Ω screens) on a shared R79 120 Ω with C54 220 µF, no feedback, a silicon bridge (R87/R88
-///     180 Ω in its legs) into C62 47 µF, R80 1k and C53 22 µF.
+///     R89/R86 220k, R76/R83 470 Ω screens) on a shared R79 120 Ω with C54 220 µF, no feedback, a silicon bridge
+///     (R87/R88 180 Ω in its legs) into C62 47 µF, R80 1k and C53 22 µF.
 /// </summary>
 /// <remarks>
 ///     <para>

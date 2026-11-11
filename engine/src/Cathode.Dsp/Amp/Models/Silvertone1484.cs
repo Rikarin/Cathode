@@ -14,8 +14,8 @@ namespace Cathode.Dsp.Amp.Models;
 /// <remarks>
 ///     <para>
 ///         Read: the inputs (R1 to R4 68k from each jack, 1M to ground at each grid; one jack in use here, 68k into the
-///         grid); V1 (R7, R8 220k, the two cathodes together on R6 1.5k ‖ C1 25 µF: 100 V at the plates, 1.1 V); C2,
-///         C3 0.02 µF. Channel 1 has R5 1M from the far side of C3 back to its grid (local feedback); Channel 2 has R9
+///         grid); V1 (R7, R8 220k, the two cathodes together on R6 1.5k ‖ C1 25 µF: 100 V at the plates, 1.1 V); C2, C3
+///         0.02 µF. Channel 1 has R5 1M from the far side of C3 back to its grid (local feedback); Channel 2 has R9
 ///         330k in series after C2, where the tremolo's photocell goes to ground. Each channel's network: R10 100k, the
 ///         1M Bass pot and R12 68k to ground, C4 0.0015 µF from the pot's top to its wiper and C5 0.02 µF from the
 ///         wiper to its bottom; C8 680 pF, the 1M Treble pot and C10 0.01 µF to ground; R16 100k from the Bass wiper to
@@ -24,9 +24,9 @@ namespace Cathode.Dsp.Amp.Models;
 ///         recovery's plate (V4B: R42 10k, 0.8 V); C12 0.01 µF and R28 1M into V3A (R34 100k, R29 1.5k with no bypass:
 ///         100 V, 4 V); C13 0.01 µF into the cathodyne (R33 68k, R32 2.2k above R30 68k, the grid's R31 1M to their
 ///         junction: 225 V at the plate, 125 V at the junction); C14, C15 0.02 µF into R35, R36 330k and −36 V; plates
-///         475 V, screens 340 V, no grid stoppers or screen resistors. The supply: two full-wave doublers in series (C26
-///         to C29, 100 µF each, 480 V), the screens' 340 V node (C25A 20 µF) through the choke from the junction of
-///         C26 and C27, R58 68k to C25B 10 µF (V2's R27, on the drawing), R59 68k to C25C 5 µF (V1, V4A and the
+///         475 V, screens 340 V, no grid stoppers or screen resistors. The supply: two full-wave doublers in series
+///         (C26 to C29, 100 µF each, 480 V), the screens' 340 V node (C25A 20 µF) through the choke from the junction
+///         of C26 and C27, R58 68k to C25B 10 µF (V2's R27, on the drawing), R59 68k to C25C 5 µF (V1, V4A and the
 ///         tremolo's lamp).
 ///     </para>
 ///     <para>
@@ -214,9 +214,9 @@ public static class Silvertone1484 {
     }
 
     /// <summary>
-    ///     A triode on an unbypassed <paramref name="cathodeResistor" />, its plate on <paramref name="plateResistor" />
-    ///     from <paramref name="node" /> (a supply rail, or the mix), with <paramref name="gridPlate" /> farads from
-    ///     grid to plate (0 for a grounded grid); returns the plate.
+    ///     A triode on an unbypassed <paramref name="cathodeResistor" />, its plate on
+    ///     <paramref name="plateResistor" /> from <paramref name="node" /> (a supply rail, or the mix), with
+    ///     <paramref name="gridPlate" /> farads from grid to plate (0 for a grounded grid); returns the plate.
     /// </summary>
     static int Unbypassed(
         StageNetlist net,

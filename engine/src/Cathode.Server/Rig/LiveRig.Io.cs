@@ -18,9 +18,9 @@ public sealed partial class LiveRig {
         );
 
     /// <summary>
-    ///     A Circuit Amp's speaker load resonance in the channel it is running: the frequency at Load resonance 100 % for its
-    ///     model and Speaker load (with Follow Cab, the speaker and cabinet of the Cab block it follows), the Load
-    ///     resonance setting, and the frequency that gives.
+    ///     A Circuit Amp's speaker load resonance in the channel it is running: the frequency at Load resonance 100 %
+    ///     for its model and Speaker load (with Follow Cab, the speaker and cabinet of the Cab block it follows), the
+    ///     Load resonance setting, and the frequency that gives.
     /// </summary>
     public async Task<SpeakerResonanceInfo> SpeakerResonanceAsync(string id) {
         var state = await StateAsync();

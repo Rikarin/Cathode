@@ -51,8 +51,9 @@ public partial class AmpStageTests {
         var inverterNode = power.ScreenSupply - 22e3 * (first + second + inverter);
         output.WriteLine(
             $"V1 {first * 1e3:0.00} mA, V2 {second * 1e3:0.00} mA, V3 {inverter * 1e3:0.00} mA; screens "
-            + $"{power.ScreenSupply:0.0} V, inverter node {inverterNode:0.0} V, V2's {inverterNode - 10e3 * second:0.0} "
-            + $"V, V1's {inverterNode - 22e3 * first:0.0} V; follower grid {v2.RestVoltage(5):0.0} V, cathode "
+            + $"{power.ScreenSupply:0.0} V, inverter node {inverterNode:0.0} V, "
+            + $"V2's {inverterNode - 10e3 * second:0.0} V, V1's {inverterNode - 22e3 * first:0.0} V; "
+            + $"follower grid {v2.RestVoltage(5):0.0} V, cathode "
             + $"{v2.RestVoltage(7):0.0} V; EL84 cathodes {power.CathodeVoltage:0.0} V, "
             + $"{power.PlateCurrents.A * 1e3:0.0} mA each"
         );

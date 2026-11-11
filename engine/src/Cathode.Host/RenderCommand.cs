@@ -11,7 +11,9 @@ namespace Cathode.Host;
 ///     starts as a process of its own for <c>POST /live/render</c> (<see cref="RenderJob" />). No device, no socket.
 /// </summary>
 static class RenderCommand {
-    /// <summary>0 when the output file was written; 1, with each reason on a line of standard error, when not.</summary>
+    /// <summary>
+    ///     0 when the output file was written; 1, with each reason on a line of standard error, when not.
+    /// </summary>
     public static int Run(CommandLine options) {
         var path = options.Text("job") ?? throw new InvalidOperationException("--job <job.json> is required.");
         try {

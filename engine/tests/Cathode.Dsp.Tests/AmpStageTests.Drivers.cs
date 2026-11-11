@@ -206,8 +206,8 @@ public partial class AmpStageTests {
     /// <summary>
     ///     The power amps whole against the reference, with a stiff supply: the Major's V2A, tone stack, cathodyne,
     ///     ECC82 pair and ultralinear KT88s with the feedback into V2A's cathode (and without it); the Bass 400's two
-    ///     differential stages and six 6550; the Orange Graphic's V2A with its 1000 pF, cathodyne and four EL34 with the
-    ///     feedback into V2A's cathode.
+    ///     differential stages and six 6550; the Orange Graphic's V2A with its 1000 pF, cathodyne and four EL34 with
+    ///     the feedback into V2A's cathode.
     /// </summary>
     [Theory]
     [MemberData(nameof(DriverPowerAmps))]

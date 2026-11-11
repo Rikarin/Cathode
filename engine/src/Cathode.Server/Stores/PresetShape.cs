@@ -55,11 +55,10 @@ public static class PresetShape {
 
     /// <summary>
     ///     What is wrong with the grid: its size (1 to <see cref="Preset.MaxRows" /> rows and 1 to
-    ///     <see cref="Preset.MaxColumns" /> columns), blocks without an id or type, with a reserved, overlong or duplicate id,
-    ///     outside the
-    ///     grid or sharing a cell, and cables between blocks that do not exist, not from one column to the next, from
-    ///     an output, into an input, or twice. The engine's compiler checks the same grid rules; here a client's
-    ///     document is refused with a 400 before it is stored or replaces the working copy.
+    ///     <see cref="Preset.MaxColumns" /> columns), blocks without an id or type, with a reserved, overlong or
+    ///     duplicate id, outside the grid or sharing a cell, and cables between blocks that do not exist, not from one
+    ///     column to the next, from an output, into an input, or twice. The engine's compiler checks the same grid
+    ///     rules; here a client's document is refused with a 400 before it is stored or replaces the working copy.
     /// </summary>
     public static List<string> GridProblems(Preset preset) {
         if (preset.Rows is < 1 or > Preset.MaxRows || preset.Columns is < 1 or > Preset.MaxColumns) {

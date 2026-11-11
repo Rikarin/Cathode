@@ -239,8 +239,8 @@ public class MarkChannelTests(ITestOutputHelper output) {
     }
 
     /// <summary>
-    ///     The Mark IV's rhythm pulls: Rhythm 1's Bright (120 pF across the gain's upper half) lifts the treble at a low
-    ///     gain setting and leaves the lows; Rhythm 2's Fat (750 pF more on the treble cap) lifts the mids.
+    ///     The Mark IV's rhythm pulls: Rhythm 1's Bright (120 pF across the gain's upper half) lifts the treble at a
+    ///     low gain setting and leaves the lows; Rhythm 2's Fat (750 pF more on the treble cap) lifts the mids.
     /// </summary>
     [Fact]
     public void Mark_IV_rhythm_pulls_are_audible() {
@@ -295,7 +295,8 @@ public class MarkChannelTests(ITestOutputHelper output) {
                     / ((1 + s * pole0) * (1 + s * pole1) * (1 + s * pole2));
                 Assert.True(
                     (circuit - model).Magnitude < 1e-9 * circuit.Magnitude,
-                    $"presence {presence}, {frequency} Hz: {model.Magnitude:0.000000} against {circuit.Magnitude:0.000000}"
+                    $"presence {presence}, {frequency} Hz: {model.Magnitude:0.000000} "
+                    + $"against {circuit.Magnitude:0.000000}"
                 );
                 Assert.True((design.Response(frequency, presence, shift: true) - circuit).Magnitude < 1e-12);
             }

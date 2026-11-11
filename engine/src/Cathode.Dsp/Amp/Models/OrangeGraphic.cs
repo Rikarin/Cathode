@@ -36,11 +36,10 @@ namespace Cathode.Dsp.Amp.Models;
 ///         pot and the 1k5, so in the audio band the branch is the pot and the cap. It acts on the feedback only: V2A's
 ///         own degeneration stays that of the whole 1k5 (a loop stage's table), where the amp's falls with the branch,
 ///         so the model's HF Drive lifts the treble less than the amp's (the comparison with the reference circuit in
-///         <c>Driver_power_amps_match_the_reference_in_the_time_domain</c> runs with the branch out). V2B's coupling cap
-///         and bootstrapped
-///         leak are an open load (well under 1 Hz) and left out. V2A draws no grid current (a loop stage's table), so
-///         its 100k grid resistor only divides the signal. The echo send and return (100k each, at the FAC's output and
-///         V2A's grid) are open, as with nothing plugged in. One input.
+///         <c>Driver_power_amps_match_the_reference_in_the_time_domain</c> runs with the branch out). V2B's coupling
+///         cap and bootstrapped leak are an open load (well under 1 Hz) and left out. V2A draws no grid current (a loop
+///         stage's table), so its 100k grid resistor only divides the signal. The echo send and return (100k each, at
+///         the FAC's output and V2A's grid) are open, as with nothing plugged in. One input.
 ///     </para>
 ///     <para>
 ///         The 1972 drawing prints no DC voltages. The rails are the 1974 sheet's boxed readings, whose supply chain is
@@ -123,9 +122,9 @@ public static class OrangeGraphic {
         };
 
     /// <summary>
-    ///     0.068 µF from V1A's plate onto the Bass and Treble network and the Volume (330 pF from its top to its wiper),
-    ///     V1B (220k, 2k2 with 50 µF), the FAC's coupling capacitance (Control 1) and 100k into V2A's grid with its 220k
-    ///     to ground (the output).
+    ///     0.068 µF from V1A's plate onto the Bass and Treble network and the Volume (330 pF from its top to its
+    ///     wiper), V1B (220k, 2k2 with 50 µF), the FAC's coupling capacitance (Control 1) and 100k into V2A's grid with
+    ///     its 220k to ground (the output).
     /// </summary>
     static NetworkStageDesign V1B() {
         var net = new StageNetlist();

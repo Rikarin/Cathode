@@ -441,7 +441,9 @@ public class GoldenRenderTests {
         throw new InvalidOperationException("Cannot find the engine folder.");
     }
 
-    /// <summary>Called before each sub-block with its offset in the render and the stimulus it is about to hear.</summary>
+    /// <summary>
+    ///     Called before each sub-block with its offset in the render and the stimulus it is about to hear.
+    /// </summary>
     delegate void BeforeBlock(IDspBlock block, int offset, ReadOnlySpan<float> left, ReadOnlySpan<float> right);
 
     /// <summary>A block's golden setting, and what the render must keep alive for it.</summary>
