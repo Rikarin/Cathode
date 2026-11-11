@@ -191,7 +191,7 @@ Not built:
 ## 9. Preset compatibility
 
 - Every preset has a `schemaVersion`. Migrations are pure `vN → vN+1` functions, each with its own unit test.
-- **Legacy corpus** (`LegacyCorpusTests`): `engine/tests/assets/legacy/<version>/` holds a data folder for every release: 1.0.0-rc.1 to rc.3 store schema 1, rc.4 and rc.5 schema 2. Each was written by that release's own Server through its API (`make-corpus.mjs` in that folder does it for a new release, a step of releasing in [10-releases.md](10-releases.md)):
+- **Legacy corpus** (`LegacyCorpusTests`): `engine/tests/assets/legacy/<version>/` holds a data folder for every release: 1.0.0-rc.1 to rc.3 store schema 1, rc.4 to rc.6 schema 2. Each was written by that release's own Server through its API (`make-corpus.mjs` in that folder does it for a new release, a step of releasing in [10-releases.md](10-releases.md)):
   - two factory presets duplicated into the library
   - a user's edit saved as a new preset: a Tiny Terror on channel A (with its Cut set, up to rc.3), another power tube on channel B (a 5881, up to rc.3), and the amp made a global block; since rc.4 also a modifier and an engage modifier
   - a user block preset of a Hot Cat, and that entry exported as a `.cthblock` file
