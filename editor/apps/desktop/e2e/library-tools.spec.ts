@@ -116,30 +116,31 @@ test('the IR list selects several IRs, marks favourites and deletes the selectio
   await window.getByRole('link', { name: 'Library' }).click();
   await window.getByRole('radio', { name: 'IR cabs' }).click();
   await window.getByTestId('library-upload-files').setInputFiles([
-    { name: 'Close.wav', mimeType: 'audio/wav', buffer: impulseWav(150) },
-    { name: 'Far.wav', mimeType: 'audio/wav', buffer: impulseWav(300) },
-    { name: 'Room.wav', mimeType: 'audio/wav', buffer: impulseWav(600) }
+    { name: 'A close.wav', mimeType: 'audio/wav', buffer: impulseWav(150) },
+    { name: 'A far.wav', mimeType: 'audio/wav', buffer: impulseWav(300) },
+    { name: 'A room.wav', mimeType: 'audio/wav', buffer: impulseWav(600) }
   ]);
   const list = window.getByTestId('asset-list');
-  const rows = list.locator('[data-testid^=asset-row-]');
+  // The user's own rows: the factory IRs ("Cathode ...", read-only) are always listed too, and sort after these names.
+  const rows = list.locator('[data-testid^=asset-row-]').filter({ hasNot: window.getByTestId('factory-asset-tag') });
   await expect(rows).toHaveCount(3);
 
   // A favourite is listed alone under the Favourites filter.
-  await list.getByRole('button', { name: 'Favourite Far.wav' }).click();
-  await expect(list.getByRole('button', { name: 'Unfavourite Far.wav' })).toBeVisible();
+  await list.getByRole('button', { name: 'Favourite A far.wav' }).click();
+  await expect(list.getByRole('button', { name: 'Unfavourite A far.wav' })).toBeVisible();
   await window.getByRole('button', { name: 'Favourites', exact: true }).click();
   await expect(rows).toHaveCount(1);
-  await expect(rows.first()).toContainText('Far.wav');
+  await expect(rows.first()).toContainText('A far.wav');
   await window.getByRole('button', { name: 'Favourites', exact: true }).click();
   await expect(rows).toHaveCount(3);
 
   // Favourites are listed first. Click the first row, then ⇧-click the last: the row between is selected too.
   // ⌘-click takes one out again.
-  await expect(rows.first()).toContainText('Far.wav');
-  await list.getByText('Far.wav').click();
-  await list.getByText('Room.wav').click({ modifiers: ['Shift'] });
+  await expect(rows.first()).toContainText('A far.wav');
+  await list.getByText('A far.wav').click();
+  await list.getByText('A room.wav').click({ modifiers: ['Shift'] });
   await expect(list.locator('[aria-selected=true]')).toHaveCount(3);
-  await list.getByText('Far.wav').click({ modifiers: ['ControlOrMeta'] });
+  await list.getByText('A far.wav').click({ modifiers: ['ControlOrMeta'] });
   await expect(list.locator('[aria-selected=true]')).toHaveCount(2);
 
   // Delete asks once for the two, and the favourite stays.
@@ -148,7 +149,7 @@ test('the IR list selects several IRs, marks favourites and deletes the selectio
   await expect(confirm).toContainText('2');
   await confirm.getByRole('button', { name: 'Delete' }).click();
   await expect(rows).toHaveCount(1);
-  await expect(rows.first()).toContainText('Far.wav');
+  await expect(rows.first()).toContainText('A far.wav');
 });
 
 test('a block’s channel or the whole block is saved to the Block Library and recalled', async ({ window, editor }) => {

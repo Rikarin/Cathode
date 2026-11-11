@@ -91,7 +91,9 @@ test('the Library holds the cab IRs and the IR tools', async ({ window }) => {
   await list.getByText('Room mic', { exact: true }).click();
   await window.getByTestId('delete-assets').click();
   await window.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click();
-  await expect(window.getByText('No cab IRs yet')).toBeVisible();
+  // Only the factory IRs are left: they cannot be deleted, so the list is never empty.
+  await expect(list.getByText('Room mic', { exact: true })).toHaveCount(0);
+  await expect(list.getByTestId('factory-asset-tag').first()).toBeVisible();
   await window.getByRole('link', { name: 'Editor' }).click();
 });
 
