@@ -51,10 +51,12 @@ pre {
 }
 
 /*
- * xUI's select trigger has an 11rem minimum width that overflows any narrower select into its neighbours. A select
- * given a width (w-20, w-full, ...) takes that width; one without keeps xUI's default.
+ * xUI's select has an 11rem minimum width (min-w-44, on the xui-select host since xUI 3.1; on its trigger button
+ * before) that overflows any narrower select into its neighbours. A select given a width (w-20, w-full, ...) takes that
+ * width; one without keeps xUI's default. The width class is matched at the start of the class list or after a space,
+ * so that xUI's own min-w-44 does not count as one.
  */
-xui-select[class*='w-'] > button {
+xui-select:is([class^='w-'], [class*=' w-']) {
   min-width: 0;
 }
 
