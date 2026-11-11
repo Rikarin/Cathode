@@ -122,6 +122,8 @@ public sealed partial record AmpDesign {
         PeaveyClassic30.Design,
         Fireball.Design,
         SunnModelT.Design,
-        SuperBass100.Design
+        SuperBass100.Design,
+        JCM2210.Design,
+        JCM2210.Head50
     ];
 }

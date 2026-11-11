@@ -43,7 +43,8 @@ Leave a few dB of headroom in *Level*; a Cab block after the amp removes them.
 - **Tweed (raw, compressed, early breakup):** Champ 5F1, Princeton 5F2-A, Tweed Deluxe 5E3, Bassman 5F6-A, Tweed
   Twin. The *Jumped* versions run both channels at once, the classic way to play them.
 - **British crunch and classic rock:** JTM45, Plexi, Plexi 100W, 1959SLP, 1987X, 1959T Tremolo, Bluesbreaker 1962,
-  18 W 1974X, Major 1967, Super Bass 100, JCM800 2203 and 2204, Hiwatt DR103 and DR504, OR120 and OR80.
+  18 W 1974X, Major 1967, Super Bass 100, JCM800 2203 and 2204, JCM800 2210 and 2205, Hiwatt DR103 and DR504, OR120
+  and OR80.
 - **Chime and class A:** AC30, AC15, DC-30, Chieftain, Hot Cat 30, Tiny Terror, Liverpool, Express.
 - **Smooth, vocal overdrive:** ODS 97, ODS 70s, Cornford MK50H II, Lone Star, Subway Blues.
 - **Hot-rodded British and modern rock:** Silver Jubilee, JCM900 4100 and 4502, DSL100, JVM410H, BE-100 and
@@ -220,6 +221,9 @@ Each switches the real components on the model's schematic. Some worth knowing:
 - **AFD100, *AFD*:** off is the #34 mode, on is AFD.
 - **6505+ Rhythm, *Crunch*:** takes the pad ahead of the rhythm channel's first stage out, about 20 dB more gain:
   the clean channel becomes a crunch channel. *Bright* is the channel's own switch.
+- **JCM800 2210 and 2205, *Normal*:** off is the Boost channel, on the Normal (clean) channel. *Gain* is the Boost
+  channel's Gain and the Normal channel's Volume; *Bass* and *Treble* are the playing channel's; *Middle* and
+  *Boost Volume* (Control 1) belong to the Boost channel.
 - **JC-120, *Distortion On*:** the effect channel's distortion (on the real amp, the switch at the bottom of the
   Distortion pot's travel, and the footswitch): the *Distortion* knob (Control 2) and the diode clipper ahead of the
   tone stack come in. Off, as the amp is usually played, the knob does nothing and is not shown.
@@ -264,7 +268,9 @@ on the JC-120, *Mid Focused* on the Powerball, *Cut* on the Prometheus, a low cu
 the GK 800RB, the 250 Hz band of its four-band EQ; *Middle* is its *Hi Mid*, at 1 kHz, *FAC* on the
 OR120 and OR80: a six-position switch that cuts more bass at each step, full range at 0, where it starts), or a
 second gain (*Crunch 1 Gain* on the Savage 120 Clean, shown with *Crunch 1* on). On jumped
-Plexi-style amps the two volumes blend the bright and normal channels. On the Quick Rod it is the *Solo Boost*, which
+Plexi-style amps the two volumes blend the bright and normal channels. On the JCM800 2210 and 2205 it is the
+*Boost Volume*, the Boost channel's level after its clipper, which starts at 10: lower it and the amp gets much
+quieter, as it does not drive the power amp then. On the Quick Rod it is the *Solo Boost*, which
 starts at 0: the boost is off there, as on the amp until you press its footswitch; turn it up for the solo lift.`,
 
     control2: `A model's second extra knob, where it has one: *Lead Master* on the Mark IIC+ and IV, *Presence* on the
@@ -739,6 +745,9 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'JMP-1': "Marshall JMP-1 preamp (Clean and OD) into the JCM900 4100's power amp.",
       'Quick Rod': 'Splawn Quick Rod, both channels with its gear switches (the power amp is assumed).',
       AFD100: 'Marshall AFD100 (Slash), #34 and AFD modes.',
+      'JCM800 2210':
+        'Marshall JCM800 2210, the 100 W two-channel JCM800: a diode-clipped Boost channel and a clean Normal channel (Switch 1).',
+      'JCM800 2205': 'Marshall JCM800 2205, the 50 W version of the 2210.',
       'Dual Rectifier 3-Ch Orange':
         'Mesa/Boogie Dual Rectifier three-channel Solo Head, channel 2 (orange), with Raw, Vintage and Modern.',
       'Dual Rectifier Orange':

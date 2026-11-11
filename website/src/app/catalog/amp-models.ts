@@ -59,6 +59,8 @@ export const AMP_MODELS: Record<string, { family: AmpFamily; basedOn: string }> 
   '18 W 1974X': { family: 'british', basedOn: 'Marshall 18 W 1974X' },
   'JCM800 2203': { family: 'british', basedOn: 'Marshall JCM800 2203 (100 W)' },
   'JCM800 2204': { family: 'british', basedOn: 'Marshall JCM800 2204 (50 W)' },
+  'JCM800 2210': { family: 'british', basedOn: 'Marshall JCM800 2210 (100 W, split channel)' },
+  'JCM800 2205': { family: 'british', basedOn: 'Marshall JCM800 2205 (50 W, split channel)' },
   'Silver Jubilee': { family: 'british', basedOn: 'Marshall Silver Jubilee 2555' },
   'JCM900 4100': { family: 'british', basedOn: 'Marshall JCM900 4100 (100 W)' },
   'JCM900 4502': { family: 'british', basedOn: 'Marshall JCM900 4502 (50 W)' },

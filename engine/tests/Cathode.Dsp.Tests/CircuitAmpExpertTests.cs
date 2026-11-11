@@ -181,6 +181,7 @@ public class CircuitAmpExpertTests(ITestOutputHelper output) {
             block.Params.SetTarget(CircuitAmpBlock.Type, type);
             block.Params.SetTarget(CircuitAmpBlock.Gain, 7);
             block.Params.SetTarget(CircuitAmpBlock.Master, 10); // the power amp driven, so its settings are heard
+            CircuitAmpBlockTests.SecondMasterFullUp(block, type);
             block.Params.SetTarget(CircuitAmpBlock.Depth, 5);
             block.Params.SetTarget(CircuitAmpBlock.Bright, 1);
             foreach (var (i, v) in settings) {

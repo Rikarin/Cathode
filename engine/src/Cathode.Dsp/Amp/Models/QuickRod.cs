@@ -131,7 +131,7 @@ public static class QuickRod {
     ///     A pot that no knob turns here (the idle channel's), at half rotation between <paramref name="top" /> and
     ///     <paramref name="bottom" />; returns its wiper.
     /// </summary>
-    static int Idle(StageNetlist net, int top, int bottom, Pot pot) {
+    internal static int Idle(StageNetlist net, int top, int bottom, Pot pot) {
         var wiper = net.Node();
         var fraction = pot.Fraction(0.5);
         net.Resistor(top, wiper, (1 - fraction) * pot.Ohms);
