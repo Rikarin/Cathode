@@ -47,7 +47,7 @@ Leave a few dB of headroom in *Level*; a Cab block after the amp removes them.
 - **Chime and class A:** AC30, AC15, DC-30, Chieftain, Hot Cat 30, Tiny Terror, Liverpool, Express.
 - **Smooth, vocal overdrive:** ODS 97, ODS 70s, Cornford MK50H II, Lone Star, Subway Blues.
 - **Hot-rodded British and modern rock:** Silver Jubilee, JCM900 4100 and 4502, DSL100, JVM410H, BE-100 and
-  BE-100 HBE, AFD100, Quick Rod, Laney GH100L, Hot Rod Deluxe.
+  BE-100 HBE, AFD100, Quick Rod, Laney GH100L, Hot Rod Deluxe, Classic 30.
 - **High gain:** SLO-100, 5150, 6505+ (and its rhythm channel, 6505+ Rhythm), 5150III (and its clean and crunch
   channels, 5150III Clean/Crunch), Dual Rectifier and
   Dual Rectifier 3-Ch (each with its other channels: Dual Rectifier Orange, Dual Rectifier 3-Ch Orange and Clean),
@@ -724,6 +724,8 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'Vibrolux 6G11': 'Fender brownface Vibrolux 6G11 with its bias tremolo.',
       'Bassman 135': 'Fender silverface Bassman 135 bass amp, Bass and Normal channels.',
       'Scout GA-17RVT': 'Gibson Scout: a small 60s combo with its bias tremolo.',
+      'Classic 30':
+        'Peavey Classic 30: a four-EL84 combo, Lead channel (Pre and Post) and Normal channel, with its Boost switch.',
       'Major 1967': 'Marshall Major 1967, 200 W: huge, loud and clean until it is very loud.',
       'Bass 400': 'Mesa/Boogie Bass 400 with its graphic EQ.',
       'JVM410H Clean/Crunch': 'Marshall JVM410H Clean and Crunch channels.',

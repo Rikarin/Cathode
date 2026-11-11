@@ -118,6 +118,7 @@ public sealed partial record AmpDesign {
         ProJunior.Design,
         ChampAA764.Design,
         Peavey6505Plus.Design,
-        Peavey6505Plus.Rhythm
+        Peavey6505Plus.Rhythm,
+        PeaveyClassic30.Design
     ];
 }

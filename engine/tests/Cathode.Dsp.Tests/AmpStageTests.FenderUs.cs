@@ -35,7 +35,13 @@ public partial class AmpStageTests {
             { "Blues Junior", "V2B", 1 },
             { "Pro Junior", "V1B", 0.1 },
             { "Pro Junior", "V1A", 0.3 },
-            { "Champ AA764", "V1B", 1 }
+            { "Champ AA764", "V1B", 1 },
+            { "Classic 30", "V1A", 0.1 },
+            { "Classic 30", "V1A v", 0.1 },
+            { "Classic 30", "V2A", 0.3 },
+            { "Classic 30", "V2B", 2 },
+            { "Classic 30", "V1B", 0.3 },
+            { "Classic 30", "V1B vm", 0.3 }
         };
 
     [Theory]

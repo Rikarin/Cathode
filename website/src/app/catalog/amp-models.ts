@@ -44,6 +44,7 @@ export const AMP_MODELS: Record<string, { family: AmpFamily; basedOn: string }> 
   'Blues Junior': { family: 'fender', basedOn: 'Fender Blues Junior' },
   'Pro Junior': { family: 'fender', basedOn: 'Fender Pro Junior' },
   'Scout GA-17RVT': { family: 'fender', basedOn: 'Gibson Scout GA-17RVT' },
+  'Classic 30': { family: 'fender', basedOn: 'Peavey Classic 30' },
 
   // Marshall and British
   JTM45: { family: 'british', basedOn: 'Marshall JTM45' },
