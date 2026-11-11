@@ -47,8 +47,8 @@ Leave a few dB of headroom in *Level*; a Cab block after the amp removes them.
   and OR80.
 - **Chime and class A:** AC30, AC15, DC-30, Chieftain, Hot Cat 30, Tiny Terror, Liverpool, Express.
 - **Smooth, vocal overdrive:** ODS 97, ODS 70s, Cornford MK50H II, Lone Star, Subway Blues.
-- **Hot-rodded British and modern rock:** Silver Jubilee, JCM900 4100 and 4502, DSL100, JVM410H, BE-100 and
-  BE-100 HBE, AFD100, Quick Rod, Laney GH100L, Hot Rod Deluxe, Classic 30.
+- **Hot-rodded British and modern rock:** Silver Jubilee, JCM900 4100 and 4502, DSL100, TSL100, JVM410H, BE-100
+  and BE-100 HBE, AFD100, Quick Rod, Laney GH100L, Hot Rod Deluxe, Classic 30.
 - **High gain:** SLO-100, 5150, 6505+ (and its rhythm channel, 6505+ Rhythm), 5150III (and its clean and crunch
   channels, 5150III Clean/Crunch), Dual Rectifier and
   Dual Rectifier 3-Ch (each with its other channels: Dual Rectifier Orange, Dual Rectifier 3-Ch Orange and Clean),
@@ -127,7 +127,8 @@ below its corner frequency (at 10, down to a tenth of the stock amount), so the 
 interaction with the speaker load rise in the bass: more thump and chest. It is on the models whose originals have a
 resonance or depth control (*Resonance* on the 5150s, Cornford and JVM, *Depth Punch* on the Powerball, *Depth Boost*
 on the Savage). At 0 the feedback is stock. On the 6505+ it is the amp's own network, a 1M pot with a cap across
-it in series with the feedback resistor: at 10 the feedback below about 500 Hz falls to a twenty-fourth. The DSL100's *Deep* is a switch, as on the amp: see *Bright*.`,
+it in series with the feedback resistor: at 10 the feedback below about 500 Hz falls to a twenty-fourth. The DSL100's
+and TSL100's *Deep* is a switch, as on the amps: see *Bright*.`,
 
     cut: `The Vox-style cut control (AC30, AC15, DC-30): a pot and cap across the phase inverter's outputs that shunt
 treble away before the power tubes. Turning it **up** removes more treble (it works backwards to a treble knob). Use it
@@ -176,7 +177,7 @@ Rectifiers, the *Modern* switch takes the feedback out as on the real amp.`,
 bypass the pot. The boost is biggest with the pot turned down and fades as you turn it up. Some models give it their
 own name and meaning: *Brilliance* (AC15), *Brilliant* (Prometheus Clean), *Thick* (Lone Star), *Raw* (Rectifiers),
 *Bright Input* (SVT, Portaflex), *Sat* (BE-100), *OD2* (Quick Rod), *Hi Boost* (GK 800RB). On the Mark IIC+ it pulls both brights, Volume 1's
-and the Lead Master's. On the DSL100 it is the amp's *Deep* switch, which is not a bright at all: it puts the amp's
+and the Lead Master's. On the DSL100 and TSL100 it is the amp's *Deep* switch, which is not a bright at all: it puts the amp's
 resonant network (a simulated inductor, tuned to about 53 Hz) across the feedback, for a broad lift in the bass. On the
 three-channel Dual Rectifier and the Triple Rectifier, *Raw* and *Modern* (Switch 1) are the amp's one Raw / Vintage /
 Modern switch: both off is Vintage, and with both on the model is in Modern. On Dual Rectifier Orange it is *Clean*,
@@ -224,6 +225,10 @@ Each switches the real components on the model's schematic. Some worth knowing:
 - **JCM800 2210 and 2205, *Normal*:** off is the Boost channel, on the Normal (clean) channel. *Gain* is the Boost
   channel's Gain and the Normal channel's Volume; *Bass* and *Treble* are the playing channel's; *Middle* and
   *Boost Volume* (Control 1) belong to the Boost channel.
+- **TSL100, *Overdrive*:** off is the Clean channel, on the Crunch channel, or the Lead channel with *Lead*
+  (Switch 2), as the amp's two mode switches work. Gain, Volume and the tone knobs are the playing channel's own.
+  *Mid Boost / Tone Shift* (Switch 3) is that channel's voicing switch: Mid Boost on Clean, Tone Shift on Crunch
+  and Lead.
 - **JC-120, *Distortion On*:** the effect channel's distortion (on the real amp, the switch at the bottom of the
   Distortion pot's travel, and the footswitch): the *Distortion* knob (Control 2) and the diode clipper ahead of the
   tone stack come in. Off, as the amp is usually played, the knob does nothing and is not shown.
@@ -422,7 +427,7 @@ circuit, also where it is a fixed one with no knob (the Dual Rectifier, whose pa
 
     depthfreq: `The depth control's corner frequency, as a percentage of stock. Higher makes Depth reach higher into the
 low mids; lower keeps it down in the deep bass. Shown on models that have a Depth (or Resonance) control; on the
-DSL100 it moves the *Deep* switch's resonance instead.`,
+DSL100 and TSL100 it moves the *Deep* switch's resonance instead.`,
 
     variac: `The mains voltage, as a percentage of normal: it scales every supply voltage (and a fixed bias with them).
 Below 100 % the amp has less headroom and breaks up earlier and softer, the "brown sound" trick of running an amp on a
@@ -742,6 +747,7 @@ rebuilds the signal path and changes the block's latency, so set it while you ar
       'Bass 400': 'Mesa/Boogie Bass 400 with its graphic EQ.',
       'JVM410H Clean/Crunch': 'Marshall JVM410H Clean and Crunch channels.',
       DSL100: 'Marshall DSL100, both channels with Clean/Crunch and Lead 1/Lead 2.',
+      TSL100: 'Marshall TSL100, the three-channel JCM2000: Clean, Crunch and Lead.',
       'JMP-1': "Marshall JMP-1 preamp (Clean and OD) into the JCM900 4100's power amp.",
       'Quick Rod': 'Splawn Quick Rod, both channels with its gear switches (the power amp is assumed).',
       AFD100: 'Marshall AFD100 (Slash), #34 and AFD modes.',

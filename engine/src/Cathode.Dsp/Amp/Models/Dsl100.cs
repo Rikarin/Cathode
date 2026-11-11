@@ -69,77 +69,30 @@ public static class Dsl100 {
     const double V2Rail = 320;
     const double V3Rail = 340;
 
-    public static AmpDesign Design { get; } = new(
+    public static AmpDesign Design { get; } = Jcm2000Parts.Design(
         "DSL100",
-        [
-            new ChannelSwitchStageDesign(
-                "Channel",
-                SwitchRole.Switch1,
-                [new NetworkStageDesign("V1B Classic", ClassicInput(), 68e3)],
-                [
-                    new NetworkStageDesign("V1B Ultra", UltraInput(), 68e3),
-                    new NetworkStageDesign("V1A", UltraStage())
-                ]
-            ),
-            new NetworkStageDesign("V2B", SecondStage()),
-            new NetworkStageDesign("V2A", ThirdStage()),
-            new NetworkStageDesign("V3B", MixerStage()),
-            new NetworkStageDesign("V3A", Stack())
-        ],
         new(
-            "4 x EL34",
-            PentodeModel.EL34,
-            2,
-            470,
-            1e3,
-            0.035,
-            false,
-            0,
-            100,
-            new LongTailPairDesign(TriodeModel.Ecc83, 440, 82e3, 100e3, 10e3, 470),
-            22e-9,
-            220e3,
-            5.6e3,
-            0,
-            new(1e6, PotTaper.Linear),
-            new(Math.Sqrt(2), 47e3, 4.7e3, new(5e3, PotTaper.Linear), 0.1e-6) {
-                Deep = DeepSwitchDesign.Gyrator(SwitchRole.Bright, 10e-6, 270, 330, 10e-6, 10e3)
-            },
-            true,
-            new(1.7e3),
-            SpeakerDesign.Closed4x12,
-            new(25, 165e-6, 270, 50e-6, 4.7e3, 22e-6),
-            InverterInput: new(22e-9, 1e6)
+            "Channel",
+            SwitchRole.Switch1,
+            [new NetworkStageDesign("V1B Classic", ClassicInput(), 68e3)],
+            [
+                new NetworkStageDesign("V1B Ultra", UltraInput(), 68e3),
+                new NetworkStageDesign("V1A", Jcm2000Parts.LeadStage(V1Rail, 4.7e-9, 470e-12))
+            ]
         ),
-        -7
-    ) {
-        Panel = AmpPanel.Standard with {
-            Master = "Volume",
-            Depth = null,
-            Cut = null,
-            Bright = "Deep",
-            Switch1 = "Ultra Gain",
-            Switch2 = "Crunch / Lead 2",
-            Switch3 = "Tone Shift"
-        }
-    };
+        (V2Rail, V3Rail, 440),
+        Jcm2000Parts.ThirdStage(V2Rail).Net,
+        Stack(),
+        Math.Sqrt(2),
+        0.1e-6,
+        ("Ultra Gain", "Crunch / Lead 2", "Tone Shift")
+    );
 
     /// <summary>
     ///     After the input's 68k (1M before it): V1B (220k, 1k8 ‖ 4.7 µF, 100 pF plate to cathode), 22 nF and 1M to
     ///     ground, a node of the front panel's input line that the source drives; returns that node.
     /// </summary>
-    static int InputStage(StageNetlist net) {
-        var (rail, plate, cathode, line) = (net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(rail, V1Rail);
-        net.Resistor(rail, plate, 220e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.8e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 4.7e-6);
-        net.Capacitor(plate, cathode, 100e-12);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
-        net.Capacitor(plate, line, 22e-9);
-        net.Resistor(line, StageNetlist.Ground, 1e6);
-        return line;
-    }
+    static int InputStage(StageNetlist net) => Jcm2000Parts.InputStage(net, net.Input, V1Rail, 220e3);
 
     /// <summary>
     ///     V1B and the Classic Gain network (Clean, or Crunch with switch 2), its wiper's 470k into V2B's grid (2M2 to
@@ -197,12 +150,7 @@ public static class Dsl100 {
         var line = InputStage(net);
         net.Resistor(net.Input, StageNetlist.Ground, 1e6);
         var (e, arm, top, junction) = (net.Node(), net.Node(), net.Node(), net.Node());
-        net.Capacitor(line, e, 4.7e-9);
-        net.Resistor(e, top, 470e3);
-        net.Capacitor(e, arm, 2.2e-9);
-        net.Resistor(arm, top, 47e3);
-        var wiper = net.Pot(top, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Gain);
-        net.Capacitor(top, wiper, 470e-12, CapacitorRole.Bright);
+        var wiper = Jcm2000Parts.LeadGain(net, line, e, arm, top);
         net.Resistor(top, junction, 150e3);
         net.Capacitor(wiper, junction, 470e-12);
         net.Resistor(junction, StageNetlist.Ground, 10e6);
@@ -213,122 +161,21 @@ public static class Dsl100 {
     }
 
     /// <summary>
-    ///     V1A from its grid: 100k plate, 470 pF from the plate to the rail, 1k8 with 1 µF + 10k to ground (the 10k
-    ///     shorted in Lead 2); 4.7 nF (1M to ground), 10k, 1k (470 pF to ground), 470k into V2B's grid (2M2 to ground),
-    ///     the idle Classic network's 470k to ground there. Out at V2B's grid.
-    /// </summary>
-    static StageNetlist UltraStage() {
-        var net = new StageNetlist();
-        var (rail, plate, cathode, bypass, coupled, ldr, filtered, grid) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(rail, V1Rail);
-        net.Resistor(rail, plate, 100e3);
-        net.Capacitor(plate, rail, 470e-12, CapacitorRole.Plate);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.8e3);
-        net.Capacitor(cathode, bypass, 1e-6);
-        net.Resistor(bypass, StageNetlist.Ground, 10e3);
-        net.SwitchedResistor(bypass, StageNetlist.Ground, 0, Closed, SwitchRole.Switch2);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
-        net.Capacitor(plate, coupled, 4.7e-9);
-        net.Resistor(coupled, StageNetlist.Ground, 1e6);
-        net.Resistor(coupled, ldr, 10e3);
-        net.Resistor(ldr, filtered, 1e3);
-        net.Capacitor(filtered, StageNetlist.Ground, 470e-12);
-        net.Resistor(filtered, grid, 470e3);
-        net.Resistor(grid, StageNetlist.Ground, 2.2e6);
-        net.Resistor(grid, StageNetlist.Ground, 470e3);
-        net.Output = grid;
-        return net;
-    }
-
-    /// <summary>
-    ///     V2B from its grid: 100k, 4k7 unbypassed; 22 nF and 470k into V2A's grid (470k leak). Out at that grid.
-    /// </summary>
-    static StageNetlist SecondStage() {
-        var net = new StageNetlist();
-        var (rail, plate, cathode, coupled, grid) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(rail, V2Rail);
-        net.Resistor(rail, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 4.7e3);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
-        net.Capacitor(plate, coupled, 22e-9);
-        net.Resistor(coupled, grid, 470e3);
-        net.Resistor(grid, StageNetlist.Ground, 470e3);
-        net.Output = grid;
-        return net;
-    }
-
-    /// <summary>
-    ///     V2A from its grid: 100k, 2k2 unbypassed; 22 nF, 220k, 100k into V3B's grid, which 47k and the reverb
-    ///     return's 47k + 2k2 hold to ground. Out at that grid.
-    /// </summary>
-    static StageNetlist ThirdStage() {
-        var net = new StageNetlist();
-        var (rail, plate, cathode, coupled, send, grid) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(rail, V2Rail);
-        net.Resistor(rail, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 2.2e3);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
-        net.Capacitor(plate, coupled, 22e-9);
-        net.Resistor(coupled, send, 220e3);
-        net.Resistor(send, grid, 100e3);
-        net.Resistor(grid, StageNetlist.Ground, 47e3);
-        net.Resistor(grid, StageNetlist.Ground, 49.2e3);
-        net.Output = grid;
-        return net;
-    }
-
-    /// <summary>V3B from its grid: 100k, 1k unbypassed. Out at the plate, which drives V3A's grid directly.</summary>
-    static StageNetlist MixerStage() {
-        var net = new StageNetlist();
-        var (rail, plate, cathode) = (net.Node(), net.Node(), net.Node());
-        net.Supply(rail, V3Rail);
-        net.Resistor(rail, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1e3);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
-        net.Output = plate;
-        return net;
-    }
-
-    /// <summary>
     ///     The V3A follower (100k), 22 µF into the tone stack (Tone Shift on switch 3), the treble wiper's 470k onto
     ///     both channels' 1M audio Volumes, the playing channel's wiper (switch 1: Ultra) to the output, which the
     ///     reverb send's 2M2 + 680k and 10M load. Out there.
     /// </summary>
     static StageNetlist Stack() {
         var net = new StageNetlist();
-        var (rail, cathode, line, upper, trebleTop, slope, slopeFoot) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        var (bassTop, middleTop, middleCap, middleArm, volumes, output) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (rail, cathode, line) = (net.Node(), net.Node(), net.Node());
+        var stack = Jcm2000Parts.StackNodes.Of(net);
+        var (volumes, output) = (net.Node(), net.Node());
         net.Supply(rail, V3Rail);
         net.Triode(rail, net.Input, cathode, TriodeModel.Ecc83);
         net.Resistor(cathode, StageNetlist.Ground, 100e3);
         net.Capacitor(cathode, line, 22e-6);
         net.Resistor(line, StageNetlist.Ground, 10e6);
-
-        // Treble cap: 470 pF, with Tone Shift another 470 pF in series.
-        net.Capacitor(line, upper, 470e-12, CapacitorRole.Stack);
-        net.Capacitor(upper, trebleTop, 470e-12, CapacitorRole.Stack);
-        net.SwitchedResistor(upper, trebleTop, Closed, 0, SwitchRole.Switch3);
-        net.Resistor(upper, StageNetlist.Ground, 10e6);
-
-        // Slope: 33k, with Tone Shift 68k more.
-        net.Resistor(line, slope, 33e3);
-        net.Resistor(slope, slopeFoot, 68e3);
-        net.SwitchedResistor(slope, slopeFoot, Closed, 0, SwitchRole.Switch3);
-        net.Capacitor(slopeFoot, bassTop, 22e-9, CapacitorRole.Stack);
-        var treble = net.Pot(trebleTop, bassTop, new(200e3, PotTaper.Linear), PotRole.Treble);
-        net.Rheostat(bassTop, middleTop, new(1e6, PotTaper.Audio), PotRole.Bass);
-        var middle = net.Pot(middleTop, StageNetlist.Ground, new(22e3, PotTaper.Linear), PotRole.Middle);
-
-        // Middle cap: 22 nF, with Tone Shift another 22 nF in series.
-        net.Capacitor(slopeFoot, middleCap, 22e-9, CapacitorRole.Stack);
-        net.Resistor(middleCap, StageNetlist.Ground, 10e6);
-        net.Capacitor(middleCap, middleArm, 22e-9, CapacitorRole.Stack);
-        net.SwitchedResistor(middleCap, middleArm, Closed, 0, SwitchRole.Switch3);
-        net.Resistor(middleArm, middle, Closed);
+        var treble = Jcm2000Parts.ToneShiftStack(net, line, stack);
 
         net.Resistor(treble, volumes, 470e3);
         var classic = net.Pot(volumes, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Master);

@@ -698,6 +698,22 @@ cites its drawings and marks what is read, inferred or guessed:
   with the treble cap, slope and middle cap. Which switch position is which mode follows the handbook (Lead 2 "mid-boosted
   ... even higher gain": the lifted bridge and the full V1A bypass; read the other way it had 3 dB less gain than Lead 1).
   Guessed: rails, idle current, OT, and the feedback resistor (47k from 16 Ω; it is on the jack wiring).
+- **TSL100** (`Tsl100.cs`), all three channels: Clean (Switch 1 off), Crunch (Switch 1) and Lead (Switches 1 and
+  2), Switch 3 the playing channel's voicing (Mid Boost on Clean, Tone Shift on the other two), Deep on the Bright
+  switch. From TL10-60-02 iss 7 (main board), TL10-61-02 iss 4, TL10-65-02 iss 4 and TL10-66-01 iss 2 (the three
+  front boards), TL10-62-02 iss 6 (the 47k feedback resistor on the 4 Ω tap) and TL10-63-02 iss 4 (the reverb
+  drive's input). The main board is the DSL100's with other values (V1B 100k, V1A's 2.2 nF and 100 pF, 100k at the
+  reverb send, 10 nF across V2A's cathode resistor in Clean), so both models build from `Jcm2000Parts.cs`: V1B, V1A,
+  V2B, V2A, V3B, the Tone Shift stack and the power amp. Clean puts its tone controls before its Gain and takes
+  V3A's output through 47k to a 200k Volume; Crunch (4.7 nF, 470k, a 200k Gain) and Lead (the DSL100's Ultra
+  network without its bridge, 470 pF from the wiper to ground) share V1A, whose 10k under the 1 µF bypass a relay
+  shorts in Lead, and each has its own stack and 1M Volume (one netlist stands for both stacks, which are alike).
+  The sheets print no connector partners, so the wiring between the boards is inferred from pin counts, grounds
+  and function, and which relay and LDR state is which channel from what each does (the model's remarks list
+  every such step). No voltage is printed: the rails follow from the guessed 470 V B+ down the drawn chain
+  (`Tsl100_rails_follow_from_the_drawn_supply_chain`). One feedback network serves all three channels, the
+  overdrive one; the Clean channel's own differs only in its Deep switch's resistor (4k7 for 10k). Reverb, the
+  effects loops, Virtual Power Reduction and Output Mute are not modelled.
 - **JMP-1** (`Jmp1.cs`), Clean I/II and OD I/II (Switch 1 OD, Switch 2 II, Switch 3 Bass Shift), from JMP1-61-04
   iss 10 (six vector sheets): IC34's switched sections, the TC9176 Gain (two cascaded sections with a follower: each a
   10k linear pot, so the pair follows a square law; the part's value is not drawn), the clean VB1a/VB1b with their

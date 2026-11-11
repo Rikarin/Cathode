@@ -124,6 +124,7 @@ public sealed partial record AmpDesign {
         SunnModelT.Design,
         SuperBass100.Design,
         JCM2210.Design,
-        JCM2210.Head50
+        JCM2210.Head50,
+        Tsl100.Design
     ];
 }

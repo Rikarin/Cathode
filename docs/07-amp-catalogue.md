@@ -75,6 +75,7 @@ Last updated: 2026-11-10 (88 types, through the Quick Rod, AFD100, DSL100 and JM
 | Marshall 1992 Super Bass 100 | ✅ Done (#366; Unicord drawing 70-13-11, July 1970, DrTube `1992u.gif`: both channels on the shared, bypassed V1 cathode, no bright caps, 0.022 µF coupling on both, the 250 pF / 56k stack, 0.1 µF from the inverter, the Super Lead's power amp, presence pot as the tail's shunt. The sheet prints no voltages: B+ guessed as the Plexi 100W's, the preamp rails computed from the drawn 20k / 10k / 10k droppers) | Super Bass 100 | — (Quad Cortex British Bass 100, TONEX Super Bass 100W) | Guitar and bass captures, both channels, jumpered | 4x12 closed, Greenback; 4x15 for bass |
 | Marshall Major 1967 | ✅ Done (Unicord drawing 70-02-12, July 1970, DrTube `1967u.gif`; both channels, V2A and its tone stack inside the feedback loop via `LoopStageDesign`, cathodyne plus ECC82 push-pull driver via `CathodyneDriverDesign`, ultralinear KT88s; B+, idle, OT and UL tap guessed. No redistributable capture found: GuitarML ToneLibrary and pelennor2170/NAM_models have none) | Major 1967 | — | Any capture | 4x12 closed |
 | Marshall DSL / JCM2000 | ✅ Done, DSL100 both channels with Clean/Crunch and Lead 1/Lead 2, Tone Shift and Deep (DrTube JCM2-60-02 iss 9 main board and JCM2-61-00 iss 5 front panel, vector; the boards' wiring traced from the connector cross-references printed on both sheets, confirmed by JCM2-60-00 iss 1 of 1997; JCM2-68-02 was not needed) | DSL100 | GPL: pelennor "Tim R JCM2000 Clean / Crunch / L2 G6 / L2 G8" (DSL or TSL not stated; not added) | A DSL direct-out capture with stated settings | 4x12 closed |
+| Marshall JCM2000 TSL100 | ✅ Done, Clean, Crunch and Lead with Mid Boost, Tone Shift and Deep (DrTube TL10-60-02 iss 7 main board, TL10-61-02 iss 4 overdrive front board, TL10-65-02 iss 4 Clean board, TL10-66-01 iss 2 Crunch board, TL10-62-02 iss 6 rear board, TL10-63-02 iss 4 reverb board, vector, and the 2004 handbook; these sheets print no connector cross-references, so the wiring between the boards is inferred from pin counts, grounds and function; no voltages printed, the rails derived from the drawn supply chain under a guessed 470 V B+; #368) | TSL100 | GPL: pelennor "Tim R JCM2000" captures (DSL or TSL not stated; not added) | A TSL direct-out capture with stated settings | 4x12 closed |
 | Marshall Bluesbreaker 1962 | ✅ Done (reissue drawing "1962 STD" issues 3 and 4, DrTube `1962ri89.gif` and `1962ri93.gif`: both channels and the jumper; the tremolo on Speed and Intensity: a J174 FET on the Intensity pot's wiper chops Channel II at the rate of the drawing's oscillator, 2.0 to 4.7 Hz, #291; the RV2 preset's setting, which the drawing does not give, is taken where the FET is open at rest; presence pot as the tail's shunt) | Bluesbreaker 1962 | — | Any capture (no GPL one found) | 2x12 open |
 | Hiwatt Custom 50 / DR504 | ✅ Done (the DR103's four-input preamp redraw with hiwatt.org's 50 W output and supply redraws; `DR504OL.gif` is a complete 1983 two-input DR504 with voltages, a later circuit with an extra gain stage, used only for the rails) | Hiwatt DR504 | — | Normal/Brilliant, jumpered | 4x12 closed, Fane |
 
@@ -252,6 +253,7 @@ The Circuit Amp block has 98 types. The "Cathode type" column above names them; 
 |  |  |  |  | 92 | SVT Channel 2 |
 |  |  |  |  | 93 | Portaflex B-15N Jumped |
 |  |  |  |  | 92 | Champ AA764 |
+|  |  |  |  | 92 | TSL100 |
 
 Types 81 to 93, the newest, are:
 
@@ -271,6 +273,7 @@ Types 81 to 93, the newest, are:
 | 92 | SVT Channel 2 | Ampeg | Ampeg SVT (1970, 6550), channel two (channel one is type 37) |
 | 93 | Portaflex B-15N Jumped | Ampeg | Ampeg B-15-N Portaflex (1968), both channels jumpered (one channel is type 38) |
 | 92 | Champ AA764 | Fender | Fender Champ AA764 (blackface and silverface, 5 W, one 6V6GT), Volume, Treble and Bass |
+| 92 | TSL100 | Marshall | Marshall JCM2000 TSL100 (Triple Super Lead), Clean, Crunch and Lead with Mid Boost, Tone Shift and Deep |
 
 Match quality against the references is in `docs/06-amp-modelling-spec.md` (as-built notes per family) and in the
 manifest's targets. Only the Prometheus clean channel reaches the spec's ESR target; captures with stated knob settings
