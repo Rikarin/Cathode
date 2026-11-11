@@ -29,9 +29,9 @@ More gain and a master volume. The Hot Rod Deluxe has a clean channel (**Normal 
 
 ### Marshall: the early amps
 
-**JTM45**, **Bluesbreaker 1962**, **Plexi** (a generic 50 W Super Lead), **Plexi 100W**, **1959SLP**, **1987X**, **1959T Tremolo**, **Major 1967**, **18 W 1974X**.
+**JTM45**, **Bluesbreaker 1962**, **Plexi** (a generic 50 W Super Lead), **Plexi 100W**, **1959SLP**, **1987X**, **1959T Tremolo**, **Super Bass 100**, **Major 1967**, **18 W 1974X**.
 
-The sound of 1960s and 1970s rock. No master volume: the volume controls drive the whole amp, so these models crunch and sing when turned up. Most have two channels (normal and treble or bright), with a **Jumper** switch to link them, and a second volume (**Normal Vol**, **Loudness 2** or **Volume II**) to blend the darker channel in. The JTM45 and Bluesbreaker are rounder and looser; the Plexi family tighter and brighter; the Major is huge and clean until pushed very hard.
+The sound of 1960s and 1970s rock. No master volume: the volume controls drive the whole amp, so these models crunch and sing when turned up. Most have two channels (normal and treble or bright), with a **Jumper** switch to link them, and a second volume (**Normal Vol**, **Loudness 2** or **Volume II**) to blend the darker channel in. The JTM45 and Bluesbreaker are rounder and looser; the Plexi family tighter and brighter; the Major is huge and clean until pushed very hard. The Super Bass 100 is the 100 W Plexi's circuit without the bright caps and with full-range coupling on both channels: darker, with more low end, and it does not thin out as you turn the volume down. Its channels differ only a little (**Volume I** is slightly brighter). It works for bass as well as guitar.
 
 ### Marshall: master volume and later
 

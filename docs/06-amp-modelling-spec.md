@@ -726,6 +726,16 @@ cites its drawings and marks what is read, inferred or guessed:
   (−27 / −24 and −23 / −20 dB with one stage per tube). CPU 18.8 / 38.6 % #34, 22.2 / 52.0 % AFD with the Plexi at
   8.3 / 14.7 %, Newton tolerance 1e-4 and chord steps in every stage: over the high-gain budget by the user's choice
   of accuracy, as the Quick Rod.
+- **Super Bass 100** (`SuperBass100.cs`, #366), the Marshall 1992 from Unicord's drawing 70-13-11 (July 1970, DrTube
+  `1992u.gif`): `MarshallParts.SharedCathodeInput` (V1's halves on a shared 820 Ω with 320 µF, 0.022 µF into each 1M
+  volume, 470k mixers with 500 pF across channel I's, no bright caps), V2A on an unbypassed 820 Ω, the follower on a
+  250 pF / 56k / 22 nF / 22 nF stack, and the Plexi 100W's power amp with the sheet's 0.1 µF inverter output caps. The
+  sheet prints no voltages but draws the chain (20k to the inverter's node with 100 µF, 10k to V2's with 50 µF, 10k to
+  V1's with 50 µF), so the rails are computed from it with the model's idle currents, as the JCM800's: 318 / 274 / 256 V
+  below a guessed 460 V B+, 7.0 mA through the 20k. Guessed as on the Plexi 100W: B+, 35 mA idle, the 1.7k OT. Left out:
+  the inverter's 47 pF and its grid-current network (as the JTM45, which has the same 0.1 µF caps). Chain against the
+  reference: −70 dB at 2 and 50 mV. Against the Plexi 100W's bright channel at noon, 3 kHz sits 27 dB lower relative to
+  100 Hz, and the volume no longer changes the balance.
 - **Not built: JVM410HJS.** Its sheets (-60-02 iss 2, -61-02 iss 1, -62-02 iss 1) carry the JVM410H's channel networks
   and three-path cascade with other values, plus the input buffer, the THAT4301 gate and mid-shift relays, but five
   main-board relays (RL101, RL103 B/C, RL104, RL105) where the JVM410H has three, and its handbook describes the modes'

@@ -55,6 +55,7 @@ export const AMP_MODELS: Record<string, { family: AmpFamily; basedOn: string }> 
   '1987X': { family: 'british', basedOn: 'Marshall 1987X reissue' },
   '1959T Tremolo': { family: 'british', basedOn: 'Marshall JMP 1959T Super Lead Tremolo' },
   'Major 1967': { family: 'british', basedOn: 'Marshall Major (1967)' },
+  'Super Bass 100': { family: 'british', basedOn: 'Marshall 1992 Super Bass (100 W)' },
   '18 W 1974X': { family: 'british', basedOn: 'Marshall 18 W 1974X' },
   'JCM800 2203': { family: 'british', basedOn: 'Marshall JCM800 2203 (100 W)' },
   'JCM800 2204': { family: 'british', basedOn: 'Marshall JCM800 2204 (50 W)' },
