@@ -249,7 +249,12 @@ const OutputParams = new Set(['level', 'mix', 'balance', 'pan']);
           }
 
           @if (typeParam(); as type) {
-            <cth-param-control variant="sidebar" [block]="block" [param]="type" />
+            <cth-param-control
+              variant="sidebar"
+              [block]="block"
+              [param]="type"
+              [searchable]="block.type === 'circuitamp'"
+            />
           }
 
           @if (block.type === 'circuitamp') {
