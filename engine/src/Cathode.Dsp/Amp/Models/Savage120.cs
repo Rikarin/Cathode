@@ -23,7 +23,18 @@ namespace Cathode.Dsp.Amp.Models;
 ///         https://el34world.com/charts/Schematics/files/Engl/Engl_savage_120_sch.pdf. Every value above is read from
 ///         it but the four inter-stage caps of the next paragraph. An earlier hand-drawn factory sheet
 ///         (https://el34world.com/charts/Schematics/files/Engl/Engl_savage_120.pdf) draws the channel more sparsely
-///         still (no stack caps, no small caps at all) and was not compared value by value.
+///         still (no stack caps, no small caps at all) and was not compared value by value; its supply's voltages are
+///         used (see below).
+///     </para>
+///     <para>
+///         The supply (#526): 610-2 draws two bridge rectifiers stacked, the lower (DI5 to DI8) on CE18 220 µF 500 V,
+///         the upper (DI1 to DI4) on a 220 µF 250 V cap above it, and R108 470 Ω 5 W from the lower one's top to the
+///         screens' CE20 100 µF, from which the preamp's chain hangs. It prints no voltages; the hand-drawn sheet
+///         prints +U A 545 V, +U S.G 355 V and +U Pre 340 V, which the model takes: the lower reservoir at 360 V
+///         (<see cref="PowerSupplyDesign.LowerSupply" />), so that CE20 rests at 355 V at the idle draw. The preamp's
+///         draw follows from them: 15 V across R105 and R106 (4.4k) is 3.4 mA. With the screens near a 560 V B+, as the
+///         model once had them, the power amp alone reached about 270 W at 5 % distortion (400 Hz into the closed 4x12
+///         taken as 8 Ω); at the printed voltages about 155 W, for an amp rated 120 W.
 ///     </para>
 ///     <para>
 ///         Guessed, by family resemblance (issue #526): four caps 610-2 does not show. Built from the drawing alone,
@@ -50,12 +61,13 @@ namespace Cathode.Dsp.Amp.Models;
 ///         V4), R55 2.2k to CE9 10 µF (V2), R54 2.2k to CE6 10 µF (V1).
 ///     </para>
 ///     <para>
-///         Guesses and simplifications, marked: the drawing prints no rail voltages (B+ 560 V, idle 50 mA a tube, a
-///         1.7k plate-to-plate primary and the 100 W class's 25 Ω supply are typical values for four 6550 at 120 W; the
-///         preamp's rails, 530 V at CE21 down to 511 V at CE6, are the drawn chain's drops at the assumed draws);
+///         Guesses and simplifications, marked: idle 50 mA a tube, a 1.7k plate-to-plate primary and the 100 W class's
+///         25 Ω supply are typical values for four 6550 at 120 W; the lower reservoir is taken as a fixed share of B+,
+///         so it sags with it (on the amp it carries the screens' and the preamp's current besides the plates'); the
+///         preamp's rails, 340 V at CE21 down to 329 V at CE6, are the drawn chain's drops at an equal draw per triode;
 ///         the loop is empty, its follower driving V5B through the 10k balance resistor. The feedback network is
-///         simplified: the
-///         presence pot sits in series with the feedback on the real amp (turning it down lowers the feedback); here
+///         simplified: the presence pot sits in series with the feedback on the real amp (turning it down lowers the
+///         feedback); here
 ///         1.5k plus half the 50k presence from the 8 Ω tap into a 4.8k shunt (1.5k and 3.3k), the presence's 10 nF
 ///         across it, and the Depth Boost switch (10 nF across the feedback path) as the depth control.
 ///     </para>
@@ -88,14 +100,27 @@ namespace Cathode.Dsp.Amp.Models;
 ///     </para>
 /// </remarks>
 public static class Savage120 {
-    // The rails at rest, from the drawn chain at the assumed draws (no voltages are printed): CE21, the inverter and
-    // V5, 556.9 V at CE20 less 4.4k × 6 mA; CE4 (V3) less 3.2k × 4 mA; CE9 (V2) less 2.2k × 2 mA; CE6 (V1) less 2.2k ×
-    // 1 mA. They were once taken as 380 V for every stage and 400 V for the inverter, which the drawn droppers cannot
-    // give from a 560 V B+ at any plausible draw (380 V would need about 30k at 6 mA).
-    const double InverterRail = 530;
-    const double V3Rail = 518;
-    const double V2Rail = 513;
-    const double V1Rail = 511;
+    // The rails at rest: CE21, the inverter and V5, at the hand-drawn sheet's +U Pre; down the drawn chain at an equal
+    // draw per triode (Triode): CE4 (V3) less 3.2k × 8 triodes' draw, CE9 (V2) less 2.2k × 4, CE6 (V1) less 2.2k × 2.
+    // They were once 530 V to 511 V below a 560 V B+ with the screens near it, and before that 380 V for every stage.
+    const double InverterRail = 340;
+    const double V3Rail = 332.7;
+    const double V2Rail = 330.2;
+    const double V1Rail = 329;
+
+    /// <summary>The screens' node at rest, CE20 (+U S.G).</summary>
+    const double ScreenRail = 355;
+
+    /// <summary>
+    ///     A preamp triode's draw: the 15 V from CE20 to CE21 across R105 and R106 (4.4k) shared by twelve.
+    /// </summary>
+    const double Triode = (ScreenRail - InverterRail) / 4.4e3 / 12;
+
+    /// <summary>
+    ///     The lower rectifier's reservoir, CE18: CE20's 355 V and R108's drop at the screens' and the preamp's idle
+    ///     draw (about 11 mA).
+    /// </summary>
+    const double LowerRail = 360;
 
     /// <summary>The Clean type's output trim, which evens out the models' loudness.</summary>
     const double CleanTrim = -4;
@@ -129,13 +154,16 @@ public static class Savage120 {
             new NetworkStageDesign("V5B", ReturnAndMaster())
         ],
         EnglParts.Power(
-            new("4 x 6550", PentodeModel.SixtyFiveFifty, 560, 1e3, 0.05, 120, 1.7e3),
+            new("4 x 6550", PentodeModel.SixtyFiveFifty, 545, 1e3, 0.05, 120, 1.7e3),
             // The 22k tail stands on the 4.8k feedback shunt (1.5k and 3.3k): 26.8k from the bias junction to ground.
             new(InverterRail, 26.8e3, 150e3),
             new(1, 26.5e3, 4.8e3, new(50e3, PotTaper.Linear), 10e-9),
-            // R108 470 Ω 5 W to the screens' CE20 100 µF, R106 + R105 (2.2k each) to CE21 22 µF.
-            new(25, 220e-6, 470, 100e-6, 4.4e3, 22e-6, 6e-3, RectifierModel.Silicon)
-        ),
+            // The lower rectifier's reservoir, R108 470 Ω 5 W to the screens' CE20 100 µF, R106 + R105 (2.2k each) to
+            // CE21 22 µF.
+            new(25, 220e-6, 470, 100e-6, 4.4e3, 22e-6, 12 * Triode, RectifierModel.Silicon, LowerSupply: LowerRail)
+        ) with {
+            ScreenSupply = ScreenRail
+        },
         -9
     ) {
         Panel = AmpPanel.Standard with {
@@ -214,12 +242,11 @@ public static class Savage120 {
 
     /// <summary>
     ///     The drawing's chain below CE21 (the inverter, and V5 behind R107 1k with no cap of its own, here on CE21):
-    ///     R107 + R56 (3.2k) to CE4 10 µF (V3, V4), R55 2.2k to CE9 10 µF (V2), R54 2.2k to CE6 10 µF (V1). The drawing
-    ///     prints no voltages, so each node draws an equal share of the preamp's 6 mA per triode on it (twelve in all,
-    ///     the inverter's two included): 0.5 mA each.
+    ///     R107 + R56 (3.2k) to CE4 10 µF (V3, V4), R55 2.2k to CE9 10 µF (V2), R54 2.2k to CE6 10 µF (V1). Each node
+    ///     draws an equal share of the preamp's 3.4 mA per triode on it (twelve in all, the inverter's two included).
     /// </summary>
     static PreampSupplyDesign Decoupling =>
-        new([new(3.2e3, 10e-6, 2e-3), new(2.2e3, 10e-6, 1e-3, 1), new(2.2e3, 10e-6, 1e-3, 2)]);
+        new([new(3.2e3, 10e-6, 4 * Triode), new(2.2e3, 10e-6, 2 * Triode, 1), new(2.2e3, 10e-6, 2 * Triode, 2)]);
 
     /// <summary>
     ///     V1B and the gain: 1M grid leak; 100k plate; 1.5k ‖ 22 µF; C15 (470 pF, guessed: drawn 10 nF), 100k into the

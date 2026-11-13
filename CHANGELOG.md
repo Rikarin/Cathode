@@ -10,9 +10,13 @@ the format upgrades older presets as it reads them.
 
 - Amp: the Savage 120's lead and Crunch 2 get the four small caps between their stages that Engl's drawing leaves out,
   as the drawings of the Screamer 50, the Blackmore, the Powerball and the Fireball 60 do, so they no longer send full
-  bass into every clipping stage: the lead has a high-gain amp's gain (31 dB at 220 Hz with stock knobs, was 46) and
-  cleans up as the playing softens (a 0.1 V note plays 35 dB above a 0.2 mV one, was 21). The values are guessed from
-  those amps; Smooth's tone knobs now do less than Rough's by a smaller margin (#526).
+  bass into every clipping stage and clean up as the playing softens (a 0.1 V note plays 36 dB above a 0.2 mV one, was
+  21). The values are guessed from those amps. The lead has 29 dB of gain at 220 Hz with stock knobs (was 46) and 39 dB
+  with Lead at 7.5, a high-gain amp's (#526).
+- Amp: the Savage 120 and Savage 120 Clean run on the supply voltages Engl's hand-drawn sheet prints (545 V plates,
+  355 V screens, 340 V preamp), from the two stacked rectifiers both drawings show, with the screens and the preamp on
+  the lower one. The screens and the preamp had sat near a 560 V B+, which gave the power amp about twice its rated
+  120 W before it clipped (#526).
 
 ## 1.0.0-rc.6 — 2026-11-11
 

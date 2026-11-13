@@ -274,14 +274,40 @@ public partial class AmpStageTests {
     }
 
     /// <summary>
-    ///     The power <paramref name="design" /> gives into 8 Ω where a 200 Hz sine reaches 5 % distortion, in watts:
-    ///     the input raised in steps and the crossing interpolated.
+    ///     The Savage 120's supply as its hand-drawn factory sheet prints it (#526): two rectifiers stacked, the
+    ///     screens (R108 470 Ω) and the preamp on the lower one, so B+ rests at 545 V, the screens at 355 V and the
+    ///     preamp at 340 V, at the design's idle current. Its four 6550 into 1.7k then reach 5 % distortion at about
+    ///     150 W at 400 Hz into the closed 4x12 taken as 8 Ω (measured 156 W; with the screens near a 560 V B+, as the
+    ///     model had them, about 270 W), for an amp rated 120 W.
     /// </summary>
-    static double PowerAtClipping(PowerAmpDesign design) {
+    [Fact]
+    public void Savage_120_rests_at_its_printed_voltages_and_clips_near_its_rated_power() {
+        var design = Savage120.Design.Power;
+        var power = new PowerAmp(design, Rate);
+        power.Configure(new(0.5, 0, 0, 0.5, 0.5, 0.5));
+        power.Reset();
+        var watts = PowerAtClipping(design, 400, 0.5, 20);
+        output.WriteLine(
+            $"Savage 120 at rest: B+ {power.Supply:0.0} V, screens {power.ScreenSupply:0.0} V, preamp "
+            + $"{power.PreampVoltage:0.0} V, {power.PlateCurrents.A * 1e3:0.0} mA a tube; 5 % THD at {watts:0} W"
+        );
+        Assert.Equal(545.0, power.Supply, 0.5);
+        Assert.Equal(355.0, power.ScreenSupply, 2.0);
+        Assert.Equal(340.0, power.PreampVoltage, 2.0);
+        Assert.Equal(50.0, power.PlateCurrents.A * 1e3, 1.0);
+        Assert.InRange(watts / design.RatedPower, 0.9, 1.5);
+    }
+
+    /// <summary>
+    ///     The power <paramref name="design" /> gives into 8 Ω where a sine of <paramref name="hz" /> reaches 5 %
+    ///     distortion, in watts: the input raised in steps of <paramref name="step" /> volts up to
+    ///     <paramref name="most" /> and the crossing interpolated.
+    /// </summary>
+    static double PowerAtClipping(PowerAmpDesign design, double hz = 200, double step = 0.025, double most = 2) {
         const double Limit = 0.05;
         var (previousPower, previousThd) = (0.0, 0.0);
-        for (var amplitude = 0.05; amplitude < 2; amplitude += 0.025) {
-            var (watts, thd) = PowerAndDistortion(design, amplitude);
+        for (var amplitude = 2 * step; amplitude < most; amplitude += step) {
+            var (watts, thd) = PowerAndDistortion(design, amplitude, hz);
             if (thd >= Limit) {
                 return previousPower + (watts - previousPower) * (Limit - previousThd) / (thd - previousThd);
             }
@@ -293,17 +319,18 @@ public partial class AmpStageTests {
     }
 
     /// <summary>
-    ///     The power into 8 Ω and the distortion (everything but the fundamental, over it) of a 200 Hz sine of
-    ///     <paramref name="amplitude" /> volts at the driver's grid, over the second half of a half-second render.
+    ///     The power into 8 Ω and the distortion (everything but the fundamental, over it) of a sine of
+    ///     <paramref name="hz" /> and <paramref name="amplitude" /> volts at the driver's grid, over the second half of
+    ///     a half-second render.
     /// </summary>
-    static (double Watts, double Thd) PowerAndDistortion(PowerAmpDesign design, double amplitude) {
+    static (double Watts, double Thd) PowerAndDistortion(PowerAmpDesign design, double amplitude, double hz = 200) {
         const int Samples = 48_000;
         var power = new PowerAmp(design, Rate);
         power.Configure(new(0.5, 0, 0, 0.5, 0.5, 0.5));
         power.Reset();
         var (cosine, sine, squares) = (0.0, 0.0, 0.0);
         for (var n = 0; n < Samples; n++) {
-            var phase = 2 * Math.PI * 200 * n / Rate;
+            var phase = 2 * Math.PI * hz * n / Rate;
             var y = power.Tick(amplitude * Math.Sin(phase));
             if (n < Samples / 2) {
                 continue;

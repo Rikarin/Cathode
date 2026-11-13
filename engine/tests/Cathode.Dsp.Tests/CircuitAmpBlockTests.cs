@@ -58,6 +58,8 @@ public class CircuitAmpBlockTests(ITestOutputHelper output) {
             : design.Tube == PentodeModel.SixV6GT ? 14
             : design.Tube == PentodeModel.SixAQ5 ? 12
             : design.Tube == PentodeModel.SixtyNineSeventyThree ? 12
+            // The 6550's design-maximum plate dissipation (Tung-Sol's sheet; the 6550A's is 42 W).
+            : design.Tube == PentodeModel.SixtyFiveFifty ? 35
             : 30;
         output.WriteLine(
             $"{design.Name}: B+ {power.Supply:0.0} V, screen node {power.ScreenSupply:0.0} V, preamp node "

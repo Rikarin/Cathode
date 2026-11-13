@@ -54,7 +54,7 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         { "Rect-o-Verb", (0xB778F3CB9BA94445, 0x0B3B1694A03FFC0C) },
         { "Triple Rectifier", (0xA743C4E16D9DAC79, 0xA9F46236E15CFC0E) },
         { "Powerball", (0xD08441B5791E9BF4, 0xEC7B5CD03B4FE1D2) },
-        { "Savage 120", (0x56D6501E365C1725, 0x920B88F1716DA3DC) },
+        { "Savage 120", (0xCD989D3C7C6AC55B, 0xA21EA041F6001415) },
         { "SVT", (0xD1764C0CC01C37B0, 0x1D8F66AC6688D267) },
         { "Portaflex B-15N", (0x76788BF6655480E6, 0x375A6E0DDFCC5DBB) },
         { "JC-120", (0x6F3DB50BEBC24351, 0x4DE20F2B6F27B5DD) },

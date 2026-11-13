@@ -724,6 +724,12 @@ public sealed record RectifierModel(string Name, double Perveance) {
 ///     The mains frequency, for an AC supply that charges the reservoir on the peaks of the rectified mains (ripple at
 ///     twice it); 0 for a DC source (no ripple).
 /// </param>
+/// <param name="LowerSupply">
+///     Two rectifiers stacked (the Engl Savage 120): the lower one's reservoir voltage at the design's B+, from which
+///     <paramref name="ChokeResistance" /> feeds the screen node, so that the screens and the preamp sit far below the
+///     plates on a small dropping resistor. The lower reservoir is taken as this share of B+ throughout, so it sags
+///     with B+. 0 for one rectifier, the screen node fed from B+.
+/// </param>
 public sealed record PowerSupplyDesign(
     double SourceResistance,
     double Reservoir,
@@ -733,7 +739,8 @@ public sealed record PowerSupplyDesign(
     double PreampCap,
     double PreampCurrent = 4e-3,
     RectifierModel? Rectifier = null,
-    double LineFrequency = 0
+    double LineFrequency = 0,
+    double LowerSupply = 0
 );
 
 /// <summary>
@@ -879,7 +886,9 @@ public enum PowerTopology {
 ///     The screen node's idle voltage where the amp runs its screens far below B+ from a winding of their own (the
 ///     Ampeg SVT: 350 V screens under 680 V plates), for the stock bias, which gives <paramref name="IdleCurrent" /> at
 ///     B+ with the screens there; set <see cref="PowerSupplyDesign.ChokeResistance" /> and a large
-///     <see cref="PowerSupplyDesign.ScreenCap" /> so that the node rests there. 0 for screens near B+ (the bias is then
+///     <see cref="PowerSupplyDesign.ScreenCap" /> so that the node rests there, or, where the screens hang from the
+///     lower of two stacked rectifiers (the Savage 120), <see cref="PowerSupplyDesign.LowerSupply" /> (a large dropper
+///     ahead of fixed-bias tubes has no stable rest point). 0 for screens near B+ (the bias is then
 ///     found with the screens at B+).
 /// </param>
 /// <param name="FeedbackOffSwitch">

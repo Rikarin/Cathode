@@ -196,6 +196,13 @@ public sealed class PowerAmp {
     double turns;
     double magnetising; // the magnetising inductance as set
     readonly double unloadedSupply; // the rectifier's open-circuit voltage at stock mains
+
+    /// <summary>
+    ///     The share of B+ the screen node's dropping resistor hangs from: the lower of two stacked rectifiers
+    ///     (<see cref="PowerSupplyDesign.LowerSupply" />), else 1.
+    /// </summary>
+    readonly double lowerShare;
+
     readonly double nominalPreamp; // the preamp node at idle with every knob at noon
     DecouplingChain chain = DecouplingChain.None;
     double preampDraw; // what node 0's own stages draw (the chain's draw comes through its first resistors)
@@ -336,6 +343,7 @@ public sealed class PowerAmp {
         tube = design.Tube;
         law = tube;
         screenCap = design.PowerSupply.ScreenCap;
+        lowerShare = design.PowerSupply.LowerSupply > 0 ? design.PowerSupply.LowerSupply / design.Supply : 1;
         sharedScreenResistance = design.SharedScreenResistor * design.TubesPerSide;
         PhaseInverter = PhaseInverter.For(design.PhaseInverter);
         inverterTube = TriodeTables.For(design.PhaseInverter.Tube);
@@ -382,10 +390,10 @@ public sealed class PowerAmp {
         var noon = new PowerControls(0.5, 0, 0, 0.5, 0.5, 0.5);
         Configure(noon);
         var supply = design.PowerSupply;
-        var total = IdleCurrents(design.Supply, design.Supply, out _);
+        var total = IdleCurrents(design.Supply, lowerShare * design.Supply, out _);
         for (var i = 0; i < 40; i++) {
             // The screen node sits below B+ by the choke's (or dropping resistor's) drop, which the currents depend on.
-            var node = design.Supply - supply.ChokeResistance * (total.Screens + supply.PreampCurrent);
+            var node = lowerShare * design.Supply - supply.ChokeResistance * (total.Screens + supply.PreampCurrent);
             total = IdleCurrents(design.Supply, Math.Max(node, 1e-3), out _);
         }
 
@@ -630,7 +638,7 @@ public sealed class PowerAmp {
             chain.Reset(PreampVoltage, nominalPreamp);
         }
 
-        chokeCurrent = (Supply - ScreenSupply) / supply.ChokeResistance;
+        chokeCurrent = (lowerShare * Supply - ScreenSupply) / supply.ChokeResistance;
         root.Reset();
         root.SetInitialVoltages([0]);
         ref var stage = ref root.Device;
@@ -696,7 +704,7 @@ public sealed class PowerAmp {
         OperatingPointSolves++;
 
         Supply = Design.Supply;
-        ScreenSupply = Design.Supply;
+        ScreenSupply = lowerShare * Design.Supply;
         var supply = Design.PowerSupply;
         var unloaded = unloadedSupply * variac;
         var converged = false;
@@ -707,7 +715,7 @@ public sealed class PowerAmp {
             var sag = supply.SourceResistance * sagScale;
             var draw = total.Plates + total.Screens + supply.PreampCurrent;
             var next = unloaded - sag * draw - (rectifier?.Drop(draw) ?? 0);
-            var node = next - supply.ChokeResistance * (total.Screens + supply.PreampCurrent);
+            var node = lowerShare * next - supply.ChokeResistance * (total.Screens + supply.PreampCurrent);
 
             // Both nodes must settle: the screen node starts at B+, and a large dropping resistor moves it far.
             var change = Math.Abs(next - Supply) + Math.Abs(node - ScreenSupply);
@@ -817,7 +825,7 @@ public sealed class PowerAmp {
             return root.Probe(0) / turns; // never let a bad sample into the supply's state
         }
 
-        var toScreen = (Supply - ScreenSupply) / supply.ChokeResistance;
+        var toScreen = (lowerShare * Supply - ScreenSupply) / supply.ChokeResistance;
         if (chokeInductance > 0) {
             // The choke's current relaxes towards the resistive one with its L / R time constant (exactly, so that any
             // inductance is stable).
@@ -993,12 +1001,12 @@ public sealed class PowerAmp {
         var (low, high) = (0.0, unloaded);
         for (var i = 0; i < 60; i++) {
             var plate = 0.5 * (low + high);
-            var node = plate;
+            var node = lowerShare * plate;
             (double Plates, double Screens) total = default;
             var vk = 0.0;
             for (var n = 0; n < 30; n++) {
                 total = IdleCurrents(plate, Math.Max(node, 1e-3), out vk);
-                var next = plate - supply.ChokeResistance * (total.Screens + supply.PreampCurrent);
+                var next = lowerShare * plate - supply.ChokeResistance * (total.Screens + supply.PreampCurrent);
                 if (Math.Abs(next - node) < 1e-9) {
                     break;
                 }
