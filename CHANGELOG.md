@@ -4,6 +4,16 @@ Cathode follows [semantic versioning](https://semver.org). From 1.0 on, a preset
 in every later one: the preset format carries a schema version (`schemaVersion`, now 2), and a release that changes
 the format upgrades older presets as it reads them.
 
+## 1.0.0-rc.7 — unreleased
+
+### Fixed
+
+- Amp: the Savage 120's lead and Crunch 2 get the four small caps between their stages that Engl's drawing leaves out,
+  as the drawings of the Screamer 50, the Blackmore, the Powerball and the Fireball 60 do, so they no longer send full
+  bass into every clipping stage: the lead has a high-gain amp's gain (31 dB at 220 Hz with stock knobs, was 46) and
+  cleans up as the playing softens (a 0.1 V note plays 35 dB above a 0.2 mV one, was 21). The values are guessed from
+  those amps; Smooth's tone knobs now do less than Rough's by a smaller margin (#526).
+
 ## 1.0.0-rc.6 — 2026-11-11
 
 The fixes below came out of a second full audit of the code (issues #163 to #356), and from the first seventeen amps of its missing-amp list (#357 to #373).

@@ -17491,7 +17491,7 @@ export const ENGINE_BLOCKS: readonly EngineBlock[] = [
           'Triode 2 Plate Freq',
           'Triode 2 Plate Freq',
           'Triode 2 Plate Freq',
-          '',
+          'Triode 2 Plate Freq',
           '',
           '',
           '',

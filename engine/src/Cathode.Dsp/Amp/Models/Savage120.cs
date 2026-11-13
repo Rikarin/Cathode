@@ -4,9 +4,10 @@ namespace Cathode.Dsp.Amp.Models;
 
 /// <summary>
 ///     Engl Savage 120 (E610), channel 2: the lead, Rough and Smooth, and Crunch 2 on the Bright switch (channel 1 is
-///     <see cref="Clean" />). V1B (100k, 1.5k ‖ 22 µF), 10 nF and 100k into the 1M audio gain; V2A
-///     (100k, 1k ‖ 22 µF); 47 nF with 2.2M to ground, 100k into the 250k audio Lead pot (2.2M to ground before it), its
-///     wiper on V2B's grid (1 nF to ground with Lead Boost); V2B (330k, 3.3k, bypassed by 10 µF with Lead Boost); 47 nF
+///     <see cref="Clean" />). V1B (100k, 1.5k ‖ 22 µF), 470 pF and 100k into the 1M audio gain; V2A
+///     (100k, 1k ‖ 22 µF); 47 nF with 2.2M to ground, 680 pF and 100k into the 250k audio Lead pot (2.2M to ground
+///     before it), its wiper on V2B's grid (1 nF to ground with Lead Boost); V2B (330k ‖ 1 nF, 3.3k, bypassed by 10 µF
+///     with Lead Boost); 47 nF
 ///     into V3B's 1M grid leaks; V3B (100k, 1.5k ‖ 22 µF); 47 nF and 2.2M into the stack (470 pF, 220 pF more with
 ///     Contour; 47k slope; 47 nF, 22 nF; 250k linear treble, 1M audio bass, 20k linear middle); 100k, 100k into V3A's
 ///     idle grid network (470k) and the 250k audio lead volume; the loop's send follower V5A (1k cathode) and return
@@ -20,8 +21,22 @@ namespace Cathode.Dsp.Amp.Models;
 ///         Source: the Engl factory drawing "Savage 120 type E610", drawing 610-2 (ENGL Gerätebau GmbH, two sheets: the
 ///         whole amp, then the relay logic),
 ///         https://el34world.com/charts/Schematics/files/Engl/Engl_savage_120_sch.pdf. Every value above is read from
-///         it. An earlier hand-drawn factory sheet
-///         (https://el34world.com/charts/Schematics/files/Engl/Engl_savage_120.pdf) was not compared value by value.
+///         it but the four inter-stage caps of the next paragraph. An earlier hand-drawn factory sheet
+///         (https://el34world.com/charts/Schematics/files/Engl/Engl_savage_120.pdf) draws the channel more sparsely
+///         still (no stack caps, no small caps at all) and was not compared value by value.
+///     </para>
+///     <para>
+///         Guessed, by family resemblance (issue #526): four caps 610-2 does not show. Built from the drawing alone,
+///         the lead had 46 dB of gain at Gain 5 (5150: 38) and a 0.2 mV note played within 21 dB of a 0.1 V one: full
+///         bass into every clipping stage, fuzz that does not clean up. Engl's factory sheets of two sister amps,
+///         the Screamer 50 (330-2) and the Blackmore, leave out small caps that independent redraws of the same amps
+///         have, always in the same places (el34world's Engl_screamer50_preamp.gif and Engl_rb100_preamp.pdf), as
+///         the Powerball's 645-1 (#512) and the Fireball's 625 (#525) did. In those places here: C15 470 pF from V1B
+///         into the gain's 100k (drawn 10 nF; the redraws have 1 nF, and 470 pF, a corner near 310 Hz, was chosen by
+///         ear), 680 pF in series ahead of R35 100k into the Lead pot and ahead of Crunch 2's R33 100k (the
+///         Blackmore's 680 pF into its 330k / 3.3k stage, about 210 Hz into 1.1M), and 1 nF across V2B's R37 330k (both
+///         redraws). The lead now has 31 dB of gain at Gain 5 and Lead 5, and a 0.1 V note plays 35 dB above a
+///         0.2 mV one. A trace of a real Savage 120 would settle the values.
 ///     </para>
 ///     <para>
 ///         The output stage is four 6550 in parallel pairs, from Engl's E610 specification (power amp: 4 × 6550, KT88
@@ -206,7 +221,10 @@ public static class Savage120 {
     static PreampSupplyDesign Decoupling =>
         new([new(3.2e3, 10e-6, 2e-3), new(2.2e3, 10e-6, 1e-3, 1), new(2.2e3, 10e-6, 1e-3, 2)]);
 
-    /// <summary>V1B and the gain: 1M grid leak; 100k plate; 1.5k ‖ 22 µF; 10 nF, 100k into the 1M audio gain.</summary>
+    /// <summary>
+    ///     V1B and the gain: 1M grid leak; 100k plate; 1.5k ‖ 22 µF; C15 (470 pF, guessed: drawn 10 nF), 100k into the
+    ///     1M audio gain.
+    /// </summary>
     static StageNetlist InputAndGain() {
         var net = new StageNetlist();
         var (supply, plate, cathode, coupled, top) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
@@ -216,20 +234,21 @@ public static class Savage120 {
         net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
         net.Capacitor(cathode, StageNetlist.Ground, 22e-6);
         net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
-        net.Capacitor(plate, coupled, 10e-9);
+        net.Capacitor(plate, coupled, 470e-12);
         net.Resistor(coupled, top, 100e3);
         net.Output = net.Pot(top, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Gain);
         return net;
     }
 
     /// <summary>
-    ///     V2A and the Lead pot: 100k plate; 1k ‖ 22 µF; 47 nF, 2.2M to ground, 100k into the 250k audio Lead with 2.2M
-    ///     to ground at its top.
+    ///     V2A and the Lead pot: 100k plate; 1k ‖ 22 µF; 47 nF, 2.2M to ground, 680 pF (guessed, not drawn) and 100k
+    ///     into the 250k audio Lead with 2.2M to ground at its top.
     /// </summary>
     static StageNetlist SecondStage() {
         var net = new StageNetlist();
-        var (coupled, top) = (SecondTriode(net), net.Node());
-        net.Resistor(coupled, top, 100e3);
+        var (coupled, cut, top) = (SecondTriode(net), net.Node(), net.Node());
+        net.Capacitor(coupled, cut, 680e-12);
+        net.Resistor(cut, top, 100e3);
         net.Resistor(top, StageNetlist.Ground, 2.2e6);
         net.Output = net.Pot(top, StageNetlist.Ground, new(250e3, PotTaper.Audio), PotRole.Control1);
         return net;
@@ -248,14 +267,15 @@ public static class Savage120 {
     }
 
     /// <summary>
-    ///     V2A in Crunch 2 (the "CR/LE" relay RE4 at rest): the same stage, then R33 100k straight to V3B's grid (R41
-    ///     1M to ground; in Smooth also R40 3.3k through the lit LD16), past the Lead pot and V2B, whose output RE4B
-    ///     grounds. The optocoupler LD15 between R33 and the grid is taken as closed.
+    ///     V2A in Crunch 2 (the "CR/LE" relay RE4 at rest): the same stage, then 680 pF (guessed, not drawn) and R33
+    ///     100k straight to V3B's grid (R41 1M to ground; in Smooth also R40 3.3k through the lit LD16), past the Lead
+    ///     pot and V2B, whose output RE4B grounds. The optocoupler LD15 between R33 and the grid is taken as closed.
     /// </summary>
     static StageNetlist CrunchTwoStage() {
         var net = new StageNetlist();
-        var (coupled, grid) = (SecondTriode(net), net.Node());
-        net.Resistor(coupled, grid, 100e3);
+        var (coupled, cut, grid) = (SecondTriode(net), net.Node(), net.Node());
+        net.Capacitor(coupled, cut, 680e-12);
+        net.Resistor(cut, grid, 100e3);
         net.Resistor(grid, StageNetlist.Ground, 1e6);
         net.SwitchedResistor(grid, StageNetlist.Ground, 0, 3.3e3, SwitchRole.Switch3);
         net.Output = grid;
@@ -263,8 +283,8 @@ public static class Savage120 {
     }
 
     /// <summary>
-    ///     V2B: 1 nF from the grid to ground with Lead Boost; 330k plate; 3.3k, bypassed by 10 µF with Lead Boost; 47
-    ///     nF into V3B's grid leaks (1M and 1M).
+    ///     V2B: 1 nF from the grid to ground with Lead Boost; 330k plate with 1 nF across it (guessed, not drawn);
+    ///     3.3k, bypassed by 10 µF with Lead Boost; 47 nF into V3B's grid leaks (1M and 1M).
     /// </summary>
     static StageNetlist ThirdStage() {
         var net = new StageNetlist();
@@ -272,6 +292,7 @@ public static class Savage120 {
         net.SwitchedCapacitor(net.Input, StageNetlist.Ground, 1e-9, SwitchRole.Switch2);
         net.Supply(supply, V2Rail);
         net.Resistor(supply, plate, 330e3);
+        net.Capacitor(supply, plate, 1e-9, CapacitorRole.Plate);
         net.CathodeResistor(cathode, StageNetlist.Ground, 3.3e3);
         net.SwitchedCapacitor(cathode, StageNetlist.Ground, 10e-6, SwitchRole.Switch2);
         net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
@@ -282,8 +303,9 @@ public static class Savage120 {
     }
 
     /// <summary>
-    ///     V2B in Smooth: the same stage (1 nF at the grid and the 10 µF bypass with Lead Boost; 330k; 3.3k); 47 nF,
-    ///     R39 1M to ground, R38 33k to V3B's grid, where R41 1M and (through the lit LD16) R40 3.3k go to ground.
+    ///     V2B in Smooth: the same stage (1 nF at the grid and the 10 µF bypass with Lead Boost; 330k ‖ 1 nF; 3.3k);
+    ///     47 nF, R39 1M to ground, R38 33k to V3B's grid, where R41 1M and (through the lit LD16) R40 3.3k go to
+    ///     ground.
     /// </summary>
     static StageNetlist SmoothThirdStage() {
         var net = new StageNetlist();
@@ -291,6 +313,7 @@ public static class Savage120 {
         net.SwitchedCapacitor(net.Input, StageNetlist.Ground, 1e-9, SwitchRole.Switch2);
         net.Supply(supply, V2Rail);
         net.Resistor(supply, plate, 330e3);
+        net.Capacitor(supply, plate, 1e-9, CapacitorRole.Plate);
         net.CathodeResistor(cathode, StageNetlist.Ground, 3.3e3);
         net.SwitchedCapacitor(cathode, StageNetlist.Ground, 10e-6, SwitchRole.Switch2);
         net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
