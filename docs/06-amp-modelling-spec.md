@@ -379,6 +379,21 @@ Shared changes: `Pot` takes an audio taper's midpoint (Fender marks it in the pa
 - **Not built**: the 1959T's transistor tremolo (#291). It is the same kind of circuit and most of it reads on the scan: the oscillator (100k to the plate and 150k from the plate to ground, 2.7k with 50 µF; 0.022 µF to 100k plus the 2M Speed, 0.01 µF to 1M, 0.01 µF to the grid and 1M) and the base network (680k and a cap marked "1" from the plate, 4.3k to ground). Not legible: the transistor's type, and the node the oscillator's 100k hangs on. The base gets about 0.6 % of the plate's swing; solved on a 300 to 460 V node that is 0.06 to 0.47 V, at or under a silicon junction's turn-on, so whether the switch closes and for how much of the cycle depends on exactly those two unknowns. Bias Trem Rate and Depth run the generic bias tremolo on it. Also not built: the AC15's vibrato-tremolo (no drawing), the AC30 (the model has no Vib-Trem channel). The harmonic vibratos (Concert 6G12, Super 6G4) are those amps' one tremolo: `tremrate` (Speed, in hertz, held to the ladder's 2.6–9.4 Hz) and `tremdepth` (Intensity) drive them, the pedal stays on Switch 2, and no generic bias tremolo is added beside them (Control 1/2 are free).
 - **Validation** (`TremoloTests`): the textbook ladder; every model's rate range (AB763 family 3.1–11.0 Hz, 6G3 2.9–10.8, 6G11 2.9–10.7, Princetons 3.1–11.0, Scout 2.9–5.1, Vibro-King 2.7–8.3, 18 W 3.4–6.2, and in its own test the Bluesbreaker's 2.0–4.7) checked to invert the phase by an independent nodal solve; full intensity modulates a steady note by 7–26 dB at the rate asked for (±15 %); intensity 0 renders sample for sample as the model without its tremolo (oscillator stopped, cell dark, pot track present), the Bluesbreaker included; the netlists carry the pot tracks; a smooth onset (no step larger than the steady signal's, on the Bluesbreaker's chop too); no allocation; cost: no measurable change (Deluxe 6G3 8.1 → 8.4 %, Deluxe Reverb 9.6 → 9.3 %, Vibro-King 8.9 → 8.1 %, 18 W 9.5 → 9.4 % in the same run).
 
+- **Blues Deluxe and Blues DeVille** (`BluesDeluxe.cs`), both channels on Switch 1 (on: Normal), from Fender's
+  drawings 047019 rev D (Blues Deluxe, part 004702000) and 047003 rev E (Blues DeVille and DeVille 212). V1A
+  (100k, 1.5k ‖ 22 µF) feeds a line that carries 0.01 µF and 100k with the Bright switch's 750 pF across it; the
+  Volume is wired as a rheostat shunting that line to ground, which a relay grounds on the Normal channel only, and
+  a second relay shorts the 750 pF into V1B's grid there, so the Drive channel is fed through the small cap alone.
+  V1B (100k, 1.5k unbypassed) drives the Fender stack with the middle cap on the middle pot's wiper
+  (`FenderParts.MidWiperStack`), 220k to V2A's grid, where the Drive pot shunts to ground on the Drive channel and
+  a fixed 6.8k pad does on the Normal one; V2A (100k, 1.5k ‖ 22 µF), 0.022 µF and 330k to the master node, which
+  the Master shunts to ground on the Drive channel. The drawings' test points (1 kHz, Drive, controls at half)
+  check the chain: 222 mV at V1A's plate, 155 mV at V1B's grid (166 here), 3.01 V at its plate, 43.3 mV at V2A's
+  grid and 2.48 V at its plate. The inverter is the Hot Rod Deluxe's with the drawn 91k/100k plates (the 9.1k that
+  taps V3A's side 9 % down is left out) and the drawn supply: 427 V B+ (DeVille 471), 425 V screens, 370 V (413)
+  inverter, 321 V (364) preamp. Guessed: 30 mA a tube, the 4.25k primary (half for the DeVille's four), and which
+  input relay contact is the Normal channel, inferred from what each channel has to do.
+
 ### 3.2 Marshall and British
 
 **JTM45** — Marshall reissue drawing JTM45.DGM issue 7: https://el34world.com/charts/Schematics/files/Marshall/Marshall_jtm45_readable.pdf
@@ -835,6 +850,30 @@ machine at a load average of 150–210, where the Plexi read 8.4–10.7 / 15.0�
   now takes a plain cathodyne behind a loop stage); panels, sweeps, audible controls, monotonic gain, the FAC's steps
   and the HF Drive in `BritishVintageAmpTests`.
 
+- **JCM900 SL-X 2100 and 2500** (`Slx.cs`), from Marshall SLXa-61-02 iss 5 (preamp), 2100-60-34 iss 10 (EL34 power
+  amp) and 2100-60-02 iss 9. Five ECC83 stages: V1a (220k, 2k7 ‖ 1 µF, 100 pF plate to cathode), 22 nF and
+  4k7 ‖ 47 nF onto the 1M Gain with 1 nF across its top, a stage with 100k ‖ 1 nF and 820 Ω, a 220k/220k divider,
+  a 27k stage, 22 nF and 470k ‖ 470 pF onto the 1M Volume, and a 220k stage DC-coupled to the 100k follower that
+  drives the stack (470 pF, 33k, 22 nF, 22 nF; 220k, 220k, 22k). Then 680k onto 68k, the TL072 send buffer, the
+  loop, the return amp (220k ‖ 10 pF) and one of two master stages (150k in, the 1M master pot as feedback), which
+  Switch 1 picks. The sheets name their wires by tube pin and not by stage, so the order above is inferred: it is
+  the one that uses every drawn part once and leaves the two 1M audio pots as the amp's Gain and Volume. Guessed:
+  the rails (300 V preamp, 330 V inverter, 470 V B+, as the JCM900 Dual Reverb), 40 mA idle, the 1.7k and 3.2k
+  primaries, and the feedback (100k from the 16 Ω tap into 4k7 with the 22k Presence and 0.1 µF: the power sheet
+  draws the shunt and the Presence but no feedback resistor).
+- **Laney VH100R** (`LaneyVH100R.cs`), both channels on Switch 1 (on: Clean), from Laney 2385 iss 6 ("VH100R
+  overdrive & output diagram") and 2386 iss 4 ("VC50/VC100/VH100R clean & FX circuit"). Overdrive: V1A (100k,
+  2k7 ‖ 680 nF, 47 pF plate to cathode), 4.7 nF and 4.7 nF with 1M and 220k to ground onto the 1M Drive, 68k into
+  V1B (100k, 2k7 ‖ 680 nF), 22 nF and 68k into the V2A cold clipper (100k, 10k unbypassed), 22 nF and a
+  470k ‖ 470 pF / 470k divider into V2B (100k, 820 Ω), DC-coupled to the V5B follower (100k) whose cathode drives
+  the overdrive stack (470 pF, 33k, 220 nF, 22 nF; 220k, 1M, 22k) and the 1M Master through 680k. Clean: V3A (100k,
+  1k5 ‖ 2.2 µF) with its own stack (220 pF ‖ 47 pF, 100k, 100 nF, 47 nF; 220k, 100k, 22k), the Bright switch's
+  100 pF across the 1M Clean Volume, 68k into V3B (100k, 820 Ω), and the same follower with the overdrive stack
+  relayed out. The sheets print the plate voltages the rails are built for (206, 211, 253, 168, 320 V; the
+  inverter's 230 and 220 V on 350 V). Inferred: that the channel relay drawn at the overdrive stack takes it out on
+  the clean channel, and that the two sheets meet at the follower. Guessed: 480 V B+, 35 mA a tube, the 1.9k
+  primary and the feedback tap; the reverb, the loop and the Resonance pads are not modelled.
+
 ### 3.3 Vox and class-A boutique
 
 **AC30 Top Boost** — https://www.ampbooks.com/mobile/classic-circuits/vox-ac30/, https://www.voxac30.org.uk/vox_ac30_top_boost_circuit.html (JMI OS/010 drawing images on that site)
@@ -1065,6 +1104,30 @@ Splawn Nitro row stays waiting.
   35.0 % (2.0 / 2.25 × Plexi), 3rd gear with OD2 19.7 / 34.0 %, clean 11.1 / 24.3 %. **Over the high-gain budget by
   choice** (16 / 28 %): the three-triode cut fitted it (15.0 / 25.8 %) at −29 dB in 3rd gear, and the user chose
   accuracy, as for the Silver Jubilee's noise case. Both first netlists take chord steps and a 1e-5 tolerance.
+
+- **Soldano Hot Rod 100 and 50** (`SoldanoHotRod.cs`), both channels on Switch 1 (on: Normal), from the three
+  Soldano sheets of 5 July 1996 (preamp and driver; the Reverb-O-Sonic tone controls and power amp; the Hot Rod
+  100+ supply). The SLO-100's chain with its own values: V1A (220k, 1k8 ‖ 1 µF), 0.02 µF to both gain networks
+  (Overdrive 0.001 µF and 470 pF around the 1M pot, Normal 1M in series with 250 pF to ground onto its own 1M pot),
+  470k into V2A (100k, 1k8 ‖ 1 µF), 0.02 µF and 470k into the V2B cold clipper (100k with 0.001 µF across it, 39k),
+  0.02 µF through the channel optocoupler onto 330k and 220k into V3A (220k, 1k8 ‖ 1 µF), the V3B send follower
+  (100k + 2k2), the return stage V4A (100k, 2k2) and the V4B follower on the Soldano stack (470 pF, 47k, 0.02 µF,
+  0.02 µF; 250k, 1M, 25k) and the 1M Overdrive Master. Power amp as drawn: 82k/100k inverter plates, 470 Ω bias,
+  10k tail on the 4k7 feedback shunt, 0.02 µF coupling, 220k leaks, 2k2 stoppers, 470 Ω screens, 39k of feedback
+  and the 25k Presence with 0.1 µF. Inferred: that the SSB switch is the channel switch. Guessed: the rails (490 V
+  B+ and the SLO-100 drawing's 380/360/350 V nodes under the drawn 10k and two 15k), 40 mA idle and the 2.2k and
+  4.4k primaries.
+- **Mesa/Boogie Mark I** (`MarkI.cs`), from Mesa's hand-drawn "MARK I" sheet, which carries the whole amp. Four
+  stages: V1 (100k, 1.5k ‖ 22 µF) onto the 1M Volume 1, V2 (100k, 1.5k ‖ 22 µF) with the Fender stack on its plate
+  (250 pF, 100k, 0.1 µF, 0.047 µF; 250k, 250k, 10k) whose middle pot's foot the Gain Boost footswitch lifts off
+  ground (Switch 1), 100k into V3 (100k, 1.5k ‖ 22 µF) onto the 1M Volume 2 with 110 pF across its top, and V4
+  (100k, 820 Ω ‖ 22 µF, 820k leak) through 0.047 µF and 220k onto the 1M Master. Then 0.001 µF into the long-tail
+  pair (82k/100k, 430 Ω, 1M grid leaks) and four 6L6 at 450 V with 470 Ω screens, 56k of feedback into 10k and the
+  10k Presence with 0.1 µF. The sheet prints three plate voltages (115 V at V1 and V2, 195 V at V4) and the
+  supply's nodes (450 V, 6.6k to the driver's 295 V, 10k to the preamp's 260 V). Inferred, the sheet being a
+  freehand sketch: the coupling cap into Volume 2 (0.047 µF; only the 110 pF bright cap is drawn there, and it
+  cannot be the coupling cap) and the 10k tail. Guessed: 35 mA idle, the 2.1k primary and the pot tapers. The
+  graphic equaliser, the reverb and the 60/100 W switch are not modelled.
 
 ### 3.5 Bass and solid state (tier 2)
 

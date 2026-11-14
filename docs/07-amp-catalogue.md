@@ -14,7 +14,7 @@ Every real amp we model, plan to model, or might model, with where it stands in 
 - Add a capture you found to `engine/tests/assets/references/manifest.json` (see `docs/06-amp-modelling-spec.md` §4).
   Tone3000 ("T3K" licence) and CC BY-NC files are local-only: never commit them.
 
-Last updated: 2026-11-11 (122 types, through the AC15C1; duplicate rows merged and the counts redone; a row for each amp issue #357 to #509, a status for each variant the wiki names, and the AC15 and Dr Z Route 66 drawings read).
+Last updated: 2026-11-14 (130 types, through the Laney VH100R; the Blues Deluxe and DeVille, the Mesa Mark I, the JCM900 SL-X 2100 and 2500, the Soldano Hot Rod 100 and 50 and the Laney VH100R read from their factory drawings and built).
 
 ## Status key
 
@@ -44,6 +44,7 @@ Last updated: 2026-11-11 (122 types, through the AC15C1; duplicate rows merged a
 | Bassman 5F6-A | ✅ Done (the stack's treble wiper straight into the inverter: no master; presence pot as the tail's shunt) | Bassman 5F6-A, Jumped | — | Any 5F6-A / reissue, jumpered and single channel | 4x10 open, Jensen P10Q |
 | Tweed Deluxe 5E3 | ✅ Done (6V6s on the drawing's shared 250 Ω cathode resistor) | Tweed Deluxe 5E3, Jumped | T3K: 5E3 kit clone | Volume sweep, both inputs | 1x12 open, Jensen P12R/P12Q |
 | Hot Rod Deluxe (III, Fender drawing 0079604000 rev B) | ✅ Done | Hot Rod Deluxe | — | Any direct-out capture (Drive and Normal, More Drive) | 1x12 open, Celestion G12P-80 |
+| Fender Blues Deluxe / Blues DeVille | ✅ Done, both channels (Fender's drawings 047019 rev D and 047003 rev E, schematicheaven scans; the sheets' printed test points check the chain from the jack to V2A's plate within a decibel; which input relay contact is the Normal channel is inferred from what each channel has to do, and the idle current and OT primary are guessed; the reverb, the effects loop and the output zeners are not modelled; #394) | Blues Deluxe, Blues DeVille (Switch 1 the Normal channel) | — | A direct-out capture of either with stated settings | 1x12 / 4x10 open |
 | Champ 5F1 | ✅ Done | Champ 5F1 | — | Volume sweep, direct out | 1x8 open |
 | Champ AA764 / Vibro Champ AA764 | ✅ Done, the Champ (Fender drawing AA764, code I-FD: the blackface stack with a fixed 15k, 2.7k feedback into V1B's 47 Ω, 6V6 on 470 Ω at 360 V). The Vibro Champ is the same amp with a tremolo that swings V1B's cathode, which the stage library does not have: not built | Champ AA764 | — | Volume sweep, direct out | 1x8 open |
 | Vibroverb AB763 | ✅ Done (optical vibrato with Speed and Intensity, the Intensity pot's 50k track in the mixer) | Vibroverb AB763 | — | Direct out, both channels | 1x15 open |
@@ -76,6 +77,8 @@ Last updated: 2026-11-11 (122 types, through the AC15C1; duplicate rows merged a
 | Marshall Major 1967 | ✅ Done (Unicord drawing 70-02-12, July 1970, DrTube `1967u.gif`; both channels, V2A and its tone stack inside the feedback loop via `LoopStageDesign`, cathodyne plus ECC82 push-pull driver via `CathodyneDriverDesign`, ultralinear KT88s; B+, idle, OT and UL tap guessed. No redistributable capture found: GuitarML ToneLibrary and pelennor2170/NAM_models have none) | Major 1967 | — | Any capture | 4x12 closed |
 | Marshall DSL / JCM2000 | ✅ Done, DSL100 both channels with Clean/Crunch and Lead 1/Lead 2, Tone Shift and Deep (DrTube JCM2-60-02 iss 9 main board and JCM2-61-00 iss 5 front panel, vector; the boards' wiring traced from the connector cross-references printed on both sheets, confirmed by JCM2-60-00 iss 1 of 1997; JCM2-68-02 was not needed) | DSL100 | GPL: pelennor "Tim R JCM2000 Clean / Crunch / L2 G6 / L2 G8" (DSL or TSL not stated; not added) | A DSL direct-out capture with stated settings | 4x12 closed |
 | Marshall JCM2000 TSL100 | ✅ Done, Clean, Crunch and Lead with Mid Boost, Tone Shift and Deep (DrTube TL10-60-02 iss 7 main board, TL10-61-02 iss 4 overdrive front board, TL10-65-02 iss 4 Clean board, TL10-66-01 iss 2 Crunch board, TL10-62-02 iss 6 rear board, TL10-63-02 iss 4 reverb board, vector, and the 2004 handbook; these sheets print no connector cross-references, so the wiring between the boards is inferred from pin counts, grounds and function; no voltages printed, the rails derived from the drawn supply chain under a guessed 470 V B+; #368) | TSL100 | GPL: pelennor "Tim R JCM2000" captures (DSL or TSL not stated; not added) | A TSL direct-out capture with stated settings | 4x12 closed |
+| Marshall JCM900 SL-X (2100 / 2500) | ✅ Done, the single channel with both master stages (Marshall SLXa-61-02 iss 5 preamp, 2100-60-34 iss 10 power amp and 2100-60-02 iss 9; the sheets name their wires by tube pin and not by stage, so the order of the five ECC83 stages is inferred from the parts; rails, idle current, the transformers and the feedback resistor guessed; #425) | JCM900 SL-X 2100, JCM900 SL-X 2500 (Switch 1 plays Master B) | — | A direct-out capture with stated settings | 4x12 closed |
+| Laney VH100R | ✅ Done, both channels (Laney drawings 2385 iss 6 and 2386 iss 4, with the plate voltages they print; that the clean channel joins at the shared follower and that the channel relay takes the overdrive stack out are inferred; B+, idle, OT and the feedback tap guessed; the reverb, the loop and the Resonance pads are not modelled; #392) | VH100R (Switch 1 the Clean channel) | — | A direct-out capture with stated settings | 4x12 closed |
 | Marshall Bluesbreaker 1962 | ✅ Done (reissue drawing "1962 STD" issues 3 and 4, DrTube `1962ri89.gif` and `1962ri93.gif`: both channels and the jumper; the tremolo on Speed and Intensity: a J174 FET on the Intensity pot's wiper chops Channel II at the rate of the drawing's oscillator, 2.0 to 4.7 Hz, #291; the RV2 preset's setting, which the drawing does not give, is taken where the FET is open at rest; presence pot as the tail's shunt) | Bluesbreaker 1962 | — | Any capture (no GPL one found) | 2x12 open |
 | Hiwatt Custom 50 / DR504 | ✅ Done (the DR103's four-input preamp redraw with hiwatt.org's 50 W output and supply redraws; `DR504OL.gif` is a complete 1983 two-input DR504 with voltages, a later circuit with an extra gain stage, used only for the rails) | Hiwatt DR504 | — | Normal/Brilliant, jumpered | 4x12 closed, Fane |
 
@@ -108,6 +111,8 @@ Last updated: 2026-11-11 (122 types, through the AC15C1; duplicate rows merged a
 | Amp | Status | Cathode type | References we have | Look for | Typical cab |
 |---|---|---|---|---|---|
 | Soldano SLO-100 | ✅ Done | SLO-100: OD channel; Switch 1 the normal channel (Crunch, Bright) | GPL: Soldano crunch and high (model not stated); T3K: SLO-100 pack | Normal channel clean and crunch captures; OD gain sweep | 4x12 closed, Vintage 30 / G12T-75 |
+| Soldano Hot Rod 50 / 100 | ✅ Done, both channels (the three Soldano sheets of 5 July 1996 on schematicheaven; the SSB switch is read as the channel switch, the rails are taken from the SLO-100's 1996 drawing of the same supply, and the idle current and transformers are guessed; the "+" versions' Clean and Crunch volumes, the reverb and the loop are not modelled; #412) | Hot Rod 100, Hot Rod 50 (Switch 1 the Normal channel) | GPL: the Soldano crunch and high captures are fitted on the SLO-100 type | A Hot Rod capture with stated settings | 4x12 closed |
+| Mesa/Boogie Mark I | ✅ Done (Mesa's hand-drawn "MARK I" sheet: the four-stage preamp with its three printed plate voltages, the driver, the output stage, the feedback network and the supply's four nodes; the coupling cap into Volume 2 and the driver's 10k tail are inferred from a freehand drawing, and the idle current, the OT and the pot tapers are guessed; the graphic equaliser, the reverb and the 60/100 W switch are not modelled; #427) | Mark I (Switch 1 Gain Boost) | — | A direct-out capture with stated settings | 1x12 closed, Altec 417 |
 | Mesa/Boogie Mark IIC+ | ✅ Done (presence: the rheostat in series with the feedback, as drawn) | Mark IIC+, lead (Switch 1 Treble Shift, Switch 2 Deep, Switch 3 Bass Shift; Bright is Volume 1's and the Lead Master's pull together); Mark IIC+ Rhythm, the rhythm channel from the factory scan (the same amp without the lead circuit and the lead master) | GPL: IIC+ Drive-knob model, IIC+ Drive 8; T3K: IIC+ pack | EQ in and out, Lead Drive sweep | 1x12 / 4x12 closed, EVM12L / Vintage 30 |
 | Peavey 5150 / 6505 | ✅ Done (lead and rhythm; the supply page unread, its preamp rails derived from the assumed chain) | 5150: lead channel; Switch 1 the rhythm channel (Switch 2 Crunch, Bright) | GPL: 5150 block letter; 6505+ red (two sources: the 6505+ is the 5150 II, a later amp with a changed preamp and now types of its own, the row below; the two captures were fitted on the 5150 type and stay there until they are refitted) | The rhythm channel (#201) is read from the factory "Initial Preamp Stage" and "Intermediate Preamp Stages" pages: K2A takes V1B's input from the Clean Pre (pin 3) or the Ultra Pre (pin 4), K2B the post gain; K4 is Crunch (pin 3: R19 470k ‖ 270 pF in series and R23 39k + 0.1 µF to ground at the Clean Pre's top; pin 4: R43 2.2M ‖ 470 pF and no shunt, 22 dB more at 1 kHz in the model); the Bright switch S1C puts C10 470 pF across R21 1M; K1 grounds C26 (22 µF on V1B's cathode) and R20 (220k at V2A's grid). The switching page is still not among the excerpts; that K1 is closed on the rhythm channel and open on the lead is read from the scan's relays all being drawn on pins 3 and 6 (K2's are the Clean wipers), from Peavey's 5150 combo sheet (99057001, 1995: the pre-gain relay and the relay grounding the 220k at V2A's grid have their coils in series with the lead LED) and from a forum note on what R20 and C26 are for (music-electronics-forum threads 909929 and 24157). Read with doubt: R23, C63, and C27 (180 pF across the Clean Pre). Still wanted: the head's supply and switching pages; captures of a 5150 or 6505 (not a 6505+) with settings, both channels | 4x12 closed, Sheffield / Vintage 30 |
 | Peavey 5150 II / 6505+ | ✅ Done (both channels, from Peavey's factory set: the 2001 preamp drawing P9700041 with its bill of materials, and the power board P9000115; the drawing prints no voltages, so B+, the idle current and the output transformer are the 5150 model's, and the rails follow from the drawn dropping chain) | 6505+, lead; 6505+ Rhythm, the rhythm channel (Switch 1 Crunch, Bright) | GPL: 6505+ red, two sources, still fitted on the 5150 type (see that row) | The two 6505+ red captures refitted on the 6505+ type; a voltage chart (B+, the three preamp rails, the bias); rhythm and crunch captures with settings | 4x12 closed, Sheffield / Vintage 30 |
@@ -204,15 +209,15 @@ number of types.
 
 | Status | Rows |
 |---|---|
-| ✅ Done (95, two of them partly), done as a variant of another model (1), or covered by another type (1) | 97 |
+| ✅ Done (100, two of them partly), done as a variant of another model (1), or covered by another type (1) | 102 |
 | 🔨 In progress | 0 |
-| 📋 Planned (schematic found, not built yet), 53 of them rows of the issues table | 53 |
+| 📋 Planned (schematic found, not built yet), 48 of them rows of the issues table | 48 |
 | ⏸ Waiting on a schematic or better data, 16 of them rows of the issues table | 69 |
 | 💤 Not planned (not researched yet) | 2 |
 
 ### Circuit Amp types by index
 
-The Circuit Amp block has 122 types. The "Cathode type" column above names them; this is their order in the Type list.
+The Circuit Amp block has 130 types. The "Cathode type" column above names them; this is their order in the Type list.
 
 | # | Type | # | Type | # | Type |
 |---|---|---|---|---|---|
@@ -256,9 +261,16 @@ The Circuit Amp block has 122 types. The "Cathode type" column above names them;
 | 37 | SVT | 78 | Vibrolux 6G11 | 119 | Thunderbolt S6420 |
 | 38 | Portaflex B-15N | 79 | Bassman 135 | 120 | Twin Twelve 1484 |
 | 39 | JC-120 | 80 | Scout GA-17RVT | 121 | AC15C1 |
-| 40 | Hot Rod Deluxe | 81 | Major 1967 |  |  |
+| 40 | Hot Rod Deluxe | 81 | Major 1967 | 122 | Blues Deluxe |
+|  |  |  |  | 123 | Blues DeVille |
+|  |  |  |  | 124 | Mark I |
+|  |  |  |  | 125 | JCM900 SL-X 2100 |
+|  |  |  |  | 126 | JCM900 SL-X 2500 |
+|  |  |  |  | 127 | Hot Rod 100 |
+|  |  |  |  | 128 | Hot Rod 50 |
+|  |  |  |  | 129 | VH100R |
 
-Types 81 to 121, the newest, are:
+Types 81 to 129, the newest, are:
 
 | # | Type | Family | Modelled after |
 |---|---|---|---|
@@ -303,6 +315,14 @@ Types 81 to 121, the newest, are:
 | 119 | Thunderbolt S6420 | Supro | Supro Thunderbolt S6420 (1966), Volume and Tone |
 | 120 | Twin Twelve 1484 | Silvertone | Silvertone 1484 Twin Twelve (Sears / Danelectro, 1960s), both channels |
 | 121 | AC15C1 | Vox | Vox AC15C1 (Custom), Top Boost and Normal inputs |
+| 122 | Blues Deluxe | Fender | Fender Blues Deluxe (40 W, 1 x 12), Drive and Normal channels |
+| 123 | Blues DeVille | Fender | Fender Blues DeVille (60 W, 4 x 10), the same preamp on higher rails |
+| 124 | Mark I | Mesa/Boogie | Mesa/Boogie Mark I (100 W), the four-stage preamp with the Gain Boost footswitch |
+| 125 | JCM900 SL-X 2100 | Marshall | Marshall JCM900 SL-X 2100 (100 W), the all-valve JCM900 with two masters |
+| 126 | JCM900 SL-X 2500 | Marshall | Marshall JCM900 SL-X 2500 (50 W), the same preamp |
+| 127 | Hot Rod 100 | Soldano | Soldano Hot Rod 100 (the single-channel SLO), Overdrive and Normal |
+| 128 | Hot Rod 50 | Soldano | Soldano Hot Rod 50, the same preamp with two 6L6GC |
+| 129 | VH100R | Laney | Laney VH100R (100 W), Overdrive and Clean channels |
 
 Match quality against the references is in `docs/06-amp-modelling-spec.md` (as-built notes per family) and in the
 manifest's targets. Only the Prometheus clean channel reaches the spec's ESR target; captures with stated knob settings
@@ -521,9 +541,9 @@ an issue is built, give the amp a row in its family's table above, with the type
 | [#389](https://github.com/Rikarin/cathode/issues/389) | Hiwatt DR201 (200 W) | British | New amp | medium | available | 📋 Planned | 4x12 / 4x15, Fane |
 | [#390](https://github.com/Rikarin/cathode/issues/390) | Laney Supergroup 100 (LA100BL, Mk1) | British | New amp | medium | available | 📋 Planned | 4x12 closed |
 | [#391](https://github.com/Rikarin/cathode/issues/391) | Laney AOR Pro-Tube 50 / 100 | British | New amp | medium | available | 📋 Planned | 4x12 closed |
-| [#392](https://github.com/Rikarin/cathode/issues/392) | Laney VH100R | British | New amp | medium | available | 📋 Planned | 4x12 closed |
+| [#392](https://github.com/Rikarin/cathode/issues/392) | Laney VH100R | British | New amp | medium | available | ↪ See its row above | 4x12 closed |
 | [#393](https://github.com/Rikarin/cathode/issues/393) | Sound City 50 Plus / 120 | British | New amp | medium | available | 📋 Planned | 4x12 closed, Fane |
-| [#394](https://github.com/Rikarin/cathode/issues/394) | Fender Blues Deluxe / Blues DeVille (and Hot Rod DeVille) | Fender | New amp | medium | available | 📋 Planned | 1x12 / 2x12 / 4x10 open |
+| [#394](https://github.com/Rikarin/cathode/issues/394) | Fender Blues Deluxe / Blues DeVille (and Hot Rod DeVille) | Fender | New amp | medium | available | ↪ See its row above | 1x12 / 2x12 / 4x10 open |
 | [#395](https://github.com/Rikarin/cathode/issues/395) | Fender Super-Sonic 22 / 60 | Fender | New amp | medium | available | 📋 Planned | 1x12 open |
 | [#396](https://github.com/Rikarin/cathode/issues/396) | Fender Showman / Dual Showman AB763 (and Dual Showman Reverb AA769) | Fender | Variant | medium | available | 📋 Planned | 1x15 / 2x15 closed, JBL D130F |
 | [#397](https://github.com/Rikarin/cathode/issues/397) | Fender Pro Reverb AA165 | Fender | Variant | medium | available | 📋 Planned | 2x12 open |
@@ -541,7 +561,7 @@ an issue is built, give the amp a row in its family's table above, with the type
 | [#409](https://github.com/Rikarin/cathode/issues/409) | Peavey JSX | High gain | New amp | medium | partial | ⏸ Waiting | 4x12 closed |
 | [#410](https://github.com/Rikarin/cathode/issues/410) | Peavey Triple XXX / 3120 | High gain | New amp | medium | available | 📋 Planned | 4x12 closed |
 | [#411](https://github.com/Rikarin/cathode/issues/411) | Peavey Invective 120 | High gain | New amp | medium | partial | ⏸ Waiting | 4x12 closed |
-| [#412](https://github.com/Rikarin/cathode/issues/412) | Soldano Hot Rod 50 / 100 (and Avenger) | High gain | New amp | medium | available | 📋 Planned | 4x12 closed |
+| [#412](https://github.com/Rikarin/cathode/issues/412) | Soldano Hot Rod 50 / 100 (and Avenger) | High gain | New amp | medium | available | ↪ See its row above | 4x12 closed |
 | [#413](https://github.com/Rikarin/cathode/issues/413) | Bogner Ecstasy 100B / 101B (and 20th Anniversary) | High gain | New amp | medium | partial | ↪ See its row above | 4x12 closed |
 | [#414](https://github.com/Rikarin/cathode/issues/414) | Bogner Uberschall | High gain | New amp | medium | partial | ↪ See its row above | 4x12 closed |
 | [#415](https://github.com/Rikarin/cathode/issues/415) | Diezel VH4 | High gain | New amp | medium | partial | ↪ See its row above | 4x12 closed, Vintage 30 |
@@ -554,9 +574,9 @@ an issue is built, give the amp a row in its family's table above, with the type
 | [#422](https://github.com/Rikarin/cathode/issues/422) | Marshall 1986 Bass 50 W (and Park 75) | Marshall | New amp | medium | available | 📋 Planned | 4x12 closed |
 | [#423](https://github.com/Rikarin/cathode/issues/423) | Marshall 6100 30th Anniversary (and 6100LM) | Marshall | New amp | medium | available | 📋 Planned | 4x12 closed |
 | [#424](https://github.com/Rikarin/cathode/issues/424) | Marshall 2061X / 2061 Lead & Bass 20 | Marshall | New amp | medium | partial | ⏸ Waiting | 2x12 closed |
-| [#425](https://github.com/Rikarin/cathode/issues/425) | Marshall JCM900 SL-X 2100 / 2500 | Marshall | New amp | medium | available | 📋 Planned | 4x12 closed |
+| [#425](https://github.com/Rikarin/cathode/issues/425) | Marshall JCM900 SL-X 2100 / 2500 | Marshall | New amp | medium | available | ↪ See its row above | 4x12 closed |
 | [#426](https://github.com/Rikarin/cathode/issues/426) | Marshall 2203 with the Jose Arredondo mod (and 'SIR #36') | Marshall | Variant | medium | partial | ⏸ Waiting | 4x12 closed |
-| [#427](https://github.com/Rikarin/cathode/issues/427) | Mesa/Boogie Mark I | Mesa | New amp | medium | available | 📋 Planned | 1x12 closed, Altec 417 |
+| [#427](https://github.com/Rikarin/cathode/issues/427) | Mesa/Boogie Mark I | Mesa | New amp | medium | available | ↪ See its row above | 1x12 closed, Altec 417 |
 | [#428](https://github.com/Rikarin/cathode/issues/428) | Mesa/Boogie Mark III | Mesa | New amp | medium | partial | ⏸ Waiting | 1x12 / 4x12 closed |
 | [#429](https://github.com/Rikarin/cathode/issues/429) | Mesa/Boogie Trem-O-Verb | Mesa | New amp | medium | available | 📋 Planned | 2x12 / 4x12 closed |
 | [#430](https://github.com/Rikarin/cathode/issues/430) | Mesa/Boogie Stiletto Deuce / Ace | Mesa | New amp | medium | available | 📋 Planned | 4x12 closed |

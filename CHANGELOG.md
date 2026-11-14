@@ -51,6 +51,15 @@ The fixes below came out of a second full audit of the code (issues #163 to #356
 
 ### Added
 
+- Amp: five amps from the missing-amp inventory, eight Circuit Amp types, each read from its factory drawing: **Blues
+  Deluxe** and **Blues DeVille** (Fender's 047019 rev D and 047003 rev E; both channels, the Volume on the Normal
+  channel and the Drive and Master on the Drive one, as the relays wire them; #394), **Mark I** (Mesa's hand-drawn
+  sheet: the four-stage preamp with the Gain Boost footswitch; #427), **JCM900 SL-X 2100** and **2500** (Marshall
+  SLXa-61-02 iss 5 and 2100-60-34 iss 10: five ECC83 stages and both master volumes, the second on Switch 1; #425),
+  **Hot Rod 100** and **Hot Rod 50** (Soldano's three 1996 sheets: the single-channel SLO with its Normal channel on
+  Switch 1; #412) and **VH100R** (Laney 2385 iss 6 and 2386 iss 4: the Overdrive and Clean channels, each with its
+  own stack; #392). What each model infers or guesses is in its own remarks, in `docs/06-amp-modelling-spec.md` and
+  in the amp catalogue.
 - Editor: the amp's Type list is in alphabetical order and has a filter field: type part of a name to find a model
   among the hundred and more.
 - Editor: the access token no longer stays in the browser's address bar once it is remembered; Settings ▸ Audio setup

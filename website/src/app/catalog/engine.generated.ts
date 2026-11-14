@@ -361,7 +361,15 @@ export const ENGINE = {
         'Supro 1624T',
         'Thunderbolt S6420',
         'Twin Twelve 1484',
-        'AC15C1'
+        'AC15C1',
+        'Blues Deluxe',
+        'Blues DeVille',
+        'Mark I',
+        'JCM900 SL-X 2100',
+        'JCM900 SL-X 2500',
+        'Hot Rod 100',
+        'Hot Rod 50',
+        'VH100R'
       ]
     },
     {

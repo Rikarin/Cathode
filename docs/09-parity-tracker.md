@@ -334,6 +334,18 @@ The last per-pedal controls of docs/08 §6.5, appended as Drive parameters 44–
 | RG5 | Channel 2's sensitivity | ⬜ | Rg100es_red_channel_has_the_bypassed_first_stage | the manual says 22 dB above channel 1 at 3 kHz, the drawing's values give 14 dB |
 | RG6 | Reverb, Low input, footswitch Both, RG100 Classic | ⏸ | — | the library has no spring tank; no RG100 Classic drawing read |
 
+## MA: amps from the rc.5 audit's missing-amp inventory (#511)
+
+| ID | Item | Status | Evidence | Notes |
+|---|---|---|---|---|
+| MA1 | Fender Blues Deluxe and Blues DeVille, both channels (#394) | ✅ | Missing_amp_chains_match_the_reference (Blues Deluxe both channels, Blues DeVille, −30 dB); Blues_deluxe_relays_give_each_channel_its_own_controls; Panels_name_the_real_controls_and_hide_the_rest | types `Blues Deluxe` and `Blues DeVille`, from drawings 047019 rev D and 047003 rev E; the printed test points check the chain to V2A's plate; which input relay contact is the Normal channel inferred; idle current and OT guessed; reverb, loop and the output zeners not modelled |
+| MA2 | Mesa/Boogie Mark I (#427) | ✅ | Missing_amp_chains_match_the_reference (Mark I, both switch settings); Mark_i_gain_boost_lifts_the_stack_and_its_bottom; Gain_and_master_are_monotonic | type `Mark I`, from Mesa's hand-drawn sheet; the coupling cap into Volume 2 and the 10k tail inferred from a freehand drawing; idle, OT and tapers guessed; the graphic EQ, the reverb and the 60/100 W switch not modelled |
+| MA3 | Marshall JCM900 SL-X 2100 and 2500 (#425) | ✅ | Missing_amp_chains_match_the_reference (SL-X, both master stages); Slx_switch_picks_which_master_stage_plays; Panels_name_the_real_controls_and_hide_the_rest | types `JCM900 SL-X 2100` and `JCM900 SL-X 2500`, from SLXa-61-02 iss 5 and 2100-60-34 iss 10; the order of the five stages inferred (the sheets name wires by tube pin); rails, idle, OT and the feedback resistor guessed |
+| MA4 | Soldano Hot Rod 100 and 50, both channels (#412) | ✅ | Missing_amp_chains_match_the_reference (Hot Rod, both channels, cut at the cold clipper's plate); Soldano_hot_rod_normal_channel_is_quieter_and_darker; Gain_and_master_are_monotonic | types `Hot Rod 100` and `Hot Rod 50`, from the three 1996 Soldano sheets; the SSB switch read as the channel switch; rails taken from the SLO-100's drawing; idle and OTs guessed; the "+" versions' Clean and Crunch volumes, the reverb and the loop not modelled |
+| MA5 | Laney VH100R, both channels (#392) | ✅ | Missing_amp_chains_match_the_reference (VH100R, clean full and overdrive cut before the cold clipper); Laney_vh100r_channels_and_bright_switch; Gain_and_master_are_monotonic | type `VH100R`, from Laney 2385 iss 6 and 2386 iss 4; the relay taking the overdrive stack out on the clean channel and the two sheets meeting at the follower are inferred; B+, idle, OT and the feedback tap guessed; the reverb, the loop and the Resonance pads not modelled |
+| MA6 | Reference captures for the six new types | ⬜ | — | none found with stated settings; the Soldano captures in the manifest are fitted on the SLO-100 type and stay there |
+| MA7 | CPU for the new high-gain types | ⬜ | — | not measured: `Cathode.Bench --amps "Hot Rod 100"`, `--amps VH100R`, `--amps "JCM900 SL-X 2100"` |
+
 ## Known open items from earlier rounds
 
 These were reported as left over or deliberately deferred, and are not assigned to a stream yet.

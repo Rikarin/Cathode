@@ -130,6 +130,14 @@ public sealed partial record AmpDesign {
         Supro1624T.Design,
         Thunderbolt.Design,
         Silvertone1484.Design,
-        AC15C1.Design
+        AC15C1.Design,
+        BluesDeluxe.Design,
+        BluesDeluxe.Deville,
+        MarkI.Design,
+        Slx.Design,
+        Slx.Head50,
+        SoldanoHotRod.Design,
+        SoldanoHotRod.Head50,
+        LaneyVH100R.Design
     ];
 }

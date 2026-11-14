@@ -39,7 +39,8 @@ Leave a few dB of headroom in *Level*; a Cab block after the amp removes them.
 
 - **Fender clean and edge-of-breakup:** Blackface, Deluxe Reverb, Twin Reverb, Super Reverb, Princeton Reverb,
   Champ AA764, Vibroverb, Vibrolux, Bandmaster, Tremolux, the brownface Concert, Super, Deluxe 6G3 and Vibrolux
-  6G11. A Twin stays clean longest; a Deluxe or Princeton breaks up early and sweetly.
+  6G11. A Twin stays clean longest; a Deluxe or Princeton breaks up early and sweetly. The Blues Deluxe and Blues
+  DeVille are the 1990s combos: a clean channel and a hotter Drive channel on one set of tone controls.
 - **Tweed (raw, compressed, early breakup):** Champ 5F1, Princeton 5F2-A, Tweed Deluxe 5E3, Bassman 5F6-A, Tweed
   Twin. The *Jumped* versions run both channels at once, the classic way to play them. The Supro 1624T belongs
   here by its sound: a small 1960s combo with no feedback that goes thick and gritty when turned up.
@@ -50,15 +51,17 @@ Leave a few dB of headroom in *Level*; a Cab block after the amp removes them.
   and OR80.
 - **Chime and class A:** AC30, AC15, AC15C1, DC-30, Chieftain, Hot Cat 30, Tiny Terror, Liverpool, Express.
 - **Smooth, vocal overdrive:** ODS 97, ODS 70s, Cornford MK50H II, Lone Star, Subway Blues.
-- **Hot-rodded British and modern rock:** Silver Jubilee, JCM900 4100 and 4502, DSL100, TSL100, JVM410H, BE-100
-  and BE-100 HBE, AFD100, Quick Rod, Laney GH100L, Hot Rod Deluxe, Classic 30.
+- **Hot-rodded British and modern rock:** Silver Jubilee, JCM900 4100 and 4502, JCM900 SL-X 2100 and 2500 (the
+  all-valve JCM900, with two master volumes), DSL100, TSL100, JVM410H, BE-100 and BE-100 HBE, AFD100, Quick Rod,
+  Laney GH100L, Laney VH100R, Hot Rod Deluxe, Classic 30.
 - **High gain:** SLO-100, 5150, 6505+ (and its rhythm channel, 6505+ Rhythm), 5150III (and its clean and crunch
   channels, 5150III Clean/Crunch), Dual Rectifier and
   Dual Rectifier 3-Ch (each with its other channels: Dual Rectifier Orange, Dual Rectifier 3-Ch Orange and Clean),
   Triple Rectifier (with Triple Rectifier Orange and Clean), Rect-o-Verb, Mark IIC+ (and its clean rhythm channel,
   Mark IIC+ Rhythm), Mark IV (and its clean and crunch channels, Mark IV Rhythm 1 and Rhythm 2), Mark V (and its
   channels 1 and 2, Mark V Clean and Mark V Crunch), TriAxis, Legacy VL100, Powerball, Savage 120 (and Savage 120
-  Clean, its clean and first crunch channel), Fireball 60, Prometheus.
+  Clean, its clean and first crunch channel), Fireball 60, Prometheus, Mark I (the first Boogie, a Fender-derived
+  four-stage preamp) and the Soldano Hot Rod 100 and 50, the single-channel SLO.
 - **Loud, clean and heavy (doom, drone, a fuzz in front):** Sunn Model T.
 - **Bass:** SVT (and its second channel, SVT Channel 2), SVT-CL, Portaflex B-15N (and both its channels jumpered, Portaflex B-15N Jumped), Bassman 135, Bass 400, Thunderbolt S6420 (a 1 x 15 bass combo that guitarists play
   for its thick, early breakup), and the solid-state GK 800RB.
