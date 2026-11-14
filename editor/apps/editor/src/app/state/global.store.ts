@@ -37,6 +37,10 @@ export class GlobalStore {
   /** The update in progress; the next waits for it (see {@link update}). */
   private updating: Promise<unknown> = Promise.resolve();
   private refreshing: Promise<void> | null = null;
+  /** A change heard of while a read was on the wire: the read goes round again (see {@link refresh}). */
+  private again = false;
+  /** Counts what has been adopted, so a read that started before the last adopt can be dropped. */
+  private generation = 0;
 
   constructor() {
     const events = inject(EventStream);
@@ -48,11 +52,19 @@ export class GlobalStore {
     inject(DestroyRef).onDestroy(() => subscriptions.forEach(s => s.unsubscribe()));
   }
 
+  /**
+   * Reads the settings. Coalesced: a burst of events (a Manual knob swept from a pedal) needs one refetch, not one
+   * each. A call while a read is on the wire queues one more read after it (however many calls come), so the store
+   * never settles on settings older than the last change it heard of.
+   */
   async refresh(): Promise<void> {
-    // Coalesce: a burst of events (a Manual knob swept from a pedal) needs one refetch, not one each.
+    this.again = true;
     this.refreshing ??= (async () => {
       try {
-        await this.notify.run(() => this.read());
+        while (this.again) {
+          this.again = false;
+          await this.notify.run(() => this.read());
+        }
       } finally {
         this.refreshing = null;
       }
@@ -107,13 +119,22 @@ export class GlobalStore {
     }
   }
 
+  /**
+   * Reads the settings, unless something newer has been adopted meanwhile: a GET the Server answered from the state
+   * before a PUT it answered first would otherwise put the old settings, and the old revision, back over them.
+   */
   private async read(): Promise<void> {
-    this.adopt(await this.connection.client.GET('/api/v1/global'));
+    const at = this.generation;
+    const result = await this.connection.client.GET('/api/v1/global');
+    if (at === this.generation) {
+      this.adopt(result);
+    }
   }
 
   /** Takes the settings a GET or PUT answered with, and their revision. */
   private adopt(result: GlobalResult): void {
     const settings = unwrap(result);
+    this.generation++;
     this.etag = result.response.headers.get('ETag');
     this.settings.set(settings);
   }

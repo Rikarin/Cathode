@@ -220,7 +220,7 @@ export class CthMeter {
     if (horizontal) {
       context.fillRect(zero, 0, 1, span);
     } else {
-      context.fillRect(0, height - zero, span, 1);
+      context.fillRect(0, height - zero - 1, span, 1); // The row at `zero` from the bottom, which is the gap.
     }
 
     context.globalAlpha = 1;

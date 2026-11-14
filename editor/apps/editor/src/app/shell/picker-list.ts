@@ -334,7 +334,8 @@ export class PickerList {
     const count = this.shown().length;
     const first = this.extra() ? -1 : 0;
     if (event.key === 'ArrowDown') {
-      this.index.set(Math.min(count - 1, this.index() + 1));
+      // Held at `first` too: with nothing shown, count - 1 is -1, the index the extra row has.
+      this.index.set(Math.max(first, Math.min(count - 1, this.index() + 1)));
     } else if (event.key === 'ArrowUp') {
       this.index.set(Math.max(first, this.index() - 1));
     } else if (event.key === 'Enter') {

@@ -142,10 +142,13 @@ export class ManageSession {
     this.put(b, first);
   }
 
-  /** ⌘-drag: the preset goes to the target slot; the source slot empties. */
+  /**
+   * ⌘-drag: the preset goes to the target slot; the source slot empties. A factory bank takes nothing, so the
+   * source keeps the preset instead of losing it to a slot that ignores the write.
+   */
   move(from: SlotRef, to: SlotRef): void {
     const id = this.at(from);
-    if (id === null || (from.bank === to.bank && from.slot === to.slot)) {
+    if (id === null || this.isFactoryBank(to.bank) || (from.bank === to.bank && from.slot === to.slot)) {
       return;
     }
 
@@ -258,8 +261,10 @@ export class ManageSession {
         this.copies.splice(copy, 1);
       } else {
         this.deleted.add(id);
-        this.meta.delete(id);
       }
+
+      // Either way its metadata goes: a copy that is gone must not be named or coloured on Save.
+      this.meta.delete(id);
 
       for (const bank of this.banks) {
         bank.slots.forEach((slot, i) => slot === id && this.put({ bank: bank.id, slot: i }, null));

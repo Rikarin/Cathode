@@ -81,9 +81,14 @@ export class ConnectionService {
   /** Keeps a token typed in the browser for this Server; the next {@link connect} uses it. */
   useToken(token: string): void {
     const baseUrl = this.connection()?.baseUrl;
-    if (baseUrl && !rememberToken(baseUrl, token.trim())) {
-      // Nothing is kept in this browser, so the address carries it (and replaces a token it still has, which wins).
-      replaceAddress(window, addressWithToken(window.location.href, token.trim()));
+    if (!baseUrl) {
+      return;
+    }
+
+    const kept = rememberToken(baseUrl, token.trim());
+    replaceAddress(window, addressAfterToken(window.location.href, token.trim(), kept));
+    if (kept) {
+      this.tokenInAddress.set(false);
     }
   }
 
@@ -113,6 +118,16 @@ export function fromLocation(
 /** The Server marks the editor it serves, so the page talks to the origin it came from. */
 function servedByServer(document: Document): boolean {
   return document.querySelector('meta[name="cathode-server"]')?.getAttribute('content') === 'same-origin';
+}
+
+/**
+ * What the address should become once `token` has been typed: without a token when the browser kept it (the address
+ * wins over storage in {@link fromLocation}, so a stale one left there by {@link ConnectionService.showTokenInAddress}
+ * would be used instead of the new token, and written back over it), and with it when nothing is kept here, because
+ * the address is then the only place that has it. Null leaves the address alone.
+ */
+export function addressAfterToken(href: string, token: string, kept: boolean): string | null {
+  return kept ? addressWithoutToken(href) : addressWithToken(href, token);
 }
 
 /** `href` with `token` as its `token` query parameter, or null when it already has it; the hash (the route) is kept. */

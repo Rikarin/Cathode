@@ -139,8 +139,12 @@ export class ScopeDialog {
       const key = JSON.stringify(settings);
       const sendScope = scope !== this.sent.scope;
       const sendRta = rta !== this.sent.rta || (rta && key !== this.sent.settings);
-      this.sent = { scope, rta, settings: rta ? key : this.sent.settings };
-      this.send(sendScope ? scope : null, sendRta ? { enabled: rta, ...settings } : null);
+      this.send(
+        sendScope ? scope : null,
+        sendRta ? { enabled: rta, ...settings } : null,
+        // Only once the Server has it: a request that failed must be sent again, not remembered as landed.
+        () => (this.sent = { scope, rta, settings: rta ? key : this.sent.settings })
+      );
     });
     // A reconnect means the Server released what this client had on (its socket closed): turn it on again.
     this.events.connected$.pipe(takeUntilDestroyed()).subscribe(() => {
@@ -152,12 +156,14 @@ export class ScopeDialog {
     });
   }
 
-  /** Sends the scope's on or off and the RTA's request, each only when given. */
+  /** Sends the scope's on or off and the RTA's request, each only when given; `sent` runs once both have landed. */
   private send(
     scope: boolean | null,
-    rta: { enabled: boolean; bandsPerOctave: number; decayMs: number; window: string } | null
+    rta: { enabled: boolean; bandsPerOctave: number; decayMs: number; window: string } | null,
+    sent?: () => void
   ): void {
     if (scope === null && rta === null) {
+      sent?.();
       return;
     }
 
@@ -170,6 +176,8 @@ export class ScopeDialog {
       if (rta !== null) {
         await this.connection.client.PUT('/api/v1/rta', { params: { query }, body: rta });
       }
+
+      sent?.();
     });
   }
 }

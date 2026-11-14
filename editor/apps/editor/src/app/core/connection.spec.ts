@@ -1,4 +1,4 @@
-import { addressWithToken, addressWithoutToken, fromLocation } from './connection';
+import { addressAfterToken, addressWithToken, addressWithoutToken, fromLocation } from './connection';
 
 const at = (search: string, origin = 'http://rig.local:5180') => ({ search, origin });
 
@@ -47,5 +47,24 @@ describe('addressWithoutToken', () => {
   it('leaves an address without a token alone', () => {
     expect(addressWithoutToken('http://rig.local:5180/#/perform')).toBeNull();
     expect(addressWithoutToken('http://rig.local:5180/?server=http://other:5180')).toBeNull();
+  });
+});
+
+describe('addressAfterToken', () => {
+  it('takes a token the browser kept out of the address, so a stale one there cannot win over it', () => {
+    expect(addressAfterToken('http://rig.local:5180/?token=old#/perform', 'new', true)).toBe(
+      'http://rig.local:5180/#/perform'
+    );
+  });
+
+  it('puts it in the address when the browser keeps nothing, replacing the one there', () => {
+    expect(addressAfterToken('http://rig.local:5180/?token=old#/', 'new', false)).toBe(
+      'http://rig.local:5180/?token=new#/'
+    );
+  });
+
+  it('leaves an address that needs no change alone', () => {
+    expect(addressAfterToken('http://rig.local:5180/#/', 'new', true)).toBeNull();
+    expect(addressAfterToken('http://rig.local:5180/?token=new#/', 'new', false)).toBeNull();
   });
 });

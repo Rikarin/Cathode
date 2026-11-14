@@ -526,7 +526,7 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
                 [items]="s.footswitches"
                 [itemText]="layoutName"
                 [value]="activeLayout()"
-                (valueChange)="save(g => (g.activeLayout = $event?.id ?? null))"
+                (valueChange)="selectLayout($event)"
               />
             </label>
             <button xuiButton variant="outline" type="button" (click)="addLayout()">
@@ -610,13 +610,13 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
               <button type="button" xuiButton size="sm" variant="ghost" (click)="saveLayout(addView(layout))">
                 <ng-icon xui name="matAddRound" size="sm" /> View
               </button>
-              @if (editingView() !== s.activeView) {
+              @if (viewShown(layout) !== s.activeView) {
                 <button
                   type="button"
                   xuiButton
                   size="sm"
                   variant="ghost"
-                  (click)="save(g => (g.activeView = editingView()))"
+                  (click)="save(g => (g.activeView = viewShown(layout)))"
                 >
                   Make active
                 </button>
@@ -978,6 +978,12 @@ export class GlobalPage {
     }
   }
 
+  /** Plays another layout, from the top: its views are not the ones the view buttons were showing. */
+  protected selectLayout(layout: FootswitchLayout | null): void {
+    this.editingView.set(0);
+    this.save(g => (g.activeLayout = layout?.id ?? null));
+  }
+
   protected addLayout(): void {
     const id = `layout-${Date.now().toString(36)}`;
     this.save(g => {
@@ -988,6 +994,9 @@ export class GlobalPage {
 
   protected addSwitch(layout: FootswitchLayout): void {
     const index = Math.max(0, ...layout.switches.map(s => s.index)) + 1;
+    // The view the table is showing, which is the editing view clamped to this layout (see switchesOnView): a
+    // switch on a view the layout does not have would never appear there.
+    const view = this.viewShown(layout);
     this.save(g => {
       g.footswitches
         .find(l => l.id === layout.id)
@@ -1000,7 +1009,7 @@ export class GlobalPage {
           tap: { action: 'scene', target: null, value: index - 1 },
           hold: null,
           led: true,
-          view: this.editingView(),
+          view,
           link: null
         });
     });
@@ -1018,7 +1027,12 @@ export class GlobalPage {
   }
 
   protected switchesOnView(layout: FootswitchLayout): Footswitch[] {
-    return layout.switches.filter(s => s.view === Math.min(this.editingView(), viewNames(layout).length - 1));
+    return layout.switches.filter(s => s.view === this.viewShown(layout));
+  }
+
+  /** The editing view, held to the views `layout` has: another layout may have fewer than the one before it. */
+  protected viewShown(layout: FootswitchLayout | null): number {
+    return layout ? Math.min(this.editingView(), viewNames(layout).length - 1) : 0;
   }
 
   protected linkOf(fs: Footswitch): FootswitchLayout | null {

@@ -1,4 +1,5 @@
 import { signal } from '@angular/core';
+import type { PresetBlock } from '@cathode/api-client';
 import { TestBed } from '@angular/core/testing';
 import { EventStream } from '../core/events';
 import { ShortcutService } from '../shell/shortcuts';
@@ -8,7 +9,7 @@ import { GlobalStore } from '../state/global.store';
 import { LiveStore } from '../state/live.store';
 import { UiStore } from '../state/ui.store';
 import { inlet } from './geometry';
-import { GridEditor } from './grid-editor';
+import { GridEditor, dropAction } from './grid-editor';
 
 describe('GridEditor shortcuts', () => {
   beforeAll(() => {
@@ -716,5 +717,34 @@ describe('GridEditor drop, paste and wire', () => {
       expect(host.querySelector('[data-testid=outlet-out1]')).toBeNull();
       expect(host.querySelector('[data-testid=outlet-out2]')).toBeNull();
     });
+  });
+});
+
+describe('dropAction', () => {
+  const block = (id: string, type: string): PresetBlock => ({
+    id,
+    type,
+    row: 0,
+    column: 0,
+    channels: {},
+    assets: {},
+    bypassMode: 'thru',
+    sceneIgnore: []
+  });
+  const plain = { altKey: false, metaKey: false, ctrlKey: false };
+
+  it('never copies or replaces the grid\'s outputs, whichever of the four it is', () => {
+    for (const type of ['output', 'output2', 'output3', 'output4', 'input']) {
+      const io = block('io1', type);
+      expect(dropAction(io, null, { ...plain, altKey: true })).toBe('move');
+      expect(dropAction(io, block('d1', 'delay'), { ...plain, metaKey: true })).toBeNull();
+      expect(dropAction(block('d1', 'delay'), io, { ...plain, metaKey: true })).toBeNull();
+    }
+  });
+
+  it('still copies and replaces ordinary blocks', () => {
+    expect(dropAction(block('d1', 'delay'), null, { ...plain, altKey: true })).toBe('copy');
+    expect(dropAction(block('d1', 'delay'), block('r1', 'reverb'), { ...plain, metaKey: true })).toBe('replace');
+    expect(dropAction(block('d1', 'delay'), block('r1', 'reverb'), plain)).toBe('swap');
   });
 });

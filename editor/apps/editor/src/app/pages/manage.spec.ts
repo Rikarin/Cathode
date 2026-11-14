@@ -131,6 +131,20 @@ describe('Manage Presets', () => {
     expect(m.dirty).toBe(false);
   });
 
+  it('leaves a ⌘-drag onto a factory slot alone, instead of emptying the slot it came from', () => {
+    const banks = [
+      { id: 'factory', name: 'Factory', slots: ['f1'], factory: true },
+      { id: 'mine', name: 'Mine', slots: ['a'] }
+    ] as Bank[];
+    const m = new ManageSession(banks, [{ ...preset('f1'), factory: true }, preset('a')], () => 'new1');
+
+    m.move({ bank: 'mine', slot: 0 }, { bank: 'factory', slot: 5 });
+
+    expect(m.bank('mine').slots[0]).toBe('a'); // still there: the factory slot took nothing
+    expect(m.bank('factory').slots[5] ?? null).toBeNull();
+    expect(m.dirty).toBe(false);
+  });
+
   it('keeps the factory bank and its presets read-only, but lets them into user banks', () => {
     let n = 0;
     const banks = [
@@ -160,6 +174,18 @@ describe('Manage Presets', () => {
     expect(plan.deletes).toEqual([]);
     expect(m.isFactoryBank('factory')).toBe(true);
     expect(m.isFactory('a')).toBe(false);
+  });
+
+  it('takes a pending copy\'s metadata with it when the copy is deleted', () => {
+    const m = session();
+    m.copy({ bank: 'one', slot: 0 }, { bank: 'two', slot: 1 });
+    m.setMeta('new1', { color: 'limegreen' });
+    expect(m.plan().meta.map(([id]) => id)).toEqual(['new1']);
+
+    m.delete(['new1']);
+
+    expect(m.plan().meta).toEqual([]); // nothing to name or colour: the copy was never created
+    expect(m.plan().copies).toEqual([]);
   });
 
   it('puts its own slot changes on a bank another editor has stored since, and keeps the other slots as stored', () => {

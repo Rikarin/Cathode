@@ -126,6 +126,8 @@ export class LibraryStore {
   readonly cabGrids = computed(() => this.assets().filter(a => a.kind === 'cabgrid' || a.kind === 'ir'));
   /** Asset reference to the stored presets that use it, by name. */
   readonly usage = signal<ReadonlyMap<string, readonly string[]>>(new Map());
+  /** Whether {@link refreshUsage} has answered: an empty map is a rig where nothing uses an asset, not a map unread. */
+  private usageRead = false;
 
   /** The setlist save in progress; the next waits for it (see {@link saveSetlist}). */
   private savingSetlists: Promise<unknown> = Promise.resolve();
@@ -160,7 +162,7 @@ export class LibraryStore {
       this.refreshAssets(),
       this.refreshBanks(),
       this.refreshSetlists(),
-      this.usage().size > 0 ? this.refreshUsage() : undefined
+      this.usageRead ? this.refreshUsage() : undefined
     ]);
   }
 
@@ -173,7 +175,7 @@ export class LibraryStore {
    * assets, and is read again only if something has read it.
    */
   private async changed(kind: LibraryKind): Promise<void> {
-    const usage = () => (this.usage().size > 0 ? this.refreshUsage() : undefined);
+    const usage = () => (this.usageRead ? this.refreshUsage() : undefined);
     switch (kind) {
       case 'presets':
         await Promise.all([this.refreshPresets(), usage()]);
@@ -204,6 +206,7 @@ export class LibraryStore {
     await this.notify.run(async () => {
       const usage: AssetUsage[] = unwrap(await this.connection.client.GET('/api/v1/assets/usage'));
       this.usage.set(new Map(usage.map(u => [u.ref, u.presets])));
+      this.usageRead = true;
     });
   }
 

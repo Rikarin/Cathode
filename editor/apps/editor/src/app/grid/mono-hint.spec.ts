@@ -61,6 +61,38 @@ describe('mono hint', () => {
     expect(monoHintText(amp, b => b.id)).toContain('chorus1');
   });
 
+  it('blames the first mono block on a path, not the ones after it', () => {
+    const blocks = [
+      block('in1', 'input', 0),
+      block('chorus1', 'chorus', 1),
+      block('amp1', 'circuitamp', 2),
+      block('cab1', 'cab', 3, 0, { input: 2 }), // a cab summing to mono, fed mono by the amp
+      block('out1', 'output', 4)
+    ];
+    const cables = [cable('in1', 'chorus1'), cable('chorus1', 'amp1'), cable('amp1', 'cab1'), cable('cab1', 'out1')];
+
+    const hints = monoHints(blocks, cables, param, () => false);
+
+    expect([...hints.keys()]).toEqual(['amp1']); // the width was gone before the cab
+    expect(hints.get('amp1')?.map(b => b.id)).toEqual(['chorus1']);
+  });
+
+  it('walks past a bypassed mono block, which sums nothing and gets no hint of its own', () => {
+    const blocks = [
+      block('in1', 'input', 0),
+      block('chorus1', 'chorus', 1),
+      block('amp1', 'circuitamp', 2),
+      block('cab1', 'cab', 3, 0, { input: 2 }),
+      block('out1', 'output', 4)
+    ];
+    const cables = [cable('in1', 'chorus1'), cable('chorus1', 'amp1'), cable('amp1', 'cab1'), cable('cab1', 'out1')];
+
+    const hints = monoHints(blocks, cables, param, b => b.id === 'amp1');
+
+    expect([...hints.keys()]).toEqual(['cab1']); // the bypassed amp passes the width through to the cab
+    expect(hints.get('cab1')?.map(b => b.id)).toEqual(['chorus1']);
+  });
+
   it('says nothing when the stereo effects come after the mono block', () => {
     const blocks = [block('in1', 'input', 0), block('amp1', 'circuitamp', 1), block('chorus1', 'chorus', 2)];
     const hints = monoHints(blocks, [cable('in1', 'amp1'), cable('amp1', 'chorus1')], param, () => false);

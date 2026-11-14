@@ -57,8 +57,10 @@ function makesStereo(block: PresetBlock, param: ParamReader): boolean {
 }
 
 /**
- * For each block that sums to mono, the engaged stereo blocks upstream of it on the same path (following cables
- * backwards), whose width it throws away. Only blocks with such a source are in the map.
+ * For each engaged block that sums to mono, the engaged stereo blocks upstream of it on the same path (following
+ * cables backwards), whose width it throws away. The walk stops at an engaged block that sums to mono itself: what
+ * reaches it is already mono, so the blocks before it belong to that one's hint, not to this one's. Only blocks
+ * with such a source are in the map.
  */
 export function monoHints(
   blocks: readonly PresetBlock[],
@@ -74,7 +76,8 @@ export function monoHints(
 
   const hints = new Map<string, PresetBlock[]>();
   for (const block of blocks) {
-    if (!sumsToMono(block, param)) {
+    // A bypassed block passes its input through: it sums nothing, so it throws no width away.
+    if (!sumsToMono(block, param) || isBypassed(block)) {
       continue;
     }
 
@@ -88,8 +91,13 @@ export function monoHints(
       }
 
       seen.add(id);
-      if (makesStereo(upstream, param) && !isBypassed(upstream)) {
+      const engaged = !isBypassed(upstream);
+      if (makesStereo(upstream, param) && engaged) {
         sources.push(upstream);
+      }
+
+      if (sumsToMono(upstream, param) && engaged) {
+        continue; // Already mono by the time it arrives here: what feeds that summer is not this block's to blame.
       }
 
       stack.push(...(feeding.get(id) ?? []));

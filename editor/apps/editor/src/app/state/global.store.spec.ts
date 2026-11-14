@@ -101,6 +101,86 @@ describe('GlobalStore revision', () => {
   });
 });
 
+describe('GlobalStore.refresh', () => {
+  function setup() {
+    const reads: { answer(settings: unknown, etag?: string): void }[] = [];
+    const GET = () =>
+      new Promise(resolve =>
+        reads.push({
+          answer: (settings, etag = '"1"') =>
+            resolve({
+              data: settings,
+              response: new Response('{}', { headers: { ETag: etag } })
+            })
+        })
+      );
+    const puts: { body: GlobalSettings; ifMatch: string | undefined; answer(etag: string): void }[] = [];
+    const PUT = (_path: string, init: { body: GlobalSettings; headers: Record<string, string> }) =>
+      new Promise(resolve =>
+        puts.push({
+          body: init.body,
+          ifMatch: init.headers['If-Match'],
+          answer: (etag: string) =>
+            resolve({
+              data: structuredClone(init.body),
+              response: new Response('{}', { headers: { ETag: etag } })
+            })
+        })
+      );
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: ConnectionService, useValue: { client: { GET, PUT } } },
+        {
+          provide: EventStream,
+          useValue: { events$: new Subject(), connected$: new Subject(), midi$: new Subject() }
+        },
+        { provide: Notify, useValue: { run: (action: () => Promise<unknown>) => action(), error: () => undefined } }
+      ]
+    });
+    return { globals: TestBed.inject(GlobalStore), reads, puts, settle: () => new Promise(r => setTimeout(r)) };
+  }
+
+  it('reads once more for a change heard of while a read was on the wire', async () => {
+    const { globals, reads, settle } = setup();
+
+    const first = globals.refresh();
+    await settle();
+    void globals.refresh(); // an event during the read
+    void globals.refresh(); // and another: still one more read, not two
+    reads[0]?.answer({ tempo: 120 });
+    await settle();
+    expect(reads).toHaveLength(2);
+
+    reads[1]?.answer({ tempo: 90 });
+    await first; // the call resolves once the queued read has been made too
+    await settle();
+
+    expect(reads).toHaveLength(2);
+    expect(globals.settings()).toMatchObject({ tempo: 90 });
+  });
+
+  it('drops a read the Server answered from the state before an update it answered first', async () => {
+    const { globals, reads, puts, settle } = setup();
+    globals.settings.set({ tempo: 120 } as unknown as GlobalSettings);
+
+    void globals.refresh(); // starts on the old state
+    await settle();
+    const update = globals.update(g => (g.tempo = 90));
+    await settle();
+    puts[0]?.answer('"9"'); // the update lands first
+    await update;
+    reads[0]?.answer({ tempo: 120 }, '"8"'); // the older read comes back after it
+    await settle();
+
+    expect(globals.settings()).toMatchObject({ tempo: 90 });
+    // The revision is the update's too, not the old read's, so the next change is not refused with 412.
+    void globals.update(g => (g.tempo = 100));
+    await settle();
+    expect(puts[1]?.ifMatch).toBe('"9"');
+    expect(puts[1]?.body).toMatchObject({ tempo: 100 });
+  });
+});
+
 describe('refreshesGlobals', () => {
   it('refetches after any change to the global settings, whatever made it', () => {
     expect(refreshesGlobals({ type: 'globalChanged', revision: 3 })).toBe(true);

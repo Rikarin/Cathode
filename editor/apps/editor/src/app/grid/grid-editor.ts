@@ -81,7 +81,7 @@ const Hop = { width: 60, height: 26 } as const;
 const MaxScale = 2;
 
 function isIo(block: PresetBlock): boolean {
-  return block.type === BuiltInTypes.input || block.type === BuiltInTypes.output;
+  return block.type === BuiltInTypes.input || OutputTypes.includes(block.type);
 }
 
 /** What pasting does on a cell: place a copy (empty or shunt), copy the settings across (same type), or nothing. */

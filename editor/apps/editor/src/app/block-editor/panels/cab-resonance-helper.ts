@@ -89,9 +89,14 @@ export class CabResonanceHelper {
   protected readonly baseHz = signal(100);
   protected readonly percent = signal(100);
   private playingFor: string | null = null;
+  /** Set when the panel goes: a request still on the wire must not switch the tone on behind it. */
+  private destroyed = false;
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => void this.silence());
+    inject(DestroyRef).onDestroy(() => {
+      this.destroyed = true;
+      void this.silence();
+    });
   }
 
   protected async start(): Promise<void> {
@@ -101,7 +106,7 @@ export class CabResonanceHelper {
         await this.connection.client.GET('/api/v1/live/blocks/{id}/speaker-resonance', { params: { path: { id } } })
       )
     );
-    if (!info) {
+    if (!info || this.destroyed) {
       return;
     }
 

@@ -306,6 +306,42 @@ describe('LibraryStore.saveSetlist', () => {
   });
 });
 
+describe('LibraryStore asset usage', () => {
+  it('reads usage again after an empty answer, which is a rig where nothing uses an asset yet', async () => {
+    const reads: string[] = [];
+    let usage: unknown[] = [];
+    const GET = (path: string) => {
+      reads.push(path);
+      const data = path === '/api/v1/assets/usage' ? usage : [];
+      return Promise.resolve({ data, response: new Response('{}') });
+    };
+    const library$ = new Subject<LibraryChanged>();
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: ConnectionService, useValue: { client: { GET } } },
+        {
+          provide: EventStream,
+          useValue: { events$: new Subject<RigEvent>(), connected$: new Subject(), library$ }
+        },
+        { provide: Notify, useValue: { run: (action: () => Promise<unknown>) => action(), error: () => undefined } }
+      ]
+    });
+    const library = TestBed.inject(LibraryStore);
+
+    await library.refreshUsage(); // the asset page opens: nothing uses anything
+    expect(library.usage().size).toBe(0);
+
+    // A preset that uses a capture is saved; the Server says the presets changed.
+    usage = [{ ref: 'capture1', presets: ['p1'] }];
+    reads.length = 0;
+    library$.next({ type: 'libraryChanged', kind: 'presets' });
+    await new Promise(resolve => setTimeout(resolve));
+
+    expect(reads).toContain('/api/v1/assets/usage');
+    expect(library.usage().get('capture1')).toEqual(['p1']);
+  });
+});
+
 describe('presetUses', () => {
   const banks: Bank[] = [
     { id: 'factory', name: 'Factory', slots: ['f1'], factory: true },

@@ -5,9 +5,14 @@ import { type PickerEntry, PickerList, pickerEntries } from './picker-list';
 
 @Component({
   imports: [PickerList],
-  template: `<cth-picker-list [entries]="entries" (favorite)="favorites.push([$event.entry.id, $event.favorite])" />`
+  template: `<cth-picker-list
+    [entries]="entries"
+    (favorite)="favorites.push([$event.entry.id, $event.favorite])"
+    (extraChosen)="extras = extras + 1"
+  />`
 })
 class Host {
+  extras = 0;
   readonly entries: PickerEntry[] = [
     { id: 'a', name: 'Alpha', detail: 'clean', favorite: true, color: 'limegreen' },
     { id: 'b', name: 'Bravo' }
@@ -70,6 +75,19 @@ describe('PickerList', () => {
     expect(button('picker-color').getAttribute('aria-label')).toBe('Colour tag of Bravo: none');
     button('picker-favorite').click();
     expect(host.favorites).toEqual([['b', true]]);
+  });
+
+  it('chooses no extra row with ↓ and ↵ when the list is empty and there is none', () => {
+    const { fixture, search, host } = render();
+
+    search.value = 'zzz';
+    search.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    search.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
+    search.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    fixture.detectChanges();
+
+    expect(host.extras).toBe(0);
   });
 
   it('has nothing to favour or tag when nothing matches', () => {

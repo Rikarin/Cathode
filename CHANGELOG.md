@@ -8,6 +8,33 @@ the format upgrades older presets as it reads them.
 
 ### Fixed
 
+- Manage: a ⌘-drag onto a factory slot leaves the preset where it is. The factory bank ignores what is put in it, so
+  the drop emptied the slot the preset came from and left it in no bank at all (#560).
+- Editor: a token typed after the Server refused the old one takes effect. The old token left in the address bar by
+  the Home Screen shortcut won over the new one in storage, and was written back over it on the next load, so the
+  prompt kept coming back (#561).
+- Global settings: a change that arrives while the settings are being read is read again afterwards, instead of being
+  dropped and leaving the page stale until some unrelated event (#562).
+- Global settings: a read the Server answered from the state before an update it answered first is dropped, instead of
+  putting the old settings and their revision back over the user's change (#563).
+- Global settings: picking another footswitch layout goes back to its first view, and a new footswitch is added to the
+  view the table is showing. A switch could be saved on a view the layout does not have, where it never appeared
+  again, and Make active could store that view (#564).
+- Library: asset usage is read again after an answer that was empty. On a rig where nothing used an asset yet, the
+  page kept showing captures and IRs as unused however many presets came to use them (#565).
+- Cab: the resonance helper's test tone stops when the panel is left while its first request is still out. Nothing was
+  left to switch the sine off, so it played on in place of the amp (#566).
+- Manage: deleting a pending copy takes its name and colour with it, instead of leaving Save to send metadata for a
+  preset that was never created and the page marked unsaved (#567).
+- Grid: Output 2, 3 and 4 count as I/O, so they can no longer be copied, cut, replaced or ⌥-dragged into a preset with
+  a duplicated or a missing output (#568).
+- Grid: the mono hint names the first block on a path that sums to mono, not every one after it, and skips a block
+  that is bypassed — which sums nothing (#569, #570).
+- Picker: ↓ on a list with nothing in it no longer leaves ↵ choosing an extra row that is not there (#571).
+- Scope/RTA: an enable the Server refused is sent again. The dialog recorded the request as landed before it went out,
+  so one failure left the analyser blank for the rest of the session (#572).
+- Meter: the 0 dB mark sits in the gap above the segment it marks on vertical meters too, a pixel higher than it was
+  (#573).
 - Amp: the Savage 120's lead and Crunch 2 get the four small caps between their stages that Engl's drawing leaves out,
   as the drawings of the Screamer 50, the Blackmore, the Powerball and the Fireball 60 do, so they no longer send full
   bass into every clipping stage and clean up as the playing softens (a 0.1 V note plays 36 dB above a 0.2 mV one, was
