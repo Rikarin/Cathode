@@ -269,7 +269,8 @@ public sealed partial class PresetPackage(PresetStore presets, AssetStore assets
         && (!name.StartsWith("assets/", StringComparison.Ordinal)
             || (AssetStore.KindOf(name) is { } kind && AssetStore.Extension(kind) == Path.GetExtension(name)));
 
-    [GeneratedRegex("""^(manifest\.json|preset\.json|assets/[0-9a-f]{64}\.[a-z]+)$""")]
+    // \z, not $, which also matches just before a trailing newline (as in LibraryBackup).
+    [GeneratedRegex("""^(manifest\.json|preset\.json|assets/[0-9a-f]{64}\.[a-z]+)\z""")]
     private static partial Regex AllowedName();
 
     /// <summary>A write-only stream that feeds a hash, so an asset can be verified without storing it.</summary>

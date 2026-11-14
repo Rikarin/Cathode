@@ -52,6 +52,16 @@ public class EngageSwitchTests {
     }
 
     [Fact]
+    public void A_switch_seeded_below_its_threshold_stays_off_inside_the_hysteresis() {
+        // The seed used to leave the switch out of the off region, so the next value inside the hysteresis band read
+        // as "not off" and engaged a block whose value had never reached the threshold.
+        var engage = new EngageSwitch(EngageMode.Position, 0.5f, 100f);
+
+        Assert.All(Run(ref engage, 0.49f, 0.49f, 0.495f, 0.48f), Assert.False);
+        Assert.True(engage.Update(0.5f, Frames, Rate), "and it still engages at the threshold");
+    }
+
+    [Fact]
     public void Position_mode_switches_at_its_threshold() {
         var engage = new EngageSwitch(EngageMode.Position, 0.2f, 0f);
 

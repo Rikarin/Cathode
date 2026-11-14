@@ -55,10 +55,7 @@ public struct EngageSwitch(EngageMode mode, float threshold, float offDelayMs) {
     /// </summary>
     public bool Update(float value, int frames, double sampleRate) {
         if (float.IsNaN(rest)) {
-            rest = value;
-            offSamples = -1;
-            Engaged = Mode == EngageMode.Position && value >= Threshold;
-            return Engaged;
+            return Seed(value);
         }
 
         var off = value < Threshold - Margin || (offSamples >= 0 && value < Threshold);
@@ -88,6 +85,18 @@ public struct EngageSwitch(EngageMode mode, float threshold, float offDelayMs) {
         }
 
         offSamples += frames;
+        return Engaged;
+    }
+
+    /// <summary>
+    ///     The first value after a load or a reset sets the state without waiting for the off delay. One below the
+    ///     threshold seeds the off region too, or the next value inside the hysteresis band would read as "not off"
+    ///     and engage a Position switch that never reached the threshold.
+    /// </summary>
+    bool Seed(float value) {
+        rest = value;
+        offSamples = value < Threshold ? 0 : -1;
+        Engaged = Mode == EngageMode.Position && value >= Threshold;
         return Engaged;
     }
 }

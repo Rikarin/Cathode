@@ -90,11 +90,13 @@ public sealed class UndoHistory(
 
     UndoSnapshot? Step(Stack from, Stack to, Func<UndoSnapshot> current) {
         coalesceKey = null;
-        if (from.Pop() is not { } target) {
+        if (from.Peek() is not { } target) {
             return null;
         }
 
+        // Capture before the step leaves its stack: a throw here must not lose it from both.
         to.Push(current());
+        from.Pop();
         return target;
     }
 
@@ -115,6 +117,9 @@ public sealed class UndoHistory(
                 steps.RemoveFirst();
             }
         }
+
+        /// <summary>The newest step, left where it is; null when there is none.</summary>
+        public UndoSnapshot? Peek() => steps.Last?.Value;
 
         public UndoSnapshot? Pop() {
             if (steps.Last is not { } last) {

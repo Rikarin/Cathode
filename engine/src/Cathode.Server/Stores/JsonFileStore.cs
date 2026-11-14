@@ -141,6 +141,7 @@ public static partial class StoreIds {
     /// <summary>Ids are file names, so only safe characters: no separators, no dots.</summary>
     public static bool IsValid(string id) => Pattern().IsMatch(id);
 
-    [GeneratedRegex("^[A-Za-z0-9-]{1,64}$")]
+    // \z, not $: .NET's $ also matches just before a trailing newline, so "abc\n" would pass as an id.
+    [GeneratedRegex(@"^[A-Za-z0-9-]{1,64}\z")]
     private static partial Regex Pattern();
 }

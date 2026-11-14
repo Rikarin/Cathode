@@ -620,6 +620,7 @@ public sealed partial class LiveRig(
     async Task ReplaceAsync(Preset next, int scene = 0) {
         var before = Capture();
         var waitingBefore = waiting;
+        var heldBefore = held.ToArray(); // Restore puts the preset back, but it cannot put back what Clear dropped
         preset = next;
         activeScene = scene;
         held.Clear();
@@ -630,6 +631,11 @@ public sealed partial class LiveRig(
             // Whatever failed, the rig stays on the preset it had rather than a working copy it cannot play.
             Restore(before);
             Volatile.Write(ref waiting, waitingBefore);
+            held.Clear();
+            foreach (var (id, state) in heldBefore) {
+                held[id] = state;
+            }
+
             await SyncGraphAsync();
             throw e is IpcException ipc
                 ? new RigException(422, "The engine could not load this preset: " + ipc.Message, ipc.Errors)

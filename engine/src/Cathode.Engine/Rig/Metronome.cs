@@ -13,12 +13,26 @@ public sealed class Metronome(double sampleRate) {
     double frequency;
     double phase;
     long lastBeat = -1;
+    long anchorTime;
+    double anchorBeat;
+    double anchorTempo;
 
-    /// <summary>Audio thread: add clicks for the frames starting at <paramref name="sampleTime" />.</summary>
+    /// <summary>
+    ///     Audio thread: add clicks for the frames starting at <paramref name="sampleTime" />. The grid is counted
+    ///     from an anchor rather than from sample 0, so a tempo change moves only the beats after it: the clicks
+    ///     already played stay where the player heard them, and the accent stays on the same beat of the bar.
+    /// </summary>
     public void Process(Span<float> left, Span<float> right, long sampleTime, double tempo, float gain) {
+        if (tempo != anchorTempo) {
+            // The grid ran at the old tempo up to here (metronome on or off), so only the beats from now on change.
+            anchorBeat += (sampleTime - anchorTime) * anchorTempo / (sampleRate * 60);
+            anchorTime = sampleTime;
+            anchorTempo = tempo;
+        }
+
         var samplesPerBeat = sampleRate * 60 / tempo;
         for (var i = 0; i < left.Length; i++) {
-            var beat = (long)((sampleTime + i) / samplesPerBeat);
+            var beat = (long)(anchorBeat + (sampleTime + i - anchorTime) / samplesPerBeat);
             if (beat != lastBeat) {
                 lastBeat = beat;
                 remaining = clickSamples;

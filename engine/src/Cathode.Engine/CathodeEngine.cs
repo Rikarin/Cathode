@@ -297,6 +297,9 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
             spill.Dispose();
         }
 
+        // The audio has stopped, so nothing is reading these two; the retired queue never holds them.
+        Interlocked.Exchange(ref pending, null)?.Dispose();
+        Interlocked.Exchange(ref current, null)?.Dispose();
         looper?.Dispose();
         foreach (var eq in outputEqs) {
             eq.Dispose();

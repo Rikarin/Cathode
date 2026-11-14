@@ -242,7 +242,10 @@ public sealed partial class MidiRouter : IDisposable {
     void Footswitch(Footswitch footswitch, bool down, long sampleTime) {
         lock (gate) {
             if (down) {
-                if (footswitch.Hold is null) {
+                // A program change carries no switch position, so IsDown always says "press" and the release branch
+                // below is never reached: its hold action could only fire instead of the tap, and the held entry would
+                // then stay for good and swallow every later press. Such a switch is a tap.
+                if (footswitch.Hold is null || footswitch.Message == "pc") {
                     Tap(footswitch, sampleTime);
                     return;
                 }

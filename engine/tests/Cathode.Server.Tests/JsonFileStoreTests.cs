@@ -17,6 +17,17 @@ public sealed class JsonFileStoreTests : IDisposable {
 
     public void Dispose() => Directory.Delete(folder, true);
 
+    [Theory]
+    [InlineData("abc", true)]
+    [InlineData("a-B-9", true)]
+    [InlineData("abc\n", false)] // .NET's $ also matches just before a trailing newline, so this one used to pass
+    [InlineData("abc\r\n", false)]
+    [InlineData("abc.json", false)]
+    [InlineData("../etc/passwd", false)]
+    [InlineData("", false)]
+    public void An_id_is_a_file_name_of_letters_digits_and_dashes_and_nothing_else(string id, bool valid) =>
+        Assert.Equal(valid, StoreIds.IsValid(id));
+
     [Fact]
     public async Task Saves_land_while_the_file_is_being_read() {
         var preset = Preset.CreateDefault();

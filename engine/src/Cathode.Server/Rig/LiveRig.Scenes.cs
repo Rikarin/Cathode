@@ -102,6 +102,12 @@ public sealed partial class LiveRig {
     /// </summary>
     public Task<LiveState> SwapChannelsAsync(string id, CopyChannelRequest request, long? expected) =>
         Locked(async () => {
+                if (request.From == request.To) {
+                    // Nothing to swap, and swapping a channel with itself would add its Scene Ignore entry twice.
+                    CheckChannelPair(id, request, expected);
+                    return State();
+                }
+
                 var (block, before) = BeginChannelPair(id, request, expected);
                 var a = block.Channels.GetValueOrDefault(request.From);
                 var b = block.Channels.GetValueOrDefault(request.To);
@@ -267,13 +273,21 @@ public sealed partial class LiveRig {
         CopyChannelRequest request,
         long? expected
     ) {
+        var block = CheckChannelPair(id, request, expected);
+        PushUndo(null);
+        return (block, Channels(block));
+    }
+
+    /// <summary>
+    ///     The revision and both of the request's channels checked, without recording an undo step: the block.
+    /// </summary>
+    PresetBlock CheckChannelPair(string id, CopyChannelRequest request, long? expected) {
         Check(expected);
         var block = Find(id);
         var descriptor = catalog.Descriptor(block.Type) ?? throw new RigException(400, $"'{id}' has no channels.");
         CheckChannel(request.From, descriptor.Channels);
         CheckChannel(request.To, descriptor.Channels);
-        PushUndo(null);
-        return (block, Channels(block));
+        return block;
     }
 
     /// <summary>

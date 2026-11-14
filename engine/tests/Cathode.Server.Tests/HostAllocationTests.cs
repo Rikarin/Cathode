@@ -274,6 +274,23 @@ public sealed class HostAllocationTests : IDisposable {
     }
 
     [Fact]
+    public void Fast_path_leaves_a_frame_with_a_value_that_is_not_a_number_to_the_slow_path_untouched() {
+        service.Handle(new() { Type = IpcTypes.LoadGraph, Generation = 4, Graph = GraphTemplates.Basic() });
+        var frame = """{"type":"setParams","id":3,"generation":4,"params":["""u8
+            + """{"block":"volpan1","param":"level","value":-6},"""u8
+            + """{"block":"volpan1","param":"volume","value":"abc"}]}"""u8;
+
+        Assert.False(service.TryHandle(frame, out _));
+
+        // IdsFit only looked at the ids, so the fast path wrote the level, threw on the string, and then reported the
+        // frame as none of its own: half of it was applied, and RefreshBlocks never ran.
+        var compiled = RunOneCallback();
+        var block = compiled.Block(compiled.SlotOf("volpan1"));
+        Assert.Equal(0f, block.Params.GetTarget(block.Descriptor.IndexOf("level")));
+        Assert.Equal(100f, block.Params.GetTarget(block.Descriptor.IndexOf("volume")));
+    }
+
+    [Fact]
     public void Fast_path_posts_bypass_and_leaves_other_requests_to_the_slow_path() {
         service.Handle(new() { Type = IpcTypes.LoadGraph, Generation = 1, Graph = GraphTemplates.Basic() });
         var graph = RunOneCallback();

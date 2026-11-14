@@ -131,6 +131,28 @@ public class PresetFeatureEngineTests {
     }
 
     [Fact]
+    public void A_bypassed_thru_blocks_peak_meter_reads_zero_rather_than_its_input() {
+        using var region = TelemetryRegion.CreateInMemory(Spec.SampleRate);
+        var engine = new CathodeEngine(Spec) { Telemetry = region };
+        var graph = Compiler.Compile(Graph("volpan", "vol"), Spec, 9);
+        engine.Publish(graph);
+        var monitor = new TelemetryMonitor(region);
+        monitor.Poll();
+        var tone = Signals.Sine(997, Spec.SampleRate, 48_000, 0.8f);
+
+        Assert.True(engine.Post(EngineCommand.SetBypass(9, graph.SlotOf("vol"), true)));
+        OfflineRenderer.Render(engine, tone, tone, 64);
+        monitor.Poll(); // the bypass fade, which still runs the block
+        OfflineRenderer.Render(engine, tone, tone, 64);
+        monitor.Poll();
+
+        // The peak was taken from the buffer after the block, which a fully bypassed Thru block never touches, so the
+        // meter showed the input level for a block that had not run.
+        Assert.Equal(0f, monitor.BlockMeters[graph.MeterIndex("vol")]);
+        Assert.Equal(0.8, monitor.BlockMeters[graph.MeterIndex("in")], 0.01); // the input block still reads
+    }
+
+    [Fact]
     public void Each_blocks_cpu_share_reaches_the_telemetry_region_as_its_cpu_meter() {
         using var region = TelemetryRegion.CreateInMemory(Spec.SampleRate);
         var engine = new CathodeEngine(Spec) { Telemetry = region };

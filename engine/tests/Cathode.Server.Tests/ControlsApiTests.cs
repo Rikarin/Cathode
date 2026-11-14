@@ -381,6 +381,28 @@ public sealed class ControlsApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task A_program_change_switch_with_a_hold_action_taps_on_every_press() {
+        await PutGlobal(static g => {
+                g.Footswitches.Add(
+                    new("board", "Board", [new(1, "Next", "pc", 1, 7, new("sceneNext"), new("scene", Value: 6))])
+                );
+                g.ActiveLayout = "board";
+            }
+        );
+        var router = server.Services.GetRequiredService<MidiRouter>();
+
+        // A program change carries no switch position, so it can never release: its hold action is out of reach and
+        // every press is a tap. The first press used to fire the hold, and every one after it was swallowed.
+        router.OnMidi([new(0xC0, 7, 0, 0)]);
+        await ServerFixture.Eventually(async () => (await Live()).ActiveScene == 1);
+        router.OnMidi([new(0xC0, 7, 0, 0)]);
+        await ServerFixture.Eventually(async () => (await Live()).ActiveScene == 2);
+
+        await Task.Delay(MidiRouter.HoldTime * 3, Token);
+        Assert.Equal(2, (await Live()).ActiveScene); // and the hold action never fires
+    }
+
+    [Fact]
     public async Task Mute_actions_run_in_order() {
         await PutGlobal(static g => g.MidiMappings.Add(new("m", "note", 0, 85, "mute")));
         var router = server.Services.GetRequiredService<MidiRouter>();

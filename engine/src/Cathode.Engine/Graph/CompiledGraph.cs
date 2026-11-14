@@ -491,7 +491,10 @@ public sealed class CompiledGraph : IDisposable {
     }
 
     void RunBlock(int slot, in StereoBuffer io, in BlockContext context) {
-        RunBypassed(slot, io, context);
+        if (!RunBypassed(slot, io, context)) {
+            return; // the block did not run, so its peak meter stays at 0 as Meters says it does
+        }
+
         var offset = meterOffsets[slot];
         var peak = meters[offset];
         for (var i = 0; i < io.Length; i++) {
@@ -501,7 +504,11 @@ public sealed class CompiledGraph : IDisposable {
         meters[offset] = peak;
     }
 
-    void RunBypassed(int slot, in StereoBuffer io, in BlockContext context) {
+    /// <summary>
+    ///     Runs the block as its bypass mode says. False when the block did not run at all (a fully bypassed Thru
+    ///     block, whose output is its own input), so that its peak meter is not given the input's level.
+    /// </summary>
+    bool RunBypassed(int slot, in StereoBuffer io, in BlockContext context) {
         ref var bypass = ref this.bypass[slot];
         var target = bypass.Target ? 0f : 1f;
         var steady = bypass.Mix == target;
@@ -519,27 +526,35 @@ public sealed class CompiledGraph : IDisposable {
         switch (bypass.Mode) {
             case BypassKind.MuteIn or BypassKind.MuteFxIn:
                 RunWithFadedInput(slot, target, io, context, latent);
-                return;
+                return true;
             case BypassKind.MuteOut or BypassKind.MuteFxOut:
                 RunWithFadedOutput(slot, target, io, context, latent);
-                return;
+                return true;
             case BypassKind.Thru or BypassKind.Mute when steady:
                 if (target == 1f) {
                     blocks[slot].Process(io, context);
-                } else if (bypass.Mode == BypassKind.Mute) {
+                    return true;
+                }
+
+                if (bypass.Mode == BypassKind.Mute) {
                     io.Left.Clear();
                     io.Right.Clear();
-                } else if (latent) {
+                    return true; // silence, so its peak is 0 anyway
+                }
+
+                if (latent) {
                     dryLeft.Span[..io.Length]
                         .CopyTo(io.Left); // the input, as late as the block would have made it
                     dryRight.Span[..io.Length].CopyTo(io.Right);
                 }
 
-                return; // fully bypassed THRU leaves the input as it is (delayed by a latent block's latency)
+                // fully bypassed THRU leaves the input as it is (delayed by a latent block's latency)
+                return false;
         }
 
         // Thru or Mute, mid-fade: crossfade between the processed signal and dry (Thru) or silence (Mute).
         RunCrossfaded(slot, target, io, context, latent, bypass.Mode == BypassKind.Thru);
+        return true;
     }
 
     /// <summary>

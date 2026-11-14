@@ -132,6 +132,21 @@ public sealed class UndoHistoryTests {
         Assert.Equal(0, history.Bytes);
     }
 
+    [Fact]
+    public void A_snapshot_that_throws_leaves_the_step_where_it_was() {
+        var history = new UndoHistory(new ManualClock());
+        history.Push(Snapshot(10, 1));
+
+        // The step used to be popped before the current state was captured, so a throw lost it from both stacks.
+        static UndoSnapshot Throw() => throw new InvalidOperationException("no snapshot");
+
+        Assert.Throws<InvalidOperationException>(() => history.Undo(Throw));
+
+        Assert.Equal((1, 0), history.Steps);
+        Assert.Equal(1, history.Undo(static () => Snapshot(10, 2))!.ActiveScene);
+        Assert.Equal((0, 1), history.Steps);
+    }
+
     static UndoSnapshot Snapshot(int bytes, int scene) => new(new byte[bytes], scene);
 
     sealed class ManualClock : TimeProvider {

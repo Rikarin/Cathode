@@ -537,17 +537,16 @@ public sealed class EngineHostService : IDisposable {
     }
 
     /// <summary>
-    ///     Whether every block and parameter id in a <c>params</c> array (reader on its property name) is one
-    ///     <see cref="ReadId" /> can read. Checked before any value is applied, so a frame with an id that is too
-    ///     long (or not a string) goes to the slow path untouched instead of being half applied here.
+    ///     Whether every entry of a <c>params</c> array (reader on its property name) is one the fast path can apply:
+    ///     block and parameter ids <see cref="ReadId" /> can read, and a value that is a number. Checked before any
+    ///     value is applied, so a frame with an id that is too long (or not a string), or a value that is not a
+    ///     number, goes to the slow path untouched instead of being half applied here.
     /// </summary>
     static bool IdsFit(Utf8JsonReader reader) {
         if (reader.Read() && reader.TokenType == JsonTokenType.StartArray) {
             while (reader.Read() && reader.TokenType == JsonTokenType.StartObject) {
                 while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName) {
-                    var isId = reader.ValueTextEquals("block"u8) || reader.ValueTextEquals("param"u8);
-                    reader.Read();
-                    if (isId && !IsReadableId(ref reader)) {
+                    if (!PropertyFits(ref reader)) {
                         return false;
                     }
 
@@ -557,6 +556,22 @@ public sealed class EngineHostService : IDisposable {
         }
 
         return true;
+    }
+
+    /// <summary>
+    ///     Whether one property of an entry (reader on its property name, left on its value) is one the fast path can
+    ///     apply. <see cref="Utf8JsonReader.GetSingle" /> throws on anything but a number, and <c>SetParameter</c> has
+    ///     applied the entries before this one by then, so a value is checked here rather than caught there.
+    /// </summary>
+    static bool PropertyFits(ref Utf8JsonReader reader) {
+        var isId = reader.ValueTextEquals("block"u8) || reader.ValueTextEquals("param"u8);
+        var isValue = !isId && reader.ValueTextEquals("value"u8);
+        reader.Read();
+        if (isId) {
+            return IsReadableId(ref reader);
+        }
+
+        return !isValue || (reader.TokenType == JsonTokenType.Number && reader.TryGetSingle(out _));
     }
 
     /// <summary>Whether a <c>params</c> array (reader on its property name) is empty or names a graph block.</summary>

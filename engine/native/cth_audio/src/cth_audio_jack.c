@@ -251,8 +251,11 @@ int32_t cth_jack_open(const char *target, cth_stream_config *config, cth_common 
     if (capture_list) jack.free(capture_list);
     if (playback_list) jack.free(playback_list);
     if (outputs <= 0) {
+        /* cth_jack_close frees j, so the target cannot be read after it. */
+        char missing[sizeof j->target];
+        snprintf(missing, sizeof missing, "%s", j->target);
         cth_jack_close(j);
-        return cth_linux_fail("JACK client %s has no physical playback ports", j->target);
+        return cth_linux_fail("JACK client %s has no physical playback ports", missing);
     }
 
     char name[32];
@@ -279,7 +282,7 @@ int32_t cth_jack_open(const char *target, cth_stream_config *config, cth_common 
     j->chunk = buffer > 0 && buffer < CTH_MAX_FRAMES ? (int32_t)buffer : CTH_MAX_FRAMES;
     common->input_channels = inputs;
     common->output_channels = outputs;
-    common->buffer_frames = (int32_t)buffer;
+    common->buffer_frames = j->chunk; /* what the callbacks deliver, clamped to CTH_MAX_FRAMES */
     common->sample_rate = jack.get_sample_rate(client);
     *stream = j;
     return 0;

@@ -312,6 +312,22 @@ public sealed class PresetSceneApiTests : IAsyncLifetime {
     }
 
     [Fact]
+    public async Task Swapping_a_channel_with_itself_changes_nothing() {
+        await Put("/api/v1/live/blocks/delay1/channels/A/scene-ignore", new SceneIgnoreRequest(true));
+        var before = await Live();
+
+        var same = await Post("/api/v1/live/blocks/delay1/channels/swap", new CopyChannelRequest("A", "A"));
+
+        // Scene Ignore used to be added once for each side of the swap, and the duplicate made the channel ignore
+        // scenes for good: turning Scene Ignore off again removed only one of the two entries.
+        Assert.Equal(["A"], same.Preset.Blocks.Single(static b => b.Id == "delay1").SceneIgnore);
+        Assert.Equal(before.Revision, same.Revision); // nothing changed, so no event and no undo step
+        Assert.Equal(before.CanUndo, same.CanUndo);
+        await Put("/api/v1/live/blocks/delay1/channels/A/scene-ignore", new SceneIgnoreRequest(false));
+        Assert.Empty((await Live()).Preset.Blocks.Single(static b => b.Id == "delay1").SceneIgnore);
+    }
+
+    [Fact]
     public async Task Resetting_a_drive_keeps_the_running_graph_unless_its_oversampling_changes() {
         // A Drive has a parameter only a recompile applies (Oversampling). Resetting one used to rebuild the graph
         // regardless, which starts every block of the preset afresh: the reset of a drive nowhere near the signal

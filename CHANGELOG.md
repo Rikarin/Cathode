@@ -17,6 +17,33 @@ the format upgrades older presets as it reads them.
   355 V screens, 340 V preamp), from the two stacked rectifiers both drawings show, with the screens and the preamp on
   the lower one. The screens and the preamp had sat near a 560 V B+, which gave the power amp about twice its rated
   120 W before it clipped (#526).
+- MIDI: a footswitch that listens to a program change and has a Hold action taps on every press. A program change
+  carries no switch position, so such a switch never releases: the first press ran the hold action instead of the tap,
+  and every press after it did nothing at all until the layout or the preset changed (#527).
+- Metronome: a tempo change moves only the beats after it. The grid was counted from sample 0 with the current beat
+  length, so a change after a minute of playing fired a click 794 samples after the one before it and moved the accent
+  to another beat of the bar (#528).
+- Server: a preset load the engine rejects puts the Scene Ignore held states back, not just the preset and the scene.
+  A block held out of the scenes silently fell back to the active scene's bypass and channel (#529).
+- Host: the allocation-free setParams path checks the values as well as the ids before it applies any of them. A frame
+  carrying a value that is not a number had the entries before it applied, then went to the slow path to be applied
+  again, with the block refresh skipped (#530).
+- Audio I/O: the JACK backend reports the frame count its callbacks really deliver, clamped to 4096, rather than the
+  server's period: a server at 8192 frames had the engine built for twice the callback size (#531).
+- Audio I/O: the JACK error for a target with no physical playback ports formats its message before the stream is
+  freed, so it names the target instead of reading freed memory (#532).
+- Engine: an engage switch in Position mode with an off delay no longer engages for a value inside the hysteresis band
+  that never reached its threshold (#533).
+- Server: a store id ending in a newline is refused. In .NET `$` also matches just before a trailing newline, so
+  `abc\n` passed as an id and wrote `abc\n.json`; a preset package's entry names were anchored the same way (#534).
+- Server: an undo or redo step stays on its stack when taking the snapshot of the current state throws, instead of
+  being lost from both stacks (#535).
+- Server: swapping a channel of a block with itself changes nothing, instead of listing its Scene Ignore entry twice
+  and leaving the channel ignoring scenes after Scene Ignore had been turned off again (#536).
+- Engine: a fully bypassed Thru block's peak meter reads 0, as the telemetry documents, rather than its input level
+  (#537).
+- Engine: `CathodeEngine.Dispose` frees the graphs the engine still holds, the current and pending ones, and not only
+  the retired and spilled ones (#538).
 
 ## 1.0.0-rc.6 — 2026-11-11
 

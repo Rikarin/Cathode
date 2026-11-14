@@ -4590,7 +4590,7 @@
             ]
           }
         },
-        "description": "One switch: the message it sends (a CC or note; value 64 or more is \u0022down\u0022), what a tap does, what holding it\nfor half a second does instead, and whether its LED is driven (the same CC or note, 127 when its tap action is\nactive, 0 when not). It answers only while its \u0060View\u0060 is the active one, and a \u0060Link\u0060 (a layout id)\nswitches to that layout after its tap action."
+        "description": "One switch: the message it sends (a CC or note, where a value of 64 or more is \u0022down\u0022, or a program change,\nwhich carries no position and so is always a tap), what a tap does, what holding it for half a second does\ninstead, and whether its LED is driven (the same CC or note, 127 when its tap action is active, 0 when not). It\nanswers only while its \u0060View\u0060 is the active one, and a \u0060Link\u0060 (a layout id) switches to that layout\nafter its tap action."
       },
       "FootswitchLayout": {
         "required": [
