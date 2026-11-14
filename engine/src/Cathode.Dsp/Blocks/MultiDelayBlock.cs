@@ -164,7 +164,9 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
     readonly double[] ringPhase = new double[Voices];
     readonly float[] voice = new float[Voices];
 
-    /// <summary>The Quad Diffusor's nodes of this sample, all taken from the raw reads before any voice moves.</summary>
+    /// <summary>
+    ///     The Quad Diffusor's nodes of this sample, all taken from the raw reads before any voice moves.
+    /// </summary>
     readonly float[] node = new float[Voices];
 
     readonly Diffuser diffuser = new();
@@ -236,12 +238,12 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
                 )
             ),
             ..Voice(static k => ParamDescriptor.Float(
-                $"cross{k + 1}",
-                $"Cross Feedback {k + 1}→{(k + 1) % Voices + 1}",
-                -100f,
-                100f,
-                0f,
-                "%"
+                    $"cross{k + 1}",
+                    $"Cross Feedback {k + 1}→{(k + 1) % Voices + 1}",
+                    -100f,
+                    100f,
+                    0f,
+                    "%"
                 )
                 .ShownOn(TypeCount, QuadParallel, QuadDiffusor)
             ),

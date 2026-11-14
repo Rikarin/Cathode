@@ -2074,10 +2074,11 @@ export interface components {
       deviceStatus: string;
     };
     /**
-     * @description One switch: the message it sends (a CC or note; value 64 or more is "down"), what a tap does, what holding it
-     *     for half a second does instead, and whether its LED is driven (the same CC or note, 127 when its tap action is
-     *     active, 0 when not). It answers only while its `View` is the active one, and a `Link` (a layout id)
-     *     switches to that layout after its tap action.
+     * @description One switch: the message it sends (a CC or note, where a value of 64 or more is "down", or a program change,
+     *     which carries no position and so is always a tap), what a tap does, what holding it for half a second does
+     *     instead, and whether its LED is driven (the same CC or note, 127 when its tap action is active, 0 when not). It
+     *     answers only while its `View` is the active one, and a `Link` (a layout id) switches to that layout
+     *     after its tap action.
      */
     Footswitch: {
       /** Format: int32 */

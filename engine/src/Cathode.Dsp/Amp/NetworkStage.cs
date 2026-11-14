@@ -241,7 +241,10 @@ public sealed class StageNetlist {
     /// <summary>
     ///     A common-cathode triode with its grid on <paramref name="grid" />: a rail of <paramref name="supply" />
     ///     volts, <paramref name="plateResistor" /> from it to the plate, and <paramref name="cathodeResistor" /> to
-    ///     ground with <paramref name="bypass" /> farads across it (0 for none). Returns the plate.
+    ///     ground with <paramref name="bypass" /> farads across it (0 for none), and <paramref name="gridPlate" />
+    ///     farads from the grid to the plate (0 for none; the tube's own Miller capacitance,
+    ///     <see cref="Models.Ab763.GridPlate" />, where a model wires it), and <paramref name="plateCap" /> farads
+    ///     across the plate resistor (0 for none; a <see cref="CapacitorRole.Plate" /> cap). Returns the plate.
     /// </summary>
     public int CommonCathode(
         int grid,
@@ -249,18 +252,74 @@ public sealed class StageNetlist {
         double supply,
         double plateResistor,
         double cathodeResistor,
-        double bypass = 0
+        double bypass = 0,
+        double gridPlate = 0,
+        double plateCap = 0
+    ) =>
+        CommonCathodeOnRail(grid, tube, supply, plateResistor, cathodeResistor, bypass, gridPlate, plateCap).Plate;
+
+    /// <summary>
+    ///     <see cref="CommonCathode" />, returning its rail as well: a cathode follower DC-coupled to the plate shares
+    ///     it.
+    /// </summary>
+    public (int Plate, int Rail) CommonCathodeOnRail(
+        int grid,
+        TriodeModel tube,
+        double supply,
+        double plateResistor,
+        double cathodeResistor,
+        double bypass = 0,
+        double gridPlate = 0,
+        double plateCap = 0
     ) {
         var (rail, plate, cathode) = (Node(), Node(), Node());
         Supply(rail, supply);
         Resistor(rail, plate, plateResistor);
+        if (plateCap > 0) {
+            Capacitor(rail, plate, plateCap, CapacitorRole.Plate);
+        }
+
         CathodeResistor(cathode, Ground, cathodeResistor);
         if (bypass > 0) {
             Capacitor(cathode, Ground, bypass);
         }
 
         Triode(plate, grid, cathode, tube);
-        return plate;
+        if (gridPlate > 0) {
+            Capacitor(grid, plate, gridPlate);
+        }
+
+        return (plate, rail);
+    }
+
+    /// <summary>
+    ///     A tone stack on <paramref name="source" /> with its middle a variable resistor:
+    ///     <paramref name="trebleCap" /> to the treble pot's top, <paramref name="slope" /> to the slope node, the
+    ///     <paramref name="treble" /> pot down to its foot, <paramref name="bassCap" /> from the slope to that foot,
+    ///     the <paramref name="bass" /> rheostat under it, <paramref name="middleCap" /> from the slope to the middle
+    ///     node, and the <paramref name="middle" /> rheostat to <paramref name="middleFoot" /> (ground unless given).
+    ///     Its nodes are made in that order (top, foot, slope, middle). Returns the treble pot's wiper.
+    /// </summary>
+    public int ToneStack(
+        int source,
+        double trebleCap,
+        double slope,
+        Pot treble,
+        double bassCap,
+        Pot bass,
+        double middleCap,
+        Pot middle,
+        int middleFoot = Ground
+    ) {
+        var (top, foot, slopeNode, middleNode) = (Node(), Node(), Node(), Node());
+        Capacitor(source, top, trebleCap, CapacitorRole.Stack);
+        Resistor(source, slopeNode, slope);
+        var wiper = Pot(top, foot, treble, PotRole.Treble);
+        Capacitor(slopeNode, foot, bassCap, CapacitorRole.Stack);
+        Rheostat(foot, middleNode, bass, PotRole.Bass);
+        Capacitor(slopeNode, middleNode, middleCap, CapacitorRole.Stack);
+        Rheostat(middleNode, middleFoot, middle, PotRole.Middle);
+        return wiper;
     }
 
     public void Triode(int plate, int grid, int cathode, TriodeModel tube) =>
@@ -370,10 +429,10 @@ public sealed record NetworkStageDesign(string Name, StageNetlist Netlist, doubl
     AmpStage CreateNetwork(double sampleRate) {
         var devices = Netlist.Elements
             .Where(static e => e.Kind is ElementKind.Triode
-                    or ElementKind.Pentode
-                    or ElementKind.Diodes
-                    or ElementKind.OpAmp
-                    or ElementKind.Jfet
+                or ElementKind.Pentode
+                or ElementKind.Diodes
+                or ElementKind.OpAmp
+                or ElementKind.Jfet
             )
             .OrderBy(static e => e.Kind)
             .ToArray();

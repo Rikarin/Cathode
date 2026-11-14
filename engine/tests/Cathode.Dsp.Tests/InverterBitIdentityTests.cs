@@ -14,8 +14,8 @@ namespace Cathode.Dsp.Tests;
 ///     their inverters moved to the drawings' 450 V node, with the JC-120's and Valvestate 8080's, whose unused tube
 ///     power amp is the Blackface's; the three again when the Blackface took the AB763 inverter and its input
 ///     network; the fourteen entries of the nine models whose presence pot is the inverter tail's shunt, when the
-///     tail took that pot in as LongTailPairDesign documents, #540). The hashes are macOS ARM64 renders, so the test runs
-///     there only (<see cref="BaselinePlatform" />).
+///     tail took that pot in as LongTailPairDesign documents, #540). The hashes are macOS ARM64 renders, so the test
+///     runs there only (<see cref="BaselinePlatform" />).
 /// </summary>
 public class InverterBitIdentityTests(ITestOutputHelper output) {
     /// <summary>(inverter table, power amp render) per model, from 49fe687.</summary>

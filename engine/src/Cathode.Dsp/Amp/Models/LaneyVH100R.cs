@@ -148,14 +148,9 @@ public static class LaneyVH100R {
     /// <summary>V1B (100k, 2k7 ‖ 680 nF), 22 nF and 68k on. Out at the grid that 68k reaches.</summary>
     static StageNetlist SecondStage() {
         var net = new StageNetlist();
-        var (rail, plate, cathode, coupled, grid) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(rail, RailTwo);
-        net.Resistor(rail, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 2.7e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 680e-9);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
-        net.Capacitor(net.Input, plate, Ab763.GridPlate);
+        var plate = net.CommonCathode(net.Input, TriodeModel.Ecc83, RailTwo, 100e3, 2.7e3, 680e-9, Ab763.GridPlate);
+        var coupled = net.Node();
+        var grid = net.Node();
         net.Capacitor(plate, coupled, 22e-9);
         net.Resistor(coupled, grid, 68e3);
         net.Output = grid;
@@ -167,13 +162,9 @@ public static class LaneyVH100R {
     /// </summary>
     static StageNetlist ColdClipper() {
         var net = new StageNetlist();
-        var (rail, plate, cathode, coupled, grid) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(rail, RailTwo);
-        net.Resistor(rail, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 10e3);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
-        net.Capacitor(net.Input, plate, Ab763.GridPlate);
+        var plate = net.CommonCathode(net.Input, TriodeModel.Ecc83, RailTwo, 100e3, 10e3, 0, Ab763.GridPlate);
+        var coupled = net.Node();
+        var grid = net.Node();
         net.Capacitor(plate, coupled, 22e-9);
         net.Resistor(coupled, grid, 470e3);
         net.Capacitor(coupled, grid, 470e-12);
@@ -191,12 +182,9 @@ public static class LaneyVH100R {
     /// </summary>
     static StageNetlist FollowerAndStack(bool overdrive) {
         var net = new StageNetlist();
-        var (rail, plate, cathode, follower) = (net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(rail, RailTop);
-        net.Resistor(rail, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 820);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
-        net.Capacitor(net.Input, plate, Ab763.GridPlate);
+        var (plate, rail) =
+            net.CommonCathodeOnRail(net.Input, TriodeModel.Ecc83, RailTop, 100e3, 820, gridPlate: Ab763.GridPlate);
+        var follower = net.Node();
 
         var grid = plate;
         if (!overdrive) {
@@ -211,16 +199,16 @@ public static class LaneyVH100R {
 
         var top = follower;
         if (overdrive) {
-            var (trebleTop, trebleFoot, slope, middle) =
-                (net.Node(), net.Node(), net.Node(), net.Node());
-            net.Capacitor(follower, trebleTop, 470e-12, CapacitorRole.Stack);
-            net.Resistor(follower, slope, 33e3);
-            var treble = net.Pot(trebleTop, trebleFoot, new(220e3, PotTaper.Linear), PotRole.Treble);
-            net.Capacitor(slope, trebleFoot, 220e-9, CapacitorRole.Stack);
-            net.Rheostat(trebleFoot, middle, new(1e6, PotTaper.Audio), PotRole.Bass);
-            net.Capacitor(slope, middle, 22e-9, CapacitorRole.Stack);
-            net.Rheostat(middle, StageNetlist.Ground, new(22e3, PotTaper.Linear), PotRole.Middle);
-            top = treble;
+            top = net.ToneStack(
+                follower,
+                470e-12,
+                33e3,
+                new(220e3, PotTaper.Linear),
+                220e-9,
+                new(1e6, PotTaper.Audio),
+                22e-9,
+                new(22e3, PotTaper.Linear)
+            );
         }
 
         var master = net.Pot(top, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Master);
@@ -239,23 +227,20 @@ public static class LaneyVH100R {
     /// </summary>
     static StageNetlist CleanStack() {
         var net = new StageNetlist();
-        var (rail, plate, cathode) = (net.Node(), net.Node(), net.Node());
-        net.Supply(rail, RailTop);
-        net.Resistor(rail, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 2.2e-6);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
+        var plate = net.CommonCathode(net.Input, TriodeModel.Ecc83, RailTop, 100e3, 1.5e3, 2.2e-6);
 
-        var (trebleTop, trebleFoot, slope, middle, grid) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Capacitor(plate, trebleTop, 220e-12, CapacitorRole.Stack);
-        net.Capacitor(plate, trebleTop, 47e-12, CapacitorRole.Stack);
-        net.Resistor(plate, slope, 100e3);
-        var treble = net.Pot(trebleTop, trebleFoot, new(220e3, PotTaper.Linear), PotRole.Treble);
-        net.Capacitor(slope, trebleFoot, 100e-9, CapacitorRole.Stack);
-        net.Rheostat(trebleFoot, middle, new(100e3, PotTaper.Audio), PotRole.Bass);
-        net.Capacitor(slope, middle, 47e-9, CapacitorRole.Stack);
-        net.Rheostat(middle, StageNetlist.Ground, new(22e3, PotTaper.Linear), PotRole.Middle);
+        // The treble cap is 220 pF and 47 pF side by side: one cap of their sum.
+        var treble = net.ToneStack(
+            plate,
+            220e-12 + 47e-12,
+            100e3,
+            new(220e3, PotTaper.Linear),
+            100e-9,
+            new(100e3, PotTaper.Audio),
+            47e-9,
+            new(22e3, PotTaper.Linear)
+        );
+        var grid = net.Node();
 
         var volume = net.Pot(treble, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Control1);
         net.SwitchedCapacitor(treble, volume, 100e-12, SwitchRole.Bright, CapacitorRole.Bright);

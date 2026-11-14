@@ -204,12 +204,7 @@ public static class SoldanoHotRod {
         var volume = net.Pot(normalTop, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Gain);
 
         net.Resistor(normal ? volume : drive, grid, 470e3);
-        var (rail, plate, cathode) = (net.Node(), net.Node(), net.Node());
-        net.Supply(rail, RailTwo);
-        net.Resistor(rail, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.8e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 1e-6);
-        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
+        var plate = net.CommonCathode(grid, TriodeModel.Ecc83, RailTwo, 100e3, 1.8e3, 1e-6);
         net.Output = plate;
         return net;
     }
@@ -220,16 +215,11 @@ public static class SoldanoHotRod {
     /// </summary>
     static StageNetlist ThirdStage() {
         var net = new StageNetlist();
-        var (coupled, grid, rail, plate, cathode) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (coupled, grid) = (net.Node(), net.Node());
         net.Capacitor(net.Input, coupled, 0.02e-6);
         net.Resistor(coupled, StageNetlist.Ground, 330e3);
         net.Resistor(coupled, grid, 220e3);
-        net.Supply(rail, RailThree);
-        net.Resistor(rail, plate, 220e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.8e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 1e-6);
-        net.Triode(plate, grid, cathode, TriodeModel.Ecc83);
+        var plate = net.CommonCathode(grid, TriodeModel.Ecc83, RailThree, 220e3, 1.8e3, 1e-6);
         net.Output = plate;
         return net;
     }

@@ -155,7 +155,7 @@ public static class JVM410H {
             false,
             0,
             100,
-// The 10k tail stands on the 4k7 feedback shunt: 14.7k from the bias junction to ground.
+            // The 10k tail stands on the 4k7 feedback shunt: 14.7k from the bias junction to ground.
             new LongTailPairDesign(TriodeModel.Ecc83, 420, 82e3, 100e3, 14.7e3, 470),
             47e-9,
             220e3,

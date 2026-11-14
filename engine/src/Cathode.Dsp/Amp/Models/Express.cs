@@ -64,7 +64,7 @@ public static class Express {
             false,
             0,
             50,
-// The 10k tail stands on the 5k presence pot, its shunt: 15k from the bias junction to ground.
+            // The 10k tail stands on the 5k presence pot, its shunt: 15k from the bias junction to ground.
             new LongTailPairDesign(TriodeModel.Ecc83, 300, 82e3, 100e3, 15e3, 470),
             22e-9,
             220e3,

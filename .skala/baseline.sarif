@@ -6,7 +6,7 @@
       "tool": {
         "driver": {
           "name": "Skala",
-          "version": "4.4.0",
+          "version": "4.4.1",
           "informationUri": "https://github.com/Rikarin/Skala",
           "rules": [
             {
@@ -9723,7 +9723,7 @@
           "properties": {
             "loadMode": "binlog",
             "loadSummary": "binlog engine/artifacts/skala.binlog (20 compilation(s))",
-            "configurationFingerprint": "12695c6f36f6f818",
+            "configurationFingerprint": "0d662b8e475f9879",
             "optionOverridesActive": false
           }
         }
@@ -9981,7 +9981,7 @@
           "ruleId": "SK7020",
           "level": "warning",
           "message": {
-            "text": "duplicated block of 133 tokens (28 lines), also at engine/src/Cathode.Dsp/Amp/Models/Express.cs:55-83"
+            "text": "duplicated block of 133 tokens (29 lines), also at engine/src/Cathode.Dsp/Amp/Models/Express.cs:55-84"
           },
           "locations": [
             {
@@ -9992,17 +9992,17 @@
                 "region": {
                   "startLine": 105,
                   "startColumn": 1,
-                  "endLine": 132,
+                  "endLine": 133,
                   "endColumn": 1,
                   "charOffset": 6073,
-                  "charLength": 848
+                  "charLength": 960
                 }
               }
             }
           ],
           "partialFingerprints": {
-            "skala/v1": "f3091c7fe2bbdd76a846907a6d43c5bf",
-            "skala/v3": "25c2eba93a3b4464c2da40339ea488b0"
+            "skala/v1": "b35b3497562d27a1edc67f3894c18a81",
+            "skala/v3": "2b37fedcf3c3d2a58c8ff38b8ade8add"
           },
           "properties": {
             "skalaSeverity": "warning"
@@ -10021,11 +10021,11 @@
                   "uri": "engine/src/Cathode.Dsp/Amp/Models/Bassman.cs"
                 },
                 "region": {
-                  "startLine": 163,
+                  "startLine": 164,
                   "startColumn": 1,
-                  "endLine": 170,
+                  "endLine": 171,
                   "endColumn": 1,
-                  "charOffset": 8404,
+                  "charOffset": 8516,
                   "charLength": 362
                 }
               }
@@ -10052,11 +10052,11 @@
                   "uri": "engine/src/Cathode.Dsp/Amp/Models/Bassman.cs"
                 },
                 "region": {
-                  "startLine": 171,
+                  "startLine": 172,
                   "startColumn": 1,
-                  "endLine": 180,
+                  "endLine": 181,
                   "endColumn": 1,
-                  "charOffset": 8832,
+                  "charOffset": 8944,
                   "charLength": 503
                 }
               }
@@ -10083,11 +10083,11 @@
                   "uri": "engine/src/Cathode.Dsp/Amp/Models/Bassman.cs"
                 },
                 "region": {
-                  "startLine": 185,
+                  "startLine": 186,
                   "startColumn": 1,
-                  "endLine": 203,
+                  "endLine": 204,
                   "endColumn": 1,
-                  "charOffset": 9565,
+                  "charOffset": 9677,
                   "charLength": 935
                 }
               }
@@ -10114,11 +10114,11 @@
                   "uri": "engine/src/Cathode.Dsp/Amp/Models/Bassman.cs"
                 },
                 "region": {
-                  "startLine": 209,
+                  "startLine": 210,
                   "startColumn": 1,
-                  "endLine": 217,
+                  "endLine": 218,
                   "endColumn": 1,
-                  "charOffset": 10770,
+                  "charOffset": 10882,
                   "charLength": 392
                 }
               }
@@ -10167,7 +10167,7 @@
           "ruleId": "SK7020",
           "level": "warning",
           "message": {
-            "text": "duplicated block of 101 tokens (7 lines), also at engine/src/Cathode.Dsp/Amp/Models/JVM410H.cs:300-306, engine/src/Cathode.Dsp/Amp/Models/JazzChorus120.cs:177-183, engine/src/Cathode.Dsp/Amp/Models/SuperReverb.cs:85-93, engine/src/Cathode.Dsp/Amp/Models/VibroKing.cs:181-187"
+            "text": "duplicated block of 101 tokens (7 lines), also at engine/src/Cathode.Dsp/Amp/Models/JVM410H.cs:301-307, engine/src/Cathode.Dsp/Amp/Models/JazzChorus120.cs:177-183, engine/src/Cathode.Dsp/Amp/Models/SuperReverb.cs:85-93, engine/src/Cathode.Dsp/Amp/Models/VibroKing.cs:181-187"
           },
           "locations": [
             {
@@ -10187,7 +10187,7 @@
             }
           ],
           "partialFingerprints": {
-            "skala/v1": "3e5034d1e58fd7c5037f1443c68bc313",
+            "skala/v1": "2c8d38d4289ef83e90a736b00f9cd2a7",
             "skala/v3": "3064ff55ce36420ba034a86be7a27077"
           },
           "properties": {
@@ -10322,7 +10322,7 @@
           "ruleId": "SK7020",
           "level": "warning",
           "message": {
-            "text": "duplicated block of 149 tokens (25 lines), also at engine/src/Cathode.Dsp/Amp/Models/JTM45.cs:53-77, engine/src/Cathode.Dsp/Amp/Models/Marshall1987X.cs:35-59"
+            "text": "duplicated block of 149 tokens (26 lines), also at engine/src/Cathode.Dsp/Amp/Models/JTM45.cs:53-78, engine/src/Cathode.Dsp/Amp/Models/Marshall1987X.cs:35-60"
           },
           "locations": [
             {
@@ -10333,17 +10333,17 @@
                 "region": {
                   "startLine": 45,
                   "startColumn": 1,
-                  "endLine": 69,
+                  "endLine": 70,
                   "endColumn": 1,
                   "charOffset": 3387,
-                  "charLength": 821
+                  "charLength": 934
                 }
               }
             }
           ],
           "partialFingerprints": {
-            "skala/v1": "e4985a178791625e87fd8e22f635fa97",
-            "skala/v3": "cef84d459c9893dfc885fe2489704ad2"
+            "skala/v1": "f8c94c8b9675096afda17f9f1bbbb287",
+            "skala/v3": "103715f14e2c06e13a8b6e60cec281db"
           },
           "properties": {
             "skalaSeverity": "warning"
@@ -10384,7 +10384,7 @@
           "ruleId": "SK7020",
           "level": "warning",
           "message": {
-            "text": "duplicated block of 106 tokens (23 lines), also at engine/src/Cathode.Dsp/Amp/Models/DualRectifier.cs:72-95, engine/src/Cathode.Dsp/Amp/Models/Evh5150III.cs:110-133, engine/src/Cathode.Dsp/Amp/Models/LoneStar.cs:55-78, engine/src/Cathode.Dsp/Amp/Models/OverdriveSpecial.cs:63-87, engine/src/Cathode.Dsp/Amp/Models/OverdriveSpecial70s.cs:77-101, engine/src/Cathode.Dsp/Amp/Models/Peavey5150.cs:103-126, engine/src/Cathode.Dsp/Amp/Models/Vibrolux6G11.cs:82-104"
+            "text": "duplicated block of 106 tokens (23 lines), also at engine/src/Cathode.Dsp/Amp/Models/DualRectifier.cs:72-95, engine/src/Cathode.Dsp/Amp/Models/Evh5150III.cs:110-133, engine/src/Cathode.Dsp/Amp/Models/LaneyVH100R.cs:77-101, engine/src/Cathode.Dsp/Amp/Models/LoneStar.cs:55-78, engine/src/Cathode.Dsp/Amp/Models/OverdriveSpecial.cs:63-87, engine/src/Cathode.Dsp/Amp/Models/OverdriveSpecial70s.cs:77-101, engine/src/Cathode.Dsp/Amp/Models/Peavey5150.cs:103-126, engine/src/Cathode.Dsp/Amp/Models/Vibrolux6G11.cs:82-104"
           },
           "locations": [
             {
@@ -10404,7 +10404,7 @@
             }
           ],
           "partialFingerprints": {
-            "skala/v1": "0216a2a707c75de61a043e3ce5bbf9dd",
+            "skala/v1": "ded90c2465173a9e1c8668598ac53f19",
             "skala/v3": "e71ccea22d6c0516b0907290fd329de3"
           },
           "properties": {
@@ -10570,7 +10570,7 @@
           "ruleId": "SK7020",
           "level": "warning",
           "message": {
-            "text": "duplicated block of 158 tokens (10 lines), also at engine/src/Cathode.Dsp/Amp/Models/JCM900.cs:251-259, engine/src/Cathode.Dsp/Amp/Models/MarshallAfd100.cs:276-284, engine/src/Cathode.Dsp/Amp/Models/TweedTwin.cs:103-111"
+            "text": "duplicated block of 158 tokens (10 lines), also at engine/src/Cathode.Dsp/Amp/Models/JCM900.cs:251-259, engine/src/Cathode.Dsp/Amp/Models/MarshallAfd100.cs:276-284, engine/src/Cathode.Dsp/Amp/Models/TweedTwin.cs:104-112"
           },
           "locations": [
             {
@@ -10590,7 +10590,7 @@
             }
           ],
           "partialFingerprints": {
-            "skala/v1": "a1d3b2066c301161f5a19c655c38a37f",
+            "skala/v1": "bc228d8d8fe25a181a58bc5290c029b3",
             "skala/v3": "352da4f01d9642670933782fb439aae5"
           },
           "properties": {
@@ -10951,11 +10951,11 @@
                   "uri": "engine/src/Cathode.Dsp/Amp/Models/Express.cs"
                 },
                 "region": {
-                  "startLine": 80,
+                  "startLine": 81,
                   "startColumn": 1,
-                  "endLine": 109,
+                  "endLine": 110,
                   "endColumn": 1,
-                  "charOffset": 4071,
+                  "charOffset": 4179,
                   "charLength": 1449
                 }
               }
@@ -10982,11 +10982,11 @@
                   "uri": "engine/src/Cathode.Dsp/Amp/Models/Express.cs"
                 },
                 "region": {
-                  "startLine": 109,
+                  "startLine": 110,
                   "startColumn": 1,
-                  "endLine": 134,
+                  "endLine": 135,
                   "endColumn": 1,
-                  "charOffset": 5559,
+                  "charOffset": 5667,
                   "charLength": 1039
                 }
               }
@@ -11013,11 +11013,11 @@
                   "uri": "engine/src/Cathode.Dsp/Amp/Models/Fireball.cs"
                 },
                 "region": {
-                  "startLine": 106,
+                  "startLine": 96,
                   "startColumn": 1,
-                  "endLine": 132,
+                  "endLine": 122,
                   "endColumn": 1,
-                  "charOffset": 7728,
+                  "charOffset": 7849,
                   "charLength": 1003
                 }
               }
@@ -11252,7 +11252,7 @@
           "ruleId": "SK7020",
           "level": "warning",
           "message": {
-            "text": "duplicated block of 104 tokens (8 lines), also at engine/src/Cathode.Dsp/Amp/Models/MarkV.cs:501-510, engine/src/Cathode.Dsp/Amp/Models/RectoVerb.cs:212-219"
+            "text": "duplicated block of 104 tokens (8 lines), also at engine/src/Cathode.Dsp/Amp/Models/MarkV.cs:505-514, engine/src/Cathode.Dsp/Amp/Models/RectoVerb.cs:212-219"
           },
           "locations": [
             {
@@ -11272,7 +11272,7 @@
             }
           ],
           "partialFingerprints": {
-            "skala/v1": "a6fd95ca447cd3548f622acbaa9a8326",
+            "skala/v1": "765d30b6dc785e1642d2cfd3802b3228",
             "skala/v3": "2a04c37b879c9140572fc9452bf38f59"
           },
           "properties": {
@@ -11345,7 +11345,7 @@
           "ruleId": "SK7020",
           "level": "warning",
           "message": {
-            "text": "duplicated block of 108 tokens (22 lines), also at engine/src/Cathode.Dsp/Amp/Models/Prometheus.cs:92-113"
+            "text": "duplicated block of 108 tokens (22 lines), also at engine/src/Cathode.Dsp/Amp/Models/Prometheus.cs:93-114"
           },
           "locations": [
             {
@@ -11365,7 +11365,7 @@
             }
           ],
           "partialFingerprints": {
-            "skala/v1": "515f7a75baa2d993d362735ba58af009",
+            "skala/v1": "badf436d45d2b0f0e13299633f635f78",
             "skala/v3": "152170eb2c2f5c48c2813d51155a67b0"
           },
           "properties": {
@@ -11407,7 +11407,7 @@
           "ruleId": "SK7020",
           "level": "warning",
           "message": {
-            "text": "duplicated block of 115 tokens (11 lines), also at engine/src/Cathode.Dsp/Amp/Models/Savage120.cs:431-441"
+            "text": "duplicated block of 115 tokens (11 lines), also at engine/src/Cathode.Dsp/Amp/Models/Savage120.cs:481-491"
           },
           "locations": [
             {
@@ -11416,18 +11416,18 @@
                   "uri": "engine/src/Cathode.Dsp/Amp/Models/JVM410H.cs"
                 },
                 "region": {
-                  "startLine": 318,
+                  "startLine": 319,
                   "startColumn": 1,
-                  "endLine": 328,
+                  "endLine": 329,
                   "endColumn": 1,
-                  "charOffset": 17533,
+                  "charOffset": 17637,
                   "charLength": 477
                 }
               }
             }
           ],
           "partialFingerprints": {
-            "skala/v1": "28a7e57f97e632d5de4d0bf0db38ad99",
+            "skala/v1": "428fbc168bc2a139348df098ca33b3f3",
             "skala/v3": "25215824c1ad480498227233d4828aba"
           },
           "properties": {
@@ -11447,11 +11447,11 @@
                   "uri": "engine/src/Cathode.Dsp/Amp/Models/JVM410H.cs"
                 },
                 "region": {
-                  "startLine": 352,
+                  "startLine": 353,
                   "startColumn": 1,
-                  "endLine": 379,
+                  "endLine": 380,
                   "endColumn": 1,
-                  "charOffset": 19191,
+                  "charOffset": 19295,
                   "charLength": 1261
                 }
               }
@@ -11478,11 +11478,11 @@
                   "uri": "engine/src/Cathode.Dsp/Amp/Models/JVM410H.cs"
                 },
                 "region": {
-                  "startLine": 416,
+                  "startLine": 417,
                   "startColumn": 1,
-                  "endLine": 423,
+                  "endLine": 424,
                   "endColumn": 1,
-                  "charOffset": 22391,
+                  "charOffset": 22495,
                   "charLength": 490
                 }
               }
@@ -11500,7 +11500,7 @@
           "ruleId": "SK7020",
           "level": "warning",
           "message": {
-            "text": "duplicated block of 131 tokens (17 lines), also at engine/src/Cathode.Dsp/Amp/Models/OverdriveSpecial.cs:155-171, engine/src/Cathode.Dsp/Amp/Models/Powerball.cs:370-388"
+            "text": "duplicated block of 131 tokens (17 lines), also at engine/src/Cathode.Dsp/Amp/Models/OverdriveSpecial.cs:155-171"
           },
           "locations": [
             {
@@ -11509,18 +11509,18 @@
                   "uri": "engine/src/Cathode.Dsp/Amp/Models/JVM410H.cs"
                 },
                 "region": {
-                  "startLine": 491,
+                  "startLine": 492,
                   "startColumn": 1,
-                  "endLine": 507,
+                  "endLine": 508,
                   "endColumn": 1,
-                  "charOffset": 26174,
+                  "charOffset": 26278,
                   "charLength": 692
                 }
               }
             }
           ],
           "partialFingerprints": {
-            "skala/v1": "5baa508e2a0301567ddd8f6c465720a5",
+            "skala/v1": "f124e5406c1ba70ca81d971c3468363e",
             "skala/v3": "67dec24c9e7aad83ec1a73122224c9b1"
           },
           "properties": {
@@ -11562,7 +11562,7 @@
           "ruleId": "SK7020",
           "level": "warning",
           "message": {
-            "text": "duplicated block of 104 tokens (8 lines), also at engine/src/Cathode.Dsp/Amp/Models/MarkV.cs:597-605"
+            "text": "duplicated block of 104 tokens (8 lines), also at engine/src/Cathode.Dsp/Amp/Models/MarkV.cs:601-609"
           },
           "locations": [
             {
@@ -11575,14 +11575,14 @@
                   "startColumn": 1,
                   "endLine": 242,
                   "endColumn": 1,
-                  "charOffset": 12112,
+                  "charOffset": 12103,
                   "charLength": 360
                 }
               }
             }
           ],
           "partialFingerprints": {
-            "skala/v1": "aac2db9b5a66e49a3be94ccb34f8d019",
+            "skala/v1": "a79140f09e06a8740d966b1da7697170",
             "skala/v3": "8f648d8f00b721405914e72906c2f3d8"
           },
           "properties": {
@@ -11624,7 +11624,7 @@
           "ruleId": "SK7020",
           "level": "warning",
           "message": {
-            "text": "duplicated block of 135 tokens (12 lines), also at engine/src/Cathode.Dsp/Amp/Models/Savage120.cs:352-361"
+            "text": "duplicated block of 135 tokens (12 lines), also at engine/src/Cathode.Dsp/Amp/Models/Savage120.cs:402-411"
           },
           "locations": [
             {
@@ -11644,7 +11644,7 @@
             }
           ],
           "partialFingerprints": {
-            "skala/v1": "387355379eaa779a61c5abbe2af7b9af",
+            "skala/v1": "f8e32c3cd39c04609872c21fc6e654b4",
             "skala/v3": "9cc85e011ca597adb1fb634acd58feda"
           },
           "properties": {
@@ -11717,7 +11717,7 @@
           "ruleId": "SK7020",
           "level": "warning",
           "message": {
-            "text": "duplicated block of 105 tokens (15 lines), also at engine/src/Cathode.Dsp/Amp/Models/LoneStar.cs:173-186, engine/src/Cathode.Dsp/Amp/Models/MarkV.cs:341-355, engine/src/Cathode.Dsp/Amp/Models/RectoVerb.cs:175-189, engine/src/Cathode.Dsp/Amp/Models/Savage120.cs:303-316, engine/src/Cathode.Dsp/Amp/Models/SubwayBlues.cs:186-199, engine/src/Cathode.Dsp/Amp/Models/Valvestate8080.cs:261-273"
+            "text": "duplicated block of 105 tokens (15 lines), also at engine/src/Cathode.Dsp/Amp/Models/LoneStar.cs:173-186, engine/src/Cathode.Dsp/Amp/Models/MarkV.cs:345-359, engine/src/Cathode.Dsp/Amp/Models/RectoVerb.cs:175-189, engine/src/Cathode.Dsp/Amp/Models/Savage120.cs:353-366, engine/src/Cathode.Dsp/Amp/Models/SubwayBlues.cs:186-199, engine/src/Cathode.Dsp/Amp/Models/Valvestate8080.cs:261-273"
           },
           "locations": [
             {
@@ -11737,7 +11737,7 @@
             }
           ],
           "partialFingerprints": {
-            "skala/v1": "5ee8e2de2138316585c5e190e2084583",
+            "skala/v1": "af3feb0d29f28a00ad9174faa5a8390d",
             "skala/v3": "cdf45bea9db6e0cfd46098e0fc5a0b4c"
           },
           "properties": {
@@ -11748,7 +11748,7 @@
           "ruleId": "SK7020",
           "level": "warning",
           "message": {
-            "text": "duplicated block of 106 tokens (7 lines), also at engine/src/Cathode.Dsp/Amp/Models/RectoVerb.cs:307-313, engine/src/Cathode.Dsp/Amp/Models/Savage120.cs:334-340"
+            "text": "duplicated block of 106 tokens (7 lines), also at engine/src/Cathode.Dsp/Amp/Models/RectoVerb.cs:307-313, engine/src/Cathode.Dsp/Amp/Models/Savage120.cs:384-390"
           },
           "locations": [
             {
@@ -11768,7 +11768,7 @@
             }
           ],
           "partialFingerprints": {
-            "skala/v1": "39adc6e8f162ac1c85635a9f8739a643",
+            "skala/v1": "fe4945b683b59e6d8191e5f68bd754a7",
             "skala/v3": "d2b534e37e93120589255dba81968228"
           },
           "properties": {
@@ -11779,7 +11779,7 @@
           "ruleId": "SK7020",
           "level": "warning",
           "message": {
-            "text": "duplicated block of 103 tokens (15 lines), also at engine/src/Cathode.Dsp/Amp/Models/Savage120.cs:382-396"
+            "text": "duplicated block of 103 tokens (15 lines), also at engine/src/Cathode.Dsp/Amp/Models/Savage120.cs:432-446"
           },
           "locations": [
             {
@@ -11799,7 +11799,7 @@
             }
           ],
           "partialFingerprints": {
-            "skala/v1": "f591cf68f10b7d3e0a95242af675d775",
+            "skala/v1": "e60b45d6fc7ca314cbf49bc151d2aaa9",
             "skala/v3": "21f554d102a5636c109f40b9162986b3"
           },
           "properties": {
@@ -11903,7 +11903,7 @@
           "ruleId": "SK7020",
           "level": "warning",
           "message": {
-            "text": "duplicated block of 115 tokens (17 lines), also at engine/src/Cathode.Dsp/Amp/Models/Savage120.cs:277-291"
+            "text": "duplicated block of 115 tokens (17 lines), also at engine/src/Cathode.Dsp/Amp/Models/Savage120.cs:325-340"
           },
           "locations": [
             {
@@ -11923,7 +11923,7 @@
             }
           ],
           "partialFingerprints": {
-            "skala/v1": "728dac5beec269b53b614a7172bff08b",
+            "skala/v1": "e3cab20cf0e6e5fcd3797e257309aa82",
             "skala/v3": "62237885282ffacd2b52e006a72c8356"
           },
           "properties": {
@@ -12120,7 +12120,7 @@
           "ruleId": "SK7020",
           "level": "warning",
           "message": {
-            "text": "duplicated block of 103 tokens (14 lines), also at engine/src/Cathode.Dsp/Amp/Models/Powerball.cs:424-436"
+            "text": "duplicated block of 103 tokens (14 lines), also at engine/src/Cathode.Dsp/Amp/Models/Powerball.cs:397-409"
           },
           "locations": [
             {
@@ -12129,18 +12129,18 @@
                   "uri": "engine/src/Cathode.Dsp/Amp/Models/Powerball.cs"
                 },
                 "region": {
-                  "startLine": 346,
+                  "startLine": 331,
                   "startColumn": 1,
-                  "endLine": 359,
+                  "endLine": 344,
                   "endColumn": 1,
-                  "charOffset": 22367,
+                  "charOffset": 21730,
                   "charLength": 815
                 }
               }
             }
           ],
           "partialFingerprints": {
-            "skala/v1": "2a73e964ff1458b58e3f789dbcf6686d",
+            "skala/v1": "ee58eb9557195478d7c234420bf826d7",
             "skala/v3": "f8c6cd787c17f41dae837d4e198f4e13"
           },
           "properties": {
@@ -12191,12 +12191,12 @@
                   "uri": "engine/src/Cathode.Dsp/Amp/Models/Savage120.cs"
                 },
                 "region": {
-                  "startLine": 210,
+                  "startLine": 255,
                   "startColumn": 1,
-                  "endLine": 221,
+                  "endLine": 266,
                   "endColumn": 1,
-                  "charOffset": 13385,
-                  "charLength": 628
+                  "charOffset": 16571,
+                  "charLength": 630
                 }
               }
             }
@@ -12842,11 +12842,11 @@
                   "uri": "engine/src/Cathode.Dsp/Capture/AidaModel.cs"
                 },
                 "region": {
-                  "startLine": 297,
+                  "startLine": 302,
                   "startColumn": 1,
-                  "endLine": 307,
+                  "endLine": 312,
                   "endColumn": 1,
-                  "charOffset": 11178,
+                  "charOffset": 11531,
                   "charLength": 397
                 }
               }

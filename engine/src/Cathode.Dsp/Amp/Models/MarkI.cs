@@ -107,13 +107,9 @@ public static class MarkI {
     /// </summary>
     static StageNetlist InputStage() {
         var net = new StageNetlist();
-        var (rail, plate, cathode, coupled) = (net.Node(), net.Node(), net.Node(), net.Node());
         net.Resistor(net.Input, StageNetlist.Ground, 1e6);
-        net.Supply(rail, RailD);
-        net.Resistor(rail, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 22e-6);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
+        var plate = net.CommonCathode(net.Input, TriodeModel.Ecc83, RailD, 100e3, 1.5e3, 22e-6);
+        var coupled = net.Node();
         net.Capacitor(plate, coupled, 0.01e-6);
         net.Output = net.Pot(coupled, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Gain);
         return net;
@@ -125,24 +121,22 @@ public static class MarkI {
     /// </summary>
     static StageNetlist StackStage() {
         var net = new StageNetlist();
-        var (rail, plate, cathode) = (net.Node(), net.Node(), net.Node());
-        net.Supply(rail, RailD);
-        net.Resistor(rail, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 22e-6);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
-        net.Capacitor(net.Input, plate, Ab763.GridPlate);
+        var plate = net.CommonCathode(net.Input, TriodeModel.Ecc83, RailD, 100e3, 1.5e3, 22e-6, Ab763.GridPlate);
 
-        var (trebleTop, trebleFoot, slope, middle, foot, grid) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Capacitor(plate, trebleTop, 250e-12, CapacitorRole.Stack);
-        net.Resistor(plate, slope, 100e3);
-        var treble = net.Pot(trebleTop, trebleFoot, new(250e3, PotTaper.Linear), PotRole.Treble);
-        net.Capacitor(slope, trebleFoot, 0.1e-6, CapacitorRole.Stack);
-        net.Rheostat(trebleFoot, middle, new(250e3, PotTaper.Audio), PotRole.Bass);
-        net.Capacitor(slope, middle, 0.047e-6, CapacitorRole.Stack);
-        net.Rheostat(middle, foot, new(10e3, PotTaper.Linear), PotRole.Middle);
+        var foot = net.Node();
+        var treble = net.ToneStack(
+            plate,
+            250e-12,
+            100e3,
+            new(250e3, PotTaper.Linear),
+            0.1e-6,
+            new(250e3, PotTaper.Audio),
+            0.047e-6,
+            new(10e3, PotTaper.Linear),
+            foot
+        );
         net.SwitchedResistor(foot, StageNetlist.Ground, 1, 1e9, SwitchRole.Switch1);
+        var grid = net.Node();
         net.Resistor(treble, grid, 100e3);
         net.Output = grid;
         return net;
@@ -154,13 +148,8 @@ public static class MarkI {
     /// </summary>
     static StageNetlist SecondVolume() {
         var net = new StageNetlist();
-        var (rail, plate, cathode, coupled) = (net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(rail, RailD);
-        net.Resistor(rail, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 22e-6);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
-        net.Capacitor(net.Input, plate, Ab763.GridPlate);
+        var plate = net.CommonCathode(net.Input, TriodeModel.Ecc83, RailD, 100e3, 1.5e3, 22e-6, Ab763.GridPlate);
+        var coupled = net.Node();
         net.Capacitor(plate, coupled, 0.047e-6);
         var wiper = net.Pot(coupled, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Control1);
         net.Capacitor(coupled, wiper, 110e-12, CapacitorRole.Bright);
@@ -174,14 +163,9 @@ public static class MarkI {
     /// </summary>
     static StageNetlist Recovery() {
         var net = new StageNetlist();
-        var (rail, plate, cathode, coupled, top) = (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
         net.Resistor(net.Input, StageNetlist.Ground, 820e3);
-        net.Supply(rail, RailD);
-        net.Resistor(rail, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 820);
-        net.Capacitor(cathode, StageNetlist.Ground, 22e-6);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
-        net.Capacitor(net.Input, plate, Ab763.GridPlate);
+        var plate = net.CommonCathode(net.Input, TriodeModel.Ecc83, RailD, 100e3, 820, 22e-6, Ab763.GridPlate);
+        var (coupled, top) = (net.Node(), net.Node());
         net.Capacitor(plate, coupled, 0.047e-6);
         net.Resistor(coupled, top, 220e3);
         net.Output = net.Pot(top, StageNetlist.Ground, new(1e6, PotTaper.Audio), PotRole.Master);

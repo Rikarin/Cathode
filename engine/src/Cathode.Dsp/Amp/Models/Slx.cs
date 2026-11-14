@@ -60,30 +60,14 @@ public static class Slx {
     public static AmpDesign Design { get; } = new(
         "JCM900 SL-X 2100",
         Stages(),
-        new(
-            "4 x EL34",
-            PentodeModel.EL34,
-            2,
-            470,
-            1e3,
-            0.040,
-            false,
-            0,
-            100,
-            // The 15k tail stands on the 4k7 feedback shunt: 19.7k from the bias junction to ground.
-            new LongTailPairDesign(TriodeModel.Ecc83, Inverter, 82e3, 91e3, 19.7e3, 1e3),
-            47e-9,
-            150e3,
-            1.5e3,
-            0,
-            new(1e6, PotTaper.Linear),
-            new(Math.Sqrt(2), 100e3, 4.7e3, new(22e3, PotTaper.Linear), 0.1e-6),
-            true,
-            new(1.7e3),
-            SpeakerDesign.Closed4x12,
-            new(25, 100e-6, 100, 50e-6, 22e3, 33e-6),
-            InverterInput: new(22e-9, 1e6)
-        ),
+        // The JCM900 4100's power amp, but for B+, the inverter's second plate resistor, the feedback and the last
+        // supply cap. The 15k tail stands on the 4k7 feedback shunt: 19.7k from the bias junction to ground.
+        JCM900.Head100.Power with {
+            Supply = 470,
+            PhaseInverter = new LongTailPairDesign(TriodeModel.Ecc83, Inverter, 82e3, 91e3, 19.7e3, 1e3),
+            Feedback = new(Math.Sqrt(2), 100e3, 4.7e3, new(22e3, PotTaper.Linear), 0.1e-6),
+            PowerSupply = new(25, 100e-6, 100, 50e-6, 22e3, 33e-6)
+        },
         -7
     ) { Panel = Panel() };
 
@@ -157,14 +141,16 @@ public static class Slx {
     /// </summary>
     static StageNetlist SecondStage() {
         var net = new StageNetlist();
-        var (rail, plate, cathode, coupled, grid) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(rail, Preamp);
-        net.Resistor(rail, plate, 100e3);
-        net.Capacitor(rail, plate, 1e-9, CapacitorRole.Plate);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 820);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
-        net.Capacitor(net.Input, plate, Ab763.GridPlate);
+        var plate = net.CommonCathode(
+            net.Input,
+            TriodeModel.Ecc83,
+            Preamp,
+            100e3,
+            820,
+            gridPlate: Ab763.GridPlate,
+            plateCap: 1e-9
+        );
+        var (coupled, grid) = (net.Node(), net.Node());
         net.Capacitor(plate, coupled, 10e-9);
         net.Resistor(coupled, grid, 220e3);
         net.Resistor(grid, StageNetlist.Ground, 220e3);
@@ -178,13 +164,8 @@ public static class Slx {
     /// </summary>
     static StageNetlist ThirdStage() {
         var net = new StageNetlist();
-        var (rail, plate, cathode, coupled, top) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(rail, Preamp);
-        net.Resistor(rail, plate, 27e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 2.7e3);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
-        net.Capacitor(net.Input, plate, Ab763.GridPlate);
+        var plate = net.CommonCathode(net.Input, TriodeModel.Ecc83, Preamp, 27e3, 2.7e3, 0, Ab763.GridPlate);
+        var (coupled, top) = (net.Node(), net.Node());
         net.Capacitor(plate, coupled, 22e-9);
         net.Resistor(coupled, top, 470e3);
         net.Capacitor(coupled, top, 470e-12);
@@ -201,24 +182,23 @@ public static class Slx {
     /// </summary>
     static StageNetlist FollowerAndStack() {
         var net = new StageNetlist();
-        var (rail, plate, cathode, follower) = (net.Node(), net.Node(), net.Node(), net.Node());
-        net.Supply(rail, Preamp);
-        net.Resistor(rail, plate, 220e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 2.7e3);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
-        net.Capacitor(net.Input, plate, Ab763.GridPlate);
+        var (plate, rail) =
+            net.CommonCathodeOnRail(net.Input, TriodeModel.Ecc83, Preamp, 220e3, 2.7e3, gridPlate: Ab763.GridPlate);
+        var follower = net.Node();
         net.Triode(rail, plate, follower, TriodeModel.Ecc83);
         net.Resistor(follower, StageNetlist.Ground, 100e3);
 
-        var (trebleTop, trebleFoot, slope, middle, output) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
-        net.Capacitor(follower, trebleTop, 470e-12, CapacitorRole.Stack);
-        net.Resistor(follower, slope, 33e3);
-        var treble = net.Pot(trebleTop, trebleFoot, new(220e3, PotTaper.Linear), PotRole.Treble);
-        net.Capacitor(slope, trebleFoot, 22e-9, CapacitorRole.Stack);
-        net.Rheostat(trebleFoot, middle, new(220e3, PotTaper.Audio), PotRole.Bass);
-        net.Capacitor(slope, middle, 22e-9, CapacitorRole.Stack);
-        net.Rheostat(middle, StageNetlist.Ground, new(22e3, PotTaper.Linear), PotRole.Middle);
+        var treble = net.ToneStack(
+            follower,
+            470e-12,
+            33e3,
+            new(220e3, PotTaper.Linear),
+            22e-9,
+            new(220e3, PotTaper.Audio),
+            22e-9,
+            new(22e3, PotTaper.Linear)
+        );
+        var output = net.Node();
         net.Resistor(treble, output, 680e3);
         net.Resistor(output, StageNetlist.Ground, 68e3);
         net.Output = output;

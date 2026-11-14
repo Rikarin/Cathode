@@ -120,7 +120,9 @@ public abstract class RowMixerBlock : DspBlock, ISideInputBlock {
 
     float Glide(float gain, float target) => GlideBy(gain, target, glideStep);
 
-    /// <summary>`gain` moved <paramref name="step" /> toward `target`, which a whole block's steps do at once.</summary>
+    /// <summary>
+    ///     `gain` moved <paramref name="step" /> toward `target`, which a whole block's steps do at once.
+    /// </summary>
     static float GlideBy(float gain, float target, float step) =>
         target > gain ? Math.Min(target, gain + step) : Math.Max(target, gain - step);
 }

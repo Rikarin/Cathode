@@ -151,13 +151,8 @@ public static class BluesDeluxe {
     /// </summary>
     static StageNetlist InputStage(double preamp) {
         var net = new StageNetlist();
-        var (rail, plate, cathode) = (net.Node(), net.Node(), net.Node());
         net.Resistor(net.Input, StageNetlist.Ground, 1e6);
-        net.Supply(rail, preamp);
-        net.Resistor(rail, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
-        net.Capacitor(cathode, StageNetlist.Ground, 22e-6);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
+        var plate = net.CommonCathode(net.Input, TriodeModel.Ecc83, preamp, 100e3, 1.5e3, 22e-6);
 
         var (coupled, line, foot, grid) = (net.Node(), net.Node(), net.Node(), net.Node());
         net.Capacitor(plate, coupled, 0.01e-6);
@@ -179,12 +174,7 @@ public static class BluesDeluxe {
     /// </summary>
     static StageNetlist StackStage(double preamp) {
         var net = new StageNetlist();
-        var (rail, plate, cathode) = (net.Node(), net.Node(), net.Node());
-        net.Supply(rail, preamp);
-        net.Resistor(rail, plate, 100e3);
-        net.CathodeResistor(cathode, StageNetlist.Ground, 1.5e3);
-        net.Triode(plate, net.Input, cathode, TriodeModel.Ecc83);
-        net.Capacitor(net.Input, plate, Ab763.GridPlate);
+        var plate = net.CommonCathode(net.Input, TriodeModel.Ecc83, preamp, 100e3, 1.5e3, 0, Ab763.GridPlate);
 
         var (wiper, _) = FenderParts.MidWiperStack(
             net,
@@ -215,7 +205,9 @@ public static class BluesDeluxe {
     /// </summary>
     static StageNetlist Output() {
         var net = new StageNetlist();
-        var (coupled, master, foot) = (net.Node(), net.Node(), net.Node());
+        var coupled = net.Node();
+        var master = net.Node();
+        var foot = net.Node();
         net.Capacitor(net.Input, coupled, 0.022e-6);
         net.Resistor(coupled, master, 330e3);
         net.Rheostat(master, foot, new(1e6, PotTaper.Audio), PotRole.Master);
