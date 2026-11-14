@@ -163,6 +163,10 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
     readonly float[] ringMix = new float[Voices];
     readonly double[] ringPhase = new double[Voices];
     readonly float[] voice = new float[Voices];
+
+    /// <summary>The Quad Diffusor's nodes of this sample, all taken from the raw reads before any voice moves.</summary>
+    readonly float[] node = new float[Voices];
+
     readonly Diffuser diffuser = new();
     int activeType = -1;
     int capacity;
@@ -793,19 +797,25 @@ public sealed class MultiDelayBlock() : DspBlock(Info) {
                     }
 
                     break;
-                case QuadDiffusor:
+                case QuadDiffusor: {
                     // Each line is a Schroeder allpass: the voice heard is delayed - g · node, the node written is
-                    // input + g · delayed.
+                    // input + g · delayed. Every node is taken from the raw reads first, so the ring's four cross
+                    // paths carry the same thing: updating voice[k] inside the loop left 0 ← 3 reading the raw
+                    // delayed sample while 1 ← 0, 2 ← 1 and 3 ← 2 read the allpass output.
                     for (var k = 0; k < Voices; k++) {
                         var previous = (k + Voices - 1) % Voices;
                         var gain = Math.Clamp(feedback[k], -MaxDiffusorGain, MaxDiffusorGain);
-                        var delayed = voice[k];
-                        var node = x + cross[previous] * voice[previous] + gain * delayed;
-                        Write(k, node, loop, drive, false);
-                        voice[k] = delayed - gain * node;
+                        node[k] = x + cross[previous] * voice[previous] + gain * voice[k];
+                    }
+
+                    for (var k = 0; k < Voices; k++) {
+                        var gain = Math.Clamp(feedback[k], -MaxDiffusorGain, MaxDiffusorGain);
+                        Write(k, node[k], loop, drive, false);
+                        voice[k] = voice[k] - gain * node[k];
                     }
 
                     break;
+                }
                 default: {
                     var fed = x;
                     for (var k = 0; k < Voices; k++) {

@@ -56,9 +56,6 @@ public abstract class RowMixerBlock : DspBlock, ISideInputBlock {
             destination.Left[i] += source.Left[i] * left;
             destination.Right[i] += source.Right[i] * right;
         }
-
-        gainLeft[slot] = left;
-        gainRight[slot] = right;
     }
 
     /// <summary>Row <paramref name="row" />'s left and right gains for its parameters' targets.</summary>
@@ -87,9 +84,6 @@ public abstract class RowMixerBlock : DspBlock, ISideInputBlock {
             io.Left[i] *= left;
             io.Right[i] *= right;
         }
-
-        gainLeft[slot] = left;
-        gainRight[slot] = right;
     }
 
     protected override void OnPrepare(in ProcessSpec spec) =>
@@ -103,10 +97,20 @@ public abstract class RowMixerBlock : DspBlock, ISideInputBlock {
     }
 
     /// <summary>
-    ///     Advances the smoothers of the rows' parameters over <paramref name="frames" />: the rows glide in
-    ///     <see cref="MixInput" /> instead, but their smoothers must keep in step.
+    ///     Advances each row's gains over <paramref name="frames" />, and the smoothers of its parameters with them.
+    ///     The rows glide per sample in <see cref="MixInput" /> and <see cref="ScaleRow" />, which run before this
+    ///     and leave the gains where the block found them: two inputs on one slot (rows past the last share it)
+    ///     would otherwise glide it one after the other, so the second started where the first stopped and the slot
+    ///     arrived in half the time.
     /// </summary>
     protected void AdvanceRows(int frames) {
+        var step = frames * glideStep;
+        for (var row = 0; row < gainLeft.Length; row++) {
+            var (targetLeft, targetRight) = Target(row);
+            gainLeft[row] = GlideBy(gainLeft[row], targetLeft, step);
+            gainRight[row] = GlideBy(gainRight[row], targetRight, step);
+        }
+
         for (var p = 0; p < 2 * gainLeft.Length; p++) {
             Params.Advance(p, frames);
         }
@@ -114,6 +118,9 @@ public abstract class RowMixerBlock : DspBlock, ISideInputBlock {
 
     int Slot(int row) => Math.Clamp(row, 0, gainLeft.Length - 1);
 
-    float Glide(float gain, float target) =>
-        target > gain ? Math.Min(target, gain + glideStep) : Math.Max(target, gain - glideStep);
+    float Glide(float gain, float target) => GlideBy(gain, target, glideStep);
+
+    /// <summary>`gain` moved <paramref name="step" /> toward `target`, which a whole block's steps do at once.</summary>
+    static float GlideBy(float gain, float target, float step) =>
+        target > gain ? Math.Min(target, gain + step) : Math.Max(target, gain - step);
 }

@@ -50,7 +50,8 @@ public static class Prometheus {
     const double GridPlate = 1.7e-12;
 
     /// <summary>
-    ///     The stack: Marshall topology with a 33k slope resistor and a 50k middle pot (assumed; flatter mids).
+    ///     The stack: Marshall topology (the middle pot's whole track under the bass pot, its cap on the wiper)
+    ///     with a 33k slope resistor and a 50k middle pot (assumed; flatter mids).
     /// </summary>
     static readonly ToneStackDesign Stack = new(
         "Prometheus",
@@ -61,7 +62,7 @@ public static class Prometheus {
         new(250e3, PotTaper.Linear),
         new(1e6, PotTaper.Audio),
         new(50e3, PotTaper.Linear)
-    );
+    ) { MiddleOnWiper = true };
 
     public static AmpDesign Design { get; } = new(
         "Prometheus",

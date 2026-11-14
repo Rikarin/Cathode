@@ -295,8 +295,12 @@ public sealed class ActiveWahCircuit {
             var q2 = qScale * qScale;
             var r1 = v.InputResistor * q2;
             var r3 = v.FeedbackResistor * q2;
-            var c = v.Capacitor * capacitanceScale / qScale;
-            omega = Math.Sqrt((1 / r1 + Math.Exp(-cell)) / (r3 * c * c));
+            // The cap that keeps the centre where the untrimmed parts put it: scaling R1 and R3 by q² leaves the
+            // photocell's conductance in the numerator unscaled, so C / q (the inductor circuit's rule) moved it.
+            var conductance = Math.Exp(-cell);
+            var untrimmed = 1 / v.InputResistor + conductance;
+            var c = v.Capacitor * capacitanceScale * Math.Sqrt((1 / r1 + conductance) / (q2 * untrimmed));
+            omega = Math.Sqrt((1 / r1 + conductance) / (r3 * c * c));
             q = omega * r3 * c / 2;
             gain = r3 / (2 * r1);
         } else {

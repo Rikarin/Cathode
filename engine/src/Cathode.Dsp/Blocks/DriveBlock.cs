@@ -707,6 +707,10 @@ public sealed partial class DriveBlock() : DspBlock(Info), IOversampledBlock {
         if (wanted != factor) {
             factor = wanted; // the other factor's filters hold stale state
             ResetOversamplers();
+            // The pad is not written while this factor needs none, so what is in it is the other factor's audio.
+            Array.Clear(padLeft);
+            Array.Clear(padRight);
+            padAt = 0;
         }
     }
 

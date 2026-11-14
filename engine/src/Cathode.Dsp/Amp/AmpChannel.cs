@@ -427,6 +427,9 @@ public sealed class AmpChannel {
             restInputs[i] = i == 0 ? 0 : stages[i - 1].RestOutput;
         }
 
+        // In stock order there is no shift to make: a stale one from a move since undone would otherwise be added to
+        // every stage's input, which RunStages still runs for the overdrive and a pre-triode master.
+        Array.Clear(offsets);
         if (reordered) {
             // Each stage keeps the operating point it has in the circuit's order: an ideal level shift on its input.
             for (var k = 0; k < order.Length; k++) {

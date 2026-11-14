@@ -9,7 +9,9 @@ public sealed class AllpassDiffuser : IDisposable {
     /// <summary>The largest allpass gain, at 100 % diffusion.</summary>
     public const float MaxGain = 0.7f;
 
-    static readonly double[] DelaysMs = [2.1, 3.7, 5.3, 7.9];
+    // At 48 kHz these round to 101, 178, 259 and 379 samples, which are pairwise coprime; 5.3 ms gave 254, and
+    // gcd(178, 254) = 2 put two of the four in step.
+    static readonly double[] DelaysMs = [2.1, 3.7, 5.4, 7.9];
 
     readonly NativeBuffer[] lines = [NativeBuffer.Empty, NativeBuffer.Empty, NativeBuffer.Empty, NativeBuffer.Empty];
     readonly int[] positions = new int[4];

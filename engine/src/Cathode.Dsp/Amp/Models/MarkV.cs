@@ -301,19 +301,23 @@ public static class MarkV {
     ///     unbypassed (a guess: see the remarks). Returns the plate.
     /// </summary>
     static int Return(StageNetlist net, double supply, bool modes) {
-        var (coupled, send, tweed, grid, rail, plate, cathode) =
-            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
+        var (coupled, send, grid, rail, plate, cathode) =
+            (net.Node(), net.Node(), net.Node(), net.Node(), net.Node(), net.Node());
         net.Capacitor(net.Input, coupled, 47e-9);
         net.Resistor(coupled, StageNetlist.Ground, 100e3);
         net.Resistor(coupled, send, 475e3);
         net.Capacitor(coupled, send, 250e-12);
         net.Resistor(send, StageNetlist.Ground, 150e3);
-        net.Resistor(coupled, tweed, 475e3);
-        net.Capacitor(coupled, tweed, 500e-12);
-        net.Resistor(tweed, StageNetlist.Ground, 3.3e6);
-        net.Capacitor(tweed, StageNetlist.Ground, 180e-12);
         net.Resistor(grid, StageNetlist.Ground, 475e3);
         if (modes) {
+            // The Tweed feed, taken off the line with the mode: its 475k ‖ 500 pF loaded the node in Clean and Fat
+            // too (3.8M and 132 pF to ground), where the amp's relay has the network out. Its foot stays, so the
+            // node it feeds is never left floating.
+            var tweed = net.Node();
+            net.SwitchedResistor(coupled, tweed, 0, 475e3, SwitchRole.Switch2);
+            net.SwitchedCapacitor(coupled, tweed, 500e-12, SwitchRole.Switch2);
+            net.Resistor(tweed, StageNetlist.Ground, 3.3e6);
+            net.Capacitor(tweed, StageNetlist.Ground, 180e-12);
             var clean = net.Node();
             net.Resistor(coupled, clean, 3.3e6);
             Middle(net, clean, grid);

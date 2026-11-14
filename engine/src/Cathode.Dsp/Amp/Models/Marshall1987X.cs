@@ -46,7 +46,8 @@ public static class Marshall1987X {
             false,
             0,
             50,
-            new LongTailPairDesign(TriodeModel.Ecc83, 375, 82e3, 100e3, 10e3, 470),
+// The 10k tail stands on the 5k presence pot, its shunt: 15k from the bias junction to ground.
+            new LongTailPairDesign(TriodeModel.Ecc83, 375, 82e3, 100e3, 15e3, 470),
             22e-9,
             220e3,
             1.5e3,

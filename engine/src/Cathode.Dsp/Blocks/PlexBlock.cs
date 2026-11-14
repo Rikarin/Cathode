@@ -133,6 +133,10 @@ public sealed class PlexBlock() : DspBlock(Info) {
     readonly LoopFilterState[] loopState = new LoopFilterState[MaxLines];
     readonly SvfState[] filterState = new SvfState[MaxLines];
     readonly int[] allpassLength = new int[MaxLines];
+
+    /// <summary>Each line's allpass as it plays: its length, or less where the line's time cannot hold it.</summary>
+    readonly int[] allpassPlaying = new int[MaxLines];
+
     readonly int[] inputDiffuserLength = new int[4];
     readonly float[] lineDelay = new float[MaxLines];
     readonly float[] lineTarget = new float[MaxLines];
@@ -361,7 +365,12 @@ public sealed class PlexBlock() : DspBlock(Info) {
                 ms = Math.Min(MaxTotalMs, (division > 0 ? (float)division : Params.Current(Time1 + i)) * master);
             }
 
-            lineTarget[i] = Math.Max(FractionalDelayLine.MinDelay, ms * rate / 1_000f - allpassLength[i]);
+            // The loop is the line plus its allpass, so the allpass is taken out of the line — and shortened when
+            // the time asked for is shorter than it is (1 ms is in range, the allpasses are 3.7 to 11.3 ms), rather
+            // than leaving the line at its minimum and the loop longer than the time.
+            var samples = ms * rate / 1_000f;
+            allpassPlaying[i] = Math.Clamp((int)(samples - FractionalDelayLine.MinDelay), 1, allpassLength[i]);
+            lineTarget[i] = Math.Max(FractionalDelayLine.MinDelay, samples - allpassPlaying[i]);
         }
     }
 
@@ -371,6 +380,7 @@ public sealed class PlexBlock() : DspBlock(Info) {
         for (var i = 0; i < MaxLines; i++) {
             lines[i].Allocate(length);
             allpassLength[i] = (int)MathF.Round(AllpassMs[i] * 0.001f * (float)rate);
+            allpassPlaying[i] = allpassLength[i];
             allpasses[i].Allocate(allpassLength[i] + 2);
             shifters[i].Prepare(rate, 0.06, MaxGranuleMs / 1000.0);
         }
@@ -471,7 +481,7 @@ public sealed class PlexBlock() : DspBlock(Info) {
             : 1f;
         for (var i = 0; i < count; i++) {
             gains[i] = filterNormal
-                * MathF.Pow(10f, -3f * (lineTarget[i] + allpassLength[i]) / (decay * sampleRate));
+                * MathF.Pow(10f, -3f * (lineTarget[i] + allpassPlaying[i]) / (decay * sampleRate));
             var (left, right) = Pan(Math.Clamp(Params.Current(Pan1 + i) / 100f + masterPan, -1f, 1f));
             var level = Params.Current(Level1 + i) / 100f;
             tapLeft[i] = level * left;
@@ -602,9 +612,9 @@ public sealed class PlexBlock() : DspBlock(Info) {
             for (var i = 0; i < count; i++) {
                 var value = outputs[i] - reflected + x * injection;
                 if (diffusion > 0) {
-                    value = allpasses[i].Allpass(value, allpassLength[i], diffusion);
+                    value = allpasses[i].Allpass(value, allpassPlaying[i], diffusion);
                 } else {
-                    value = allpasses[i].Delay(value, allpassLength[i]);
+                    value = allpasses[i].Delay(value, allpassPlaying[i]);
                 }
 
                 lines[i].Write(DelayBlock.Limit(value));

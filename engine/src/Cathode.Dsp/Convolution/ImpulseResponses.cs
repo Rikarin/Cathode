@@ -89,7 +89,9 @@ public sealed class ImpulseResponseFile(string path, long length, DateTime writt
                 .ToArray();
             if (shape.UnitEnergy) {
                 var energy = channels.Average(static float (float[] c) => c.Sum(static float (float v) => v * v));
-                var norm = 1f / MathF.Sqrt(energy);
+                // A silent IR has no energy to normalise: 1 / sqrt(0) would make every sample NaN, and the cache
+                // would hand that out for the rest of the session.
+                var norm = energy > 0f ? 1f / MathF.Sqrt(energy) : 1f;
                 foreach (var channel in channels) {
                     for (var i = 0; i < channel.Length; i++) {
                         channel[i] *= norm;
@@ -109,8 +111,9 @@ public sealed class ImpulseResponseFile(string path, long length, DateTime writt
         }
 
         var shaped = ir[..maxLength];
-        for (var i = 0; i < FadeLength; i++) {
-            shaped[maxLength - FadeLength + i] *= 0.5f * (1f + MathF.Cos(MathF.PI * (i + 1) / FadeLength));
+        var fade = Math.Min(FadeLength, maxLength);
+        for (var i = 0; i < fade; i++) {
+            shaped[maxLength - fade + i] *= 0.5f * (1f + MathF.Cos(MathF.PI * (i + 1) / fade));
         }
 
         return shaped;

@@ -38,6 +38,8 @@ public sealed class VolumePanBlock() : DspBlock(Info) {
     OutputStage output;
     float volumeGain = 1f;
     float swell = 1f;
+    float panLeft = -1f;
+    float panRight = 1f;
     float envelope;
     float envelopeRelease;
     bool open;
@@ -126,6 +128,7 @@ public sealed class VolumePanBlock() : DspBlock(Info) {
     protected override void OnReset() {
         output.Reset(Params.Current(Level), Params.Current(Balance));
         volumeGain = TaperGain((int)Params.Current(Taper), Params.Current(Volume) / 100f);
+        (panLeft, panRight) = (Params.Current(PanLeft) / 100f, Params.Current(PanRight) / 100f);
         swell = (int)Params.Current(Type) == AutoSwell ? 0f : 1f;
         envelope = 0;
         open = false;
@@ -134,7 +137,10 @@ public sealed class VolumePanBlock() : DspBlock(Info) {
     protected override void OnProcess(in StereoBuffer io, in BlockContext context) {
         var n = io.Length;
         SelectInput(io, (int)Params.Current(InputSelect));
-        Stereo.Pan(io, Params.Advance(PanLeft, n) / 100f, Params.Advance(PanRight, n) / 100f);
+        var panLeft = Params.Advance(PanLeft, n) / 100f;
+        var panRight = Params.Advance(PanRight, n) / 100f;
+        Stereo.PanRamp(io, this.panLeft, this.panRight, panLeft, panRight);
+        (this.panLeft, this.panRight) = (panLeft, panRight);
 
         if ((int)Params.Current(Type) == AutoSwell) {
             Swell(io, Decibels.ToGain(Params.Advance(Threshold, n)), Params.Advance(Attack, n));

@@ -45,8 +45,10 @@ public static class IrMix {
             }
         }
 
-        for (var i = 0; i < FadeLength && i < length; i++) {
-            output[length - FadeLength + i] *= 0.5f * (1f + MathF.Cos(MathF.PI * (i + 1) / FadeLength));
+        // A result shorter than the fade fades over all of it: the fade's start is the buffer's, not before it.
+        var fade = Math.Min(FadeLength, length);
+        for (var i = 0; i < fade; i++) {
+            output[length - fade + i] *= 0.5f * (1f + MathF.Cos(MathF.PI * (i + 1) / fade));
         }
 
         if (normalize) {

@@ -534,10 +534,15 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
 
             var taps = synthesizer.Taps;
             var anySolo = false;
-            var earliest = double.MaxValue;
             for (var s = 0; s < Slots; s++) {
                 anySolo |= SlotTarget(s, Solo) >= 0.5f;
-                if (HasResponse(s) && IsModelled(SourceOf(s))) {
+            }
+
+            // The slots Mix aligns against: a muted or soloed-out one is not in the delay it applies, so it must
+            // not set the delay this page reports either.
+            var earliest = double.MaxValue;
+            for (var s = 0; s < Slots; s++) {
+                if (IsAudible(s, anySolo) && HasResponse(s) && IsModelled(SourceOf(s))) {
                     earliest = Math.Min(earliest, slotDelays[s]);
                 }
             }
@@ -978,6 +983,16 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         var buffer = slotScratch.Span;
         var used = length;
         ir[..length].CopyTo(buffer);
+        if (length < ir.Length && proximity > 0) {
+            // Fade where it was cut, before the boost rings on it: with proximity the buffer is padded past the cut
+            // and the fade at the end lands on that padding, leaving the step at the cut for the boost to ring on.
+            // Without proximity the end fade below is at the cut already.
+            var cut = Math.Min(LengthFade, length);
+            for (var i = 0; i < cut; i++) {
+                buffer[length - cut + i] *= 0.5f * (1f + MathF.Cos(MathF.PI * (i + 1) / cut));
+            }
+        }
+
         if (proximity > 0) {
             used = length + tail;
             buffer[length..used].Clear();
@@ -999,6 +1014,7 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
         }
 
         if (length < ir.Length || proximity > 0) {
+            // The end of what is kept: the cut, or what the boost rang on past it (faded at the cut as well).
             var fade = Math.Min(LengthFade, used);
             for (var i = 0; i < fade; i++) {
                 shaped[used - fade + i] *= 0.5f * (1f + MathF.Cos(MathF.PI * (i + 1) / fade));

@@ -71,10 +71,33 @@ public struct AdaaClipper {
 
     double previous;
     double previousAntiderivative;
+    ClipperShape cachedShape;
+    ClipperShape cachedOther;
+    double cachedWeight;
+
+    /// <summary>Whether <see cref="previousAntiderivative" /> belongs to a curve, rather than to a reset.</summary>
+    bool cached;
 
     public void Reset() {
         previous = 0;
         previousAntiderivative = 0;
+        cached = false;
+    }
+
+    /// <summary>
+    ///     The antiderivative of the curve now in force at the last input: the cached one while the curve is the one
+    ///     it was computed with, else computed again from that input. Taking the difference of two different
+    ///     functions is what a change of shape or hardness used to do, and a small step turns it into a spike.
+    /// </summary>
+    double PreviousAntiderivative(ClipperShape shape, ClipperShape other, double weight) {
+        if (cached && (shape != cachedShape || other != cachedOther || weight != cachedWeight)) {
+            previousAntiderivative = weight == 0
+                ? Antiderivative(shape, previous)
+                : (1 - weight) * Antiderivative(shape, previous) + weight * Antiderivative(other, previous);
+        }
+
+        (cachedShape, cachedOther, cachedWeight, cached) = (shape, other, weight, true);
+        return previousAntiderivative;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -88,7 +111,7 @@ public struct AdaaClipper {
         var delta = x - previous;
         var y = Math.Abs(delta) < Epsilon
             ? Function(shape, 0.5 * (x + previous)) // ill-conditioned: fall back to the midpoint
-            : (antiderivative - previousAntiderivative) / delta;
+            : (antiderivative - PreviousAntiderivative(shape, shape, 0)) / delta;
         previous = x;
         previousAntiderivative = antiderivative;
         return (float)y;
@@ -115,7 +138,7 @@ public struct AdaaClipper {
         var delta = x - previous;
         var y = Math.Abs(delta) < Epsilon
             ? Blend(shape, other, w, 0.5 * (x + previous))
-            : (antiderivative - previousAntiderivative) / delta;
+            : (antiderivative - PreviousAntiderivative(shape, other, w)) / delta;
         previous = x;
         previousAntiderivative = antiderivative;
         return (float)y;

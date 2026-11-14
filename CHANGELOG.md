@@ -8,6 +8,45 @@ the format upgrades older presets as it reads them.
 
 ### Fixed
 
+- Amp: the inverter tail of the models whose presence pot is its shunt holds that pot, as `LongTailPairDesign`
+  documents (the whole DC resistance from the bias junction to ground). The Bassman, Bluesbreaker, Express, JTM45,
+  1987X, Super Lead (1959SLP, 1959T), Tweed Twin, BE-100 and JVM410H idled on a tail a third too small, which moves
+  the inverter's rest point and the balance of its two plates. The models with a fixed shunt under the tail are not
+  swept yet; #540 lists them (#540).
+- Amp: the Prometheus's stack is wired as the Marshall stack its own notes describe, the middle pot's track under the
+  bass pot with its cap on the wiper, instead of the blackface Fender wiring the flag's default gave it (#541).
+- Amp: the Mark V's Tweed feed network is in circuit in Tweed alone. It loaded the node before the last gain stage
+  with 3.8 MΩ and 132 pF in Clean, Fat and all of channel 2 as well (#542).
+- Amp: moving the tone stack and putting it back no longer leaves the stage level shifts of the move in place, where
+  Overdrive or a pre-triode master then added them to every stage's input and ran the preamp off its operating
+  point (#545).
+- Amp: the High Treble shelf is designed again when the inner rate changes, instead of keeping the corner it was
+  given at the old rate (#549).
+- Cab: the Align page reports the delay the mix applies, counting only the slots that are audible — a muted or
+  soloed-out slot could set the figure it showed and no part of the audio (#552).
+- Cab: an IR cut by IR Length fades at the cut when Proximity is up, so the boost no longer rings on a step; the fade
+  at the end of the padding stays for what the boost adds past it (#553).
+- Drive: the ADAA clipper computes the previous antiderivative with the curve now in force. A change of Clip Shape or
+  hardness took the difference of two different curves and divided it by the step between two samples, which clicked
+  (#544).
+- Drive: switching oversampling factors clears the pad ring, so a switch back no longer replays the audio the earlier
+  session left in it (#557).
+- Row mixer: a row's gain glides once per block, so two inputs on one slot (rows past the last share it) get the same
+  gain and the glide takes the 20 ms it is meant to, not half (#546).
+- Volume/Pan: the pan is interpolated across the block, as the block's own notes promise, instead of stepping at its
+  edges (#550).
+- Plex: a line's allpass is shortened to fit a delay time shorter than it is, so short times (1 ms up, and Master
+  Time at its low end) give the loop the user asked for instead of the allpass's 3.7 to 11.3 ms (#554).
+- Wah: the optical voicing's Q trim keeps the centre frequency, by solving the capacitor for it instead of scaling it
+  by one over the trim, which left the photocell's conductance unscaled (#555).
+- Pitch: Tracking Off splices free, instead of staying locked to the period tracked when the control was moved (#556).
+- Multi Delay: the Quad Diffusor's four cross paths all carry the allpass output; one of them read the raw delayed
+  sample because the voices were updated inside the loop that read them (#558).
+- Cab, IR mixing: a silent IR with Unit Energy stays silent instead of turning the convolution into NaN for the rest
+  of the session, and a mix or a truncation shorter than the 64-sample fade fades over what there is instead of
+  indexing before the buffer (#543, #548).
+- Reverb and Plex: the diffuser's four allpasses are 101, 178, 259 and 379 samples at 48 kHz, which are mutually
+  prime as its notes say; two of them shared a factor and diffused a little less densely (#551).
 - Manage: a ⌘-drag onto a factory slot leaves the preset where it is. The factory bank ignores what is put in it, so
   the drop emptied the slot the preset came from and left it in no bank at all (#560).
 - Editor: a token typed after the Server refused the old one takes effect. The old token left in the address bar by

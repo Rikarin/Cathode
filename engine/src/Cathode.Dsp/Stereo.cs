@@ -36,6 +36,37 @@ public static class Stereo {
         }
     }
 
+    /// <summary>
+    ///     <see cref="Pan" /> with the two positions moved from <paramref name="fromLeft" /> and
+    ///     <paramref name="fromRight" /> to <paramref name="toLeft" /> and <paramref name="toRight" /> over the
+    ///     block, so automation does not step at its edges. The matrix is the same one, taken per sample.
+    /// </summary>
+    public static void PanRamp(
+        in StereoBuffer io,
+        float fromLeft,
+        float fromRight,
+        float toLeft,
+        float toRight
+    ) {
+        if (fromLeft == toLeft && fromRight == toRight) {
+            Pan(io, toLeft, toRight);
+            return;
+        }
+
+        var stepLeft = (toLeft - fromLeft) / io.Length;
+        var stepRight = (toRight - fromRight) / io.Length;
+        for (var i = 0; i < io.Length; i++) {
+            var panLeft = fromLeft + stepLeft * (i + 1);
+            var panRight = fromRight + stepRight * (i + 1);
+            var (leftToLeft, leftToRight) = (Math.Min(1f, 1f - panLeft), Math.Min(1f, 1f + panLeft));
+            var (rightToLeft, rightToRight) = (Math.Min(1f, 1f - panRight), Math.Min(1f, 1f + panRight));
+            var left = io.Left[i];
+            var right = io.Right[i];
+            io.Left[i] = left * leftToLeft + right * rightToLeft;
+            io.Right[i] = left * leftToRight + right * rightToRight;
+        }
+    }
+
     /// <summary>Phase-inverts the left, right or both sides (Phase Reverse 1, 2 or 3; 0 leaves both).</summary>
     public static void Invert(in StereoBuffer io, int phaseReverse) {
         if (phaseReverse is 1 or 3) {

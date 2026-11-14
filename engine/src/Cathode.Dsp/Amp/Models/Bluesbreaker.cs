@@ -56,7 +56,8 @@ public static class Bluesbreaker {
             false,
             0,
             30,
-            new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 10e3, 470),
+// The 10k tail stands on the 4k7 presence pot, its shunt: 14.7k from the bias junction to ground.
+            new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 14.7e3, 470),
             0.1e-6,
             220e3,
             0,

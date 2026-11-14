@@ -297,17 +297,22 @@ public struct HighTreble {
 
     FirstOrder shelf;
     double knob;
+    double designedRate;
 
     /// <summary>Whether the shelf is in (the knob off its flat centre).</summary>
     public readonly bool IsActive => knob != 0.5;
 
-    /// <summary>The knob as a rotation 0..1 at <paramref name="rate" />; recomputes only when it moved.</summary>
+    /// <summary>
+    ///     The knob as a rotation 0..1 at <paramref name="rate" />; recomputes only when one of them moved. The rate
+    ///     is in the test because a reset keeps the coefficients: without it a shelf designed at one inner rate
+    ///     stayed, and its corner moved with the rate.
+    /// </summary>
     public void Design(double rotation, double rate) {
-        if (rotation == knob && shelf.B0 != 0) {
+        if (rotation == knob && rate == designedRate && shelf.B0 != 0) {
             return;
         }
 
-        knob = rotation;
+        (knob, designedRate) = (rotation, rate);
         var gain = Math.Pow(10, (2 * rotation - 1) * RangeDb / 20);
         var omega = 2 * Math.PI * Frequency;
         // Boost: (ω + G s) / (ω + s); cut, its mirror G (ω + s) / (G ω + s): flat below, G above.

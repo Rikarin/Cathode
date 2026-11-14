@@ -1367,7 +1367,9 @@ public sealed class PitchBlock() : DspBlock(Info), ISideInputBlock {
             }
 
             var hold = tracking == TrackingFast ? fastHold : voicedHold;
-            var period = sinceVoiced < hold ? lastPeriod : 0;
+            // Off splices free: sinceVoiced only grows inside Track(), which Off skips, so the last tracked period
+            // would otherwise stay fresh for ever.
+            var period = tracking != TrackingOff && sinceVoiced < hold ? lastPeriod : 0;
             var inLeft = (stereo ? dryLeft : mono) * inputGain;
             var inRight = (stereo ? dryRight : mono) * inputGain;
             for (var v = 0; v < VoiceCount; v++) {

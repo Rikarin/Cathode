@@ -1,5 +1,6 @@
 using Cathode.Dsp.Amp;
 using Cathode.Dsp.Blocks;
+using Cathode.Dsp.Parameters;
 using Cathode.Dsp.Tests.Circuits;
 using Cathode.Testing;
 
@@ -182,15 +183,20 @@ public partial class BassAmpTests(ITestOutputHelper output) {
 
     /// <summary>
     ///     The JC-120's Distortion knob does nothing until Distortion On is on, so it shows only then; no two of its
-    ///     controls share a name. The only other model that hides a control behind a switch is the Savage 120 (both
-    ///     types: a knob that belongs to one position of its third switch).
+    ///     controls share a name. Control 2 is behind a switch on two other models as well, the SL-X types, whose
+    ///     Master B knob belongs to the master stage its Master B switch plays; the only other model that hides a
+    ///     control behind a switch is the Savage 120 (both types: a knob that belongs to one position of its third
+    ///     switch).
     /// </summary>
     [Fact]
     public void Jc120_distortion_knob_shows_only_with_its_switch_on() {
         var info = CircuitAmpBlock.Info;
-        var when = Assert.Single(info.Params[CircuitAmpBlock.Control2].TypeVisibleWhen!);
-        Assert.Equal(TypeOf("JC-120"), when.Key);
-        Assert.Equal(("switch1", 1f), (when.Value.Param, Assert.Single(when.Value.Values)));
+        var behind = info.Params[CircuitAmpBlock.Control2].TypeVisibleWhen!;
+        Assert.Equal(("switch1", 1f), BehindSwitch(behind, "JC-120"));
+        // The SL-X's Master B knob is the other one: it is the master stage its Master B switch plays.
+        Assert.Equal(("switch1", 1f), BehindSwitch(behind, "JCM900 SL-X 2100"));
+        Assert.Equal(("switch1", 1f), BehindSwitch(behind, "JCM900 SL-X 2500"));
+        Assert.Equal(3, behind.Count);
         Assert.All(
             info.Params.Where(static p => p.Id != "control2")
                 .Where(static p => p.TypeVisibleWhen is not null)
@@ -207,6 +213,15 @@ public partial class BassAmpTests(ITestOutputHelper output) {
         ];
         var names = controls.Select(static id => Label(id, "JC-120")).Where(static name => name.Length > 0).ToArray();
         Assert.Equal(names.Distinct(), names);
+    }
+
+    /// <summary>The switch and value that <paramref name="type" />'s entry of a visibility table waits for.</summary>
+    static (string Param, float Value) BehindSwitch(
+        IReadOnlyDictionary<int, ParamCondition> behind,
+        string type
+    ) {
+        var when = behind[TypeOf(type)];
+        return (when.Param, Assert.Single(when.Values));
     }
 
     /// <summary>
