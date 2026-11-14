@@ -124,12 +124,12 @@ public sealed class TenTapBlock() : DspBlock(Info) {
                 ),
             ..Enumerable.Range(0, MaxTaps)
                 .Select(static k => ParamDescriptor.Float(
-                    $"tap{k + 1}Time",
-                    $"Tap {k + 1} Time",
-                    0f,
-                    100f,
-                    10f * (k + 1),
-                    "%"
+                        $"tap{k + 1}Time",
+                        $"Tap {k + 1} Time",
+                        0f,
+                        100f,
+                        10f * (k + 1),
+                        "%"
                     )
                     .ShownOn(TypeCount, RhythmTap)
                 ),

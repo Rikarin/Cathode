@@ -734,7 +734,7 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         Assert.Empty(whileArmed.Preset.Modifiers);
         await ServerFixture.Eventually(async () =>
             (await Read(await client.GetAsync("/api/v1/live", Token))).Preset.Modifiers
-            .Any(static m => m is { Block: "delay1", Param: "mix", Source: "ext2" })
+            .Exists(static m => m is { Block: "delay1", Param: "mix", Source: "ext2" })
         );
         var global = (await client.GetFromJsonAsync<GlobalSettings>("/api/v1/global", Token))!;
         Assert.Contains(global.MidiMappings, static m => m is { Number: 7, Action: "external", Value: 2 });

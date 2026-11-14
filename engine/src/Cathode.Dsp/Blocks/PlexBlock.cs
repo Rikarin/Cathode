@@ -209,12 +209,12 @@ public sealed class PlexBlock() : DspBlock(Info) {
             ParamDescriptor.Float("envelopeAttack", "Envelope Attack", 0f, 2_000f, 0f, "ms"),
             ParamDescriptor.Float("envelopeRelease", "Envelope Release", 10f, 2_000f, 300f, "ms", ParamTaper.Log),
             ..Line(static i => ParamDescriptor.Float(
-                $"detune{i + 1}",
-                $"Detune {i + 1}",
-                -50f,
-                50f,
-                DefaultDetune[i],
-                "ct"
+                    $"detune{i + 1}",
+                    $"Detune {i + 1}",
+                    -50f,
+                    50f,
+                    DefaultDetune[i],
+                    "ct"
                 )
                 .ShownOn(TypeCount, PlexDetune)
             ),
@@ -222,12 +222,12 @@ public sealed class PlexBlock() : DspBlock(Info) {
             ParamDescriptor.Float("granule", "Granule Length", 10f, MaxGranuleMs, 60f, "ms", ParamTaper.Log)
                 .ShownOn(TypeCount, PlexDetune, PlexShifter, ShimmerVerb),
             ..Line(static i => ParamDescriptor.Float(
-                $"shift{i + 1}",
-                $"Shift {i + 1}",
-                -24f,
-                24f,
-                DefaultShifts[i],
-                "st"
+                    $"shift{i + 1}",
+                    $"Shift {i + 1}",
+                    -24f,
+                    24f,
+                    DefaultShifts[i],
+                    "st"
                 )
                 .ShownOn(TypeCount, PlexShifter)
             ),

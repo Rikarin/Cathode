@@ -217,7 +217,7 @@ public sealed class FactoryPresetLevelTests {
                     .Select((lift, s) => FactoryLevels.TargetLufs + lift - measured[(preset.Id, s)].Loudness)
                     .ToArray();
                 worst = Math.Max(worst, error.Max(Math.Abs));
-                var amp = preset.Blocks.FirstOrDefault(static b => b.Type == "circuitamp");
+                var amp = preset.Blocks.Find(static b => b.Type == "circuitamp");
                 var moved = new float[Preset.ChannelNames.Length];
                 if (amp is not null) {
                     var channel = lifts.Select((_, s) => Preset.ChannelNames.IndexOf(
