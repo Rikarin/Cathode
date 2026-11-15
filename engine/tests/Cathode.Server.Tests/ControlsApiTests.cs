@@ -1,6 +1,7 @@
 using Cathode.Contracts;
 using Cathode.Dsp.IO;
 using Cathode.Dsp.Looping;
+using Cathode.Engine;
 using Cathode.Engine.Graph;
 using Cathode.Engine.Rig;
 using Cathode.Server.Engine;
@@ -10,6 +11,7 @@ using Cathode.Server.Rig;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.WebSockets;
+using System.Reflection;
 using System.Text;
 using System.Text.Json.Nodes;
 
@@ -236,9 +238,25 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         var fastest = perMinute * 3 / (before[3] - after[0]);
         await ServerFixture.Eventually(
             () => engine.Tempo > slowest - 0.01 && engine.Tempo < fastest + 0.01,
-            () => $"engine tempo {engine.Tempo}, expected {slowest} to {fastest}"
+            () => $"engine tempo {engine.Tempo}, expected {slowest} to {fastest}\n"
+                + TapDiagnostics(engine, before, after)
         );
         await ServerFixture.Eventually(async () => Math.Abs((await Live()).Preset.Tempo - engine.Tempo) < 0.06);
+    }
+
+    /// <summary>
+    ///     What the engine made of the taps, for a failure on a CI runner that does not reproduce elsewhere: the stamps
+    ///     it averaged (read from its private tap history), the clock the test read around each tap, and whether the
+    ///     Server still talks to the same engine.
+    /// </summary>
+    string TapDiagnostics(CathodeEngine engine, long[] before, long[] after) {
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var stamps = typeof(CathodeEngine).GetField("taps", flags)?.GetValue(engine) as long[];
+        var count = typeof(CathodeEngine).GetField("tapCount", flags)?.GetValue(engine);
+        return $"stamps [{string.Join(", ", stamps ?? [])}] after {count} taps; "
+            + $"before [{string.Join(", ", before)}], after [{string.Join(", ", after)}]; "
+            + $"now {engine.SampleTime}; same engine {ReferenceEquals(server.Host.Engine, engine)}; "
+            + $"status {server.Services.GetRequiredService<EngineConnection>().Status()}";
     }
 
     [Fact]
