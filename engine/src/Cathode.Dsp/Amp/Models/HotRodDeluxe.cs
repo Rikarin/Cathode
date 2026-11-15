@@ -89,7 +89,8 @@ public static class HotRodDeluxe {
             false,
             0,
             40,
-            new LongTailPairDesign(TriodeModel.Ecc83, 392, 82e3, 100e3, 6.8e3, 470),
+            // The 6.8k tail stands on the 4.7k feedback shunt: 11.5k from the bias junction to ground.
+            new LongTailPairDesign(TriodeModel.Ecc83, 392, 82e3, 100e3, 11.5e3, 470),
             0.1e-6,
             220e3,
             1.5e3,

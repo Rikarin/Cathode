@@ -65,7 +65,9 @@ public static class Plexi {
             false,
             0,
             50,
-            new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 10e3, 470),
+            // The 10k tail stands on the 4k7 feedback shunt, as on every drawing above: 14.7k from the bias junction to
+            // ground.
+            new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 14.7e3, 470),
             22e-9,
             220e3,
             5.6e3,

@@ -11,6 +11,16 @@ the format upgrades older presets as it reads them.
 - Setlists: a song step taken right after another goes on from the song the first one loaded. The song playing was
   read from the global settings, which arrive after the load, so ⇧⌘PgDn then ⇧⌘PgUp pressed quickly could go back
   two songs, and two quick Nexts could load the same song twice.
+- Amp: the phase inverter's tail counts the feedback shunt it stands on, as #540 did for the models whose presence
+  pot is that shunt. The tail is the whole DC resistance from the bias junction to ground, and these models passed
+  the drawn leg alone, so their inverters idled on a tail 18 to 41 % too small: the Super Bass 100 (15k, which had
+  put the Super Lead's 10k back; #575), the JCM800 2203 and 2204, Silver Jubilee and Quick Rod (14.7k; #577), DSL100
+  and TSL100 (14.7k; #578), AFD100 (26.7k; #579), JCM900 4100 and 4502 and the JMP-1 that uses their power amp
+  (19.7k; #580), Laney GH100L (14.7k; #581), Cornford MK50H II (14.7k; #582), Hot Rod Deluxe (11.5k; #583), Blues
+  Deluxe and Blues DeVille (11.5k; #584), Plexi (14.7k; #585), Prometheus (14.7k; #586), and Deluxe 6G3, Vibrolux
+  6G11, Concert 6G12 and Super 6G4 (8.3k; #587). The Mark I keeps its 10k: its sheet reaches the feedback shunt from
+  the tail only through a 15k that carries no DC (#588). The shunts of 47 to 390 Ω under the AB763-family and
+  Overdrive Special tails stay left out (#589). The factory and legacy levels stay inside their tolerance.
 
 ## 1.0.0-rc.7 — 2026-11-15
 

@@ -86,7 +86,8 @@ public static class SuperBass100 {
             MarshallParts.FollowerStack("V2B", SecondRail, 100e3, Stack, 1e6) with { SupplyNode = 1 }
         ],
         SuperLead100.Design.Power with {
-            PhaseInverter = new LongTailPairDesign(TriodeModel.Ecc83, InverterRail, 82e3, 100e3, 10e3, 470),
+            // The 10k tail stands on the 5k presence pot, its shunt: 15k from the bias junction to ground.
+            PhaseInverter = new LongTailPairDesign(TriodeModel.Ecc83, InverterRail, 82e3, 100e3, 15e3, 470),
             CouplingCap = 0.1e-6,
             PowerSupply = new(25, 50e-6, 200, 50e-6, 20e3, 100e-6, PreampDraw)
         },

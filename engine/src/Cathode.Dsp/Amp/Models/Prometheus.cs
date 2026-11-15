@@ -101,7 +101,9 @@ public static class Prometheus {
             false,
             0,
             100,
-            new LongTailPairDesign(TriodeModel.Ecc83, 340, 82e3, 100e3, 10e3, 1e3),
+            // The 10k tail stands on the 4.7k feedback shunt, as in the Marshall and Soldano inverters this model
+            // follows: 14.7k from the bias junction to ground.
+            new LongTailPairDesign(TriodeModel.Ecc83, 340, 82e3, 100e3, 14.7e3, 1e3),
             22e-9,
             220e3,
             5.6e3,

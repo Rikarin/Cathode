@@ -107,7 +107,8 @@ public static class MarshallAfd100 {
             false,
             0,
             100,
-            new LongTailPairDesign(TriodeModel.Ecc83, Inverter, 82e3, 100e3, 22e3, 470),
+            // The 22k tail stands on the 4k7 feedback shunt: 26.7k from the bias junction to ground.
+            new LongTailPairDesign(TriodeModel.Ecc83, Inverter, 82e3, 100e3, 26.7e3, 470),
             22e-9,
             220e3,
             5.6e3,

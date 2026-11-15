@@ -88,7 +88,9 @@ public static class BluesDeluxe {
             false,
             0,
             40,
-            new LongTailPairDesign(TriodeModel.Ecc83, 370, 91e3, 100e3, 6.8e3, 470),
+            // The 6.8k tail stands on the 4.7k feedback shunt (the drawing's 0.1 µF across the tail returns it there):
+            // 11.5k from the bias junction to ground.
+            new LongTailPairDesign(TriodeModel.Ecc83, 370, 91e3, 100e3, 11.5e3, 470),
             0.1e-6,
             220e3,
             1.5e3,
@@ -114,7 +116,9 @@ public static class BluesDeluxe {
             TubesPerSide = 2,
             Supply = 471,
             RatedPower = 60,
-            PhaseInverter = new LongTailPairDesign(TriodeModel.Ecc83, 413, 91e3, 100e3, 6.8e3, 470),
+            // The 6.8k tail stands on the 4.7k feedback shunt, as on the Deluxe: 11.5k from the bias junction to
+            // ground.
+            PhaseInverter = new LongTailPairDesign(TriodeModel.Ecc83, 413, 91e3, 100e3, 11.5e3, 470),
             Transformer = new(2.1e3),
             Speaker = SpeakerDesign.OpenBack4x10,
             // The screens' 468 V through 6.8k + 10k to the preamp's 364 V is 6.2 mA.

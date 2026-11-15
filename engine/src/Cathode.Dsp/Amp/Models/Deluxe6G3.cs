@@ -83,7 +83,8 @@ public static class Deluxe6G3 {
             false,
             0,
             20,
-            new LongTailPairDesign(TriodeModel.Ecc83, 325, 82e3, 100e3, 6.8e3, 820),
+            // The 6.8k tail stands on the 1.5k feedback shunt: 8.3k from the bias junction to ground.
+            new LongTailPairDesign(TriodeModel.Ecc83, 325, 82e3, 100e3, 8.3e3, 820),
             0.1e-6,
             220e3,
             1,

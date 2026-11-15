@@ -14,24 +14,25 @@ namespace Cathode.Dsp.Tests;
 ///     their inverters moved to the drawings' 450 V node, with the JC-120's and Valvestate 8080's, whose unused tube
 ///     power amp is the Blackface's; the three again when the Blackface took the AB763 inverter and its input
 ///     network; the fourteen entries of the nine models whose presence pot is the inverter tail's shunt, when the
-///     tail took that pot in as LongTailPairDesign documents, #540). The hashes are macOS ARM64 renders, so the test
-///     runs there only (<see cref="BaselinePlatform" />).
+///     tail took that pot in as LongTailPairDesign documents, #540; the fifteen entries of the models whose fixed
+///     feedback shunt stands under the tail, when the tail took that shunt in, #575-#587). The hashes are macOS ARM64
+///     renders, so the test runs there only (<see cref="BaselinePlatform" />).
 /// </summary>
 public class InverterBitIdentityTests(ITestOutputHelper output) {
     /// <summary>(inverter table, power amp render) per model, from 49fe687.</summary>
     static readonly Dictionary<string, (ulong Table, ulong Render)> Expected = new() {
         { "Blackface", (0x6F3DB50BEBC24351, 0x4DE20F2B6F27B5DD) },
-        { "Plexi", (0x198AF1CECAF0406C, 0x1B2E221578D35E40) },
+        { "Plexi", (0x10E0082A8CA22E07, 0x2A47FF2A989EEDBE) },
         { "AC30", (0x4D72675F6BB65764, 0x525D82DC7ED95538) },
         { "AC15", (0xF9848A7503B3F8AB, 0x5057E88EAE50971A) },
         { "DC-30", (0xA1D1374C5E3FB19C, 0x0FAD1D83528941C6) },
-        { "Prometheus", (0xC4A963BB5339C57B, 0x7F5D2A4DDF0B8085) },
-        { "Prometheus Clean", (0xC4A963BB5339C57B, 0x7F5D2A4DDF0B8085) },
-        { "JCM800 2203", (0xCB3D9FB8825C45A1, 0x1F4E04B2DACF6BEE) },
-        { "JCM800 2204", (0x4689ECBDB6C21135, 0xA5CC4BCB6B368679) },
+        { "Prometheus", (0x63A28C670EB0A46B, 0x4608F520534024F9) },
+        { "Prometheus Clean", (0x63A28C670EB0A46B, 0x4608F520534024F9) },
+        { "JCM800 2203", (0xF856847DC5966774, 0x02B187B0B1ACAC09) },
+        { "JCM800 2204", (0x6712C40C34CB0266, 0xA393CE5E79F7060B) },
         { "JTM45", (0x9D35EA85F493B585, 0x180193783DD84BC6) },
         { "Plexi 100W", (0xD92B27A10111CA3B, 0xE1BE0AE54B59331E) },
-        { "Laney GH100L", (0xA3C3C2B376049844, 0x2F2F00B80AA3CE84) },
+        { "Laney GH100L", (0xBB3D15D503193A20, 0x0A39CB909D3320D8) },
         { "Deluxe Reverb", (0xE39CFAB4C3BBB031, 0x828221858C877461) },
         { "Twin Reverb", (0x6F3DB50BEBC24351, 0xAC70DD676CCD3DE7) },
         { "Super Reverb", (0x6F3DB50BEBC24351, 0xA1A01FB2FA26953A) },
@@ -60,7 +61,7 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         { "SVT", (0xD1764C0CC01C37B0, 0x1D8F66AC6688D267) },
         { "Portaflex B-15N", (0x76788BF6655480E6, 0x375A6E0DDFCC5DBB) },
         { "JC-120", (0x6F3DB50BEBC24351, 0x4DE20F2B6F27B5DD) },
-        { "Hot Rod Deluxe", (0xBE549F7E7E20226C, 0xAD94948C98BC73D3) },
+        { "Hot Rod Deluxe", (0xA742D0CBFB5C1B23, 0x9DEDA5A2685AFFA5) },
         { "Champ 5F1", (0x751704F24D4270C5, 0xA36EB5EA922A9E6A) },
         { "Vibroverb AB763", (0x6F3DB50BEBC24351, 0x37651BB26BC8642F) },
         { "Vibrolux Reverb AA964", (0x810B1B19D4ECF8D6, 0xB48A5575F71915A4) },
@@ -74,7 +75,7 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         { "Blues Junior", (0x0874B0DB2CAC1F77, 0x9724A2AE834FEAEF) },
         { "BE-100", (0x51FC4DE2349278F4, 0xE0970CA70EF1C836) },
         { "BE-100 HBE", (0x51FC4DE2349278F4, 0xE0970CA70EF1C836) },
-        { "Silver Jubilee", (0x198AF1CECAF0406C, 0xAF50C4364DA829BB) },
+        { "Silver Jubilee", (0x10E0082A8CA22E07, 0xCB4489A0D0DF4BA7) },
         { "18 W 1974X", (0x7A5B065D38C6FE49, 0x9D08619B28E0F94D) },
         { "Hiwatt DR103", (0xA513A2418095E460, 0xEF47D21928AC9EC3) },
         { "1959SLP", (0xD92B27A10111CA3B, 0xE1BE0AE54B59331E) },
@@ -82,7 +83,7 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         { "1959T Tremolo", (0xD92B27A10111CA3B, 0xE1BE0AE54B59331E) },
         { "Bluesbreaker 1962", (0x10E0082A8CA22E07, 0xFD3C367B9DDE8220) },
         { "Hiwatt DR504", (0xA513A2418095E460, 0x9D120AF0604F1412) },
-        { "Cornford MK50H II", (0x3FD4A75D1C056D1D, 0x5CF8E174477B2B79) },
+        { "Cornford MK50H II", (0x9BA30BE1F28A2FA0, 0xCA3DCEFCBF2AAFD5) },
         { "Tiny Terror", (0xB4AED2D403EDCFC9, 0x0C40B7AEE6FCCD4F) },
         { "Liverpool", (0x20A2049A8B34EA73, 0xFC1885E601CEA09B) },
         { "ODS 70s", (0xC0BA94849F63DA26, 0xCF4101F54875F55A) },
@@ -91,14 +92,14 @@ public class InverterBitIdentityTests(ITestOutputHelper output) {
         { "TriAxis Rhythm", (0x626AC8FABA73BCDB, 0xF7212E815DDBD503) },
         { "TriAxis Lead 1", (0x626AC8FABA73BCDB, 0xF7212E815DDBD503) },
         { "TriAxis Lead 2", (0x626AC8FABA73BCDB, 0xF7212E815DDBD503) },
-        { "JCM900 4502", (0x55F038EDD3B16567, 0x71BA9E615F87AA03) },
-        { "JCM900 4100", (0x55F038EDD3B16567, 0xBC5542DDCB8ECBCE) },
+        { "JCM900 4502", (0xB19BB0D77686372B, 0xC608CDE47C6A9EFF) },
+        { "JCM900 4100", (0xB19BB0D77686372B, 0x4C80BFDA94898F16) },
         { "Valvestate 8080", (0x6F3DB50BEBC24351, 0x4DE20F2B6F27B5DD) },
         { "JVM410H OD", (0x128950361FAF7559, 0xB090FDEFB362E508) },
-        { "Concert 6G12", (0x8BB74C86362290BE, 0x710EE1F1FAB335D8) },
-        { "Super 6G4", (0x8BB74C86362290BE, 0xCECC5E45BFA7CAC2) },
-        { "Deluxe 6G3", (0xCF998D388667A246, 0xD83E23FAB3ED2FE9) },
-        { "Vibrolux 6G11", (0x571C6DBBBE507E38, 0xDF5707421F87007E) },
+        { "Concert 6G12", (0x151E35DD6C1678A4, 0x1A640DD0EA8C2703) },
+        { "Super 6G4", (0x151E35DD6C1678A4, 0x2577733C6DDABA03) },
+        { "Deluxe 6G3", (0x269FAA9F34F657BB, 0x5A0AC41CBE780045) },
+        { "Vibrolux 6G11", (0xE31B477933FAF8B3, 0x9AB9F8AC544955A5) },
         { "Bassman 135", (0xFC42035894385A78, 0x60B4A0E9B0B74D78) },
         { "Scout GA-17RVT", (0x53511F6E464C9C80, 0x65AA4CE5C6153C38) }
     };

@@ -51,7 +51,8 @@ static class Brownface {
     ///     bias; its second grid on 0.1 µF to the tail's bottom, 1M grid resistors, 0.001 µF in (the 47 pF between its
     ///     plates is left out).
     /// </summary>
-    public static LongTailPairDesign PhaseInverter { get; } = new(TriodeModel.Ecc83, 430, 82e3, 100e3, 6.8e3, 820);
+    // The 6.8k tail stands on the 1.5k feedback shunt: 8.3k from the bias junction to ground.
+    public static LongTailPairDesign PhaseInverter { get; } = new(TriodeModel.Ecc83, 430, 82e3, 100e3, 8.3e3, 820);
 
     /// <summary>
     ///     The panel: Volume, Treble, Bass and Presence, the channel, the vibrato pedal, Speed and Intensity.

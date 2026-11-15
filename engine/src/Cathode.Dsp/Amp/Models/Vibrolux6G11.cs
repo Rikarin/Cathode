@@ -91,7 +91,8 @@ public static class Vibrolux6G11 {
             false,
             0,
             30,
-            new LongTailPairDesign(TriodeModel.Ecc83, 310, 82e3, 100e3, 6.8e3, 820),
+            // The 6.8k tail stands on the 1.5k feedback shunt: 8.3k from the bias junction to ground.
+            new LongTailPairDesign(TriodeModel.Ecc83, 310, 82e3, 100e3, 8.3e3, 820),
             0.1e-6,
             220e3,
             1,

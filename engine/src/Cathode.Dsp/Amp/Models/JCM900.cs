@@ -78,7 +78,8 @@ public static class JCM900 {
             false,
             0,
             50,
-            new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 15e3, 1e3),
+            // The 15k tail stands on the 4k7 feedback shunt: 19.7k from the bias junction to ground.
+            new LongTailPairDesign(TriodeModel.Ecc83, 330, 82e3, 100e3, 19.7e3, 1e3),
             22e-9,
             150e3,
             1.5e3,

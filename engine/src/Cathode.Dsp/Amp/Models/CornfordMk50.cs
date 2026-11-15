@@ -88,7 +88,9 @@ public static class CornfordMk50 {
             false,
             0,
             50,
-            new LongTailPairDesign(TriodeModel.Ecc83, InverterSupply, 91e3, 100e3, 10e3, 470),
+            // The 10k tail stands on the 4k7 feedback shunt, as in the Marshall inverter it follows: 14.7k from the
+            // bias junction to ground.
+            new LongTailPairDesign(TriodeModel.Ecc83, InverterSupply, 91e3, 100e3, 14.7e3, 470),
             33e-9,
             220e3,
             10e3,

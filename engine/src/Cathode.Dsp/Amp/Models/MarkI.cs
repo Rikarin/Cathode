@@ -76,6 +76,8 @@ public static class MarkI {
             false,
             0,
             100,
+            // The 10k tail goes straight to ground: the sheet reaches the 10k feedback shunt from the tail's knot only
+            // through the 15k, which carries no DC, so the shunt is not under the tail (see the remarks).
             new LongTailPairDesign(TriodeModel.Ecc83, RailC, 82e3, 100e3, 10e3, 430),
             0.1e-6,
             220e3,

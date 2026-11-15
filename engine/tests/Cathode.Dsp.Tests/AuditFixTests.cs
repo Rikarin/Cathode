@@ -89,22 +89,82 @@ public class AuditFixTests {
     }
 
     /// <summary>
-    ///     #540: a model whose presence pot is the inverter tail's shunt counts it in the tail, which
+    ///     #540, #576: an inverter whose tail stands on the feedback shunt counts the shunt in the tail, which
     ///     <see cref="LongTailPairDesign" /> documents as the whole DC resistance from the bias junction to ground.
+    ///     With the shunt taken off, what is left is the drawn tail, a standard E12 value; a tail that leaves the shunt
+    ///     out leaves an odd remainder (10k over 4k7 gives 5.3k) and fails. The models whose tail does not stand on the
+    ///     shunt, or stands on more than it, are listed with the reason.
     /// </summary>
     [Fact]
-    public void A_presence_pot_wired_as_the_tail_shunt_is_in_the_tail() {
-        var models = AmpDesign.All
-            .Where(static a => a.Power.Feedback.PresenceIsShunt && a.Power.PhaseInverter is LongTailPairDesign)
-            .ToArray();
+    public void An_inverter_tail_standing_on_the_feedback_shunt_counts_it() {
+        var models = AmpDesign.All.Where(static a => a.Power.PhaseInverter is LongTailPairDesign).ToArray();
 
         Assert.NotEmpty(models);
+        var failures = new List<string>();
         foreach (var design in models) {
-            var inverter = (LongTailPairDesign)design.Power.PhaseInverter;
-            Assert.True(
-                inverter.TailResistor > design.Power.Feedback.ShuntResistor,
-                $"{design.Name}: a {inverter.TailResistor} Ω tail over a {design.Power.Feedback.ShuntResistor} Ω shunt"
-            );
+            if (!design.Power.HasFeedback || TailNotOnTheShunt.ContainsKey(design.Name)) {
+                continue;
+            }
+
+            var tail = ((LongTailPairDesign)design.Power.PhaseInverter).TailResistor;
+            var shunt = design.Power.Feedback.ShuntResistor;
+            if (!IsE12(tail - shunt)) {
+                failures.Add($"{design.Name}: a {tail} Ω tail over a {shunt} Ω shunt leaves {tail - shunt} Ω");
+            }
         }
+
+        Assert.Empty(failures);
+        foreach (var name in TailNotOnTheShunt.Keys) {
+            Assert.Contains(models, a => a.Name == name);
+        }
+    }
+
+    /// <summary>The models whose tail is not the drawn tail plus the feedback shunt, and why.</summary>
+    static readonly Dictionary<string, string> TailNotOnTheShunt = new() {
+        // #589: a shunt of 47 to 390 Ω under the tail, left out (0.2 to 1.6 % of the tail).
+        ["Bandmaster AB763"] = "47–100 Ω shunt left out",
+        ["Bassman 135"] = "100 Ω shunt left out",
+        ["Blackface"] = "100 Ω shunt left out",
+        ["Deluxe Reverb"] = "47 Ω shunt left out",
+        ["GK 800RB"] = "the blackface power amp: 100 Ω shunt left out",
+        ["JC-120"] = "the blackface power amp: 100 Ω shunt left out",
+        ["Lone Star"] = "100 Ω shunt left out",
+        ["ODS 70s"] = "390 Ω shunt left out",
+        ["ODS 97"] = "390 Ω shunt left out",
+        ["RG100ES"] = "the blackface power amp: 100 Ω shunt left out",
+        ["Super Reverb"] = "100 Ω shunt left out",
+        ["Tremolux AA763"] = "100 Ω shunt left out",
+        ["Twin Reverb"] = "100 Ω shunt left out",
+        ["Valvestate 8080"] = "the blackface power amp: 100 Ω shunt left out",
+        ["Vibrolux Reverb AA964"] = "100 Ω shunt left out",
+        ["Vibroverb AB763"] = "47 Ω shunt left out",
+        // The Boogie driver's 22k tail stands on 3.3k over the 1.5k shunt: 26.8k.
+        ["Mark IIC+"] = "22k on 3.3k over the 1.5k shunt",
+        ["Mark IIC+ Rhythm"] = "22k on 3.3k over the 1.5k shunt",
+        ["Mark IV"] = "22k on 3.3k over the 1.5k shunt",
+        ["Mark IV Rhythm 1"] = "22k on 3.3k over the 1.5k shunt",
+        ["Mark IV Rhythm 2"] = "22k on 3.3k over the 1.5k shunt",
+        ["Mark V"] = "22k on 3.3k over the 1.5k shunt",
+        ["Mark V Clean"] = "22k on 3.3k over the 1.5k shunt",
+        ["Mark V Crunch"] = "22k on 3.3k over the 1.5k shunt",
+        // #588: the sheet reaches the shunt from the tail's knot only through a 15k that carries no DC.
+        ["Mark I"] = "the tail goes straight to ground",
+        ["Pro Junior"] = "the 1k is under the second grid, not the tail",
+        ["Hiwatt DR103"] = "tail chosen to reproduce the drawing's rest point",
+        ["Hiwatt DR504"] = "tail chosen to reproduce the drawing's rest point",
+        ["Subway Blues"] = "tail chosen to reproduce the drawing's rest point",
+        ["Legacy VL100"] = "a documented approximation",
+        ["Sunn Model T"] = "also counts the secondary's 22k path"
+    };
+
+    static bool IsE12(double ohms) {
+        double[] series = [1.0, 1.2, 1.5, 1.8, 2.2, 2.7, 3.3, 3.9, 4.7, 5.6, 6.8, 8.2];
+        for (var decade = 10.0; decade <= 1e6; decade *= 10) {
+            if (series.Any(v => Math.Abs(ohms - v * decade) < 0.5)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

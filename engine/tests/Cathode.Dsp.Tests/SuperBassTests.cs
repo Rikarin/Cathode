@@ -46,8 +46,9 @@ public class SuperBassTests(ITestOutputHelper output) {
 
         var power = Design.Power;
         var inverter = (LongTailPairDesign)power.PhaseInverter;
+        // The drawn 10k tail stands on the 5k presence pot, the feedback's shunt: 15k to ground (#575).
         Assert.Equal(
-            (82e3, 100e3, 10e3, 470.0),
+            (82e3, 100e3, 15e3, 470.0),
             (inverter.PlateResistorA, inverter.PlateResistorB, inverter.TailResistor, inverter.BiasResistor)
         );
         Assert.Equal(
