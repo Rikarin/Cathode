@@ -22,6 +22,7 @@ describe('SetlistPlayer', () => {
     };
     const settings = signal({ activeSetlist: active, activeSong: song } as GlobalSettings);
     const load = vi.fn(() => Promise.resolve(true));
+    const refresh = vi.fn(() => Promise.resolve());
     const error = vi.fn();
     TestBed.configureTestingModule({
       providers: [
@@ -41,14 +42,15 @@ describe('SetlistPlayer', () => {
               change(next);
               settings.set(next);
               return Promise.resolve(true);
-            }
+            },
+            refresh
           }
         },
         { provide: PresetSwitcher, useValue: { load } },
         { provide: Notify, useValue: { error } }
       ]
     });
-    return { player: TestBed.inject(SetlistPlayer), settings, load, error };
+    return { player: TestBed.inject(SetlistPlayer), settings, load, refresh, error };
   }
 
   it('shows the song playing and the next one, passing over a missing preset', () => {
@@ -70,6 +72,33 @@ describe('SetlistPlayer', () => {
       scene: 5,
       position: { setlist: 'friday', entry: 2 }
     });
+  });
+
+  it('steps on from the song it asked for before the settings that carry it are read', async () => {
+    const { player: p, settings, load, refresh } = player('friday', 0);
+    let read: (() => void) | undefined;
+    refresh.mockImplementationOnce(() => new Promise<void>(resolve => (read = resolve)));
+
+    const first = p.step(1);
+    await vi.waitFor(() => expect(refresh).toHaveBeenCalled());
+    expect(p.current()?.title).toBe('Lead');
+
+    // Still song 1 in the settings: previous goes back from the song asked for, not from the one before it.
+    expect(await p.step(-1)).toBe(true);
+    expect(load).toHaveBeenLastCalledWith('clean', 'Clean', false, expect.objectContaining({ scene: 2 }));
+
+    settings.set({ activeSetlist: 'friday', activeSong: 0 } as GlobalSettings);
+    read?.();
+    await first;
+    expect(p.index()).toBe(0);
+  });
+
+  it('goes back to the settings when the load is refused', async () => {
+    const { player: p, load } = player('friday', 0);
+    load.mockResolvedValueOnce(false);
+
+    expect(await p.step(1)).toBe(false);
+    expect(p.current()?.title).toBe('Opener');
   });
 
   it('picks a setlist before its first song, and none when its id is gone', async () => {

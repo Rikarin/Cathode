@@ -203,12 +203,14 @@ public sealed class ControlsApiTests : IAsyncLifetime {
 
     [Fact]
     public async Task Taps_over_rest_are_averaged_on_the_engines_clock_and_the_preset_follows() {
-        // A REST tap carries no time: the engine stamps it with its own clock when it arrives. So the test paces its
-        // taps by that clock, 32,000 samples apart (90 BPM at 48 kHz), not by a wall-clock sleep that a busy machine
-        // stretches. A request takes time on that clock too, a quarter of a second on a loaded CI runner (Windows
-        // averaged 79.8 BPM), so the test reads the clock on both sides of each tap and bounds the engine's stamp by
-        // the two readings (below).
+        // A REST tap carries no time: the engine host stamps it with the engine's clock when the tap reaches it. So the
+        // test paces its taps by that clock, 32,000 samples apart (90 BPM at 48 kHz), not by a wall-clock sleep that a
+        // busy machine stretches. The Server answers a tap once it is queued for the host, before the stamp, so after
+        // each tap the test makes a request that waits for the host's reply. The Server sends the host one message at
+        // a time, in order, so that reply comes after the tap was stamped, and the clock read before the tap and after
+        // the reply bound the stamp, however late a loaded runner delivers it.
         var engine = server.Host.Engine;
+        var connection = server.Services.GetRequiredService<EngineConnection>();
         Assert.Equal(120, (await Live()).Preset.Tempo);
         var start = engine.SampleTime;
         var before = new long[4];
@@ -222,20 +224,16 @@ public sealed class ControlsApiTests : IAsyncLifetime {
 
             before[i] = engine.SampleTime;
             using var tap = await client.PostAsync("/api/v1/live/tap", null, Token);
-            after[i] = engine.SampleTime;
             Assert.Equal(HttpStatusCode.NoContent, tap.StatusCode);
+            await connection.LatencyAsync();
+            after[i] = engine.SampleTime;
         }
 
-        // The tempo is the average of the three intervals between the four stamps (first to last, over three). A
-        // stamp is not taken before its request starts, but it can be taken after the request returns: the Server
-        // answers once the tap is queued for the engine host, which stamps it when it arrives. Loaded Linux and
-        // Windows runners showed that (92.2 BPM against a 92.1 limit, 97.7 against 92.8: about 0.1 s late), so each
-        // stamp is given a quarter of a second after its request. On an idle machine the result is 90 BPM to within
-        // one or two, where the preset's 120 could not land.
-        var late = engine.Spec.SampleRate / 4;
+        // The tempo is the average of the three intervals between the four stamps (first to last, over three). On an
+        // idle machine it is 90 BPM to within one or two, where the preset's 120 could not land.
         var perMinute = 60.0 * engine.Spec.SampleRate;
-        var slowest = perMinute * 3 / (after[3] + late - before[0]);
-        var fastest = perMinute * 3 / (before[3] - after[0] - late);
+        var slowest = perMinute * 3 / (after[3] - before[0]);
+        var fastest = perMinute * 3 / (before[3] - after[0]);
         await ServerFixture.Eventually(
             () => engine.Tempo > slowest - 0.01 && engine.Tempo < fastest + 0.01,
             () => $"engine tempo {engine.Tempo}, expected {slowest} to {fastest}"

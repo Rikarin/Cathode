@@ -23,14 +23,14 @@ export function socketExists(pid: number): boolean {
 
 /** The engine hosts that app runs (on its socket), by command line. */
 export function hosts(pid: number): string[] {
-  return commandLines().filter(
+  return commandLines(Sidecars).filter(
     line => line.includes('cathode-host') && line.includes('--serve') && line.includes(socket(pid))
   );
 }
 
 /** The Servers that app runs (on its host's socket), by command line. */
 export function servers(pid: number): string[] {
-  return commandLines().filter(line => line.includes('cathode-server') && line.includes(socket(pid)));
+  return commandLines(Sidecars).filter(line => line.includes('cathode-server') && line.includes(socket(pid)));
 }
 
 /** The connection the desktop app hands its editor: the local Server's address and token. */
@@ -42,13 +42,27 @@ export function connection(window: Page): Promise<{ baseUrl: string; token: stri
   );
 }
 
-/** Every process's command line, as any account on the machine can list them. */
-export function commandLines(): string[] {
+/** The executables a sidecar can run as on Windows: its own, or `dotnet` with its dll (a development checkout). */
+const Sidecars = ['cathode-host.exe', 'cathode-server.exe', 'dotnet.exe'];
+
+/**
+ * Every process's command line, as any account on the machine can list them; on Windows, only those of the processes
+ * named in `windowsNames` when it is given. Reading every process's command line through WMI took 23 s a call on the
+ * Windows ARM64 runner, where the engine-restart test's ten calls ran out its two minutes; the provider filters by
+ * name before it reads any.
+ */
+export function commandLines(windowsNames?: readonly string[]): string[] {
+  // A single-quoted PowerShell string (its quotes doubled), so no double quote goes through Node's argument quoting.
+  const filter = windowsNames ? ` -Filter '${windowsNames.map(name => `Name=''${name}''`).join(' OR ')}'` : '';
   const output =
     process.platform === 'win32'
       ? execFileSync(
           'powershell.exe',
-          ['-NoProfile', '-Command', 'Get-CimInstance Win32_Process | ForEach-Object { $_.CommandLine }'],
+          [
+            '-NoProfile',
+            '-Command',
+            `Get-CimInstance Win32_Process -Property CommandLine${filter} | ForEach-Object { $_.CommandLine }`
+          ],
           { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }
         )
       : execFileSync('ps', ['-ewwo', 'args'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });

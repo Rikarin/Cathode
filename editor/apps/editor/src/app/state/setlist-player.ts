@@ -1,4 +1,4 @@
-import { Injectable, computed, inject } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { Notify } from '../core/notify';
 import { type Song, resolveSongs, songStep } from '../pages/setlists';
 import { GlobalStore } from './global.store';
@@ -26,8 +26,22 @@ export class SetlistPlayer {
     const presets = this.library.presets();
     return resolveSongs(this.setlist(), presets.length > 0 ? presets : null);
   });
+  /**
+   * The entry a load was asked for, until the global settings that carry it as `activeSong` have been read. Those come
+   * after the load has answered (the Server's event, then a refetch), so a second step taken before them went on from
+   * the entry before: next then previous played the song before the first.
+   */
+  private readonly requested = signal<{ setlist: string; entry: number } | null>(null);
   /** The entry last loaded, from 0; -1 before the first. */
-  readonly index = computed(() => (this.setlist() ? (this.globals.settings()?.activeSong ?? -1) : -1));
+  readonly index = computed(() => {
+    const setlist = this.setlist();
+    if (!setlist) {
+      return -1;
+    }
+
+    const requested = this.requested();
+    return requested?.setlist === setlist.id ? requested.entry : (this.globals.settings()?.activeSong ?? -1);
+  });
   readonly current = computed<Song | null>(() => this.songs()[this.index()] ?? null);
   readonly next = computed(() => this.target(1));
   readonly previous = computed(() => this.target(-1));
@@ -65,11 +79,26 @@ export class SetlistPlayer {
     }
 
     const { presetId, scene } = song.entry;
-    return this.switcher.load(presetId, song.presetName ?? song.title, false, {
-      presetId,
-      scene,
-      position: { setlist: setlist.id, entry: index }
-    });
+    const request = { setlist: setlist.id, entry: index };
+    this.requested.set(request);
+    try {
+      const loaded = await this.switcher.load(presetId, song.presetName ?? song.title, false, {
+        presetId,
+        scene,
+        position: request
+      });
+      if (loaded) {
+        // A read made after the load answered, so the settings it brings have this entry as the active song.
+        await this.globals.refresh();
+      }
+
+      return loaded;
+    } finally {
+      // A later step's request, made while this one was out, is left to its own load.
+      if (this.requested() === request) {
+        this.requested.set(null);
+      }
+    }
   }
 
   private target(direction: 1 | -1): Song | null {

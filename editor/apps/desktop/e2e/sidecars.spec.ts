@@ -27,12 +27,13 @@ test('overlapping engine restarts leave one engine running', async ({ app, windo
   await expect(window.getByRole('gridcell', { name: /^Input in1/ })).toBeVisible();
   // And it stays one: a second host would fight the first for the socket (and the device), one of them restarting.
   await expect.poll(() => hosts(pid).length, { timeout: 10_000 }).toBe(1);
+  // Sampled over four seconds, however long a listing takes (seconds each on a slow Windows runner).
   const counts: number[] = [];
-  for (let i = 0; i < 8; i++) {
+  for (const until = Date.now() + 4_000; counts.length < 2 || Date.now() < until;) {
     await new Promise(resolve => setTimeout(resolve, 500));
     counts.push(hosts(pid).length);
   }
-  expect(counts).toEqual([1, 1, 1, 1, 1, 1, 1, 1]);
+  expect(counts.filter(count => count !== 1)).toEqual([]);
 });
 
 test('the engine stops on its own when the app is killed', async ({ app, window }) => {

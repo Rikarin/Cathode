@@ -4,6 +4,14 @@ Cathode follows [semantic versioning](https://semver.org). From 1.0 on, a preset
 in every later one: the preset format carries a schema version (`schemaVersion`, now 2), and a release that changes
 the format upgrades older presets as it reads them.
 
+## 1.0.0-rc.8 — unreleased
+
+### Fixed
+
+- Setlists: a song step taken right after another goes on from the song the first one loaded. The song playing was
+  read from the global settings, which arrive after the load, so ⇧⌘PgDn then ⇧⌘PgUp pressed quickly could go back
+  two songs, and two quick Nexts could load the same song twice.
+
 ## 1.0.0-rc.7 — 2026-11-15
 
 The fixes below came out of a third audit of the code, of the engine core (#527 to #538), the DSP blocks (#540 to
