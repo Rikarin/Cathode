@@ -220,7 +220,7 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         var before = new long[4];
         var after = new long[4];
         var window = (long)(2.5 * engine.Spec.SampleRate); // CathodeEngine.TapWindowSeconds
-        for (var attempt = 1; ; attempt++) {
+        for (var attempt = 1;; attempt++) {
             for (var i = 0; i < 4; i++) {
                 var at = i == 0 ? engine.SampleTime : after[i - 1] + 32_000;
                 while (engine.SampleTime < at) {
