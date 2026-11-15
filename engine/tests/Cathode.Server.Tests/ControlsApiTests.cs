@@ -206,29 +206,44 @@ public sealed class ControlsApiTests : IAsyncLifetime {
     [Fact]
     public async Task Taps_over_rest_are_averaged_on_the_engines_clock_and_the_preset_follows() {
         // A REST tap carries no time: the engine host stamps it with the engine's clock when the tap reaches it. So the
-        // test paces its taps by that clock, 32,000 samples apart (90 BPM at 48 kHz), not by a wall-clock sleep that a
-        // busy machine stretches. The Server answers a tap once it is queued for the host, before the stamp, so after
-        // each tap the test makes a request that waits for the host's reply. The Server sends the host one message at
-        // a time, in order, so that reply comes after the tap was stamped, and the clock read before the tap and after
-        // the reply bound the stamp, however late a loaded runner delivers it.
+        // test paces its taps by that clock, 32,000 samples (90 BPM at 48 kHz) after the clock it read once the tap
+        // before was in, not by a wall-clock sleep that a busy machine stretches. The Server answers a tap once it is
+        // queued for the host, before the stamp, so after each tap the test makes a request that waits for the host's
+        // reply. The Server sends the host one message at a time, in order, so that reply comes after the tap was
+        // stamped, and the clock read before the tap and after the reply bound the stamp. The clock moves in bursts on
+        // a loaded runner (a test process with seconds of GC pauses): pacing from the start instead sent a tap that was
+        // already due at once, and the host stamped it at the same sample as the one before, which the engine takes for
+        // taps out of order and starts counting again.
         var engine = server.Host.Engine;
         var connection = server.Services.GetRequiredService<EngineConnection>();
         Assert.Equal(120, (await Live()).Preset.Tempo);
-        var start = engine.SampleTime;
         var before = new long[4];
         var after = new long[4];
+        var window = (long)(2.5 * engine.Spec.SampleRate); // CathodeEngine.TapWindowSeconds
+        for (var attempt = 1; ; attempt++) {
+            for (var i = 0; i < 4; i++) {
+                var at = i == 0 ? engine.SampleTime : after[i - 1] + 32_000;
+                while (engine.SampleTime < at) {
+                    await Task.Delay(1, Token);
+                }
 
-        for (var i = 0; i < 4; i++) {
-            var at = start + i * 32_000;
-            while (engine.SampleTime < at) {
-                await Task.Delay(1, Token);
+                before[i] = engine.SampleTime;
+                using var tap = await client.PostAsync("/api/v1/live/tap", null, Token);
+                Assert.Equal(HttpStatusCode.NoContent, tap.StatusCode);
+                await connection.LatencyAsync();
+                after[i] = engine.SampleTime;
             }
 
-            before[i] = engine.SampleTime;
-            using var tap = await client.PostAsync("/api/v1/live/tap", null, Token);
-            Assert.Equal(HttpStatusCode.NoContent, tap.StatusCode);
-            await connection.LatencyAsync();
-            after[i] = engine.SampleTime;
+            // A stall long enough that two taps may lie further apart than the engine's tap window starts its count
+            // again, so the run says nothing: wait out the window and tap again.
+            if (Enumerable.Range(1, 3).All(i => after[i] - before[i - 1] < window) || attempt == 3) {
+                break;
+            }
+
+            var reset = after[3] + window + 1;
+            while (engine.SampleTime < reset) {
+                await Task.Delay(10, Token);
+            }
         }
 
         // The tempo is the average of the three intervals between the four stamps (first to last, over three). On an
