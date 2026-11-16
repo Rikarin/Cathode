@@ -43,9 +43,13 @@ public struct RcLowPass() {
         default
     );
 
-    /// <summary>Sets the -3 dB frequency (prewarped by the bilinear transform like any analog prototype).</summary>
+    /// <summary>
+    ///     Sets the -3 dB frequency. The analog corner is prewarped, so the bilinear transform puts the digital one
+    ///     where it was asked for (#618).
+    /// </summary>
     public void SetCutoff(double frequency, double sampleRate) {
         var hz = Math.Clamp(frequency, 1, sampleRate * 0.49);
+        hz = sampleRate / Math.PI * Math.Tan(Math.PI * hz / sampleRate);
         circuit.Tree.B.Configure(1 / (2 * Math.PI * hz * Resistance), sampleRate);
         circuit.Propagate();
     }

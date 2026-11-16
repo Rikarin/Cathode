@@ -507,7 +507,7 @@ public sealed class WahBlock() : DspBlock(Info), IBlockMeters {
         }
 
         configured = type;
-        countdown = SubBlock;
+        countdown = 0; // the trims are applied on the first sample, not 16 later at stock (#616)
     }
 
     protected override void OnPrepare(in ProcessSpec spec) {

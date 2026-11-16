@@ -202,7 +202,7 @@ public static class HotRodDeluxe {
         net.SwitchedResistor(more, jfet, Open, Jfet, SwitchRole.Switch2);
         net.SwitchedResistor(jfet, StageNetlist.Ground, Wire, Open, SwitchRole.Switch1);
         net.Output = plate;
-        return new("V2A", net);
+        return new("V2A", net, 100e3); // the drawing's 100k from the stack to V2A's grid (#620)
     }
 
     /// <summary>

@@ -421,6 +421,16 @@ public sealed class DelayBlock() : DspBlock(Info) {
         return magnitude <= 1f ? x : MathF.CopySign(1f + MathF.Tanh(magnitude - 1f), x);
     }
 
+    /// <summary>
+    ///     A delay of <paramref name="samples" /> on a tape running at <paramref name="motor" /> of its speed: a slower
+    ///     tape takes longer between the heads, up to the longest time that leaves room for the widest modulation, the
+    ///     tape's wow and flutter included.
+    /// </summary>
+    float AtMotorSpeed(float samples, float motor) =>
+        motor == 1f
+            ? samples
+            : Math.Min(capacity - 8 - MaxModulationMs * 0.001f * (float)Spec.SampleRate, samples / motor);
+
     float TargetDelaySamples(int tempoParam, float timeMs, double tempo) {
         var division = TempoDivisions.Milliseconds((int)Params.Current(tempoParam), tempo);
         var ms = division > 0 ? Math.Min(MaxTimeMs, (float)division) : timeMs;
@@ -497,7 +507,12 @@ public sealed class DelayBlock() : DspBlock(Info) {
         runGain = Params.Current(ReverseRun) >= 0.5f ? 1f : 0f;
         onsetEnvelope = 0;
         onsetArmed = true;
-        delaySamples = TargetDelaySamples(Tempo, Params.Current(Time), 120);
+        // Where the first block's glide is headed, the tape's motor speed included, so it does not sweep there (#613).
+        var type = (int)Params.Current(Type);
+        delaySamples = AtMotorSpeed(
+            TargetDelaySamples(Tempo, Params.Current(Time), 120),
+            type is Tape or MonoTape ? Params.Current(MotorSpeed) / 100f : 1f
+        );
         rightSamples = TargetDelaySamples(TempoRight, Params.Current(TimeRight), 120);
         ratioGlide.Reset();
         head2Glide.Reset();
@@ -525,12 +540,7 @@ public sealed class DelayBlock() : DspBlock(Info) {
         var motor = type is Tape or MonoTape ? motorSpeed : 1f;
         var targetDelay = TargetDelaySamples(Tempo, Params.Advance(Time, n), tempo);
         var targetRight = TargetDelaySamples(TempoRight, Params.Advance(TimeRight, n), tempo);
-        if (motor != 1f) {
-            // A slower tape takes longer between the heads.
-            // The longest time that leaves room for the widest modulation, the tape's wow and flutter included.
-            var longest = capacity - 8 - MaxModulationMs * 0.001f * sampleRate;
-            targetDelay = Math.Min(longest, targetDelay / motor);
-        }
+        targetDelay = AtMotorSpeed(targetDelay, motor);
 
         var ratio = Params.Advance(Ratio, n) / 100f;
         var inputGain = hold && !stack ? 0f : Params.Advance(InputGain, n) / 100f;

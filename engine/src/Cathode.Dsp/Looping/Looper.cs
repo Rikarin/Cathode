@@ -112,6 +112,11 @@ public sealed unsafe class Looper : IDisposable {
     /// <summary>The longest loop the grid block offers (the Axe-Fx III's Max Loop Time).</summary>
     public const double MaxSeconds = 300;
 
+    /// <summary>
+    ///     The longest seam the looper keeps the overwritten loop start for, so it can take the seam back.
+    /// </summary>
+    public const double MaxSeamSeconds = 0.1;
+
     /// <summary>How many loop samples one slice of a pending Erase or Undo covers.</summary>
     public const int SliceSamples = 8_192;
 
@@ -124,6 +129,9 @@ public sealed unsafe class Looper : IDisposable {
     readonly float* baseRight;
     readonly float* layerLeft;
     readonly float* layerRight;
+    readonly float* seamLeft; // the loop start as recorded, under the seam's samples written so far
+    readonly float* seamRight;
+    readonly int seamCapacity;
     readonly float fadeStep;
     ulong* touched; // one bit per sample: reached by the current overdub pass
     ulong* undone; // one bit per sample: part of the pass Undo removed, not restored yet
@@ -177,6 +185,9 @@ public sealed unsafe class Looper : IDisposable {
         baseRight = (float*)NativeMemory.AllocZeroed(bytes);
         layerLeft = (float*)NativeMemory.AllocZeroed(bytes);
         layerRight = (float*)NativeMemory.AllocZeroed(bytes);
+        seamCapacity = (int)(MaxSeamSeconds * sampleRate) + 1;
+        seamLeft = (float*)NativeMemory.AllocZeroed((nuint)seamCapacity, sizeof(float));
+        seamRight = (float*)NativeMemory.AllocZeroed((nuint)seamCapacity, sizeof(float));
         touched = (ulong*)NativeMemory.AllocZeroed((nuint)((Capacity + 63) / 64), sizeof(ulong));
         undone = (ulong*)NativeMemory.AllocZeroed((nuint)((Capacity + 63) / 64), sizeof(ulong));
         fadeStep = (float)(1.0 / Math.Max(1.0, FadeMs * 0.001 * sampleRate));
@@ -248,6 +259,9 @@ public sealed unsafe class Looper : IDisposable {
                 } else if (State == LooperState.Armed) {
                     State = LooperState.Empty;
                 } else if (Length > 0) {
+                    // A seam cut short would leave a step where its blend stops: the loop start goes back as recorded
+                    // instead, as a recording closed into Stopped keeps it (#623).
+                    RollBackSeam();
                     State = LooperState.Stopped;
                 }
 
@@ -331,12 +345,14 @@ public sealed unsafe class Looper : IDisposable {
         var span = end - start;
         float playLeft, playRight;
         if (seamLength > 0 && (IsReversed || IsHalfSpeed || settings.Speed != 1 || index != start + seamPosition)) {
-            seamLength = 0; // the seam is only blended on a forward first pass at normal speed
+            RollBackSeam(); // the seam is only blended on a forward first pass at normal speed
         }
 
         if (seamLength > 0) {
             // The loop's start fades in under the live playing, which is stored over it with the opposite fade.
             var w = (float)seamPosition / seamLength;
+            seamLeft[seamPosition] = baseLeft[index];
+            seamRight[seamPosition] = baseRight[index];
             playLeft = baseLeft[index] * w;
             playRight = baseRight[index] * w;
             baseLeft[index] = playLeft + left * (1f - w);
@@ -434,6 +450,8 @@ public sealed unsafe class Looper : IDisposable {
         NativeMemory.Free(baseRight);
         NativeMemory.Free(layerLeft);
         NativeMemory.Free(layerRight);
+        NativeMemory.Free(seamLeft);
+        NativeMemory.Free(seamRight);
         NativeMemory.Free(touched);
         NativeMemory.Free(undone);
     }
@@ -477,6 +495,23 @@ public sealed unsafe class Looper : IDisposable {
         UpdateWindow();
     }
 
+    /// <summary>
+    ///     Ends a seam that has not finished: the samples it has blended so far get the loop start back as recorded.
+    /// </summary>
+    void RollBackSeam() {
+        if (seamLength == 0) {
+            return;
+        }
+
+        for (var i = 0; i < seamPosition; i++) {
+            baseLeft[start + i] = seamLeft[i];
+            baseRight[start + i] = seamRight[i];
+        }
+
+        seamLength = 0;
+        seamPosition = 0;
+    }
+
     void Close(LooperState next) {
         if (settings.BeatSamples > 0 && Length > 0) {
             // Loop Quantize: the nearest whole number of beats that fits; the samples past the recording are silent.
@@ -499,7 +534,7 @@ public sealed unsafe class Looper : IDisposable {
         // The seam blends the playing that goes straight on after the recording. A recording closed into Stopped has
         // none: whatever is played when the loop starts later is unrelated, and must not be written over its start.
         seamLength = start == 0 && next != LooperState.Stopped
-            ? Math.Min(settings.CrossfadeSamples, Length / 2)
+            ? Math.Min(Math.Min(settings.CrossfadeSamples, Length / 2), seamCapacity)
             : 0;
         seamPosition = 0;
     }

@@ -438,7 +438,7 @@ public sealed class PowerAmp {
         tremolo?.SetSampleRate(sampleRate);
         var c = controls;
         controls = Unset;
-        Configure(c);
+        ConfigureMapped(c);
     }
 
     /// <summary>
@@ -476,8 +476,14 @@ public sealed class PowerAmp {
     ///     (<see cref="PowerAmpDesign.Brilliance" />) the Presence knob turns the cut pot and the feedback's presence
     ///     stays at noon.
     /// </summary>
-    public void Configure(in PowerControls knobs) {
-        var controls = Design.Brilliance ? knobs with { Cut = knobs.Presence, Presence = 0.5 } : knobs;
+    public void Configure(in PowerControls knobs) =>
+        ConfigureMapped(Design.Brilliance ? knobs with { Cut = knobs.Presence, Presence = 0.5 } : knobs);
+
+    /// <summary>
+    ///     <see cref="Configure" /> with the knobs already mapped, as <see cref="controls" /> holds them: re-applying
+    ///     the stored controls must not map a Brilliance design's cut a second time (#617).
+    /// </summary>
+    void ConfigureMapped(in PowerControls controls) {
         if (controls == this.controls) {
             return;
         }
@@ -615,7 +621,7 @@ public sealed class PowerAmp {
         // Feedback (turns, presence and depth frequencies) and the bias (tube, variac) follow from the knobs.
         var c = controls;
         controls = Unset;
-        Configure(c);
+        ConfigureMapped(c);
         if (Design.Topology != PowerTopology.SingleEnded) {
             SetSaturation(settings.Drive); // single-ended, Configure has just placed the knee for the new bias
         }

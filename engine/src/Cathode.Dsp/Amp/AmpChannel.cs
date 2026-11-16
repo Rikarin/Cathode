@@ -302,6 +302,8 @@ public sealed class AmpChannel {
             stages[i].Update(preamp);
             if (k > 0) {
                 stages[i].SetSourceResistance(stages[order[k - 1]].OutputResistance);
+            } else if (reordered) {
+                stages[i].SetSourceResistance(0); // first in the new order: driven from the input, as stage 0 is (#621)
             }
         }
 
@@ -435,9 +437,7 @@ public sealed class AmpChannel {
             for (var k = 0; k < order.Length; k++) {
                 var arriving = k == 0 ? 0 : stages[order[k - 1]].RestOutput;
                 offsets[k] = restInputs[order[k]] - arriving;
-                if (k > 0) {
-                    stages[order[k]].SetSourceResistance(stages[order[k - 1]].OutputResistance);
-                }
+                stages[order[k]].SetSourceResistance(k > 0 ? stages[order[k - 1]].OutputResistance : 0); // #621
             }
 
             resistance = stages[order[^1]].OutputResistance;

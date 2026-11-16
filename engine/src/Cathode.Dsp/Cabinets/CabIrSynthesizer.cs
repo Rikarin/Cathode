@@ -144,8 +144,9 @@ public sealed class CabIrSynthesizer : IDisposable {
             ir[i] = re[i] * scale;
         }
 
-        for (var i = 0; i < FadeLength; i++) {
-            ir[taps - FadeLength + i] *= 0.5f * (1f + MathF.Cos(MathF.PI * (i + 1) / FadeLength));
+        var fade = Math.Min(FadeLength, taps); // as MinimumPhase.Design (#624)
+        for (var i = 0; i < fade; i++) {
+            ir[taps - fade + i] *= 0.5f * (1f + MathF.Cos(MathF.PI * (i + 1) / fade));
         }
 
         ir[taps..].Clear();

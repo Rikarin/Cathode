@@ -557,7 +557,12 @@ public sealed class CabBlock() : DspBlock(Info), IAssetConsumer, IControlRefresh
                     : source == SourceFlat ? Shaped(s, flat.Span)
                     : Shaped(s, slotIrs.Span.Slice(s * taps, taps));
                 var samples = ir[..Math.Min(head, ir.Length)].ToArray();
-                var unaligned = plays && IsModelled(source) && SlotTarget(s, AutoAlign) < 0.5f;
+                // With no audible modelled slot to align against there is no delay to report: earliest is still
+                // MaxValue, which would make it -Infinity, a number the API's JSON cannot carry (#615).
+                var unaligned = plays
+                    && IsModelled(source)
+                    && SlotTarget(s, AutoAlign) < 0.5f
+                    && earliest != double.MaxValue;
                 result[s] = new(
                     s,
                     plays,

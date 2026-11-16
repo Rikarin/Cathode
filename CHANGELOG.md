@@ -42,6 +42,22 @@ the format upgrades older presets as it reads them.
 - Engine link: a message from the engine host that is too large or not JSON ends the link cleanly, as a lost
   connection does, and closing the client afterwards no longer throws (#610). The offline renderer refuses a block
   size of 0, which never finished (#607).
+- Drive: the Asymmetric clip shape no longer spikes to about full scale on the first sample after a reset (#612).
+- Filter: a comb type switched back to starts from silence instead of replaying what its lines held (#614).
+- Cab: the Align page reports a delay of 0 for a slot with nothing audible to align against, instead of −Infinity,
+  which the API could not send (#615).
+- Wah: the circuit types apply Min/Max Frequency, Resonance and Inductor Bias from the first sample after a reset or
+  type change, not 16 samples later (#616).
+- Looper: Stop within the closing crossfade gives the loop start back as recorded, instead of leaving a step where
+  the crossfade stopped (#623).
+- Amp: the Laney VH100R's clean channel has one 68k grid stopper into V3B, not two (#619); the Hot Rod Deluxe has
+  the drawing's 100k from the tone stack into V2A, which puts the Drive channel's 250 pF roll-off back near 5 kHz
+  (#620); and a tone stack moved to Pre is driven from the input, not voiced as if the stage before it still drove
+  it (#621). Those renders move.
+- Smaller fixes: a Brilliance power amp (Tiny Terror, Hot Cat, AC15, Chieftain) keeps its cut through a sample-rate
+  or power-setting change (#617); the WDF RC low-pass is prewarped, so its corner is where it is asked for (#618); a
+  Tape delay's reset starts at its motor-slowed time (#613); and a minimum-phase design of fewer than 64 taps no
+  longer throws (#624).
 
 ## 1.0.0-rc.7 — 2026-11-15
 

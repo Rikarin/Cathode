@@ -90,7 +90,9 @@ public struct AdaaClipper {
     ///     functions is what a change of shape or hardness used to do, and a small step turns it into a spike.
     /// </summary>
     double PreviousAntiderivative(ClipperShape shape, ClipperShape other, double weight) {
-        if (cached && (shape != cachedShape || other != cachedOther || weight != cachedWeight)) {
+        // After a reset there is no cached value: the stored 0 is the antiderivative at 0 only for curves that pass
+        // through it there, and the Asymmetric one does not, which made a spike of the first sample (#612).
+        if (!cached || shape != cachedShape || other != cachedOther || weight != cachedWeight) {
             previousAntiderivative = weight == 0
                 ? Antiderivative(shape, previous)
                 : (1 - weight) * Antiderivative(shape, previous) + weight * Antiderivative(other, previous);

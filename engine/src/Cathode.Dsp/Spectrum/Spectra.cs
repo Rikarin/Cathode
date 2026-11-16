@@ -244,8 +244,8 @@ public static class MinimumPhase {
 
         fft.Inverse(re, im);
         var filter = re[..taps];
-        const int fade = 64;
-        for (var i = 0; i < fade && i < taps; i++) {
+        var fade = Math.Min(64, taps); // fewer than 64 taps fade over all of them (#624)
+        for (var i = 0; i < fade; i++) {
             filter[taps - fade + i] *= 0.5f * (1f + MathF.Cos(MathF.PI * (i + 1) / fade));
         }
 

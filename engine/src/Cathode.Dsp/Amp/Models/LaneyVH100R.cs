@@ -72,7 +72,8 @@ public static class LaneyVH100R {
                 ],
                 [
                     new NetworkStageDesign("V3A", CleanStack(), 68e3),
-                    new NetworkStageDesign("V3B", FollowerAndStack(false), 68e3)
+                    // CleanStack already ends in V3B's 68k grid stopper (#619).
+                    new NetworkStageDesign("V3B", FollowerAndStack(false))
                 ]
             )
         ],

@@ -103,6 +103,7 @@ public sealed class FilterBlock() : DspBlock(Info) {
 
     readonly FractionalDelayLine combLeft = new();
     readonly FractionalDelayLine combRight = new();
+    bool combing; // the last block ran a comb type: its lines hold that block's audio
     SampleGlide combGlide;
     SvfCoefficients first;
     SvfCoefficients second;
@@ -406,12 +407,20 @@ public sealed class FilterBlock() : DspBlock(Info) {
         }
 
         if (type is FeedForwardComb or FeedbackComb) {
+            if (!combing) {
+                // Back from another type: the lines still hold what was played the last time a comb ran (#614).
+                combLeft.Reset();
+                combRight.Reset();
+                combing = true;
+            }
+
             Params.Advance(Frequency, io.Length);
             Params.Advance(Q, io.Length);
             Params.Advance(Gain, io.Length);
             Params.Advance(Drive, io.Length);
             Comb(io, type == FeedbackComb);
         } else if (type != Null) {
+            combing = false;
             for (var start = 0; start < io.Length;) {
                 var length = moving ? Math.Min(SubBlock - phase, io.Length - start) : io.Length;
                 var frequency = Params.Advance(Frequency, length);
@@ -465,6 +474,7 @@ public sealed class FilterBlock() : DspBlock(Info) {
                 start += length;
             }
         } else {
+            combing = false;
             Params.Advance(Frequency, io.Length);
             Params.Advance(Q, io.Length);
             Params.Advance(Gain, io.Length);
