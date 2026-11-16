@@ -1,8 +1,9 @@
 namespace Cathode.Engine.Rig;
 
 /// <summary>
-///     A click on every beat of the rig tempo, accented on the first of four, locked to the sample clock. Added after
-///     the looper, so it is never recorded into a loop.
+///     A click on every beat of the rig's <see cref="BeatClock" />, accented on the first of four. It reads the beat
+///     the synced LFOs and the sequencer read, so they click and move together (#602). Added after the looper, so it
+///     is never recorded into a loop.
 /// </summary>
 public sealed class Metronome(double sampleRate) {
     const double ClickMs = 25;
@@ -13,26 +14,24 @@ public sealed class Metronome(double sampleRate) {
     double frequency;
     double phase;
     long lastBeat = -1;
-    long anchorTime;
-    double anchorBeat;
-    double anchorTempo;
+    long nextTime;
 
     /// <summary>
-    ///     Audio thread: add clicks for the frames starting at <paramref name="sampleTime" />. The grid is counted
-    ///     from an anchor rather than from sample 0, so a tempo change moves only the beats after it: the clicks
-    ///     already played stay where the player heard them, and the accent stays on the same beat of the bar.
+    ///     Audio thread: add clicks for the frames starting at <paramref name="sampleTime" />, on the beats of
+    ///     <paramref name="beats" />. Switched back on between beats, it waits for the next one rather than clicking
+    ///     off the grid.
     /// </summary>
-    public void Process(Span<float> left, Span<float> right, long sampleTime, double tempo, float gain) {
-        if (tempo != anchorTempo) {
-            // The grid ran at the old tempo up to here (metronome on or off), so only the beats from now on change.
-            anchorBeat += (sampleTime - anchorTime) * anchorTempo / (sampleRate * 60);
-            anchorTime = sampleTime;
-            anchorTempo = tempo;
+    public void Process(Span<float> left, Span<float> right, long sampleTime, BeatClock beats, float gain) {
+        if (sampleTime != nextTime) {
+            // Off since the last call: the beat already under way has been missed, and a click cut off stays cut.
+            var now = beats.At(sampleTime);
+            lastBeat = now == Math.Floor(now) ? (long)now - 1 : (long)now;
+            remaining = 0;
         }
 
-        var samplesPerBeat = sampleRate * 60 / tempo;
+        nextTime = sampleTime + left.Length;
         for (var i = 0; i < left.Length; i++) {
-            var beat = (long)(anchorBeat + (sampleTime + i - anchorTime) / samplesPerBeat);
+            var beat = (long)beats.At(sampleTime + i);
             if (beat != lastBeat) {
                 lastBeat = beat;
                 remaining = clickSamples;

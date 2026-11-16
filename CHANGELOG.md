@@ -21,6 +21,27 @@ the format upgrades older presets as it reads them.
   6G11, Concert 6G12 and Super 6G4 (8.3k; #587). The Mark I keeps its 10k: its sheet reaches the feedback shunt from
   the tail only through a 15k that carries no DC (#588). The shunts of 47 to 390 Ω under the AB763-family and
   Overdrive Special tails stay left out (#589). The factory and legacy levels stay inside their tolerance.
+- MIDI: a CC mapped to a block's channel with no fixed channel picks the channel its value names (0 to 3 for A to D).
+  Values below 64 did nothing, and from 64 up the channel came from the value's low bits (#600).
+- Templates: a template saved while a factory preset is loaded is the user's own, as is a preset started from it.
+  Both were marked as factory content (#601).
+- Metronome: the click falls on the beat grid the tempo-synced LFOs and the sequencer use, which all three now read
+  from one beat clock. The click's grid started where the metronome was switched on, and a tempo change moved only
+  the click; switched on between beats, the metronome now waits for the next one (#602).
+- Telemetry: the Overloads count no longer grows while audio is stopped. Each measurement window added its overruns
+  again when no audio callback ran before the next telemetry read (#603).
+- Grid: the Input and Outputs swap only with their own kind. Swapping one with a block left a cable into the Input
+  or out of an Output, and the preset could not be saved after that (#604).
+- Next/previous preset passes over a setlist entry or bank slot whose preset file has gone missing, as a song step
+  does, instead of failing on it every time (#605).
+- Library: a backup whose global settings hold a null list is repaired or refused with the reason, as a settings file
+  or a `PUT /global` would be, instead of failing the whole restore with a server error (#606).
+- Audio: an ASIO output plays a NaN sample as silence on every sample format, as ALSA does; on the integer formats
+  it went out as a full-scale click (#609). CoreAudio keeps each output stream on its own channels when an earlier
+  stream has no buffer (#608).
+- Engine link: a message from the engine host that is too large or not JSON ends the link cleanly, as a lost
+  connection does, and closing the client afterwards no longer throws (#610). The offline renderer refuses a block
+  size of 0, which never finished (#607).
 
 ## 1.0.0-rc.7 — 2026-11-15
 

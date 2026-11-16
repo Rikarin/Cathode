@@ -64,6 +64,7 @@ public static class OfflineRenderer {
         int blockSize,
         OutputBus outputs
     ) {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(blockSize); // 0 frames a block would never finish (#607)
         var channels = new float[2 * OutputBus.Count + 2][];
         for (var c = 0; c < channels.Length; c++) {
             channels[c] = new float[left.Length];
@@ -107,6 +108,7 @@ public static class OfflineRenderer {
         IReadOnlyList<(float[] Left, float[] Right)?> sources,
         int blockSize
     ) {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(blockSize); // 0 frames a block would never finish (#607)
         var (left, right) = sources[0] ?? throw new ArgumentException("Input 1 is required.", nameof(sources));
         var count = Dsp.Routing.HardwareInputs.Count;
         var mask = 0;

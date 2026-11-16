@@ -477,7 +477,7 @@ public sealed class CathodeEngine : IAudioProcessor, IDisposable {
         loudness.Process(slice.OutputLeft, slice.OutputRight);
         if (Rig.Current(metronomeIndex) >= 0.5f) {
             var click = MathF.Pow(10f, Rig.GetTarget(metroLevelIndex) / 20f);
-            metronome.Process(slice.OutputLeft, slice.OutputRight, sampleTime, modulation.Tempo, click);
+            metronome.Process(slice.OutputLeft, slice.OutputRight, sampleTime, modulation.Beats, click);
         }
 
         MuteAndFinishOutputs(slice, bus, offset, length, context);

@@ -64,6 +64,7 @@ public sealed partial class LiveRig {
         Locked(async () => {
                 CheckShape(template);
                 template.Id = Preset.NewId();
+                template.Factory = null; // a template stored before #601 can still carry the flag
                 ApplyGlobals(template);
                 await ReplaceAsync(template);
                 return Changed("presetLoaded", markDirty: false);
@@ -119,6 +120,15 @@ public sealed partial class LiveRig {
 
                 switch (request.Mode) {
                     case "swap":
+                        // The cables stay put, so an Input or Output swapped with a block of another kind would take
+                        // its cables: a cable into the Input, or out of an Output, which no preset may hold (#604).
+                        if (End(block.Type) != End(target.Type)) {
+                            throw new RigException(
+                                400,
+                                "The grid's Input and Outputs can only swap with their own kind."
+                            );
+                        }
+
                         await StructuralAsync(p => SwapCells(p, id, request.Target));
                         return Changed("blocksSwapped", id);
                     case "replace":
@@ -134,6 +144,12 @@ public sealed partial class LiveRig {
                 }
             }
         );
+
+    /// <summary>Which end of the signal a block type is: an Input, an Output, or neither.</summary>
+    static int End(string type) =>
+        type == BuiltInTypes.Input ? -1
+        : BuiltInTypes.IsOutput(type) ? 1
+        : 0;
 
     /// <summary>
     ///     Block <paramref name="id" /> and <paramref name="other" /> exchange cells; the cables stay put.

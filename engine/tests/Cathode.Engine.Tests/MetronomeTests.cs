@@ -34,6 +34,36 @@ public sealed class MetronomeTests {
         Assert.All(accents.Zip(accents.Skip(1), static (a, b) => b - a), static gap => Assert.Equal(4, gap));
     }
 
+    /// <summary>
+    ///     #602: switched on part-way into a beat, the metronome waits for the next beat of the rig's grid, the one the
+    ///     synced LFOs and the sequencer use, rather than starting a grid of its own where it was switched on.
+    /// </summary>
+    [Fact]
+    public void Switched_on_between_beats_it_clicks_on_the_rigs_beat_grid() {
+        var clock = new BeatClock(Rate);
+        clock.Update(0, 120);
+        const int on = 12_288; // half a beat and a bit in, on a block boundary
+
+        var clicks = Render(new(Rate), 4 * (int)Rate, static _ => 120, clock, on);
+
+        Assert.All(clicks, static c => Assert.Equal(0, c.Start % 24_000));
+        Assert.Equal(24_000, clicks[0].Start);
+        Assert.Equal([3], Accents(clicks)); // the clicks are beats 1-7: beat 4 is the bar's first
+    }
+
+    /// <summary>#602: a tempo change moves the beat clock's later beats only, for everything that reads it.</summary>
+    [Fact]
+    public void The_beat_clock_counts_on_from_a_tempo_change() {
+        var clock = new BeatClock(Rate);
+        clock.Update(0, 120);
+        Assert.Equal(4.0, clock.At(96_000));
+
+        clock.Update(96_000, 60);
+
+        Assert.Equal(4.0, clock.At(96_000));
+        Assert.Equal(5.0, clock.At(144_000));
+    }
+
     static IEnumerable<long> Gaps(List<(long Start, bool Accent)> clicks) =>
         clicks.Zip(clicks.Skip(1), static (a, b) => b.Start - a.Start);
 
@@ -46,14 +76,26 @@ public sealed class MetronomeTests {
     ///     gives for each, and returns every click: where it starts, and whether it is the accented one (1.5 kHz
     ///     rather than 1 kHz, told apart by how often it crosses zero).
     /// </summary>
-    static List<(long Start, bool Accent)> Render(Metronome metronome, int samples, Func<long, double> tempo) {
+    static List<(long Start, bool Accent)> Render(
+        Metronome metronome,
+        int samples,
+        Func<long, double> tempo,
+        BeatClock? clock = null,
+        int from = 0
+    ) {
+        clock ??= new(Rate);
         var signal = new float[samples];
         var left = new float[Block];
         var right = new float[Block];
         for (var t = 0; t + Block <= samples; t += Block) {
+            clock.Update(t, (float)tempo(t));
+            if (t < from) {
+                continue; // the metronome is off
+            }
+
             Array.Clear(left);
             Array.Clear(right);
-            metronome.Process(left, right, t, tempo(t), 1f);
+            metronome.Process(left, right, t, clock, 1f);
             left.CopyTo(signal, t);
         }
 

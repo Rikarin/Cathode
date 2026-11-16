@@ -154,17 +154,22 @@ public sealed partial class LibraryBackup(
         // Everything is read before anything is written.
         var context = ContractsJsonContext.Default;
         var manifest = await ReadManifestAsync(zip, cancellationToken);
-        var settings = zip.GetEntry(GlobalName) is null
+        var read = zip.GetEntry(GlobalName) is null
             ? null
-            : GlobalStore.Upgrade(
-                await PresetPackage.ReadJsonAsync(
-                    zip,
-                    GlobalName,
-                    context.GlobalSettings,
-                    cancellationToken,
-                    GlobalStore.UpgradeJson
-                )
+            : await PresetPackage.ReadJsonAsync(
+                zip,
+                GlobalName,
+                context.GlobalSettings,
+                cancellationToken,
+                GlobalStore.UpgradeJson
             );
+        if (read is not null) {
+            // Valid JSON can still hold "manual": null or "outputs": [null], which Upgrade walks (#606); the validation
+            // below judges the values, as for a PUT /global.
+            GlobalShape.Repair(read);
+        }
+
+        var settings = GlobalStore.Upgrade(read);
         var index = zip.GetEntry(AssetIndexName) is null
             ? []
             : await PresetPackage.ReadJsonAsync(zip, AssetIndexName, context.AssetInfoArray, cancellationToken);

@@ -247,7 +247,11 @@ static void interleave(AudioBufferList *list, float *const *planar, int32_t chan
         AudioBuffer *buffer = &list->mBuffers[b];
         float *data = (float *)buffer->mData;
         UInt32 stride = buffer->mNumberChannels;
-        if (!data) continue;
+        if (!data) {
+            /* A stream with no buffer this time still owns its channels: the next stream's start after them. */
+            channel += (int32_t)stride;
+            continue;
+        }
         for (UInt32 c = 0; c < stride; c++, channel++) {
             for (UInt32 i = 0; i < frames; i++) {
                 data[(offset + i) * stride + c] = channel < channels ? planar[channel][i] : 0.0f;

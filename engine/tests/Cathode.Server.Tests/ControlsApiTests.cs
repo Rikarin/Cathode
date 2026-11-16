@@ -342,6 +342,20 @@ public sealed class ControlsApiTests : IAsyncLifetime {
         await ServerFixture.Eventually(() => Rig("ext2") == 1f);
     }
 
+    /// <summary>#600: a CC mapped to a block's channel with no fixed channel takes it from its value, 0 to 3.</summary>
+    [Fact]
+    public async Task A_channel_cc_without_a_value_picks_the_channel_its_value_names() {
+        await PutGlobal(static g => g.MidiMappings.Add(new("c", "cc", 0, 21, "channel", "delay1")));
+        var router = server.Services.GetRequiredService<MidiRouter>();
+
+        router.OnMidi([new(0xB0, 21, 2, 0)]);
+        await ServerFixture.Eventually(async () => Channel(await Live()) == "C");
+        router.OnMidi([new(0xB0, 21, 1, 0)]);
+        await ServerFixture.Eventually(async () => Channel(await Live()) == "B");
+
+        static string? Channel(LiveState state) => state.Preset.Scenes[state.ActiveScene].Blocks["delay1"].Channel;
+    }
+
     [Fact]
     public async Task Footswitches_tap_hold_and_light_their_leds() {
         var sent = new List<byte[]>();

@@ -12,12 +12,19 @@ public sealed class CallbackStats {
     readonly long[] histogram = new long[Bins];
     long count;
     long overruns;
+    long totalOverruns;
     int resetRequested;
 
     public long Count => Volatile.Read(ref count);
 
     /// <summary>Callbacks that took longer than their real-time budget (a dropout on real hardware).</summary>
     public long Overruns => Volatile.Read(ref overruns);
+
+    /// <summary>
+    ///     Every overrun since this object was made: a window's reset does not clear it, so a reader can take what is
+    ///     new without knowing whether the audio thread has carried out a requested reset yet (#603).
+    /// </summary>
+    public long TotalOverruns => Volatile.Read(ref totalOverruns);
 
     public double MaxPercent { get; private set; }
     public double LastPercent { get; private set; }
@@ -41,6 +48,7 @@ public sealed class CallbackStats {
 
         if (percent >= 100.0) {
             Interlocked.Increment(ref overruns);
+            Interlocked.Increment(ref totalOverruns);
         }
 
         histogram[Math.Min(Bins - 1, (int)percent)]++;

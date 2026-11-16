@@ -162,6 +162,32 @@ public sealed class IpcTests : IDisposable {
         await server;
     }
 
+    /// <summary>
+    ///     #610: a frame the client cannot read (out of range, or not JSON) is a lost link like any other: pending
+    ///     replies fail, Disconnected is raised, and disposing the client afterwards is clean.
+    /// </summary>
+    [Theory]
+    [InlineData(new byte[] { 0xFF, 0xFF, 0xFF, 0x7F })] // a frame of 2 GiB
+    [InlineData(new byte[] { 3, 0, 0, 0, (byte)'n', (byte)'o', (byte)'!' })] // three bytes that are not JSON
+    public async Task A_frame_the_client_cannot_read_ends_the_link_and_disposing_stays_clean(byte[] frame) {
+        var token = TestContext.Current.CancellationToken;
+        using var listener = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+        listener.Bind(new UnixDomainSocketEndPoint(socketPath));
+        listener.Listen(1);
+        var client = new IpcEngineClient(socketPath);
+        var disconnected = new TaskCompletionSource();
+        client.Disconnected += () => disconnected.TrySetResult();
+        await client.ConnectAsync(TimeSpan.FromSeconds(5), token);
+        using var host = await listener.AcceptAsync(token);
+        var waiting = client.SendAsync(new() { Type = IpcTypes.Hello }, token);
+
+        await host.SendAsync(frame, token);
+
+        await disconnected.Task.WaitAsync(TimeSpan.FromSeconds(10), token);
+        await Assert.ThrowsAsync<IOException>(() => waiting);
+        await client.DisposeAsync();
+    }
+
     [Fact]
     public async Task Client_forgets_a_request_that_times_out_is_cancelled_or_cannot_be_sent() {
         var token = TestContext.Current.CancellationToken;

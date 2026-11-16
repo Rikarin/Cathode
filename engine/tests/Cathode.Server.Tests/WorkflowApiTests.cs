@@ -120,6 +120,28 @@ public sealed class WorkflowApiTests : IAsyncLifetime {
         Assert.Equal(HttpStatusCode.NoContent, deleted.StatusCode);
     }
 
+    /// <summary>
+    ///     #601: a template saved while a factory preset is loaded is the user's, as is a preset made from it.
+    /// </summary>
+    [Fact]
+    public async Task A_template_saved_from_a_factory_preset_is_not_factory_content() {
+        var presets = server.Services.GetRequiredService<Cathode.Server.Stores.PresetStore>();
+        var slot = presets.Factory.Bank().Slots.FindIndex(static s => s is not null);
+        var loaded = await Put(
+            $"/api/v1/live/banks/{Cathode.Server.Stores.FactoryPresets.BankId}/slots/{slot}",
+            new { }
+        );
+        Assert.True(loaded.Preset.Factory);
+
+        var template = await Json<PresetSummary>(
+            client.PostAsJsonAsync("/api/v1/live/templates", new TemplateRequest("From factory"), Token)
+        );
+        var started = await Post($"/api/v1/live/templates/{template.Id}/new", new { });
+
+        Assert.Null(template.Factory);
+        Assert.Null(started.Preset.Factory);
+    }
+
     [Fact]
     public async Task Replacing_a_block_keeps_its_cell_and_cables() {
         await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 2, 3));
@@ -155,6 +177,30 @@ public sealed class WorkflowApiTests : IAsyncLifetime {
             replaced.Preset.Blocks.Count(static b => b.Row == 2) - 1,
             replaced.Preset.Cables.Count
         ); // the row is still one unbroken path
+    }
+
+    /// <summary>
+    ///     #604: a swap leaves the cables where they are, so the Input swapped with a block would take a cable into it;
+    ///     it is refused, the rig left as it was, and the preset still saves.
+    /// </summary>
+    [Fact]
+    public async Task The_input_cannot_be_swapped_with_a_block() {
+        await Post("/api/v1/live/blocks", new AddBlockRequest("drive", 2, 1));
+        var before = (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!.Preset;
+
+        using var refused = await client.PostAsJsonAsync(
+            "/api/v1/live/blocks/in1/drop",
+            new DropBlockRequest("drive1"),
+            Token
+        );
+        var after = (await client.GetFromJsonAsync<LiveState>("/api/v1/live", Token))!.Preset;
+
+        Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+        Assert.Equal(
+            before.Cables.Select(static c => (c.From, c.To)),
+            after.Cables.Select(static c => (c.From, c.To))
+        );
+        Assert.DoesNotContain(after.Cables, static c => c.To == "in1");
     }
 
     [Fact]

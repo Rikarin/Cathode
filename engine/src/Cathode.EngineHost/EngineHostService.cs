@@ -47,7 +47,7 @@ public sealed class EngineHostService : IDisposable {
     TunerReading? reading;
     long windowStarted = Stopwatch.GetTimestamp();
     long overloads; // cumulative across windows
-    long overrunsSeen; // overruns already counted in the current window
+    long overrunsSeen; // the stats' TotalOverruns already counted
     DeviceWindow deviceWindow = new(0, 0, 0);
     bool tunerOn;
     long exceptionsReported; // callback exceptions already logged
@@ -786,8 +786,11 @@ public sealed class EngineHostService : IDisposable {
         var (input, left, right) = Engine.ReadMeters();
         Engine.ReadOutputPeaks(target.OutputPeaks);
         var stats = Engine.Stats;
-        overloads += stats.Overruns - overrunsSeen;
-        overrunsSeen = stats.Overruns;
+        // From the total, which the window's reset leaves alone: that reset waits for the next callback, and with audio
+        // stopped there is none, so the window's own count would be added again every window (#603).
+        var total = stats.TotalOverruns;
+        overloads += Math.Max(0, total - overrunsSeen);
+        overrunsSeen = total;
         target.InputPeak = input;
         target.OutputPeakLeft = left;
         target.OutputPeakRight = right;
@@ -809,7 +812,6 @@ public sealed class EngineHostService : IDisposable {
         WriteLooper(target);
         if (Stopwatch.GetElapsedTime(windowStarted) >= StatsWindow) {
             stats.RequestReset();
-            overrunsSeen = 0;
             windowStarted = Stopwatch.GetTimestamp();
             if (device is not null) {
                 // Read the device once per window: its histogram snapshot allocates, and this process must stay quiet.

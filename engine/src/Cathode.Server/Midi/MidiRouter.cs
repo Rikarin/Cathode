@@ -407,7 +407,8 @@ public sealed partial class MidiRouter : IDisposable {
                 }
 
                 break;
-            case "channel" when down && action.Target is { } block:
+            // A CC with no fixed channel picks one from its value, whatever it is, as the scene action does (#600).
+            case "channel" when (down || (continuous && action.Value is null)) && action.Target is { } block:
                 await rig.SetChannelAsync(block, Preset.ChannelNames[(action.Value ?? data) & 3], null);
                 break;
             case "external":

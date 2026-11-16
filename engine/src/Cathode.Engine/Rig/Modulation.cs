@@ -6,9 +6,9 @@ namespace Cathode.Engine.Rig;
 /// <summary>
 ///     The controllers (docs/02-architecture.md §5.4), evaluated at control rate: once per sub-block of at most
 ///     <see cref="CathodeEngine.ControlBlockSize" /> frames, whatever the device's buffer, on the audio thread, from
-///     the <see cref="RigControls" /> parameters. Every source reads 0..1. Synced LFOs and the sequencer lock their
-///     phase to the sample clock, so they stay in time with the metronome and tempo-synced delays across preset
-///     changes.
+///     the <see cref="RigControls" /> parameters. Every source reads 0..1. Synced LFOs and the sequencer take their
+///     phase from the rig's <see cref="BeatClock" />, so they stay in time with the metronome and tempo-synced delays
+///     across preset changes.
 /// </summary>
 public sealed class Modulation(ParamBank rig, double sampleRate) {
     const double HysteresisDb = 3;
@@ -40,6 +40,9 @@ public sealed class Modulation(ParamBank rig, double sampleRate) {
     float lfo2Held;
     float follower; // linear peak of the input, before sensitivity
 
+    /// <summary>The beat grid the synced LFOs, the sequencer and the metronome share.</summary>
+    public BeatClock Beats { get; } = new(sampleRate);
+
     /// <summary>Scene level as a linear gain (smoothed by its parameter).</summary>
     public float LevelGain { get; private set; } = 1f;
 
@@ -60,6 +63,8 @@ public sealed class Modulation(ParamBank rig, double sampleRate) {
         rig.BeginBlock();
         LevelGain = MathF.Pow(10f, rig.Advance(level, frames) / 20f);
         var bpm = rig.Advance(tempo, frames);
+        Beats.Update(sampleTime, bpm);
+        var beat = Beats.At(sampleTime);
         var seconds = frames / sampleRate;
 
         // Envelope follower: a peak detector with separate attack and release.
@@ -80,15 +85,15 @@ public sealed class Modulation(ParamBank rig, double sampleRate) {
         values[(int)ModSource.Adsr1] = adsr1.Advance(rig, levelDb, frames, seconds);
         values[(int)ModSource.Adsr2] = adsr2.Advance(rig, levelDb, frames, seconds);
 
-        values[(int)ModSource.Lfo1] = Lfo(1, ref lfo1Phase, ref lfo1Held, bpm, sampleTime, frames);
-        values[(int)ModSource.Lfo2] = Lfo(2, ref lfo2Phase, ref lfo2Held, bpm, sampleTime, frames);
+        values[(int)ModSource.Lfo1] = Lfo(1, ref lfo1Phase, ref lfo1Held, beat, frames);
+        values[(int)ModSource.Lfo2] = Lfo(2, ref lfo2Phase, ref lfo2Held, beat, frames);
 
         // Sequencer: steps through its stages at the rate (or one stage per tempo division).
         var stages = (int)Math.Round(rig.Advance(seqStages, frames));
         var division = (int)rig.Current(seqTempo);
         if (division > 0) {
             var stageBeats = RigControls.DivisionBeats[division];
-            sequencerPhase = sampleTime / sampleRate * (bpm / 60) / (stageBeats * stages) % 1;
+            sequencerPhase = beat / (stageBeats * stages) % 1;
         } else {
             sequencerPhase = (sequencerPhase + rig.Advance(seqRate, frames) * seconds / stages) % 1;
         }
@@ -145,13 +150,13 @@ public sealed class Modulation(ParamBank rig, double sampleRate) {
         return log && min > 0 && max > 0 ? min * MathF.Pow(max / min, s) : min + (max - min) * s;
     }
 
-    float Lfo(int n, ref double phase, ref float held, double bpm, long sampleTime, int frames) {
+    float Lfo(int n, ref double phase, ref float held, double beat, int frames) {
         var rateIndex = lfoRate[n - 1];
         var shape = (int)rig.Current(lfoShape[n - 1]);
         var division = (int)rig.Current(lfoTempo[n - 1]);
         var previous = phase;
         if (division > 0) {
-            phase = sampleTime / sampleRate * (bpm / 60) / RigControls.DivisionBeats[division] % 1;
+            phase = beat / RigControls.DivisionBeats[division] % 1;
         } else {
             phase = (phase + rig.Advance(rateIndex, frames) * frames / sampleRate) % 1;
         }

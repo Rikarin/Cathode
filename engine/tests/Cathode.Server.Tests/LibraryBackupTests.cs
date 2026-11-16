@@ -5,6 +5,7 @@ using Cathode.Testing;
 using System.IO.Compression;
 using System.Net;
 using System.Text;
+using System.Text.Json;
 
 namespace Cathode.Server.Tests;
 
@@ -143,6 +144,27 @@ public sealed class LibraryBackupTests : IAsyncLifetime {
         Assert.Equal((1, 0), (result.Presets, result.Banks));
         Assert.Contains("Bank 'Gig'", Assert.Single(result.Skipped), StringComparison.Ordinal);
         Assert.Contains("no preset 'gone'", result.Skipped[0], StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    ///     #606: a global.json with null lists no longer fails the whole restore with a 500. A null Manual list is
+    ///     repaired, as a settings file on disk is; a null output leaves three outputs, which the restore refuses with
+    ///     its reason, as a PUT /global would, and restores the rest.
+    /// </summary>
+    [Theory]
+    [InlineData("""{ "manual": null }""", true)]
+    [InlineData("""{ "outputs": [null] }""", false)]
+    public async Task Null_lists_in_the_backups_global_settings_do_not_fail_the_restore(string json, bool restored) {
+        var id = await SaveRig(from, "Kept");
+        var backup = Rewrite(await from.GetByteArrayAsync("/api/v1/library/backup", Token), "global.json", json);
+
+        var (status, body) = await TryRestore(to, backup);
+
+        Assert.Equal(HttpStatusCode.OK, status);
+        var result = JsonSerializer.Deserialize<RestoreResult>(body, JsonSerializerOptions.Web)!;
+        Assert.Equal(restored, result.Settings);
+        Assert.Equal(1, result.Presets);
+        Assert.Contains((await to.GetFromJsonAsync<PresetSummary[]>("/api/v1/presets", Token))!, p => p.Id == id);
     }
 
     [Fact]

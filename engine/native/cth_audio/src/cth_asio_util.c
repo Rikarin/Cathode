@@ -95,7 +95,8 @@ void cth_asio_to_float(int32_t type, const void *buffer, int32_t offset, float *
     }
 }
 
-static float clip(float v) { return v > 1.0f ? 1.0f : v < -1.0f ? -1.0f : v; }
+/* Clipped to full scale; NaN plays as silence, as on ALSA (a NaN cast to an integer is undefined behaviour). */
+static float clip(float v) { return v != v ? 0.0f : v > 1.0f ? 1.0f : v < -1.0f ? -1.0f : v; }
 
 /* A clipped sample scaled to a signed integer of bits bits (full scale +1.0 maps to the largest value). */
 static int32_t to_int(float v, int bits)
@@ -111,11 +112,14 @@ void cth_asio_from_float(int32_t type, const float *in, void *buffer, int32_t of
     uint8_t *p = (uint8_t *)buffer + (size_t)offset * (size_t)cth_asio_sample_bytes(type);
     switch (type) {
     case CTH_ASIO_FLOAT32_LSB:
-        memcpy(p, in, (size_t)frames * sizeof(float));
+        for (int32_t i = 0; i < frames; i++) {
+            float v = in[i] != in[i] ? 0.0f : in[i]; /* NaN plays as silence, as on the integer formats */
+            memcpy(p + (size_t)i * 4, &v, 4);
+        }
         break;
     case CTH_ASIO_FLOAT64_LSB:
         for (int32_t i = 0; i < frames; i++) {
-            double v = in[i];
+            double v = in[i] != in[i] ? 0.0 : in[i];
             memcpy(p + (size_t)i * 8, &v, 8);
         }
         break;

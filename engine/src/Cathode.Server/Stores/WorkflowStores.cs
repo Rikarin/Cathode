@@ -91,8 +91,11 @@ public sealed class TemplateStore(
             throw new RigException(400, "A template needs a name.");
         }
 
+        PresetShape.Check(preset);
         preset.Id = Preset.NewId();
         preset.Name = name.Trim();
+        // A template saved from a factory preset is the user's own, as a saved copy is (#601).
+        preset.Factory = null;
         files.Save(preset);
         return PresetStore.Summary(preset, DateTimeOffset.UtcNow);
     }

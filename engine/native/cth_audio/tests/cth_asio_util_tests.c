@@ -127,6 +127,27 @@ static void encoding(void)
     CHECK(partial[0] == 7 && partial[1] == 7 && partial[2] == 16384 && partial[3] == 32767);
 }
 
+/* A NaN sample plays as silence on every output type, as on ALSA; it used to go out as INT32_MIN, a full-scale click. */
+static void nan_is_silence(void)
+{
+    const float in[] = {NAN, 0.5f};
+    for (size_t t = 0; t < sizeof integer_types / sizeof integer_types[0]; t++) {
+        uint8_t raw[2 * 8];
+        float back[2];
+        cth_asio_from_float(integer_types[t], in, raw, 0, 2);
+        cth_asio_to_float(integer_types[t], raw, 0, back, 2);
+        CHECK(back[0] == 0.0f);
+        CHECK_NEAR(back[1], 0.5, step_of(integer_types[t]) + 1e-7);
+    }
+
+    float f32[2];
+    cth_asio_from_float(CTH_ASIO_FLOAT32_LSB, in, f32, 0, 2);
+    CHECK(f32[0] == 0.0f && f32[1] == 0.5f);
+    double f64[2];
+    cth_asio_from_float(CTH_ASIO_FLOAT64_LSB, in, f64, 0, 2);
+    CHECK(f64[0] == 0.0 && f64[1] == 0.5);
+}
+
 /* Every integer type survives float -> driver -> float within half a code step, across the whole range. */
 static void round_trip(void)
 {
@@ -218,6 +239,7 @@ int main(void)
     sample_sizes();
     decoding();
     encoding();
+    nan_is_silence();
     round_trip();
     buffer_sizes();
     clsids();

@@ -152,10 +152,13 @@ public sealed class LibraryApiTests : IAsyncLifetime {
         var other = new Setlist { Entries = [new(chorus)] };
         using var added = await client.PutAsJsonAsync($"/api/v1/setlists/{other.Id}", other, Token);
         await Read(client.PutAsJsonAsync($"/api/v1/live/setlists/{setlist.Id}/entries/0", new { }, Token));
+        // #605: next preset passes over the missing entry too, rather than stepping onto it and failing there for good.
+        var neighbour = await client.GetFromJsonAsync<PresetStep>("/api/v1/live/neighbour?step=1", Token);
         var next = await navigator.StepSongAsync(1);
 
         Assert.Equal(HttpStatusCode.OK, kept.StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, added.StatusCode);
+        Assert.Equal(new(verse, 4, new(Setlist: setlist.Id, Entry: 2)), neighbour);
         Assert.Equal((verse, 4), (next!.Preset.Id, next.ActiveScene));
         Assert.Equal(new(Setlist: setlist.Id, Entry: 2), next.Position);
         Assert.Equal(2, server.Services.GetRequiredService<GlobalStore>().Get().ActiveSong);

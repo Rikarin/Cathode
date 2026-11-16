@@ -108,19 +108,21 @@ public sealed class PresetNavigator(Library library, PresetStore presets, LiveRi
             && entry >= 0
             && entry < setlist.Entries.Count
             && setlist.Entries[entry].PresetId == presetId) {
+            // An entry whose preset has gone missing is passed over, as a song step does (#605): stepping onto it would
+            // fail to load and leave the position where it was, so every later step would fail on it too.
             List<PresetStep> entries = [
-                ..setlist.Entries.Select((e, i) =>
-                    new PresetStep(e.PresetId, e.Scene, new(Setlist: setlistId, Entry: i))
-                )
+                ..setlist.Entries
+                    .Select((e, i) => new PresetStep(e.PresetId, e.Scene, new(Setlist: setlistId, Entry: i)))
+                    .Where(s => s.Position!.Entry == entry || presets.Exists(s.PresetId))
             ];
-            return (entries, entry);
+            return (entries, entries.FindIndex(s => s.Position!.Entry == entry));
         }
 
         var stops = new List<PresetStep>();
         var banked = new HashSet<string>(StringComparer.Ordinal);
         foreach (var bank in library.Banks()) {
             for (var slot = 0; slot < bank.Slots.Count; slot++) {
-                if (bank.Slots[slot] is { } id) {
+                if (bank.Slots[slot] is { } id && presets.Exists(id)) {
                     stops.Add(new(id, null, new(bank.Id, slot)));
                     banked.Add(id);
                 }

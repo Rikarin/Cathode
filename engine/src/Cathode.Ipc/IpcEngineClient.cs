@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
+using System.Text.Json;
 
 namespace Cathode.Ipc;
 
@@ -85,17 +86,20 @@ public sealed class IpcEngineClient(string socketPath) : IEngineLink {
     public async ValueTask DisposeAsync() {
         await stop.CancelAsync().ConfigureAwait(false);
         socket?.Dispose();
-        if (readLoop is not null) {
-            try {
-                await readLoop.ConfigureAwait(false);
-            } catch (OperationCanceledException) {
-                // The read loop ends by cancellation, which is what stop just asked of it.
+        try {
+            if (readLoop is not null) {
+                try {
+                    await readLoop.ConfigureAwait(false);
+                } catch (OperationCanceledException) {
+                    // The read loop ends by cancellation, which is what stop just asked of it.
+                }
             }
+        } finally {
+            // Whatever ended the read loop, the client's own resources go (#610).
+            stream?.Dispose();
+            stop.Dispose();
+            writeLock.Dispose();
         }
-
-        stream?.Dispose();
-        stop.Dispose();
-        writeLock.Dispose();
     }
 
     async Task ReadLoopAsync(NetworkStream connected, CancellationToken cancellationToken) {
@@ -112,7 +116,11 @@ public sealed class IpcEngineClient(string socketPath) : IEngineLink {
         } catch (Exception e) when (e is IOException
                                         or SocketException
                                         or ObjectDisposedException
-                                        or OperationCanceledException) { } finally {
+                                        or OperationCanceledException
+                                        // A frame out of range or not JSON: the stream can no longer be trusted, so it
+                                        // is a lost link like any other (#610).
+                                        or InvalidDataException
+                                        or JsonException) { } finally {
             stream = null;
             foreach (var reply in pending.Values) {
                 reply.TrySetException(new IOException("Engine host disconnected."));
