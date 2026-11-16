@@ -103,6 +103,8 @@ export class CabAlign {
   protected readonly steps = [-0.1, -0.01, 0.01, 0.1];
   protected readonly slots = signal<SlotAlignment[]>([]);
   private readonly sampleRate = signal(48_000);
+  /** The latest refresh: an older one answering after it is dropped (#630), as `CabPanel.measure` does. */
+  private refreshing = 0;
   protected readonly dragging = signal<{ slot: number; startX: number; startDelay: number } | null>(null);
 
   protected readonly height = computed(() => Math.max(1, this.slots().length) * LaneHeight + 14);
@@ -180,12 +182,17 @@ export class CabAlign {
       return; // the drag is setting the delay; the view already shows it
     }
 
+    const run = ++this.refreshing;
     try {
       const alignment = unwrap(
         await this.connection.client.GET('/api/v1/live/blocks/{id}/cab/align', {
           params: { path: { id: this.block().id } }
         })
       );
+      if (run !== this.refreshing) {
+        return; // another block, or a later state of this one, has been asked for since
+      }
+
       this.sampleRate.set(alignment.sampleRate);
       this.slots.set(
         alignment.slots
@@ -194,7 +201,9 @@ export class CabAlign {
           .map(s => ({ ...s, head: s.head }))
       );
     } catch {
-      this.slots.set([]); // the engine reports real failures; the page just shows nothing
+      if (run === this.refreshing) {
+        this.slots.set([]); // the engine reports real failures; the page just shows nothing
+      }
     }
   }
 }

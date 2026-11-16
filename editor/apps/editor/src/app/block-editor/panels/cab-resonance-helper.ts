@@ -89,6 +89,13 @@ export class CabResonanceHelper {
   protected readonly baseHz = signal(100);
   protected readonly percent = signal(100);
   private playingFor: string | null = null;
+  /**
+   * The test-tone requests go out one at a time, in order (#629): sent side by side, a sweep's "on" could reach the
+   * Server after the closing "off" and leave the tone playing. A sweep's moves while one is on its way coalesce into
+   * the one queued behind it, which sends the latest frequency and level.
+   */
+  private sending: Promise<unknown> = Promise.resolve();
+  private queued = false;
   /** Set when the panel goes: a request still on the wire must not switch the tone on behind it. */
   private destroyed = false;
 
@@ -152,29 +159,44 @@ export class CabResonanceHelper {
   private async silence(): Promise<void> {
     if (this.playingFor) {
       const id = this.playingFor;
-      this.playingFor = null;
-      await this.notify.run(() =>
-        this.connection.client.PUT('/api/v1/live/blocks/{id}/test-tone', {
-          params: { path: { id } },
-          body: { enabled: false, frequency: this.frequency(), level: this.level() }
-        })
+      this.playingFor = null; // a send still queued finds nothing playing and sends nothing
+      this.sending = this.sending.then(() =>
+        this.notify.run(() =>
+          this.connection.client.PUT('/api/v1/live/blocks/{id}/test-tone', {
+            params: { path: { id } },
+            body: { enabled: false, frequency: this.frequency(), level: this.level() }
+          })
+        )
       );
+      await this.sending;
     }
   }
 
   private async send(enabled: boolean): Promise<void> {
-    const id = this.playingFor;
-    if (!id) {
+    if (!this.playingFor) {
       return;
     }
 
-    await this.notify.run(async () =>
-      unwrap(
-        await this.connection.client.PUT('/api/v1/live/blocks/{id}/test-tone', {
-          params: { path: { id } },
-          body: { enabled, frequency: this.frequency(), level: this.level() }
-        })
-      )
-    );
+    if (!this.queued) {
+      this.queued = true;
+      this.sending = this.sending.then(async () => {
+        this.queued = false;
+        const id = this.playingFor;
+        if (!id) {
+          return;
+        }
+
+        await this.notify.run(async () =>
+          unwrap(
+            await this.connection.client.PUT('/api/v1/live/blocks/{id}/test-tone', {
+              params: { path: { id } },
+              body: { enabled, frequency: this.frequency(), level: this.level() }
+            })
+          )
+        );
+      });
+    }
+
+    await this.sending;
   }
 }

@@ -251,7 +251,7 @@ interface MixRow {
                 class="w-24"
                 aria-label="Mix length"
                 [value]="lengthMs()"
-                (change)="lengthMs.set(+lengthMsField.value || 170)"
+                (change)="setLength(lengthMsField)"
               />
             </label>
             <label class="flex items-center gap-2 pb-2 text-sm">
@@ -291,6 +291,12 @@ export class IrMixerDialog {
   protected readonly rows = signal<MixRow[]>([this.emptyRow(), this.emptyRow()]);
   protected readonly mixName = signal('IR mix');
   protected readonly lengthMs = signal(170);
+
+  /** The typed length, limited to the field's 5 to 2,000 ms and shown so; an empty field keeps the last (#635). */
+  protected setLength(field: HTMLInputElement): void {
+    this.lengthMs.set(captureValue(field.valueAsNumber, { min: 5, max: 2_000 }, this.lengthMs()));
+    field.value = String(this.lengthMs());
+  }
   protected readonly align = signal(true);
   protected readonly normalize = signal(true);
   protected readonly mixing = signal(false);

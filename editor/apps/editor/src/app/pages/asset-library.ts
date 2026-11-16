@@ -57,7 +57,8 @@ export class AssetLibrary {
   readonly query = signal('');
   readonly favoritesOnly = signal(false);
   readonly selected = signal<ReadonlySet<string>>(new Set());
-  private anchor: number | null = null;
+  /** The asset a shift-click range starts from, by ref: a row number would move with a filter or a sort (#634). */
+  private anchor: string | null = null;
 
   readonly all = computed(() => (this.kind() === 'amps' ? this.library.models() : this.library.cabGrids()));
   readonly rows = computed(() => {
@@ -105,12 +106,13 @@ export class AssetLibrary {
   select(index: number, event: MouseEvent): void {
     const rows = this.rows();
     const current = new Set(rows.flatMap((a, i) => (this.selected().has(a.ref) ? [i] : [])));
-    const next = nextSelection(current, this.anchor, index, {
+    const anchor = rows.findIndex(a => a.ref === this.anchor);
+    const next = nextSelection(current, anchor >= 0 ? anchor : null, index, {
       shift: event.shiftKey,
       toggle: event.metaKey || event.ctrlKey
     });
     this.selected.set(new Set([...next.selected].flatMap(i => rows[i]?.ref ?? [])));
-    this.anchor = next.anchor;
+    this.anchor = rows[next.anchor]?.ref ?? null;
   }
 
   /** Uploads each file the library takes (IRs with the import settings) and shows the view the last one went to. */

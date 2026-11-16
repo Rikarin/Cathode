@@ -3,6 +3,7 @@ import {
   BuiltInTypes,
   type ChannelName,
   ChannelNames,
+  OutputTypes,
   type ParameterInfo,
   type PresetBlock
 } from '@cathode/api-client';
@@ -18,8 +19,9 @@ export interface ParamTarget {
   value: number;
 }
 
+/** The grid's own blocks, which have no bypass and cannot be made global: the Input, the shunts and every Output (#633). */
 export function isBuiltIn(type: string): boolean {
-  return type === BuiltInTypes.input || type === BuiltInTypes.output || type === BuiltInTypes.shunt;
+  return type === BuiltInTypes.input || type === BuiltInTypes.shunt || OutputTypes.includes(type);
 }
 
 /** The next channel of a block with `count` channels: A → B → … → A. */

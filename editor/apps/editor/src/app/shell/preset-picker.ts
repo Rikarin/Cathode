@@ -146,8 +146,9 @@ export class PresetPicker {
     }
 
     const name = this.library.presets().find(p => p.id === id)?.name ?? id;
-    if (await this.switcher.load(id, name, false, { presetId: id, scene: null, position: { bank: bank.id, slot } })) {
-      this.ui.presetPicker.set(false);
+    const position = { presetId: id, scene: null, position: { bank: bank.id, slot } };
+    if ((await this.switcher.load(id, name, false, position)) && !this.pinned()) {
+      this.ui.presetPicker.set(false); // a pinned picker stays open, as when a preset is clicked (#636)
     }
   }
 

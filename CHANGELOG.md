@@ -58,6 +58,19 @@ the format upgrades older presets as it reads them.
   or power-setting change (#617); the WDF RC low-pass is prewarped, so its corner is where it is asked for (#618); a
   Tape delay's reset starts at its motor-slowed time (#613); and a minimum-phase design of fewer than 64 taps no
   longer throws (#624).
+- Setlists: quick edits to one setlist are all stored. A change event from an earlier save could replace the shown
+  setlist while a later save was queued, so the next edit was built without it and stored without it (#626).
+- Editor: the scope and RTA stop streaming when their dialog is closed before the Server has answered opening it
+  (#628); the Cab resonance helper's test tone stays off after Cancel, as its requests now go one at a time (#629);
+  and the Cab Align view shows the block last asked for, not an older request's answer (#630).
+- Editor: the PEQ chart draws bands 1 and 2 at 100 Hz and 300 Hz, where the engine puts them (#627); removing a
+  footswitch view keeps the active one (#631); duplicating a selection with an empty slot in it copies each preset
+  once (#632); Output 2-4 are treated as I/O blocks by bypass and Make Global (#633); shift-click in the asset
+  library ranges from the asset clicked, after a filter or sort (#634); the IR mix's Length is kept to 5-2,000 ms
+  (#635); and a pinned preset picker stays open after loading a typed slot (#636).
+- Manual: the page outline shows headings with quotes and apostrophes as written, not as HTML entities (#637); the
+  home page counts the knobs a block's page lists (#638); and the Graphic EQ's Shelves text says the corners move in,
+  toward the middle, as they do (#639).
 
 ## 1.0.0-rc.7 — 2026-11-15
 

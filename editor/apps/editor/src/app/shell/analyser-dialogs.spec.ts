@@ -13,6 +13,8 @@ import { TunerDialog } from './tuner-dialog';
 describe('the analyser dialogs', () => {
   function render<T>(component: Type<T>) {
     const sent: { path: string; query: unknown; body: unknown }[] = [];
+    /** While set, each PUT waits here until the test lets it land. */
+    const held: { on: boolean; answers: (() => void)[] } = { on: false, answers: [] };
     const connected$ = new Subject<void>();
     const settings = signal({
       tunerOutput: 'mute',
@@ -49,7 +51,10 @@ describe('the analyser dialogs', () => {
             client: {
               PUT: (path: string, init: { params?: { query?: unknown }; body: unknown }) => {
                 sent.push({ path, query: init.params?.query, body: init.body });
-                return Promise.resolve({});
+                const answer = { data: {}, response: new Response(null, { status: 204 }) };
+                return held.on
+                  ? new Promise(resolve => held.answers.push(() => resolve(answer)))
+                  : Promise.resolve(answer);
               }
             }
           }
@@ -65,8 +70,10 @@ describe('the analyser dialogs', () => {
       (fixture.componentInstance as unknown as { open: { set(value: boolean): void } }).open.set(on);
       fixture.detectChanges();
     };
-    return { sent, open, connected$, fixture, settings, events };
+    return { sent, open, connected$, fixture, settings, events, held };
   }
+
+  const settle = () => new Promise(resolve => setTimeout(resolve));
 
   it('the tuner stores the global Tuner Output, and only a change', async () => {
     const { fixture, settings, sent } = render(TunerDialog);
@@ -159,16 +166,34 @@ describe('the analyser dialogs', () => {
 
   it('the analyser sends nothing at startup, then only what changes', async () => {
     const { sent, open } = render(ScopeDialog);
-    await Promise.resolve();
+    await settle();
     expect(sent).toEqual([]);
 
     open(true); // the scope view
-    await Promise.resolve();
+    await settle();
     expect(sent).toEqual([{ path: '/api/v1/scope', query: { client: 'me' }, body: { enabled: true } }]);
 
     open(false);
-    await Promise.resolve();
+    await settle();
     expect(sent.at(-1)).toEqual({ path: '/api/v1/scope', query: { client: 'me' }, body: { enabled: false } });
     expect(sent.filter(s => s.path === '/api/v1/rta')).toEqual([]);
+  });
+
+  it('the analyser closed before its "on" has landed still sends the "off", after it (#628)', async () => {
+    const { sent, open, held } = render(ScopeDialog);
+    await settle();
+    held.on = true;
+
+    open(true);
+    await settle();
+    open(false); // the "on" has not landed yet
+    await settle();
+    expect(sent.map(s => s.body)).toEqual([{ enabled: true }]); // the "off" waits for it, so it lands last
+    held.answers.shift()?.();
+    await settle();
+    held.answers.shift()?.();
+    await settle();
+
+    expect(sent.map(s => s.body)).toEqual([{ enabled: true }, { enabled: false }]);
   });
 });

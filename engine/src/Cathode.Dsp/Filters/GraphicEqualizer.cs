@@ -188,7 +188,8 @@ public sealed class GraphicEqualizer(bool networks = false) {
             var gain = gains[b];
             var type = BandType(l, b, shelves);
 
-            // A shelf's corner sits half a band out from its centre, so it covers the band it replaces.
+            // A shelf's corner sits half an octave in from its centre, toward the middle of the EQ, so it covers the
+            // band it replaces.
             var frequency = type switch {
                 BiquadType.LowShelf => l.Centers[b] * 1.4142f,
                 BiquadType.HighShelf => l.Centers[b] / 1.4142f,

@@ -2,7 +2,16 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { matSearchRound } from '@ng-icons/material-icons/round';
-import { CATEGORIES, knobPages, MANUAL_BLOCKS, MANUAL_CHAPTERS, PARTS, plainText, snippet } from '../../manual/manual';
+import {
+  CATEGORIES,
+  knobPages,
+  MANUAL_BLOCKS,
+  MANUAL_CHAPTERS,
+  type ManualBlock,
+  PARTS,
+  plainText,
+  snippet
+} from '../../manual/manual';
 import { Seo } from '../../seo';
 import { SITE_URL } from '../../site';
 import { ManualShell } from './manual-shell';
@@ -208,7 +217,7 @@ function buildIndex(): { chapters: Hit[]; blocks: Hit[]; knobs: Hit[] } {
                         class="flex items-baseline justify-between gap-3 px-5 py-2.5 text-sm transition-colors hover:bg-white/[0.04]"
                       >
                         <span class="font-medium">{{ block.name }}</span>
-                        <span class="text-foreground-subtle text-xs tabular-nums">{{ block.params.length }} knobs</span>
+                        <span class="text-foreground-subtle text-xs tabular-nums">{{ knobCount(block) }} knobs</span>
                       </a>
                     </li>
                   }
@@ -222,6 +231,12 @@ function buildIndex(): { chapters: Hit[]; blocks: Hit[]; knobs: Hit[] } {
   `
 })
 export class ManualHome {
+  /**
+   * The knobs a block's page lists: a parameter hidden on every type, kept only so old presets load, has none
+   * (#638).
+   */
+  protected readonly knobCount = (block: ManualBlock) =>
+    block.params.filter(p => !p.typeLabels || p.typeLabels.some(Boolean)).length;
   protected readonly parts = PARTS;
   protected readonly categories = CATEGORIES;
   protected readonly query = signal('');

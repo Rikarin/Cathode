@@ -244,7 +244,12 @@ export class LibraryStore {
         this.sawRevision(setlist.id, setlist.revision);
       }
 
-      this.setlists.set(setlists);
+      // A setlist with saves still queued keeps what is shown: the queued edits are built on it, and the list read
+      // here can be older than them (a change event from this editor's own earlier save), so taking it would make the
+      // next edit drop the queued one (#626). After a refusal those edits are dropped, and the stored list wins.
+      const pending = replaceRevisions ? [] : this.setlists().filter(s => (this.setlistSaves.get(s.id) ?? 0) > 0);
+      const shown = new Map(pending.map(s => [s.id, s]));
+      this.setlists.set([...setlists.map(s => shown.get(s.id) ?? s), ...pending.filter(s => !stored.has(s.id))]);
     });
   }
 

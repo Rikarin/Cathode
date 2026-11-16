@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, effect, inject, model, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { unwrap } from '@cathode/api-client';
 import { CthRta, CthScope } from '@cathode/audio-ui';
 import { XuiDialogImports } from '@xui/dialog';
 import { XuiSegmentedControlImports } from '@xui/segmented-control';
@@ -116,8 +117,15 @@ export class ScopeDialog {
   protected readonly rtaSource = () =>
     this.events.rta?.source === 'block' ? 'RTA block, wherever it sits on the grid' : 'Output, left channel';
 
-  /** What this client last told the Server: nothing yet means both off. */
+  /** What the Server last confirmed for this client: nothing yet means both off. */
   private sent = { scope: false, rta: false, settings: '' };
+  /**
+   * What this client last asked for, landed or not. Changes are judged against it, not against {@link sent}: closing
+   * the dialog before its "on" has landed must still send the "off" (#628).
+   */
+  private requested = { scope: false, rta: false, settings: '' };
+  /** The requests go out one at a time, in order, so the last one asked for is the last one the Server applies. */
+  private sending: Promise<unknown> = Promise.resolve();
 
   constructor() {
     // The scope and RTA are rig-wide: only changes are sent (never an "off" at startup), as this client, so another
@@ -137,18 +145,21 @@ export class ScopeDialog {
       }
 
       const key = JSON.stringify(settings);
-      const sendScope = scope !== this.sent.scope;
-      const sendRta = rta !== this.sent.rta || (rta && key !== this.sent.settings);
+      const sendScope = scope !== this.requested.scope;
+      const sendRta = rta !== this.requested.rta || (rta && key !== this.requested.settings);
+      const state = { scope, rta, settings: rta ? key : this.requested.settings };
+      this.requested = state;
       this.send(
         sendScope ? scope : null,
         sendRta ? { enabled: rta, ...settings } : null,
-        // Only once the Server has it: a request that failed must be sent again, not remembered as landed.
-        () => (this.sent = { scope, rta, settings: rta ? key : this.sent.settings })
+        () => (this.sent = state),
+        // A request that failed is not remembered as asked for: the next change sends it again.
+        () => (this.requested = { ...this.sent })
       );
     });
     // A reconnect means the Server released what this client had on (its socket closed): turn it on again.
     this.events.connected$.pipe(takeUntilDestroyed()).subscribe(() => {
-      const { scope, rta } = this.sent;
+      const { scope, rta } = this.requested;
       if (scope || rta) {
         const settings = { bandsPerOctave: this.bandsPerOctave(), decayMs: this.decayMs(), window: this.window() };
         this.send(scope || null, rta ? { enabled: true, ...settings } : null);
@@ -156,28 +167,38 @@ export class ScopeDialog {
     });
   }
 
-  /** Sends the scope's on or off and the RTA's request, each only when given; `sent` runs once both have landed. */
+  /**
+   * Sends the scope's on or off and the RTA's request, each only when given, after any request still on its way;
+   * `sent` runs once both have landed, `failed` if either did not.
+   */
   private send(
     scope: boolean | null,
     rta: { enabled: boolean; bandsPerOctave: number; decayMs: number; window: string } | null,
-    sent?: () => void
+    sent?: () => void,
+    failed?: () => void
   ): void {
     if (scope === null && rta === null) {
-      sent?.();
       return;
     }
 
     const query = { client: this.events.clientId };
-    void this.notify.run(async () => {
-      if (scope !== null) {
-        await this.connection.client.PUT('/api/v1/scope', { params: { query }, body: { enabled: scope } });
-      }
+    this.sending = this.sending.then(async () => {
+      const done = await this.notify.run(async () => {
+        if (scope !== null) {
+          unwrap(await this.connection.client.PUT('/api/v1/scope', { params: { query }, body: { enabled: scope } }));
+        }
 
-      if (rta !== null) {
-        await this.connection.client.PUT('/api/v1/rta', { params: { query }, body: rta });
-      }
+        if (rta !== null) {
+          unwrap(await this.connection.client.PUT('/api/v1/rta', { params: { query }, body: rta }));
+        }
 
-      sent?.();
+        return true;
+      });
+      if (done) {
+        sent?.();
+      } else {
+        failed?.();
+      }
     });
   }
 }

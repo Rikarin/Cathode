@@ -50,7 +50,7 @@ gentle, big ones focused. The passive types always behave this way.`,
 
     type: `The band layout. See the options below.`,
 
-    shelves: `Turns the lowest and highest bands into shelves (corners placed half a band outward), so they lift or cut
+    shelves: `Turns the lowest and highest bands into shelves (corners placed half a band in, toward the middle of the EQ), so they lift or cut
 everything beyond them rather than a peak. Not on the passive types.`
   },
 

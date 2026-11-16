@@ -232,6 +232,28 @@ describe('LibraryStore.saveSetlist', () => {
     expect(songs()).toEqual(['a', 'b', 'c']);
   });
 
+  it('keeps a queued edit when a change event re-reads the setlists before it is saved', async () => {
+    const { library, puts, settle, songs, add } = setup([friday]);
+    await settle();
+
+    const first = add('b');
+    const second = add('c'); // queued behind the first
+    await settle();
+    puts[0]?.answer(true);
+    await settle();
+    // The first save's change event re-reads the setlists while the second is still on its way: the Server has a, b.
+    await library.refreshSetlists();
+    expect(songs()).toEqual(['a', 'b', 'c']);
+    const third = add('d'); // built on what is shown, so it keeps c
+    puts[1]?.answer(true);
+    await settle();
+    puts[2]?.answer(true);
+
+    await expect(Promise.all([first, second, third])).resolves.toEqual([true, true, true]);
+    expect(puts[2]?.setlist.entries.map(e => e.presetId)).toEqual(['a', 'b', 'c', 'd']);
+    expect(songs()).toEqual(['a', 'b', 'c', 'd']);
+  });
+
   it('does not put a setlist back over what another editor stored since this one read it (412)', async () => {
     const { library, puts, settle, songs, add, elsewhere } = setup([friday]);
     await settle();

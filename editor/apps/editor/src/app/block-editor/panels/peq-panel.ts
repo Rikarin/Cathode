@@ -75,7 +75,8 @@ export class PeqPanel {
     const block = this.block();
     const channel = this.live.channelOf(block.id);
     const value = (id: string, fallback: number) => this.live.valueOf(block, channel, id) ?? fallback;
-    const defaults = [80, 400, 1_000, 3_000, 8_000];
+    // The engine's ParametricEqBlock.DefaultFrequencies, which the knobs show for a band the block does not store (#627).
+    const defaults = [100, 300, 1_000, 3_000, 8_000];
     return Bands.map((band): PeqBand => ({
       band,
       type: band === 1 ? value('lowtype', 0) : band === 5 ? value('hightype', 0) : 1,

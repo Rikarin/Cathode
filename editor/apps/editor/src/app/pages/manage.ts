@@ -171,8 +171,9 @@ export class ManageSession {
 
   /** Copies of the presets in `refs`, each into the next empty slot of the same bank. */
   duplicateSlots(refs: readonly SlotRef[]): void {
-    for (const ref of refs.filter(r => !this.isFactoryBank(r.bank))) {
-      const id = this.at(ref);
+    // Every slot is read before any copy lands: a copy placed in a selected empty slot is not copied again (#632).
+    const filled = refs.filter(r => !this.isFactoryBank(r.bank)).map(ref => ({ ref, id: this.at(ref) }));
+    for (const { ref, id } of filled) {
       const bank = this.bank(ref.bank);
       const empty = bank.slots.findIndex((s, i) => s === null && i > ref.slot);
       if (id !== null && empty >= 0) {

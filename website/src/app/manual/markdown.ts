@@ -6,6 +6,20 @@ import { Marked, type Tokens } from 'marked';
  * pages keep their site-root path so ProseLinks can route them inside the app.
  */
 
+/**
+ * A heading's HTML as the plain text the outline shows: tags stripped and the entities the renderer escapes decoded,
+ * `&amp;` last, so the outline's own binding does not show "What&#39;s wrong" (#637).
+ */
+export function headingText(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, '')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&#x27;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
 /** A heading's text as an anchor id: "Gain staging & levels" → "gain-staging-levels". */
 export function slugify(text: string): string {
   return (
@@ -55,7 +69,7 @@ export function renderMarkdown(markdown: string, path: string, taken = new Set<s
         taken.add(id);
 
         if (depth === 2 || depth === 3) {
-          headings.push({ id, text: html.replace(/<[^>]+>/g, ''), depth });
+          headings.push({ id, text: headingText(html), depth });
         }
 
         return (

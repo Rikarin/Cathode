@@ -26,6 +26,17 @@ describe('Manage Presets', () => {
     expect([...s.selected]).toEqual([7]);
   });
 
+  it('duplicates a selection with an empty slot in it once, not the copy again (#632)', () => {
+    const m = new ManageSession([{ id: 'one', name: 'One', slots: ['a'] }], [preset('a')], () => 'copy');
+
+    m.duplicateSlots([
+      { bank: 'one', slot: 0 },
+      { bank: 'one', slot: 1 }
+    ]);
+
+    expect(m.bank('one').slots.slice(0, 3)).toEqual(['a', expect.any(String), null]);
+  });
+
   it('holds swaps, moves and copies until Save, marking what changed', () => {
     const m = session();
     m.swap({ bank: 'one', slot: 0 }, { bank: 'one', slot: 2 });
@@ -176,7 +187,7 @@ describe('Manage Presets', () => {
     expect(m.isFactory('a')).toBe(false);
   });
 
-  it('takes a pending copy\'s metadata with it when the copy is deleted', () => {
+  it("takes a pending copy's metadata with it when the copy is deleted", () => {
     const m = session();
     m.copy({ bank: 'one', slot: 0 }, { bank: 'two', slot: 1 });
     m.setMeta('new1', { color: 'limegreen' });

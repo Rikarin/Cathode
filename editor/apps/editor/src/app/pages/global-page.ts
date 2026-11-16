@@ -108,6 +108,14 @@ export function midiOutputName(outputs: readonly MidiOutputInfo[], choice: strin
  * Gain and the oversampling filters, and MIDI: the channel, mappings
  * (with MIDI learn and a live monitor) and footswitch layouts for generic MIDI foot controllers.
  */
+/**
+ * The active view once view `removed` of the active layout has gone: the same view, one place earlier if a view
+ * before it went; the first when the active one itself went (#631).
+ */
+export function activeViewAfterRemoving(active: number, removed: number): number {
+  return removed < active ? active - 1 : removed === active ? 0 : active;
+}
+
 @Component({
   selector: 'cth-global-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -1051,7 +1059,9 @@ export class GlobalPage {
     this.save(g => {
       const i = g.footswitches.findIndex(l => l.id === layout.id);
       g.footswitches[i] = removeView(layout, view);
-      g.activeView = 0;
+      if (layout.id === g.activeLayout) {
+        g.activeView = activeViewAfterRemoving(g.activeView, view); // another layout's views are not the active one's
+      }
     });
   }
 
