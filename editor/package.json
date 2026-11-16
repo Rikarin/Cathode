@@ -14,7 +14,7 @@
     "@angular/forms": "~22.2.5",
     "@angular/platform-browser": "~22.2.5",
     "@angular/router": "~22.2.5",
-    "@ng-icons/core": "^35.1.0",
+    "@ng-icons/core": "^36.1.0",
     "@ng-icons/material-icons": "^35.1.0",
     "@xui/alert-dialog": "^3.1.0",
     "@xui/button": "^3.1.0",
