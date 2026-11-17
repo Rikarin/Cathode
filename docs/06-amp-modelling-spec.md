@@ -1117,6 +1117,29 @@ Splawn Nitro row stays waiting.
   and the 25k Presence with 0.1 µF. Inferred: that the SSB switch is the channel switch. Guessed: the rails (490 V
   B+ and the SLO-100 drawing's 380/360/350 V nodes under the drawn 10k and two 15k), 40 mA idle and the 2.2k and
   4.4k primaries.
+- **Victory Kraken VX** (`VictoryKraken.cs`), both channels on Switch 1 (on: Crunch), from a two-sheet trace by
+  Aznaur A. Gishian (preamp section and power amp section; attached to #487; Victory publishes no drawing). VL1.1
+  (220k, 1k5 ‖ 2.2 µF, 100 pF from plate to cathode) behind the jack's 100 nF, 1M and 10k feeds both channels:
+  Lead, 470 pF and 180k onto 120k into VL1.2 (100k, 1k5 ‖ 2.2 µF), 2.2 nF and 330k ‖ 470 pF onto the 1M Lead Gain;
+  Crunch, 2.2 nF and 1M ‖ 470 pF onto the 1M Crunch Gain. The relay takes either wiper to VL3.1 (2M2 leak, 100k
+  with 1 nF across it, 1k5 unbypassed), then 47 nF, 330k and 330k into VL2.1 (220k, 1k5 ‖ 33 nF) and the VL2.2
+  follower (100k) on a stack of its own: 330 pF to the 250k treble, 47k slope, 22 nF to the bass's top and 33 nF to
+  the 25k middle rheostat, with the 1M bass on a 10k to ground rather than on the middle pot. The treble wiper goes
+  through 680k onto 10k into VL3.2 (220k, 1k5), 33 nF onto Master 1 or Master 2 (RLA4: Switch 2, Control 1), 680k
+  and 22 nF into the long-tail pair (91k/100k, 470 Ω, 10k tail on the 4k7 shunt, 470 pF between the plates as a
+  fixed cut cap) and two 6L6 at the printed 445 V on 1k screens, 10k stoppers and 220k leaks. Feedback from the
+  8 Ω tap: 39k, 220k with 4.7 nF across it, and 15k that RLA3 shorts on Lead; Bass Focus (S1, Switch 3) puts 47k
+  across the 220k. Each of the four networks is a `FeedbackVariantDesign`: the generic low shelf with its pole
+  where the 220k (or 220k ‖ 47k) leaves the arm and its zero at the 4.7 nF's corner (Lead 0.166 of the mid band's
+  feedback below 154 Hz, Crunch 0.211; with Bass Focus 0.53 and 0.60 below 874 Hz), and Lead's mid-band feedback
+  a third above Crunch's. Inferred: the relays' rest positions (RLA2 drawn on the Crunch wiper, RLA3 open: Crunch
+  has the 15k). Derived (§3.7): the rails from the drawn chain (100 Ω, then four 10k into 47 µF) at the stages' own
+  draw, 359, 310, 284 and 277 V on nodes 3 to 6, 8.5 mA through R43. Guessed: 40 mA idle, the 4.4k primary.
+  Simplified: the inverter's second grid returns through 33 nF to the feedback node, not to ground; the 1 µF in
+  series with the feedback, the effects loop, the Low tap, the single-ended switch and the unfitted C40 are left
+  out. Whole chains against the reference MNA simulator: Lead −35.6 dB at 0.5 mV, Crunch −35.7 dB at 2 mV; the
+  channel stage ends at VL2.1's grid, as VL3.1's plate with its 1 nF across the load is a poor place to cut
+  (−25 dB there).
 - **Mesa/Boogie Mark I** (`MarkI.cs`), from Mesa's hand-drawn "MARK I" sheet, which carries the whole amp. Four
   stages: V1 (100k, 1.5k ‖ 22 µF) onto the 1M Volume 1, V2 (100k, 1.5k ‖ 22 µF) with the Fender stack on its plate
   (250 pF, 100k, 0.1 µF, 0.047 µF; 250k, 250k, 10k) whose middle pot's foot the Gain Boost footswitch lifts off

@@ -369,7 +369,8 @@ export const ENGINE = {
         'JCM900 SL-X 2500',
         'Hot Rod 100',
         'Hot Rod 50',
-        'VH100R'
+        'VH100R',
+        'Kraken VX'
       ]
     },
     {

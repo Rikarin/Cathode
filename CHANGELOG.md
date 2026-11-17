@@ -6,6 +6,15 @@ the format upgrades older presets as it reads them.
 
 ## 1.0.0-rc.8 — unreleased
 
+### Added
+
+- Amp: **Kraken VX**, the Victory Kraken VX, both channels, from a two-sheet trace by Aznaur A. Gishian (Victory
+  publishes no drawing; #487). Lead is the default and Switch 1 the Crunch channel; Switch 2 picks Master 2
+  (Control 1), and Switch 3 is Bass Focus, the 47k it puts across the feedback's 220k and 4.7 nF. The preamp rails
+  are derived from the drawn dropping chain under the printed 445 V B+; the idle current and output transformer are
+  guessed. The Circuit Amp's power amp can now take a different feedback network for each setting of a model's
+  switches, which the channel relay (15k of the feedback resistor shorted on Lead) and Bass Focus need.
+
 ### Fixed
 
 - Setlists: a song step taken right after another goes on from the song the first one loaded. The song playing was

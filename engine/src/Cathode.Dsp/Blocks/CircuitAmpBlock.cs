@@ -834,6 +834,30 @@ public sealed partial class CircuitAmpBlock
     static int TypeIndex(float type) => Math.Clamp((int)type, 0, AmpDesign.All.Count - 1);
 
     /// <summary>
+    ///     The feedback network <paramref name="preamp" />'s switches put in circuit: the first of
+    ///     <see cref="PowerAmpDesign.FeedbackVariants" /> whose switches are all on (from 1), or 0 for the design's
+    ///     own.
+    /// </summary>
+    static int FeedbackVariant(PowerAmpDesign power, in AmpControls preamp) {
+        if (power.FeedbackVariants is not { } variants) {
+            return 0;
+        }
+
+        for (var i = 0; i < variants.Count; i++) {
+            var on = true;
+            for (var j = 0; j < variants[i].When.Count; j++) {
+                on &= preamp.IsOn(variants[i].When[j]);
+            }
+
+            if (on) {
+                return i + 1;
+            }
+        }
+
+        return 0;
+    }
+
+    /// <summary>
     ///     Whether the audio thread may switch to <paramref name="type" /> now: at once on a block no control thread
     ///     refreshes, else once that thread has settled the type's channel for the present targets, or after
     ///     <see cref="HoldSeconds" /> without it (the switch then solves what moved here, as it always did).
@@ -1106,7 +1130,8 @@ public sealed partial class CircuitAmpBlock
             ownTremolo ? tremoloRate : 0,
             ownTremolo ? tremoloDepth : 0,
             postInverter ? postMaster.Fraction(masterRotation) : 1,
-            design.Power.Feedback.Deep is { } deep && preamp.IsOn(deep.Switch)
+            design.Power.Feedback.Deep is { } deep && preamp.IsOn(deep.Switch),
+            FeedbackVariant(design.Power, preamp)
         );
 
         // Presence Freq and Presence Shift move a presence network: stock on a model without one.

@@ -22,6 +22,10 @@ namespace Cathode.Dsp.Amp;
 ///     the earlier fields are unaffected.
 /// </param>
 /// <param name="Deep">The model's Deep switch (<see cref="FeedbackDesign.Deep" />), where it has one.</param>
+/// <param name="FeedbackVariant">
+///     Which feedback network is in circuit: 0 for <see cref="PowerAmpDesign.Feedback" />, k for the k-th of
+///     <see cref="PowerAmpDesign.FeedbackVariants" /> (<see cref="PowerAmpDesign.FeedbackFor" />).
+/// </param>
 public readonly record struct PowerControls(
     double Presence,
     double Depth,
@@ -33,7 +37,8 @@ public readonly record struct PowerControls(
     double TremoloRate = 0,
     double TremoloDepth = 0,
     double PostMaster = 1,
-    bool Deep = false
+    bool Deep = false,
+    int FeedbackVariant = 0
 );
 
 /// <summary>How the supply's rectifier is fed.</summary>
@@ -493,6 +498,7 @@ public sealed class PowerAmp {
         if (controls.Presence != previous.Presence
             || controls.Depth != previous.Depth
             || controls.Deep != previous.Deep
+            || controls.FeedbackVariant != previous.FeedbackVariant
             || controls.Feedback != previous.Feedback) {
             var amount = Design.HasFeedback ? 2 * controls.Feedback : Math.Max(0, 2 * controls.Feedback - 1);
             // The secondary is the primary less the copper's drop into the nominal load (see the remarks).
@@ -500,7 +506,7 @@ public sealed class PowerAmp {
             var load = ot.PlateToPlate * settings.Match;
             var copper = load / (load + ot.WindingResistance);
             root.Device.SetFeedback(
-                Design.Feedback,
+                Design.FeedbackFor(controls.FeedbackVariant),
                 controls.Presence,
                 controls.Depth,
                 amount * copper,

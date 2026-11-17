@@ -138,6 +138,7 @@ public sealed partial record AmpDesign {
         Slx.Head50,
         SoldanoHotRod.Design,
         SoldanoHotRod.Head50,
-        LaneyVH100R.Design
+        LaneyVH100R.Design,
+        VictoryKraken.Design
     ];
 }

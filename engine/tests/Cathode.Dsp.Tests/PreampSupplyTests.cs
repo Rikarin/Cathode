@@ -193,6 +193,7 @@ public class PreampSupplyTests {
     [InlineData("Mark IV Rhythm 2")]
     [InlineData("5150III Clean/Crunch")] // #306: the service diagram's Y, X and W: 402, 341 and 297 V
     [InlineData("Fireball 60")]
+    [InlineData("Kraken VX")] // #487: the trace prints only B+; the rails are the drawn chain's at its stages' draw
     public void Assumed_rails_are_the_chains_rest_voltages(string type) {
         var design = AmpDesign.All.Single(a => a.Name == type);
         var channel = new AmpChannel(design, 2 * Rate);

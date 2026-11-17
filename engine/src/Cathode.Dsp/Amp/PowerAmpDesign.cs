@@ -160,6 +160,16 @@ public readonly record struct PresenceOutDesign(SwitchRole Switch, bool WhileOn 
 public readonly record struct FeedbackBoostDesign(SwitchRole Switch, double Factor);
 
 /// <summary>
+///     A feedback network that the amp's switches put in place of <see cref="PowerAmpDesign.Feedback" /> while every
+///     one of <paramref name="When" /> is on: a relay or toggle that changes the network's parts rather than scaling
+///     it (the Victory Kraken's channel relay, which shorts 15k of the feedback resistor on the Lead channel, and its
+///     Bass Focus, which puts 47k across the 220k and its 4.7 nF and so moves the low shelf as well as the mid band).
+/// </summary>
+/// <param name="When">The switches that must all be on.</param>
+/// <param name="Feedback">The network while they are.</param>
+public sealed record FeedbackVariantDesign(IReadOnlyList<SwitchRole> When, FeedbackDesign Feedback);
+
+/// <summary>
 ///     Global negative feedback from a speaker tap to the bottom of the phase inverter's tail: the feedback resistor
 ///     into a shunt resistor, with the presence control (a pot in series with a cap) across the shunt, which lowers the
 ///     feedback, and so lifts the response, at high frequencies; or, with <see cref="PresenceIsShunt" />, the presence
@@ -971,6 +981,21 @@ public sealed record PowerAmpDesign(
 
     /// <summary>A front-panel switch that raises or lowers the feedback (see the type); null for none.</summary>
     public FeedbackBoostDesign? FeedbackBoost { get; init; }
+
+    /// <summary>
+    ///     Feedback networks the amp's switches select (see the type), in order: the first whose switches are all on
+    ///     replaces <see cref="Feedback" />. Null for none.
+    /// </summary>
+    public IReadOnlyList<FeedbackVariantDesign>? FeedbackVariants { get; init; }
+
+    /// <summary>
+    ///     The feedback network in circuit: <see cref="Feedback" /> for <paramref name="variant" /> 0, else the
+    ///     <paramref name="variant" />-th of <see cref="FeedbackVariants" /> (from 1).
+    /// </summary>
+    public FeedbackDesign FeedbackFor(int variant) =>
+        variant > 0 && FeedbackVariants is { } variants && variant <= variants.Count
+            ? variants[variant - 1].Feedback
+            : Feedback;
 
     /// <summary>
     ///     With a series presence that has a shift cap (<see cref="SeriesPresence.ShiftCap" />): the amp's relays, not

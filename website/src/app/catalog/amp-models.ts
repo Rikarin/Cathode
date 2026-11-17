@@ -138,6 +138,7 @@ export const AMP_MODELS: Record<string, { family: AmpFamily; basedOn: string }> 
   'Mark I': { family: 'highgain', basedOn: 'Mesa/Boogie Mark I (100 W)' },
   'Hot Rod 100': { family: 'highgain', basedOn: 'Soldano Hot Rod 100' },
   'Hot Rod 50': { family: 'highgain', basedOn: 'Soldano Hot Rod 50' },
+  'Kraken VX': { family: 'highgain', basedOn: 'Victory Kraken VX' },
   Prometheus: { family: 'highgain', basedOn: 'Lichtlaerm Audio Prometheus, lead channel' },
   'Prometheus Clean': { family: 'highgain', basedOn: 'Lichtlaerm Audio Prometheus, clean channel' },
 

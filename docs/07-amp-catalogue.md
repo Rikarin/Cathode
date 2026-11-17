@@ -14,7 +14,7 @@ Every real amp we model, plan to model, or might model, with where it stands in 
 - Add a capture you found to `engine/tests/assets/references/manifest.json` (see `docs/06-amp-modelling-spec.md` §4).
   Tone3000 ("T3K" licence) and CC BY-NC files are local-only: never commit them.
 
-Last updated: 2026-11-14 (130 types, through the Laney VH100R; the Blues Deluxe and DeVille, the Mesa Mark I, the JCM900 SL-X 2100 and 2500, the Soldano Hot Rod 100 and 50 and the Laney VH100R read from their factory drawings and built).
+Last updated: 2026-11-17 (131 types, through the Victory Kraken VX, read from a hobbyist trace and built; before it the Blues Deluxe and DeVille, the Mesa Mark I, the JCM900 SL-X 2100 and 2500, the Soldano Hot Rod 100 and 50 and the Laney VH100R, read from their factory drawings).
 
 ## Status key
 
@@ -136,7 +136,7 @@ Last updated: 2026-11-14 (130 types, through the Laney VH100R; the Blues Deluxe 
 | Bogner Shiva / XTC | ⏸ Waiting (only hobbyist traces, behind a CAPTCHA on elektrotanya; the Music Electronics Forum XTC attachments need a login) | — | — | Download those traces by hand and compare | 4x12 closed |
 | PRS Archon | ⏸ Waiting (no service schematic found on PRS's site or elsewhere; specs only, 6 × 12AX7, 4 × 6L6 or 2 × 6CA7) | — | — | Schematic; the Clean/Lead/Bright variants | 4x12 closed |
 | Krank Revolution | ⏸ Waiting (a reverse-engineered Rev 1 preamp and power amp are MEF attachments, thread 987426, login only; not read, and not factory) | — | — | Read the MEF trace | 4x12 closed |
-| Victory Kraken / Sheriff | ⏸ Waiting (nothing found; Victory publishes none) | — | — | Schematic | 4x12 closed |
+| Victory Kraken / Sheriff | ✅ Done, the Kraken VX's two channels (a two-sheet trace by Aznaur A. Gishian, attached to #487: Victory publishes no drawing; the relays' rest positions are inferred, the rails derived from the drawn chain under the printed 445 V, and the idle current and transformer guessed; the effects loop, the Low tap and the single-ended switch are not modelled). The Sheriff, the V30 Countess and the Super Kraken ⏸: no drawing found | Kraken VX: Lead; Switch 1 "Crunch Ch", Switch 2 "Master 2" (Control 1), Switch 3 "Bass Focus" | — | A Kraken capture with settings; a voltage chart or a second trace to check this one | 4x12 closed |
 | Randall RG100ES (RG80ES) | ✅ Done (solid state; Randall's schematic PCB 2146B with the owner's manual, el34world `Randall_rg80_100_guit_amp.pdf`: both channels, each two JFET gain stages and a follower, the red channel's zener clamp and Sustain Boost diodes, the shared tone stack, Presence and the power amp. There are no op-amps in the signal path: the 4558 is the reverb's. The preamp rail is 28 V, from the voltages printed on the stages, not the 24 V of its label; the JFET is one sample fitted inside the 2N5484 datasheet's ranges to the printed voltages and gains. The power amp's current feedback is modelled as the equal voltage feedback into 8 Ω, so its 3.8 Ω output impedance does not meet the speaker's impedance curve. Reverb, Low input and the footswitch's Both position ⏸. The manual's sensitivities put channel 2 22 dB above channel 1 at 3 kHz; the drawing's values give 14 dB. The RG80ES is the same sheet with another mains transformer) | RG100ES: channel 2 (red); Switch 1 "Channel 1" (green), Switch 2 "Sustain Boost" | — | Captures with settings; the RG100 Classic's drawing (not read: `Randall_rg100.PNG` on el34world is this same sheet) | 4x12 closed |
 | Randall Satan | ⏸ Waiting (nothing found) | — | — | Schematic | 4x12 closed |
 | Hughes & Kettner TriAmp | ⏸ Waiting (nothing read yet. Found November 2026 and not opened: a 1999 TriAmp service document with schematics on manualmachine.com, `/hk/triamp/5152155-schematic`, and a 29-page service manual on elektrotanya; which mark they cover is not checked. A MkII service manual is mentioned on forums but not found) | — | — | Read the service document; MkII and Mark 3 drawings | 4x12 closed |
@@ -217,7 +217,7 @@ number of types.
 
 ### Circuit Amp types by index
 
-The Circuit Amp block has 130 types. The "Cathode type" column above names them; this is their order in the Type list.
+The Circuit Amp block has 131 types. The "Cathode type" column above names them; this is their order in the Type list.
 
 | # | Type | # | Type | # | Type |
 |---|---|---|---|---|---|
@@ -269,8 +269,9 @@ The Circuit Amp block has 130 types. The "Cathode type" column above names them;
 |  |  |  |  | 127 | Hot Rod 100 |
 |  |  |  |  | 128 | Hot Rod 50 |
 |  |  |  |  | 129 | VH100R |
+|  |  |  |  | 130 | Kraken VX |
 
-Types 81 to 129, the newest, are:
+Types 81 to 130, the newest, are:
 
 | # | Type | Family | Modelled after |
 |---|---|---|---|
@@ -323,6 +324,7 @@ Types 81 to 129, the newest, are:
 | 127 | Hot Rod 100 | Soldano | Soldano Hot Rod 100 (the single-channel SLO), Overdrive and Normal |
 | 128 | Hot Rod 50 | Soldano | Soldano Hot Rod 50, the same preamp with two 6L6GC |
 | 129 | VH100R | Laney | Laney VH100R (100 W), Overdrive and Clean channels |
+| 130 | Kraken VX | Victory | Victory Kraken VX (50 W, two 6L6), Lead and Crunch channels with two masters and Bass Focus |
 
 Match quality against the references is in `docs/06-amp-modelling-spec.md` (as-built notes per family) and in the
 manifest's targets. Only the Prometheus clean channel reaches the spec's ESR target; captures with stated knob settings
@@ -636,7 +638,7 @@ an issue is built, give the amp a row in its family's table above, with the type
 | [#484](https://github.com/Rikarin/cathode/issues/484) | Splawn Nitro | High gain | New amp | low | none found | ↪ See its row above | 4x12 closed |
 | [#485](https://github.com/Rikarin/cathode/issues/485) | Hook Captain 34 | High gain | New amp | low | none found | ↪ See its row above | 4x12 closed |
 | [#486](https://github.com/Rikarin/cathode/issues/486) | Wizard Modern Classic | High gain | New amp | low | partial | ↪ See its row above | 4x12 closed |
-| [#487](https://github.com/Rikarin/cathode/issues/487) | Victory Kraken / Sheriff (and V30 Countess, Super Kraken) | High gain | New amp | low | none found | ↪ See its row above | 4x12 closed |
+| [#487](https://github.com/Rikarin/cathode/issues/487) | Victory Kraken / Sheriff (and V30 Countess, Super Kraken) | High gain | New amp | low | available | ↪ See its row above | 4x12 closed |
 | [#488](https://github.com/Rikarin/cathode/issues/488) | Diamond Del Fuego | High gain | New amp | low | not confirmed | ↪ See its row above | 4x12 closed |
 | [#489](https://github.com/Rikarin/cathode/issues/489) | Bogner Shiva / XTC Classic | High gain | New amp | low | none found | ↪ See its row above | 4x12 / 2x12 closed |
 | [#490](https://github.com/Rikarin/cathode/issues/490) | Diezel Herbert (and MkIII) | High gain | New amp | low | none found | ↪ See its row above | 4x12 closed |

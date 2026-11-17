@@ -61,7 +61,8 @@ Leave a few dB of headroom in *Level*; a Cab block after the amp removes them.
   Mark IIC+ Rhythm), Mark IV (and its clean and crunch channels, Mark IV Rhythm 1 and Rhythm 2), Mark V (and its
   channels 1 and 2, Mark V Clean and Mark V Crunch), TriAxis, Legacy VL100, Powerball, Savage 120 (and Savage 120
   Clean, its clean and first crunch channel), Fireball 60, Prometheus, Mark I (the first Boogie, a Fender-derived
-  four-stage preamp) and the Soldano Hot Rod 100 and 50, the single-channel SLO.
+  four-stage preamp), the Soldano Hot Rod 100 and 50, the single-channel SLO, and the Victory Kraken VX (Lead
+  and Crunch channels, two masters and the Bass Focus switch).
 - **Loud, clean and heavy (doom, drone, a fuzz in front):** Sunn Model T.
 - **Bass:** SVT (and its second channel, SVT Channel 2), SVT-CL, Portaflex B-15N (and both its channels jumpered, Portaflex B-15N Jumped), Bassman 135, Bass 400, Thunderbolt S6420 (a 1 x 15 bass combo that guitarists play
   for its thick, early breakup), and the solid-state GK 800RB.

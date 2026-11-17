@@ -98,6 +98,20 @@ public partial class AmpStageTests {
                 9,
                 0.005,
                 -30
+            },
+            {
+                "Kraken VX",
+                0,
+                9,
+                0.0005,
+                -30
+            },
+            {
+                "Kraken VX",
+                1,
+                9,
+                0.002,
+                -30
             }
         };
 
@@ -181,7 +195,7 @@ public class MissingAmpTests(ITestOutputHelper output) {
 
     static readonly string[] Types = [
         "Blues Deluxe", "Blues DeVille", "Mark I", "JCM900 SL-X 2100", "JCM900 SL-X 2500", "Hot Rod 100",
-        "Hot Rod 50", "VH100R"
+        "Hot Rod 50", "VH100R", "Kraken VX"
     ];
 
     [Fact]
@@ -228,6 +242,16 @@ public class MissingAmpTests(ITestOutputHelper output) {
         );
         foreach (var id in new[] { "depth", "cut", "switch2", "control2" }) {
             Assert.Empty(Label(id, "VH100R"));
+        }
+
+        Assert.Equal(
+            ["Gain", "Master 1", "Crunch Ch", "Master 2", "Bass Focus", "Master 2"],
+            new[] { "gain", "master", "switch1", "switch2", "switch3", "control1" }.Select(static id =>
+                Label(id, "Kraken VX")
+            )
+        );
+        foreach (var id in new[] { "presence", "depth", "cut", "bright", "control2" }) {
+            Assert.Empty(Label(id, "Kraken VX"));
         }
     }
 
@@ -372,6 +396,70 @@ public class MissingAmpTests(ITestOutputHelper output) {
         var lows = Level(440, true, 5f, true) - clean;
         output.WriteLine($"bright at 4 kHz {lift:+0.0;-0.0} dB, at 440 Hz {lows:+0.0;-0.0} dB");
         Assert.True(lift > lows + 1);
+    }
+
+    /// <summary>
+    ///     The Kraken VX's channels and masters: Lead (VL1.2 ahead of the gain pot) has far more gain than Crunch at
+    ///     the same settings, and Master 2 (Switch 2) puts Control 1 in the Master's place.
+    /// </summary>
+    [Fact]
+    public void Kraken_channels_and_second_master() {
+        static double Level(bool crunch, bool second, float master, float masterTwo) =>
+            LevelAt(
+                "Kraken VX",
+                440,
+                0.0002f,
+                (CircuitAmpBlock.Gain, 3f),
+                (CircuitAmpBlock.Switch1, crunch ? 1f : 0f),
+                (CircuitAmpBlock.Switch2, second ? 1f : 0f),
+                (CircuitAmpBlock.Master, master),
+                (CircuitAmpBlock.Control1, masterTwo)
+            );
+
+        var (lead, crunch) = (Level(false, false, 5f, 5f), Level(true, false, 5f, 5f));
+        output.WriteLine($"lead {lead:0.0}, crunch {crunch:0.0} dB");
+        Assert.True(lead > crunch + 6);
+
+        var one = Level(true, false, 5f, 5f);
+        var two = Level(true, true, 5f, 5f);
+        var twoQuiet = Level(true, true, 5f, 1f);
+        output.WriteLine($"master 1 {one:0.0}, master 2 {two:0.0}, master 2 at 1 {twoQuiet:0.0} dB");
+        Assert.True(Math.Abs(one - two) < 0.5);
+        Assert.True(two > twoQuiet + 6);
+        Assert.True(Math.Abs(Level(true, true, 1f, 5f) - two) < 0.5);
+        Assert.True(Math.Abs(Level(true, false, 5f, 1f) - one) < 0.5);
+    }
+
+    /// <summary>
+    ///     The Kraken VX's feedback networks: Bass Focus (Switch 3) puts 47k across the 220k and its 4.7 nF, so the
+    ///     low shelf rises from a fifth of the mid band's feedback to three fifths and the bottom falls against the
+    ///     mids (80 Hz against 1 kHz); the Lead channel's relay shorts the 15k, which is a third more feedback at mid
+    ///     frequencies than on Crunch. Checked on the networks and on the Crunch channel's level.
+    /// </summary>
+    [Fact]
+    public void Kraken_bass_focus_and_channel_relay_change_the_feedback() {
+        var power = AmpDesign.All[TypeOf("Kraken VX")].Power;
+        var (lead, crunch) = (power.FeedbackFor(0), power.FeedbackFor(2));
+        Assert.Equal([SwitchRole.Switch1], power.FeedbackVariants![1].When);
+        Assert.Equal((39e3, 54e3), (lead.FeedbackResistor, crunch.FeedbackResistor));
+        Assert.InRange(lead.Beta / crunch.Beta, 1.33, 1.35);
+        Assert.InRange(crunch.LowFeedback, 0.21, 0.211);
+        Assert.InRange(power.FeedbackFor(1).LowFeedback, 0.60, 0.61);
+
+        static double Level(float hz, bool focus) =>
+            LevelAt(
+                "Kraken VX",
+                hz,
+                0.0001f,
+                (CircuitAmpBlock.Gain, 2f),
+                (CircuitAmpBlock.Master, 5f),
+                (CircuitAmpBlock.Switch1, 1f),
+                (CircuitAmpBlock.Switch3, focus ? 1f : 0f)
+            );
+
+        var tilt = Level(80, true) - Level(1_000, true) - (Level(80, false) - Level(1_000, false));
+        output.WriteLine($"Bass Focus: 80 Hz against 1 kHz {tilt:+0.0;-0.0} dB");
+        Assert.True(tilt < -1);
     }
 
     /// <summary>Every new model passes signal at its defaults and its gain knob is monotonic.</summary>
