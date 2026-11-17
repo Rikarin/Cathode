@@ -1,0 +1,1 @@
+{"format":"cathode-block-presets","version":1,"presets":[{"schemaVersion":2,"id":"legacy-hot-cat","type":"circuitamp","name":"Legacy Hot Cat","factory":false,"values":{"type":28,"presence":3,"powertube":1,"gain":5},"folder":null,"channels":null,"modifiers":null,"assets":null}]}

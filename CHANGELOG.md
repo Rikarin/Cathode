@@ -4,7 +4,10 @@ Cathode follows [semantic versioning](https://semver.org). From 1.0 on, a preset
 in every later one: the preset format carries a schema version (`schemaVersion`, now 2), and a release that changes
 the format upgrades older presets as it reads them.
 
-## 1.0.0-rc.8 — unreleased
+## 1.0.0-rc.8 — 2026-11-18
+
+The fixes below came out of a sweep of the amps' phase-inverter tails (#575 to #590) and of bug hunts in the
+engine and Server (#600 to #610), the DSP blocks (#612 to #624) and the editor and website (#626 to #639).
 
 ### Added
 

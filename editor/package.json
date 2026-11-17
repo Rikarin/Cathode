@@ -1,6 +1,6 @@
 {
   "name": "@cathode/editor-workspace",
-  "version": "1.0.0-rc.7",
+  "version": "1.0.0-rc.8",
   "private": true,
   "license": "GPL-3.0-or-later",
   "scripts": {
@@ -92,7 +92,7 @@
     "@vitest/ui": "^4.0.0",
     "angular-eslint": "^22.6.0",
     "chromatic": "^18.14.2",
-    "electron": "^45.3.2",
+    "electron": "^45.3.3",
     "electron-builder": "^26.18.0",
     "esbuild": "^0.28.2",
     "eslint": "^10.14.0",
