@@ -66,8 +66,8 @@ the format upgrades older presets as it reads them.
 - Editor: the PEQ chart draws bands 1 and 2 at 100 Hz and 300 Hz, where the engine puts them (#627); removing a
   footswitch view keeps the active one (#631); duplicating a selection with an empty slot in it copies each preset
   once (#632); Output 2-4 are treated as I/O blocks by bypass and Make Global (#633); shift-click in the asset
-  library ranges from the asset clicked, after a filter or sort (#634); the IR mix's Length is kept to 5-2,000 ms
-  (#635); and a pinned preset picker stays open after loading a typed slot (#636).
+  library ranges from the asset clicked, after a filter or sort (#634); and the IR mix's Length is kept to 5-2,000
+  ms (#635).
 - Manual: the page outline shows headings with quotes and apostrophes as written, not as HTML entities (#637); the
   home page counts the knobs a block's page lists (#638); and the Graphic EQ's Shelves text says the corners move in,
   toward the middle, as they do (#639).

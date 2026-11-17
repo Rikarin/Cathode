@@ -146,9 +146,11 @@ export class PresetPicker {
     }
 
     const name = this.library.presets().find(p => p.id === id)?.name ?? id;
+    // A typed slot number closes the picker even when pinned: it is a jump to a known slot, not an audition of
+    // one preset after another (the desktop e2e suite holds this; #636).
     const position = { presetId: id, scene: null, position: { bank: bank.id, slot } };
-    if ((await this.switcher.load(id, name, false, position)) && !this.pinned()) {
-      this.ui.presetPicker.set(false); // a pinned picker stays open, as when a preset is clicked (#636)
+    if (await this.switcher.load(id, name, false, position)) {
+      this.ui.presetPicker.set(false);
     }
   }
 

@@ -177,17 +177,6 @@ describe('PresetPicker', () => {
     expect(presetPicker()).toBe(false);
   });
 
-  it('stays open after loading a typed slot when pinned (#636)', async () => {
-    const { picker, open, presetPicker } = render();
-    open();
-    picker.pinned.set(true);
-    picker.query.set('2');
-
-    await picker.loadSlot();
-
-    expect(presetPicker()).toBe(true);
-  });
-
   it('says an empty slot is empty, and loads nothing', async () => {
     const { picker, open, presetPicker, load, error } = render();
     open();
